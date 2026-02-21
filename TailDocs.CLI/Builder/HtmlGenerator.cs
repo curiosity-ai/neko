@@ -31,7 +31,9 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine($"    <title>{title}</title>");
 
             // Tailwind CSS
-            sb.AppendLine("    <script src=\"/assets/tailwind.js\"></script>");
+            // Use CDN to ensure plugins (like typography) are available.
+            // The local resource might be missing the typography plugin.
+            sb.AppendLine("    <script src=\"https://cdn.tailwindcss.com?plugins=typography\"></script>");
             sb.AppendLine("    <script>tailwind.config = { darkMode: 'class' }</script>");
 
             // Inter Font
