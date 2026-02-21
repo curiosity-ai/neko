@@ -8,3 +8,4 @@ Initial project setup and scaffolding.
 - Added `AGENTS.md`, `TODO.md`, `WIP.md`.
 - Added necessary NuGet packages.
 - Cloned reference repositories.
+- Implemented Tabs component (`+++`).

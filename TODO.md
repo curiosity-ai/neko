@@ -10,7 +10,7 @@
 ## Components / Syntax
 - [x] Badge component (`[!badge ...]`).
 - [x] Alert component (`!!!` and `> [!ALERT]`).
-- [ ] Tabs component (`+++`). (Partially implemented, needs refinement)
+- [x] Tabs component (`+++`).
 - [ ] Code blocks with syntax highlighting (Highlight.js).
 - [ ] TOC generation.
 - [ ] Search index generation. (Done)
@@ -38,7 +38,7 @@ Please refer to the following list for future implementation. Suggested syntax f
 - [ ] **UIcons**: Flaticon integration. (Already embedded, need component helper)
 - [ ] **Panel**: `:::panel ... :::`
 - [ ] **Reference Link**: `[!ref text="Link" link="url"]`
-- [ ] **Tab**: `+++ Title ... +++` (In progress)
+- [x] Tab: `+++ Title ... +++`
 - [ ] **Table**: Enhanced markdown tables.
 - [ ] **YouTube Embed**: `[!youtube id="xyz"]`
 

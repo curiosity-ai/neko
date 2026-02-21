@@ -14,7 +14,6 @@ namespace TailDocs.Tests
         }
 
         [Test]
-        [Ignore("Refining Tab logic")]
         public void TestTabGroup()
         {
             var markdown = "+++ Tab 1\nContent 1\n+++ Tab 2\nContent 2\n+++";
@@ -27,6 +26,16 @@ namespace TailDocs.Tests
 
             // Check structure
             Assert.That(doc.Html, Contains.Substring("tab-content"));
+        }
+
+        [Test]
+        public void TestTabGroupEnding()
+        {
+            var markdown = "+++ Tab 1\nContent 1\n+++\nAfter tabs";
+            var doc = _parser.Parse(markdown);
+
+            Assert.That(doc.Html, Contains.Substring("Content 1"));
+            Assert.That(doc.Html, Contains.Substring("After tabs"));
         }
     }
 }
