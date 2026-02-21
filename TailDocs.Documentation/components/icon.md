@@ -1,38 +1,17 @@
 ---
-title: Icon Component
+icon: smiley
+tags: [component, icon]
 ---
-
 # Icon
 
-The Icon component allows you to insert icons inline or within other components. TailDocs uses the **Flaticon UIcons** set (Regular Rounded style).
+Similar to the [Emoji](emoji.md) `:shortcode:` syntax, you can add icons using `:icon-shortcode:`, where the `shortcode` is an [Octicon](/components/octicons.md) icon name.
 
-## Syntax
+For example, to add the :icon-star: `star` icon, use the `:icon-star:` icon shortcode.
 
-Use the `[!icon name="..."]` syntax, where `name` is the name of the icon (without the `fi-rr-` prefix).
+Icons can be added anywhere within your document, including paragraph text, headings, table content, [Panel](panel.md) component titles, [Callouts](callout.md), [code block](code-block.md) titles, etc. :icon-thumbsup:
 
-```markdown
-This is a star: [!icon name="star"]
-```
+Some icon shortcode names are made up of `two-or-more` words. For instance, the :icon-git-branch: `git-branch` icon would be configured as `:icon-git-branch:`.
 
-## Attributes
-
-| Attribute | Description | Default |
-| :--- | :--- | :--- |
-| `name` | The name of the icon. | (Required) |
-
-### Common Icons
-
-- `star` [!icon name="star"]
-- `check` [!icon name="check"]
-- `cross` [!icon name="cross"]
-- `menu-burger` [!icon name="menu-burger"]
-- `search` [!icon name="search"]
-- `home` [!icon name="home"]
-- `settings` [!icon name="settings"]
-- `user` [!icon name="user"]
-- `info` [!icon name="info"]
-- `exclamation` [!icon name="exclamation"]
-
-### Styling
-
-Icons inherit the font size and color of their surrounding text. You can style them further using CSS or by wrapping them in spans if needed.
+!!! More icons :icon-heart:
+In future releases of Retype, the plan is to support additional Icon packs and possibily even custom developer defined icon packs. [Let us know](https://github.com/retypeapp/retype/issues/) if you are interested!
+!!!

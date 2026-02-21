@@ -44,6 +44,9 @@ namespace TailDocs.CLI.Extensions
                 string variant = "primary";
                 string title = null;
 
+                // Skip spaces
+                slice.TrimStart();
+
                 var variantStart = slice.Start;
 
                 // Read first word (potential variant)
@@ -71,122 +74,14 @@ namespace TailDocs.CLI.Extensions
                 else
                 {
                     variant = "primary";
+                    // Fallback: title is everything after !!! (excluding initial whitespace)
+                    // We need to reconstruct the title because we might have consumed part of it as "firstWord"
 
-                    // We need to fetch everything after the "!!!".
-                    // The logic using `start + 3` failed because `start` was local to the match, but `slice.Text` is the whole source?
-                    // No, `start` is the index in `slice.Text`.
-
-                    // The issue might be that `slice.Text` might contain more than just this line if the parser is specialized.
-                    // But `slice.End` is the end of the line.
-
-                    // Let's debug by simplifying.
-                    // If we failed to get the title "My Title", it means our substring logic was wrong.
-
-                    // "!!! warning My Title" -> works.
-                    // "!!! My Title" -> fails. variant="primary".
-
-                    // The difference?
-                    // In "!!! warning My Title", firstWord="warning". Loop ran.
-                    // In "!!! My Title", firstWord="My" (if we assume slice starts at M).
-                    // BUT "!!!" is followed by space.
-
-                    // Ah!
-                    // "!!! My Title"
-                    // slice.Match("!!!") ok.
-                    // slice.Start += 3.
-                    // slice.CurrentChar is ' '.
-                    // Loop `!IsSpace` stops immediately.
-                    // firstWord = "".
-
-                    // IsKnownVariant("") is false.
-                    // else block runs.
-
-                    // We assume `start` is correct. `start` was `slice.Start` before match.
-                    // So `start` points to `!`.
-                    // `start + 3` points to space after `!!!`.
-
-                    // `slice.Text` content: "!!! My Title"
-                    // `start` = 0 (relative to line start in text?)
-                    // `slice.Text.Substring(start + 3)` should be " My Title".
-                    // Trim -> "My Title".
-
-                    // Why did it fail?
-                    // TestAlertTitle: "!!! warning My Title"
-                    // Wait, I updated the test to use "!!! warning My Title" in previous run?
-                    // The failure says:
-                    // Expected: String containing "border-yellow-500"
-                    // But was: ... "border-l-4 border-blue-500" ... "warning My Title" as title.
-
-                    // So for "!!! warning My Title":
-                    // It seems it went into `else` block (variant=primary).
-                    // Why?
-                    // IsKnownVariant("warning") returned false?
-                    // OR firstWord was NOT "warning".
-
-                    // "!!! warning My Title"
-                    // slice.Start matches `!!!`.
-                    // slice.Start += 3.
-                    // slice.CurrentChar is ' '.
-                    // Loop stops immediately! firstWord="".
-
-                    // Ah! I need to skip spaces BEFORE reading first word to support "!!! warning".
-                    // Retype allows "!!!warning" (no space) or "!!! warning" (space)?
-                    // If "!!! warning", there is a space.
-
-                    // If I add `slice.TrimStart()` before reading first word:
-
-                    // "!!! warning My Title" -> skips space. firstWord="warning". Known. Variant=warning. Title="My Title".
-
-                    // "!!! My Title" -> skips space. firstWord="My". Unknown.
-                    // Else block: variant=primary. Title should be "My Title".
-                    // But wait, we consumed "My".
-                    // We need to restore title from original line.
-
-                    // So, logic:
-                    // 1. Skip spaces.
-                    // 2. Read first word.
-                    // 3. If known variant -> use it. Rest is title.
-                    // 4. If unknown -> variant=primary.
-                    //    Title is everything after "!!!".
-
-                    // Let's implement this.
-
-                    // We need to snapshot slice before we skip spaces/read word, or just use original line logic for fallback.
-
-                    slice.TrimStart();
-
-                    variantStart = slice.Start;
-                    while (!slice.IsEmpty && !IsSpace(slice.CurrentChar))
+                    // Reset to variantStart (which is after initial spaces)
+                    var lineEnd = slice.End;
+                    if (variantStart <= lineEnd)
                     {
-                        slice.NextChar();
-                    }
-
-                    if (slice.Start > variantStart)
-                    {
-                        firstWord = slice.Text.Substring(variantStart, slice.Start - variantStart);
-                    }
-
-                    if (IsKnownVariant(firstWord))
-                    {
-                        variant = firstWord;
-                        slice.TrimStart();
-                        if (!slice.IsEmpty)
-                        {
-                            title = slice.ToString();
-                        }
-                    }
-                    else
-                    {
-                        variant = "primary";
-                        // Fallback to getting everything after "!!!"
-                        // We can use `text` and `start`.
-                        var text = slice.Text;
-                        var contentStart = start + 3;
-                        var contentEnd = slice.End;
-                        if (contentStart <= contentEnd)
-                        {
-                            title = text.Substring(contentStart, contentEnd - contentStart + 1).Trim();
-                        }
+                        title = slice.Text.Substring(variantStart, lineEnd - variantStart + 1);
                     }
                 }
 

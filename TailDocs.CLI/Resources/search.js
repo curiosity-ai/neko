@@ -7,7 +7,7 @@
     async function loadSearchIndex() {
         if (miniSearch) return;
         try {
-            const response = await fetch('search.json');
+            const response = await fetch('/search.json');
             const data = await response.json();
             miniSearch = new MiniSearch({
                 fields: ['title', 'content'], // fields to index for full-text search
@@ -73,8 +73,13 @@
             return;
         }
 
-        container.innerHTML = results.map((result, index) => `
-            <a href="${result.id}" class="block px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700/50 group">
+        container.innerHTML = results.map((result, index) => {
+            // Ensure path is absolute and uses forward slashes
+            let href = result.id.replace(/\\/g, '/');
+            if (!href.startsWith('/')) href = '/' + href;
+
+            return `
+            <a href="${href}" class="block px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700/50 group">
                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400">
                     ${result.title}
                 </div>
@@ -82,7 +87,7 @@
                     ${result.id}
                 </div>
             </a>
-        `).join('');
+        `}).join('');
     }
 
     function openSearch() {
