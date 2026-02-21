@@ -37,6 +37,16 @@ namespace TailDocs.CLI.Builder
             // Flaticon UIcons
             sb.AppendLine("    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>");
 
+            // KaTeX (Math)
+            sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css\">");
+            sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js\"></script>");
+            sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js\"></script>");
+            sb.AppendLine("    <script>document.addEventListener(\"DOMContentLoaded\", function() { renderMathInElement(document.body); });</script>");
+
+            // Mermaid (Diagrams)
+            sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>");
+            sb.AppendLine("    <script>mermaid.initialize({startOnLoad:true});</script>");
+
             // Search Assets
             sb.AppendLine("    <script src=\"assets/minisearch.min.js\"></script>");
             sb.AppendLine("    <script defer src=\"assets/search.js\"></script>");

@@ -39,9 +39,13 @@ namespace TailDocs.CLI.Builder
                 .UseYamlFrontMatter()
                 .UseAdvancedExtensions()
                 .UseEmojiAndSmiley()
+                .UseMathematics()
+                .UseDiagrams()
+                .UseCustomContainers()
                 .Use<BadgeExtension>()
                 .Use<AlertExtension>()
                 .Use<TabExtension>()
+                .Use<ComponentExtension>()
                 .Build();
         }
 

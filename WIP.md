@@ -9,3 +9,4 @@ Initial project setup and scaffolding.
 - Added necessary NuGet packages.
 - Cloned reference repositories.
 - Implemented Tabs component (`+++`).
+- Implemented 10+ components: Button, ColorChip, File, Icon, Ref, YouTube, Math, Mermaid, Container, Emoji.
