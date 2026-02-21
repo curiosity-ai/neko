@@ -15,6 +15,7 @@ namespace TailDocs.CLI.Extensions
         public string Corners { get; set; } = "round"; // round, square, pill
         public string Size { get; set; } = "m"; // xs, s, m, l, xl
         public string Icon { get; set; }
+        public string Link { get; set; }
     }
 
     public class BadgeParser : InlineParser
@@ -115,6 +116,29 @@ namespace TailDocs.CLI.Extensions
             if (slice.CurrentChar == ']')
             {
                 slice.NextChar();
+
+                // Check for optional link (url)
+                if (slice.CurrentChar == '(')
+                {
+                    slice.NextChar();
+                    var linkStart = slice.Start;
+                    int parenCount = 1;
+                    while (parenCount > 0 && !slice.IsEmpty)
+                    {
+                        if (slice.CurrentChar == '(') parenCount++;
+                        else if (slice.CurrentChar == ')') parenCount--;
+
+                        if (parenCount > 0) slice.NextChar();
+                    }
+
+                    if (parenCount == 0)
+                    {
+                        var link = slice.Text.Substring(linkStart, slice.Start - linkStart);
+                        badge.Link = link;
+                        slice.NextChar(); // consume closing )
+                    }
+                }
+
                 processor.Inline = badge;
                 return true;
             }
@@ -128,6 +152,11 @@ namespace TailDocs.CLI.Extensions
     {
         protected override void Write(HtmlRenderer renderer, Badge obj)
         {
+            if (!string.IsNullOrEmpty(obj.Link))
+            {
+                renderer.Write($"<a href=\"{obj.Link}\" class=\"no-underline hover:opacity-80 transition-opacity\">");
+            }
+
             // Map variant to Tailwind classes
             var bgClass = "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"; // base
             switch (obj.Variant.ToLower())
@@ -176,6 +205,11 @@ namespace TailDocs.CLI.Extensions
 
             renderer.Write(obj.Text);
             renderer.Write("</span>");
+
+            if (!string.IsNullOrEmpty(obj.Link))
+            {
+                renderer.Write("</a>");
+            }
         }
     }
 

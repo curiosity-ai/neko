@@ -1,45 +1,91 @@
 ---
-title: Tab Component
+icon: browser
+tags: [component]
 ---
-
 # Tab
 
-Tabs are used to organize content into separate views, allowing users to switch between them. This is useful for code examples in different languages or alternative instructions.
+With TailDocs, a Tab component is super simple to configure by surrounding a block of text with `+++` and including a title for the tab.
 
-## Syntax
-
-Tabs are defined using the `+++` syntax. Each `+++ Title` starts a new tab, and `+++` (no title) closes the group.
-
-```markdown
-+++ Tab 1 Title
-Content for Tab 1 goes here.
-+++ Tab 2 Title
-Content for Tab 2 goes here.
+```md
++++ Tab 1
+This is a Tab
 +++
 ```
 
-### Example
-
-+++ C#
-```csharp
-Console.WriteLine("Hello from C#");
-```
-+++ JavaScript
-```javascript
-console.log("Hello from JavaScript");
-```
-+++ Python
-```python
-print("Hello from Python")
-```
++++ Tab 1
+This is a Tab
 +++
 
-## Features
+The tab `title` must be separated from the opening `+++` by one space. The pattern `+++ Tab ` will work as expected, and `+++Tab 1` will not.
 
-- **Styling**: Tabs inherit the active theme colors.
-- **Nested Content**: Tabs can contain any Markdown content, including code blocks, lists, and images.
-- **Responsive**: Tabs handle overflow elegantly on smaller screens.
+---
 
-### Nested Tabs
+## Multiple tabs
 
-You can nest tab groups inside other components (like panels), but nesting tabs inside tabs is not directly supported by the current parser (it might flatten them). Use with caution or verify the output.
+Multiple Tabs can be configured by stacking multiple `+++` blocks and adding a title for each tab.
+
+```md
++++ Tab 1
+This is a Tab
++++ Tab 2
+This is another Tab
++++ Tab 3
+Wow! Yet another tab :+1:
++++
+```
+
++++ Tab 1
+This is a Tab
++++ Tab 2
+This is another Tab
++++ Tab 3
+Wow! Yet another tab :+1:
++++
+
+---
+
+## Empty lines
+
+Extra empty lines at the start or end of the Tab are allowable, although ignored. Tabs can contain any number of leading or trailing empty lines.
+
+```md
++++ Tab 1
+
+This is a Tab
+
++++ Tab 2
+This is another Tab
++++ Tab 3
+
+Wow! Yet another tab :+1:
+
++++
+```
+
++++ Tab 1
+
+This is a Tab
+
++++ Tab 2
+This is another Tab
++++ Tab 3
+
+Wow! Yet another tab :+1:
+
++++
+
+---
+
+## Anchors
+
+Each Tab is an anchor that allows for linking directly to the tab by passing the anchor in a URL.
+
+If the tab anchor is passed in the URL, when the page loads, the page will be automatically scrolled to that tab position and the tab will be selected.
+
+To get the tab URL with the anchor, right-click on the tab and select `Copy Link Address`.
+
+```md
+[Tab anchor link](#tab-3)
+```
+
+[Tab anchor link](#tab-3)

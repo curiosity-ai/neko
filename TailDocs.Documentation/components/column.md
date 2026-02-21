@@ -1,53 +1,127 @@
 ---
-title: Column Component
+icon: columns
+tags: [component]
 ---
-
 # Column
 
-Create multi-column layouts using `::: columns` and `::: column` directives. This is useful for creating side-by-side content or grid-like structures.
+The column component is used to create multiple equal width columns with a title for each column.
 
-## Syntax
+The column component is configured by wrapping any block of content in an opening and closing `|||` and setting a title for each column.
 
-Wrap content in a `::: columns` block, and then divide it into `::: column` blocks.
+A column can contain any other content, such as text, paragraphs, links, tables, images, and other TailDocs [components](components.md).
 
-```markdown
-::: columns
-
-::: column
-### Left Column
-This content is in the left column.
-:::
-
-::: column
-### Right Column
-This content is in the right column.
-:::
-
-:::
+```md
+||| Column 1
+This is a paragraph inside a **column**.
+|||
 ```
 
-## Features
+||| Column 1
+This is a paragraph inside a **column**.
+|||
 
-- **Responsive**: Columns automatically stack vertically on mobile devices.
-- **Flexible**: You can have any number of columns (though 2 or 3 is recommended for readability).
-- **Styling**: Columns automatically adjust width based on content, but generally try to share equal space if possible (flex-1 behavior).
+!!!
+A title is required for each column. The title is separated by one space from the opening `|||`, such as `||| Column 1`.
+!!!
 
-### Example
+---
 
-::: columns
+## Multiple columns
 
-::: column
-### Features
-- **Easy to Use**
-- **Fast**
-- **Customizable**
-:::
+One or more columns can be configured by _stacking_ multiple column blocks.
 
-::: column
-### Benefits
-- **Better Docs**
-- **Happy Users**
-- **Less Maintenance**
-:::
+```md
+||| Column 1
+Content 1
+||| Column 2
+Content 2
+||| Column 3
+Content 3
+|||
+```
 
-:::
+||| Column 1
+Content 1
+||| Column 2
+Content 2
+||| Column 3
+Content 3
+|||
+
+An unlimited number of columns is possible, although the practical limit will be determined by the width of the page conent area.
+
+All columns will be the same width and there are no configuration option to make variable width columns.
+
+---
+
+## Code column
+
+A special Code Column is created when a code block is configured inside a column and the only content of the column is a code block. The following sample demonstrates a 2-column layout with a code block in the second column position.
+
+~~~
+||| Demo
+[!button Button](button.md)
+||| Source
+```md
+[!button Button](button.md)
+```
+|||
+~~~
+
+||| Demo
+[!button Button](button.md)
+||| Source
+```md
+[!button Button](button.md)
+```
+|||
+
+If any other content is directly inside the column, the column and code block will be rendered as normal. For example, let's add some text to the second column and see difference:
+
+~~~
+||| Demo
+[!button Button](button.md)
+||| Source
+This is a Button component inside a column.
+```md
+[!button Button](button.md)
+```
+|||
+~~~
+
+||| Demo
+[!button Button](button.md)
+||| Source
+This is a Button component inside a column.
+```md
+[!button Button](button.md)
+```
+|||
+
+---
+
+## Custom title
+
+The column titles support configuring with Markdown, so links, [emojis](emoji.md), or [icons](icon.md) could also be added.
+
+~~~
+||| Title with emoji :thumbsup:
+
+A column title with the [emoji](emoji.md) `:thumbsup:`.
+
+||| Title with icon :icon-check-circle:
+
+A column title with the [icon](icon.md) `:icon-check-circle:`.
+
+|||
+~~~
+
+||| Title with emoji :thumbsup:
+
+A column title with the [emoji](emoji.md) `:thumbsup:`.
+
+||| Title with icon :icon-check-circle:
+
+A column title with the [icon](icon.md) `:icon-check-circle:`.
+
+|||
