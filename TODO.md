@@ -21,25 +21,25 @@ Please refer to the following list for future implementation. Suggested syntax f
 - [ ] **Backlinks**: Automatic generation of backlinks at the bottom of pages.
 - [x] **Button**: `[!button text="Click Me" link="/url" variant="primary"]`
 - [ ] **Callout**: Enhanced alerts/callouts. Already partially covered by Alerts.
-- [ ] **Code Block**: Standard markdown fence with language. Support `title="filename.cs"` and line highlighting.
-- [ ] **Code Snippet**: `:::code source="path/to/file.cs" :::`
+- [x] **Code Block**: Standard markdown fence with language. Support `title="filename.cs"` and line highlighting.
+- [x] **Code Snippet**: `:::code source="path/to/file.cs" :::`
 - [x] **Color Chip**: `[!color-chip color="#ff0000" text="Red"]`
-- [ ] **Column**: `:::column ... :::` for multi-column layouts.
+- [x] **Column**: `:::column ... :::` for multi-column layouts.
 - [ ] **Comments**: Integration with Giscus or Disqus.
 - [x] **Container**: `:::div class="custom-class" ... :::`
 - [ ] **Embed**: Generic embed component.
 - [x] **Emoji**: `:smile:` support. (Basic support enabled)
 - [x] **File Download**: `[!file text="Download" link="file.zip"]`
 - [x] **Icon**: `[!icon name="home"]` or inline `:icon-home:`
-- [ ] **Image**: Enhanced image syntax `![Alt](img.png){width=500}`
+- [x] **Image**: Enhanced image syntax `![Alt](img.png){width=500}`
 - [ ] **List**: Enhanced lists.
 - [x] **Math Formulas**: KaTeX integration. `$$ ... $$`
 - [x] **Mermaid**: Mermaid.js integration. ```mermaid ... ```
 - [ ] **UIcons**: Flaticon integration. (Already embedded, need component helper)
-- [ ] **Panel**: `:::panel ... :::`
+- [x] **Panel**: `:::panel ... :::`
 - [x] **Reference Link**: `[!ref text="Link" link="url"]`
 - [x] Tab: `+++ Title ... +++`
-- [ ] **Table**: Enhanced markdown tables.
+- [x] **Table**: Enhanced markdown tables.
 - [x] **YouTube Embed**: `[!youtube id="xyz"]`
 
 ## Assets

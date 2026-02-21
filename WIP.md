@@ -10,3 +10,4 @@ Initial project setup and scaffolding.
 - Cloned reference repositories.
 - Implemented Tabs component (`+++`).
 - Implemented 10+ components: Button, ColorChip, File, Icon, Ref, YouTube, Math, Mermaid, Container, Emoji.
+- Implemented advanced components: Code Blocks (with title), Code Snippets (:::code), Panels, Columns, Image Attributes.

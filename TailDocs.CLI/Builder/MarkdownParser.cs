@@ -42,10 +42,14 @@ namespace TailDocs.CLI.Builder
                 .UseMathematics()
                 .UseDiagrams()
                 .UseCustomContainers()
+                .Use<CustomContainerExtension>()
+                .UseGenericAttributes() // Enables {width=500}
                 .Use<BadgeExtension>()
                 .Use<AlertExtension>()
                 .Use<TabExtension>()
                 .Use<ComponentExtension>()
+                .Use<CodeBlockExtension>()
+                .Use<CodeSnippetExtension>()
                 .Build();
         }
 
