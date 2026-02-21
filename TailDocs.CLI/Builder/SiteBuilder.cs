@@ -91,12 +91,23 @@ namespace TailDocs.CLI.Builder
                 {
                     // Resource name format: TailDocs.CLI.Resources.filename.ext
                     // We need to map it to assets/filename.ext
-                    // But folder structure might be flattened or preserved with dots?
-                    // "TailDocs.CLI.Resources.minisearch.min.js" -> "minisearch.min.js"
 
-                    // Simple logic: take everything after "TailDocs.CLI.Resources."
-                    var fileName = resourceName.Replace("TailDocs.CLI.Resources.", "");
-                    var outputPath = Path.Combine(assetsDir, fileName);
+                    var relativeName = resourceName.Replace("TailDocs.CLI.Resources.", "");
+                    string outputPath;
+
+                    // Handle 'highlight' folder specifically
+                    if (relativeName.StartsWith("highlight."))
+                    {
+                        var highlightDir = Path.Combine(assetsDir, "highlight");
+                        if (!Directory.Exists(highlightDir)) Directory.CreateDirectory(highlightDir);
+
+                        var fileName = relativeName.Substring("highlight.".Length);
+                        outputPath = Path.Combine(highlightDir, fileName);
+                    }
+                    else
+                    {
+                        outputPath = Path.Combine(assetsDir, relativeName);
+                    }
 
                     using var stream = assembly.GetManifestResourceStream(resourceName);
                     if (stream != null)
