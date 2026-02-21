@@ -3,7 +3,7 @@ output: .taildocs
 url: localhost
 
 branding:
-  title: TailDocs Sample
+  title: TailDocs Documentation
 
 links:
   - text: Home
@@ -18,6 +18,8 @@ links:
         link: components/button
       - text: Code
         link: components/code
+      - text: Color Chip
+        link: components/color-chip
       - text: Column
         link: components/column
       - text: Embed

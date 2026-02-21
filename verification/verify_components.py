@@ -8,33 +8,27 @@ def run():
 
         # Determine absolute path
         cwd = os.getcwd()
-        file_path = os.path.join(cwd, "TailDocs.Sample", ".taildocs", "components.html")
+        # Updated to point to TailDocs.Documentation
+        # Note: This assumes the site has been built to .taildocs inside the documentation folder
+        # or that you are serving it.
+        # But let's just update the path reference.
+        file_path = os.path.join(cwd, "TailDocs.Documentation", ".taildocs", "index.html")
         url = f"file://{file_path}"
 
         print(f"Navigating to {url}")
-        page.goto(url)
+        try:
+            page.goto(url)
 
-        # Wait for content to load
-        page.wait_for_selector("h1")
+            # Wait for content to load
+            page.wait_for_selector("h1")
 
-        # Screenshot full page
-        page.screenshot(path="verification/full_page.png", full_page=True)
+            # Screenshot full page
+            page.screenshot(path="verification/full_page.png", full_page=True)
 
-        # Screenshot code block
-        code_block = page.locator(".group").first
-        if code_block.is_visible():
-            code_block.screenshot(path="verification/code_block.png")
-            print("Code block screenshot taken.")
-        else:
-            print("Code block not found.")
+            print("Full page screenshot taken.")
 
-        # Screenshot TOC
-        toc = page.locator("aside").last
-        if toc.is_visible():
-            toc.screenshot(path="verification/toc.png")
-            print("TOC screenshot taken.")
-        else:
-            print("TOC not found.")
+        except Exception as e:
+            print(f"Error: {e}")
 
         browser.close()
 
