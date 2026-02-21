@@ -86,7 +86,7 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
 
             // Navbar
-            sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 z-10\">");
+            sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10\">");
             sb.AppendLine("        <div class=\"flex items-center gap-4\">");
             if (!string.IsNullOrEmpty(_config.Branding.Logo))
             {
@@ -108,10 +108,12 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("        </div>");
 
             sb.AppendLine("        <div class=\"flex items-center gap-4\">");
-            sb.AppendLine("            <button onclick=\"openSearch()\" class=\"flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 focus:ring-2 focus:ring-blue-500\">");
-            sb.AppendLine("                <i class=\"fi fi-rr-search text-sm\"></i>");
-            sb.AppendLine("                <span class=\"hidden lg:inline text-sm\">Search...</span>");
-            sb.AppendLine("                <kbd class=\"hidden lg:inline text-xs border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5 ml-2\">⌘K</kbd>");
+            sb.AppendLine("            <button onclick=\"openSearch()\" class=\"flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-blue-500 w-64 justify-between\">");
+            sb.AppendLine("                <div class=\"flex items-center gap-2\">");
+            sb.AppendLine("                    <i class=\"fi fi-rr-search text-sm\"></i>");
+            sb.AppendLine("                    <span class=\"text-sm font-medium\">Search</span>");
+            sb.AppendLine("                </div>");
+            sb.AppendLine("                <kbd class=\"hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400\">⌘K</kbd>");
             sb.AppendLine("            </button>");
             sb.AppendLine("            <button id=\"theme-toggle\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-blue-500\">");
             sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
@@ -125,8 +127,11 @@ namespace TailDocs.CLI.Builder
             // Sidebar
             sb.AppendLine("        <aside class=\"w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto hidden md:flex flex-col shrink-0\">");
             sb.AppendLine("            <nav class=\"p-4 flex-1\">");
-            sb.AppendLine("                <div class=\"mb-4\">");
-            sb.AppendLine("                    <input type=\"text\" id=\"sidebar-filter\" placeholder=\"Filter...\" class=\"w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500\">");
+            sb.AppendLine("                <div class=\"mb-6 relative\">");
+            sb.AppendLine("                    <div class=\"absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none\">");
+            sb.AppendLine("                        <i class=\"fi fi-rr-filter text-gray-400\"></i>");
+            sb.AppendLine("                    </div>");
+            sb.AppendLine("                    <input type=\"text\" id=\"sidebar-filter\" placeholder=\"Filter...\" class=\"w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm\">");
             sb.AppendLine("                </div>");
             sb.AppendLine("                <ul class=\"space-y-1\" id=\"sidebar-list\">");
 
@@ -210,6 +215,27 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("        }");
 
             // TOC Highlighting
+            // Active Link Highlighting
+            sb.AppendLine("        document.addEventListener('DOMContentLoaded', () => {");
+            sb.AppendLine("            const currentPath = window.location.pathname;");
+            sb.AppendLine("            const sidebarLinks = document.querySelectorAll('#sidebar-list a');");
+            sb.AppendLine("            sidebarLinks.forEach(link => {");
+            sb.AppendLine("                const href = link.getAttribute('href');");
+            sb.AppendLine("                if (href === currentPath || (href !== '/' && currentPath.startsWith(href))) {");
+            sb.AppendLine("                    link.classList.add('bg-blue-50', 'dark:bg-blue-900', 'text-blue-700', 'dark:text-blue-300', 'font-medium');");
+            sb.AppendLine("                    link.classList.remove('text-gray-700', 'dark:text-gray-200');");
+            sb.AppendLine("                    // Open parent details");
+            sb.AppendLine("                    let parent = link.parentElement;");
+            sb.AppendLine("                    while (parent && parent.id !== 'sidebar-list') {");
+            sb.AppendLine("                        if (parent.tagName === 'DETAILS') {");
+            sb.AppendLine("                            parent.open = true;");
+            sb.AppendLine("                        }");
+            sb.AppendLine("                        parent = parent.parentElement;");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                }");
+            sb.AppendLine("            });");
+            sb.AppendLine("        });");
+
             sb.AppendLine("        const tocLinks = document.querySelectorAll('.toc-link');");
             sb.AppendLine("        const sections = [];");
             sb.AppendLine("        tocLinks.forEach(link => {");
