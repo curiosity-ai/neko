@@ -20,8 +20,9 @@ namespace TailDocs.Tests
             var doc = _parser.Parse(markdown);
 
             Assert.That(doc.Html, Contains.Substring("MyFile.cs"));
-            Assert.That(doc.Html, Contains.Substring("fi-rr-file-code"));
-            Assert.That(doc.Html, Contains.Substring("rounded-t-none"));
+            // New implementation does not use the icon
+            // Assert.That(doc.Html, Contains.Substring("fi-rr-file-code"));
+            Assert.That(doc.Html, Contains.Substring("!rounded-none"));
         }
 
         [Test]
