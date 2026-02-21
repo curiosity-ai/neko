@@ -60,6 +60,8 @@ namespace TailDocs.CLI.Builder
                 .UseGenericAttributes() // Enables {width=500}
                 .Use<BadgeExtension>()
                 .Use<AlertExtension>()
+                // .UseAlerts() // Not available/needed as UseAdvancedExtensions covers it
+                .Use<GitHubAlertExtension>()
                 .Use<TabExtension>()
                 .Use<ComponentExtension>()
                 .Use<CodeBlockExtension>()

@@ -58,6 +58,15 @@ namespace TailDocs.CLI.Extensions
 
             var name = slice.Text.Substring(nameStart, nameLength).ToLower();
 
+            // Avoid conflict with GitHub Alerts (which might be parsed as ComponentInline if we don't skip them)
+            // GitHub alerts use > [!NOTE], which Markdig post-processes. If we parse [!NOTE] as a component,
+            // Markdig's alert detection logic (likely inspecting inlines) fails.
+            if (name == "note" || name == "tip" || name == "important" || name == "warning" || name == "caution")
+            {
+                slice = saved;
+                return false;
+            }
+
             // Avoid conflict with BadgeParser
             if (name == "badge")
             {
