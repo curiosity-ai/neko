@@ -57,10 +57,10 @@ You can link to an external (see outbound) location or any page within your proj
 The following demonstrates adding an outbound link to an image:
 
 ```md
-[![](/static/sample.jpg)](https://retype.com)
+[![](/static/sample.jpg)](https://example.com)
 ```
 
-[![](/static/sample.jpg)](https://retype.com)
+[![](/static/sample.jpg)](https://example.com)
 
 The following demonstrates adding an outbound link to another page:
 
@@ -104,7 +104,7 @@ The dimensions are specified in pixels. For best results, use values that mainta
 
 ## Generic Attributes
 
-Retype allows you to add custom HTML attributes to your images using a simple curly brace syntax `{}`. This powerful feature lets you customize the appearance and behavior of your images beyond basic Markdown capabilities.
+TailDocs allows you to add custom HTML attributes to your images using a simple curly brace syntax `{}`. This powerful feature lets you customize the appearance and behavior of your images beyond basic Markdown capabilities.
 
 ### Custom `id`
 
@@ -179,10 +179,10 @@ You can combine multiple attributes in a single set of curly braces. For example
 
 ## Alignment options
 
-If an image is configured on a separate line, Retype includes extra functionality for the custom alignment of images on the page. For instance, you can specify the left or right alignment of an image and have the text flow around the image. Check out the [Image alignment :icon-image:](image-alignment-demo.md) demo.
+If an image is configured on a separate line, TailDocs includes extra functionality for the custom alignment of images on the page. For instance, you can specify the left or right alignment of an image and have the text flow around the image. Check out the [Image alignment :icon-image:](image-alignment-demo.md) demo.
 
 !!!
-If an image is defined inline with other text on the same line, the image will be treated as an inline image and the following Retype alignment options will be ignored.
+If an image is defined inline with other text on the same line, the image will be treated as an inline image and the following TailDocs alignment options will be ignored.
 !!!
 
 An additional **plus** option for Blog pages or pages with `layout: central` will help to position the image slightly overlapping the left or right content margins.

@@ -8,34 +8,34 @@ toc:
 ---
 # Project configuration
 
-Retype will read the **retype.yml** file for additional instructions on how to configure and build your project.
+TailDocs will read the **taildocs.yml** file for additional instructions on how to configure and build your project.
 
-The **retype.yml** file is typically placed in the root of your project, although it can be placed elsewhere. Please ensure the [`input`](#input) and [`output`](#output) paths are correct if moved to a different location.
-
-!!!
-When running [`retype start`](/guides/cli.md#retype-start), any changes to your **retype.yml** file will automatically trigger Retype to regenerate the website and refresh your web browser.
-
-If you started the local web server using [`retype serve`](/guides/cli.md#retype-serve), you will need to call [`retype build`](/guides/cli.md#retype-build) for a :sparkles: sparkly :sparkles: fresh new build of the project, then manually refresh your web browser to see the update. Using the command `retype serve --live` will automatically update all web browsers.
+The **taildocs.yml** file is typically placed in the root of your project, although it can be placed elsewhere. Please ensure the [`input`](#input) and [`output`](#output) paths are correct if moved to a different location.
 
 !!!
+When running [`taildocs start`](/guides/cli.md#taildocs-start), any changes to your **taildocs.yml** file will automatically trigger TailDocs to regenerate the website and refresh your web browser.
 
-The **retype.yml** file is actually optional (not required), but is recommended as you will almost certainly want to customize some options, so adding a **retype.yml** is a good first step.
+If you started the local web server using [`taildocs serve`](/guides/cli.md#taildocs-serve), you will need to call [`taildocs build`](/guides/cli.md#taildocs-build) for a :sparkles: sparkly :sparkles: fresh new build of the project, then manually refresh your web browser to see the update. Using the command `taildocs serve --live` will automatically update all web browsers.
 
-If you run the command `retype start` and do not have a **retype.yml** project configuration file within the root of your project, Retype will auto-generate a basic **retype.yml** file for your project. You can then edit the file to customize your project.
+!!!
 
-You can also explicitly have Retype generate a **retype.yml** file by running the command `retype init`.
+The **taildocs.yml** file is actually optional (not required), but is recommended as you will almost certainly want to customize some options, so adding a **taildocs.yml** is a good first step.
+
+If you run the command `taildocs start` and do not have a **taildocs.yml** project configuration file within the root of your project, TailDocs will auto-generate a basic **taildocs.yml** file for your project. You can then edit the file to customize your project.
+
+You can also explicitly have TailDocs generate a **taildocs.yml** file by running the command `taildocs init`.
 
 The following sample demonstrates a common set of project configuration options and everything can be customized to your requirements.
 
 {%{
-```yml Sample retype.yml
+```yml Sample taildocs.yml
 input: .
-output: .retype
+output: .taildocs
 
 url: docs.example.com # Use your website address here
 
 start:
-  # Uncomment the next line to try Retype Pro features
+  # Uncomment the next line to try TailDocs Pro features
   # pro: true
 
 branding:
@@ -44,24 +44,24 @@ branding:
 
 links:
   - text: Getting Started
-    link: https://retype.com/guides/getting-started/
+    link: https://example.com/guides/getting-started/
 
 footer:
   copyright: "&copy; Copyright {{ year }}. All rights reserved."
 ```
 }%}
 
-[!ref Full retype.yml sample](/samples/advanced-project-config.md)
+[!ref Full taildocs.yml sample](/samples/advanced-project-config.md)
 
 ---
 
 ## backlinks
 
-This setting is Retype [!badge PRO](/pro/pro.md) only.
+This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 The `backlinks` configuration controls the automatic display of inbound links from other pages in your project. Backlinks help users discover related content by showing which pages reference the current page.
 
-When enabled, backlinks are automatically included at the end of pages that have inbound links from other pages. The feature leverages Retype's dependency tracking system to build a web of interconnected content.
+When enabled, backlinks are automatically included at the end of pages that have inbound links from other pages. The feature leverages TailDocs's dependency tracking system to build a web of interconnected content.
 
 ### enabled
 
@@ -111,17 +111,17 @@ If a page has more inbound links than the `maxResults` value, only the first res
 The `backlinks` configuration can be set at two levels with the following precedence:
 
 1. [Page](page.md#backlinks) level in individual `.md` files
-2. [Project](project.md#backlinks) level in your Project `retype.yml` file
+2. [Project](project.md#backlinks) level in your Project `taildocs.yml` file
 
 ---
 
 ## branding
 
-Branding configuration for your Retype generated website.
+Branding configuration for your TailDocs generated website.
 
 ### baseColor
 
-This setting is Retype [!badge PRO](/pro/pro.md) only.
+This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 === [!badge PRO] baseColor : `string`
 
@@ -225,18 +225,18 @@ The above `title` would create the following branding title in the upper-left co
 
 ## breadcrumb
 
-This setting is Retype [!badge PRO](/pro/pro.md) only.
+This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 The breadcrumb navigation provides a hierarchical representation of the user's location within the website. The breadcrumb simplifies navigating website content structures, allowing for easier backtracking and understanding of the website layout.
 
 ### enabled
 
 === enabled : `boolean`
-To enable or disable the breadcrumb navigation within Retype Pro projects. Default is `true`.
+To enable or disable the breadcrumb navigation within TailDocs Pro projects. Default is `true`.
 
-For Retype Pro projects, breadcrumb navigation will be enabled by default.
+For TailDocs Pro projects, breadcrumb navigation will be enabled by default.
 
-For Retype projects (non-Pro), the breadcrumb navigation will not be added to any pages.
+For TailDocs projects (non-Pro), the breadcrumb navigation will not be added to any pages.
 
 To disable the breadcrumb navigation across an entire project, set the `enabled` parameter to `false` as shown in the following sample:
 
@@ -315,7 +315,7 @@ Cache busting configuration for the website resources, such as the JavaScript (.
 
 Helps to ensure a loaded page refers to the most recent JavaScript and CSS resources.
 
-Specifies the approach Retype will use for cache invalidation.
+Specifies the approach TailDocs will use for cache invalidation.
 
 | Strategy     | Description |
 | ------------ | ----------- |
@@ -333,15 +333,15 @@ cache:
 Below are demo URLs generated for corresponding `cache.busting.strategy` options:
 
 ~~~html `strategy: none`
-<script type="text/javascript" src="/resources/js/retype.js" />
+<script type="text/javascript" src="/resources/js/taildocs.js" />
 ~~~
 
 ~~~html `strategy: path`
-<script type="text/javascript" src="/resources/js/retype.v1.10.js" />
+<script type="text/javascript" src="/resources/js/taildocs.v1.10.js" />
 ~~~
 
 ~~~html `strategy: query`
-<script type="text/javascript" src="/resources/js/retype.js?v=1.10" />
+<script type="text/javascript" src="/resources/js/taildocs.js?v=1.10" />
 ~~~
 
 ===
@@ -355,7 +355,7 @@ An optional unique token used for website resource cache invalidation.
 If specified, the provided value is used for all invalidatable resources as is.
 
 If not specified, the default token having the following structure is used:
-`{Retype version}.{total milliseconds elapsed since 2000-01-01}`
+`{TailDocs version}.{total milliseconds elapsed since 2000-01-01}`
 
 ```yml
 cache:
@@ -373,7 +373,7 @@ cache:
 In general, you should not require setting the `cname`. Please set the [`url`](#url).
 !!!
 
-By default, if the [`url`](#url) is set, Retype will automatically generate a **CNAME** file. This can be disabled by setting `cname: false`.
+By default, if the [`url`](#url) is set, TailDocs will automatically generate a **CNAME** file. This can be disabled by setting `cname: false`.
 
 ```yml Disable CNAME file generation
 cname: false
@@ -429,7 +429,7 @@ edit:
   base: /src/docs
 ```
 
-The final **Edit this page** URL constructed by Retype for the sample above would be `https://github.com/your-organization/your-repo/blob/main/src/docs/your-page.md`.
+The final **Edit this page** URL constructed by TailDocs for the sample above would be `https://github.com/your-organization/your-repo/blob/main/src/docs/your-page.md`.
 
 ===
 
@@ -461,7 +461,7 @@ edit:
 
 ## editor
 
-Custom configuration to control the page live editor functionality that is only available when `retype start` is running.
+Custom configuration to control the page live editor functionality that is only available when `taildocs start` is running.
 
 ### enabled
 
@@ -481,7 +481,7 @@ editor:
 ## exclude
 
 === exclude : `list`
-Retype can exclude files or folders from being built or copied to the [`output`](#output) by configuring an `exclude` list within your projects **retype.yml** file.
+TailDocs can exclude files or folders from being built or copied to the [`output`](#output) by configuring an `exclude` list within your projects **taildocs.yml** file.
 
 Exclude patterns are similar to allowable patterns within a `.gitignore` file. The wildcards `?`, `*`, `**`, and `!` are supported.
 
@@ -519,7 +519,7 @@ The path is relative to the [`input`](#input).
 favicon: static/favicon.png
 ```
 
-By default, Retype will look for a `favicon.ico` or `favicon.png` within the root of the [`input`](#input). The `favicon` config would typically only be used if you want to store the `favicon` file in a subfolder of the [`output`](#output) root.
+By default, TailDocs will look for a `favicon.ico` or `favicon.png` within the root of the [`input`](#input). The `favicon` config would typically only be used if you want to store the `favicon` file in a subfolder of the [`output`](#output) root.
 ===
 
 ---
@@ -558,14 +558,14 @@ footer:
 
 ### directoryIndex
 
-Configuration options to instruct Retype on how and when to deal with the default directory index files, such as `index.html`.
+Configuration options to instruct TailDocs on how and when to deal with the default directory index files, such as `index.html`.
 
 #### altNames
 
 === altNames : `list`
 A list of file names to treat as default HTML files.
 
-By default, Retype will treat all of the following files as default pages if they are within a folder.
+By default, TailDocs will treat all of the following files as default pages if they are within a folder.
 
 ```yml
 generator:
@@ -591,7 +591,7 @@ generator:
 #### append{#generator-directoryindex-append}
 
 === append : `boolean`
-Specifies if the default document file name should be appended to resolved URLs. By default, Retype does not append the default file name.
+Specifies if the default document file name should be appended to resolved URLs. By default, TailDocs does not append the default file name.
 
 If `false`, the generated link will be `/guide/`. If `true`, the generated link will be `/guides/index.html`.
 
@@ -601,7 +601,7 @@ generator:
     append: true # default is false
 ```
 
-Using `append: true` in combination with the [`search.preload`](#preload) config allows for offline file system browsing of your generated website without having to install Retype and start a web server using [`retype start`](/guides/cli.md#retype-start). The following sample demonstrates how to configure:
+Using `append: true` in combination with the [`search.preload`](#preload) config allows for offline file system browsing of your generated website without having to install TailDocs and start a web server using [`taildocs start`](/guides/cli.md#taildocs-start). The following sample demonstrates how to configure:
 
 ```yml
 search:
@@ -617,7 +617,7 @@ generator:
 #### name
 
 === name : `string`
-The default HTML document file name generated by Retype.
+The default HTML document file name generated by TailDocs.
 
 ```yml
 generator:
@@ -646,9 +646,9 @@ generator:
 ### recase
 
 === recase : `string`
-Instructs Retype on how to recase the project file and folder names created by the author. Default is `all`.
+Instructs TailDocs on how to recase the project file and folder names created by the author. Default is `all`.
 
-By default, Retype will recase all the generated file and folder names to all lowercase.
+By default, TailDocs will recase all the generated file and folder names to all lowercase.
 
 Option | Description
 ---    | ---
@@ -656,7 +656,7 @@ Option | Description
 `none` | Do not change the case of any file or folder names.
 
 
-To have Retype NOT change the casing of any of your file or folder names, set `recase` to `none`.
+To have TailDocs NOT change the casing of any of your file or folder names, set `recase` to `none`.
 
 ```yml
 generator:
@@ -667,11 +667,11 @@ generator:
 ### trailingSlash
 
 === trailingSlash : `boolean`
-By setting `trailingSlash: false` in the project config, authors can instruct Retype to remove (or not add) the trailing `/` character when constructing links from paths to Markdown files.
+By setting `trailingSlash: false` in the project config, authors can instruct TailDocs to remove (or not add) the trailing `/` character when constructing links from paths to Markdown files.
 
-For example, if you have a simple link in your project to `[Example](/guide/example.md)`, Retype will create the link as `/guide/example/`. By setting `trailingSlash: false` in your project, Retype would then create the link as `/guide/example`.
+For example, if you have a simple link in your project to `[Example](/guide/example.md)`, TailDocs will create the link as `/guide/example/`. By setting `trailingSlash: false` in your project, TailDocs would then create the link as `/guide/example`.
 
-It is best practice to include the trailing slash and by default, Retype will automatically add the trailing slash to links that are missing.
+It is best practice to include the trailing slash and by default, TailDocs will automatically add the trailing slash to links that are missing.
 
 ```
 generator:
@@ -683,7 +683,7 @@ generator:
 
 ## hub
 
-This setting is Retype [!badge PRO](/pro/pro.md) only.
+This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 The Hub creates a handy shortcut link in the top-left of the page, just to the left of your project logo or title.
 
@@ -731,9 +731,9 @@ hub:
 
 If no `target` is configured, the link will open in the current tab.
 
-The `target` can be set to any value, although `blank` is common and will open the link in a new tab. Retype will automatically transform the value `blank` into `_blank` which is the actual value required by the browser to indicate that a hyperlink should be opened in a new tab.
+The `target` can be set to any value, although `blank` is common and will open the link in a new tab. TailDocs will automatically transform the value `blank` into `_blank` which is the actual value required by the browser to indicate that a hyperlink should be opened in a new tab.
 
-There are several other values that may be prefixed with an `_` character, including `self`, `parent`, and `top`. The following table demonstrates some common scenarios and naming convention used by Retype to normalize the `target` values.
+There are several other values that may be prefixed with an `_` character, including `self`, `parent`, and `top`. The following table demonstrates some common scenarios and naming convention used by TailDocs to normalize the `target` values.
 
 {.compact}
 | Config `target` value | Runtime `target` value |
@@ -753,12 +753,12 @@ There are several other values that may be prefixed with an `_` character, inclu
 ## include
 
 === include : `list`
-Retype can explicitly include files or folders that might have been excluded by default or excluded within the [`exclude`](#exclude) config.
+TailDocs can explicitly include files or folders that might have been excluded by default or excluded within the [`exclude`](#exclude) config.
 
 !!!
-If you create a link to local static file, such as `.zip` file, Retype will automatically copy that file to the generated website.
+If you create a link to local static file, such as `.zip` file, TailDocs will automatically copy that file to the generated website.
 
-That file or file type does not need to be explicitly configured to be included. Retype assumes that if you created a link to the file, you wanted that file published and it will be included in the [`output`](#output).
+That file or file type does not need to be explicitly configured to be included. TailDocs assumes that if you created a link to the file, you wanted that file published and it will be included in the [`output`](#output).
 !!!
 
 Include patterns are similar to allowable patterns within a `.gitignore` file. The wildcards `?`, `*`, `**`, and `!` are supported.
@@ -774,9 +774,9 @@ include:
 
 You could explicitly include everything in your project with `include: [ "*" ]`, but be careful as all files within your [`input`](#input) will be publicly availble once your website is published. We would not recommend doing this, but it's your call. :fearful:
 
-Retype treats all `.md` and **.yml** files as parsable content files that will be converted into `.html` files and are not copied over to the [`output`](#output). All other included file types would be copied straight across to the `output` unchanged and become static files that can be linked to.
+TailDocs treats all `.md` and **.yml** files as parsable content files that will be converted into `.html` files and are not copied over to the [`output`](#output). All other included file types would be copied straight across to the `output` unchanged and become static files that can be linked to.
 
-By default, if Retype discovers any of the following file types, they will be automatically included and copied over to the `output` unchanged. If you require any other file types, they would need to be explicitly added to the `include` config.
+By default, if TailDocs discovers any of the following file types, they will be automatically included and copied over to the `output` unchanged. If you require any other file types, they would need to be explicitly added to the `include` config.
 
 File types that are automatically included:
 
@@ -797,7 +797,7 @@ File types that are automatically included:
 1. `*.webp`
 1. `*.zip`
 
-By default, if Retype discovers any of the following folders anywhere within the project, the folder and its entire contents will be copied over to the `output` unchanged. If you require any other folders, please add to the `include` config.
+By default, if TailDocs discovers any of the following folders anywhere within the project, the folder and its entire contents will be copied over to the `output` unchanged. If you require any other folders, please add to the `include` config.
 
 Included folders:
 
@@ -818,7 +818,7 @@ If you would rather not include certain folders, files, or file types, please ad
 
 Custom path to the input directory. Default is `.`.
 
-The path is relative to the **retype.yml** location.
+The path is relative to the **taildocs.yml** location.
 
 ```yml Change input location to /src folder
 input: ./src
@@ -829,7 +829,7 @@ input: ./src
 
 ## integrations
 
-More `integrations` will be added over time. Do you have an integration suggestion? [let us know](https://github.com/retypeapp/retype/issues).
+More `integrations` will be added over time. Do you have an integration suggestion? [let us know](https://github.com/taildocsapp/taildocs/issues).
 
 ### googleAnalytics
 
@@ -876,7 +876,7 @@ Replace the `<id>` with your Google Tag Manager measurement id.
 
 ### gravatar
 
-Specific setting to control Retype integration with the [Gravatar](https://gravatar.com/) profile picture service and used by the [page.authors](/configuration/page.md#author) configuration.
+Specific setting to control TailDocs integration with the [Gravatar](https://gravatar.com/) profile picture service and used by the [page.authors](/configuration/page.md#author) configuration.
 
 #### default{#integrations-gravatar-default}
 
@@ -905,12 +905,12 @@ Please see the [Default Image](https://en.gravatar.com/site/implement/images#def
 
 === enabled : `boolean`
 
-Whether Retype should use Gravatar to pull profile images. Default is `true`.
+Whether TailDocs should use Gravatar to pull profile images. Default is `true`.
 
 Setting to `false` will show the default image or specified resource.
 
 !!!
-Disabling Gravatar will also reset the default avatar to the Retype default.
+Disabling Gravatar will also reset the default avatar to the TailDocs default.
 !!!
 
 ===
@@ -919,13 +919,13 @@ Disabling Gravatar will also reset the default avatar to the Retype default.
 
 ### plausible
 
-[Plausible.io](https://plausible.io/) is a simple and privacy-friendly Google Analytics alternative which can be integrated easily into Retype generated websites.
+[Plausible.io](https://plausible.io/) is a simple and privacy-friendly Google Analytics alternative which can be integrated easily into TailDocs generated websites.
 
 #### domain{#integration-plausible-domain}
 
 === domain : `string`
 
-When you setup your project within Plausible, you enter a [`Domain`](https://plausible.io/docs/add-website) value which is then used to set the `integrations.plausible.domain` config within your **retype.yml** project configuration file.
+When you setup your project within Plausible, you enter a [`Domain`](https://plausible.io/docs/add-website) value which is then used to set the `integrations.plausible.domain` config within your **taildocs.yml** project configuration file.
 
 ```yml
 integrations:
@@ -949,7 +949,7 @@ Check out the Plausible [documentation](https://plausible.io/docs/) for more det
 
 === host : `string`
 
-The Plausible service can be [self-hosted](https://plausible.io/docs/self-hosting) and your Retype project can be configured to use your custom `host`.
+The Plausible service can be [self-hosted](https://plausible.io/docs/self-hosting) and your TailDocs project can be configured to use your custom `host`.
 
 ```yml
 integrations:
@@ -965,7 +965,7 @@ integrations:
     host: plausible.example.com
 ```
 
-If no transfer protocol is supplied, Retype will default the `host` value to use `https`.
+If no transfer protocol is supplied, TailDocs will default the `host` value to use `https`.
 
 All of the following sample `host` values are supported:
 
@@ -991,7 +991,7 @@ The following sample demonstrates a basic `links` scenario which would add one l
 ```yml
 links:
   - text: Getting Started
-    link: https://retype.com/getting_started/
+    link: https://example.com/getting_started/
 ```
 
 ### text
@@ -1013,7 +1013,7 @@ links:
 
 The URL to use for the link. The link can be a `.md` file name, or to any internal path, or to any external URL.
 
-If a `.md` file set, such as `sample.md`, Retype will automatically resolve the path and in the generated website, the `sample.md` value will be replaced with the path to the actual generated HTML file.
+If a `.md` file set, such as `sample.md`, TailDocs will automatically resolve the path and in the generated website, the `sample.md` value will be replaced with the path to the actual generated HTML file.
 
 ```yml
 links:
@@ -1031,7 +1031,7 @@ An icon to use with the link. Default is `null`.
 ```yml
 links:
   - text: Issues
-    link: https://github.com/retypeapp/retype/issues/
+    link: https://github.com/taildocsapp/taildocs/issues/
     icon: bug
 ```
 
@@ -1084,9 +1084,9 @@ links:
 
 If no `target` is configured, the link will open in the current tab.
 
-The `target` can be set to any value, although `blank` is common and will open the link in a new tab. Retype will automatically transform the value `blank` into `_blank` which is the actual value required by the browser to indicate that a hyperlink should be opened in a new tab.
+The `target` can be set to any value, although `blank` is common and will open the link in a new tab. TailDocs will automatically transform the value `blank` into `_blank` which is the actual value required by the browser to indicate that a hyperlink should be opened in a new tab.
 
-There are several other values that may be prefixed with an `_` character, including `self`, `parent`, and `top`. The following table demonstrates some common scenarios and naming convention used by Retype to normalize the `target` values.
+There are several other values that may be prefixed with an `_` character, including `self`, `parent`, and `top`. The following table demonstrates some common scenarios and naming convention used by TailDocs to normalize the `target` values.
 
 {.compact}
 | Config `target` value | Runtime `target` value |
@@ -1105,12 +1105,12 @@ There are several other values that may be prefixed with an `_` character, inclu
 
 ## locale
 
-The value of the `locale` config defines the primary language that will be used on the generated website. Retype will generate the website using system messages and labels in this language.
+The value of the `locale` config defines the primary language that will be used on the generated website. TailDocs will generate the website using system messages and labels in this language.
 
-This flexibility makes your application more versatile and accessible to users from different languages. Currently, 24 languages are supported by Retype.
+This flexibility makes your application more versatile and accessible to users from different languages. Currently, 24 languages are supported by TailDocs.
 
 !!!
-Please visit the [Retype Translation](https://retypeapp.github.io/retype-translations/) project for more details on adding new languages and making changes to existing languages.
+Please visit the [TailDocs Translation](https://taildocsapp.github.io/taildocs-translations/) project for more details on adding new languages and making changes to existing languages.
 !!!
 
 === locale : `string`
@@ -1174,7 +1174,7 @@ Markdown configuration options.
 
 === lineBreaks : `string`
 
-Switches between `soft` and `hard` line break modes. The option instructs Retype in what way a regular line ending should be handled.
+Switches between `soft` and `hard` line break modes. The option instructs TailDocs in what way a regular line ending should be handled.
 
 - in `soft` mode, regular line breaks are processed as [soft breaks](https://spec.commonmark.org/0.30/#soft-line-breaks) (no `<br />` is emitted to HTML markup), unless a line contains 2+ spaces before a line break.
 - in `hard` mode, regular line breaks are always emitted as `<br />` HTML elements.
@@ -1224,7 +1224,7 @@ Navigation configuration options to control the behavior of the left sidebar nav
 
 ### mode{#nav-mode}
 
-This setting is Retype [!badge PRO](/pro/pro.md) only.
+This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 === mode : `string`
 Controls how the sidebar navigation is created and functions. The default functionality is to create the navigation as an expandable Tree structure. The default value for `mode` is `default`.
@@ -1249,14 +1249,14 @@ To convert only one top-level directory to a `stack` type layout, please see the
 
 #### mode{#nav-icons-mode}
 
-This setting is Retype [!badge PRO](/pro/pro.md) only.
+This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 The `mode` configuration enables customization for how the icons are displayed in the main navigation. The `mode` allows you to hide all icons (and their reserved space) in the navigation, as well as other icon show/hide scenarios.
 
 === mode : `string`
 Controls how icons are displayed in the left sidebar navigation. The default value is `all`, which shows all icons or reserves space for all icons within the navigation.
 
-The following sample demonstrates how the icon mode can be configured in your `retype.yml` file:
+The following sample demonstrates how the icon mode can be configured in your `taildocs.yml` file:
 
 ```yml
 nav:
@@ -1272,7 +1272,7 @@ nav:
 | `top`     | Show icons only for top-level pages and folders, hide for nested items |
 | `none`    | Hide all navigation icons                                              |
 
-To hide icons for all pages and folders, add the following setting to your project `retype.yml` configuration file:
+To hide icons for all pages and folders, add the following setting to your project `taildocs.yml` configuration file:
 
 ```yml
 nav:
@@ -1288,7 +1288,7 @@ The `nav.icons.mode` setting can be used in conjunction with [`nav.mode: stack`]
 
 ## nextprev
 
-This setting is Retype [!badge PRO](/pro/pro.md) only.
+This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 The `nextprev` configuration controls the display of "Next" and "Previous" navigation buttons at the bottom of each page and whether a page is included in the navigation sequence.
 
@@ -1315,7 +1315,7 @@ The `nextprev.mode` setting can be configured at three levels with the following
 
 1. [Page](page.md#nextprev-mode) level in individual `.md` files
 2. [Folder](folder.md#nextprev) level in the folder `readme.md` or `index.yml` files
-3. [Project](project.md#nextprev-mode) level in your Project `retype.yml` file
+3. [Project](project.md#nextprev-mode) level in your Project `taildocs.yml` file
 
 ===
 
@@ -1323,13 +1323,13 @@ The `nextprev.mode` setting can be configured at three levels with the following
 
 ## outbound
 
-This setting is Retype [!badge PRO](/pro/pro.md) only.
+This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
-The `outbound` configuration gives you the flexibility to customize the behavior of outbound links in your Retype project. It allows you to control which links are treated as outbound, where they open, what icon is used, and even exclude or include specific domains. For instance, [example.com](https://example.com/).
+The `outbound` configuration gives you the flexibility to customize the behavior of outbound links in your TailDocs project. It allows you to control which links are treated as outbound, where they open, what icon is used, and even exclude or include specific domains. For instance, [example.com](https://example.com/).
 
-The `outbound` functionality will be automatically enabled for Retype Pro project. For projects that do not have a Retype Pro license, the `outbound` configuration and functionality is ignored.
+The `outbound` functionality will be automatically enabled for TailDocs Pro project. For projects that do not have a TailDocs Pro license, the `outbound` configuration and functionality is ignored.
 
-If `outbound` is enabled, Retype will find all external (outbound) links within the project, add a trailing :icon-link-external: icon, and set the link to open in a new tab when clicked.
+If `outbound` is enabled, TailDocs will find all external (outbound) links within the project, add a trailing :icon-link-external: icon, and set the link to open in a new tab when clicked.
 
 ### enabled
 
@@ -1337,7 +1337,7 @@ If `outbound` is enabled, Retype will find all external (outbound) links within 
 
 Controls whether the outbound links feature is enabled.
 
-The default is `true` for **Retype Pro** projects.
+The default is `true` for **TailDocs Pro** projects.
 
 The following sample demonstrates disabling the `outbound` functionality:
 
@@ -1409,7 +1409,7 @@ outbound:
 
 === exclude : `list`
 
-A list of outbound link patterns to be excluded from being captured by the Retype outbound functionality. This is useful if you do not want certain links to open in new tabs.
+A list of outbound link patterns to be excluded from being captured by the TailDocs outbound functionality. This is useful if you do not want certain links to open in new tabs.
 
 This configuration accepts similar path patterns as the [`exclude`](#exclude) config.
 
@@ -1429,7 +1429,7 @@ Please also see [`outbound.include`](#include-1).
 
 === include : `list`
 
-A list of outbound link patterns to be included for the Retype outbound functionality. This is useful if you only want certain links to open in new tabs. The default value of `*` includes all links.
+A list of outbound link patterns to be included for the TailDocs outbound functionality. This is useful if you only want certain links to open in new tabs. The default value of `*` includes all links.
 
 This configuration accepts similar path patterns as the [`include`](#include) config.
 
@@ -1450,36 +1450,36 @@ If any item is added to the `include` list, by default, all other paths will be 
 
 === output : `string`
 
-Custom path to the output directory. Default is `.retype`.
+Custom path to the output directory. Default is `.taildocs`.
 
-The path is relative to the **retype.yml** location.
+The path is relative to the **taildocs.yml** location.
 
 ```yml Change output location to /docs folder
 output: ./docs
 ```
 
 !!!
-The `output` directory is only used when using the [`retype build`](/guides/cli.md#retype-build) command.
+The `output` directory is only used when using the [`taildocs build`](/guides/cli.md#taildocs-build) command.
 
-If using [`retype start`](/guides/cli.md#retype-start), files are stored in memory and not written to disk.
+If using [`taildocs start`](/guides/cli.md#taildocs-start), files are stored in memory and not written to disk.
 !!!
 ===
 
 ---
 
-## poweredByRetype
+## poweredByTailDocs
 
-This setting is Retype [!badge PRO](/pro/pro.md) only.
+This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
-Controls whether to include or exclude the `Powered by Retype` branding.
+Controls whether to include or exclude the `Powered by TailDocs` branding.
 
-![Sample Powered by Retype branding](/static/powered-by-retype.png)
+![Sample Powered by TailDocs branding](/static/powered-by-taildocs.png)
 
-=== poweredByRetype : `boolean`
-With a Retype Pro license, the `Powered by Retype` branding can be removed by setting to `false`.
+=== poweredByTailDocs : `boolean`
+With a TailDocs Pro license, the `Powered by TailDocs` branding can be removed by setting to `false`.
 
 ```yml
-poweredByRetype: true # Set to `false` to remove.
+poweredByTailDocs: true # Set to `false` to remove.
 ```
 ===
 
@@ -1487,13 +1487,13 @@ poweredByRetype: true # Set to `false` to remove.
 
 ## scheme
 
-This setting is Retype [!badge PRO](/pro/pro.md) only.
+This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
-The `scheme` configuration allows you to control the default color mode (**light** or **dark**) for your Retype generated website. By default, Retype will automatically match the visitor's system preference, but you can explicitly set the site to always render in either `dark` or `light` mode.
+The `scheme` configuration allows you to control the default color mode (**light** or **dark**) for your TailDocs generated website. By default, TailDocs will automatically match the visitor's system preference, but you can explicitly set the site to always render in either `dark` or `light` mode.
 
 ### mode{#scheme-mode}
 
-This setting is Retype [!badge PRO](/pro/pro.md) only.
+This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 === mode : `string`
 Controls the default color scheme for the website. The default value is `system`, which will automatically switch between `dark` and `light` modes based on the visitor's system preference.
@@ -1504,7 +1504,7 @@ Controls the default color scheme for the website. The default value is `system`
 | `dark`   | Always render the website in dark mode.                                     |
 | `light`  | Always render the website in light mode.                                    |
 
-To configure Retype to always render in dark mode, add the following to your `retype.yml`:
+To configure TailDocs to always render in dark mode, add the following to your `taildocs.yml`:
 
 ```yml
 scheme:
@@ -1529,7 +1529,7 @@ scheme:
 If a visitor has explicitly selected `dark` or `light` mode using the color scheme toggle in the upper-right menu, their choice will take precedence over the `scheme.mode` project setting.
 !!!
 
-You can test the `scheme.mode` feature locally without a Retype Pro key by adding the following to your `retype.yml` to your project configuration file:
+You can test the `scheme.mode` feature locally without a TailDocs Pro key by adding the following to your `taildocs.yml` to your project configuration file:
 
 ```yml
 start:
@@ -1637,7 +1637,7 @@ search:
   preload: true # Default is false
 ```
 
-Using `preload: true` in combination with the [`generator.directoryIndex.append`](#generator-directoryindex-append) config allows for offline file system browsing of your generated website without having to install Retype and start a web server using [`retype start`](/guides/cli.md#retype-start). The following sample demonstrates how to configure:
+Using `preload: true` in combination with the [`generator.directoryIndex.append`](#generator-directoryindex-append) config allows for offline file system browsing of your generated website without having to install TailDocs and start a web server using [`taildocs start`](/guides/cli.md#taildocs-start). The following sample demonstrates how to configure:
 
 ```yml
 search:
@@ -1651,7 +1651,7 @@ generator:
 
 ## serve
 
-Custom configuration for the built in Retype development web server.
+Custom configuration for the built in TailDocs development web server.
 
 ### host
 
@@ -1664,7 +1664,7 @@ serve:
   host: 127.0.0.1
 ```
 
-By default, the Retype development web server will serve from `http://localhost:5001`, although the port could be dynamically assigned if port `5001` is already in use.
+By default, the TailDocs development web server will serve from `http://localhost:5001`, although the port could be dynamically assigned if port `5001` is already in use.
 
 A custom port value can also be assigned.
 
@@ -1673,11 +1673,11 @@ serve:
   host: 127.0.0.1:5005
 ```
 
-A custom `--host` value can also be passed as an argument to the [`retype start`](/guides/cli.md#options) and [`retype serve`](/guides/cli.md#options-3) commands. If included, the `--host` value will override the `host` set within your **retype.yml** project configuration file.
+A custom `--host` value can also be passed as an argument to the [`taildocs start`](/guides/cli.md#options) and [`taildocs serve`](/guides/cli.md#options-3) commands. If included, the `--host` value will override the `host` set within your **taildocs.yml** project configuration file.
 
 ```
-retype start --host 127.0.0.1              # serve from a custom host
-retype start --host 127.0.0.1 --port 5005  # serve from a custom host and port
+taildocs start --host 127.0.0.1              # serve from a custom host
+taildocs start --host 127.0.0.1 --port 5005  # serve from a custom host and port
 ```
 
 ===
@@ -1686,38 +1686,38 @@ retype start --host 127.0.0.1 --port 5005  # serve from a custom host and port
 
 === port : `number`
 
-A custom port for the internal Retype development web server to use when hosting locally. Default is `5001`.
+A custom port for the internal TailDocs development web server to use when hosting locally. Default is `5001`.
 
 ```yml
 serve:
   port: 5005
 ```
 
-If the default port is already being used by another service, Retype will auto-increment the port number until it finds an open port to host from.
+If the default port is already being used by another service, TailDocs will auto-increment the port number until it finds an open port to host from.
 
-If a custom `port` is explicitly configured in the **retype.yml** and if that port is already being used by another service, Retype will write a message to the console and exit. In that scenario, because the `port` was explicitly configured, Retype will not attempt to auto-increment.
+If a custom `port` is explicitly configured in the **taildocs.yml** and if that port is already being used by another service, TailDocs will write a message to the console and exit. In that scenario, because the `port` was explicitly configured, TailDocs will not attempt to auto-increment.
 
 !!!
 The port number can also be included in the [`host`](#host) config.
 !!!
 
-A custom `--port` value can also be passed as an argument to the [`retype start`](/guides/cli.md#options) and [`retype serve`](/guides/cli.md#options-3) commands. If included, the `--port` value will override the `port` set within your **retype.yml** project configuration file.
+A custom `--port` value can also be passed as an argument to the [`taildocs start`](/guides/cli.md#options) and [`taildocs serve`](/guides/cli.md#options-3) commands. If included, the `--port` value will override the `port` set within your **taildocs.yml** project configuration file.
 
 ```
-retype start --port 5005  # serve from a custom port
+taildocs start --port 5005  # serve from a custom port
 ```
 
 ===
 
 ### watch
 
-Custom configuration for the [`retype serve`](/guides/cli.md#options-3) and [`retype start`](/guides/cli.md/#options) commands.
+Custom configuration for the [`taildocs serve`](/guides/cli.md#options-3) and [`taildocs start`](/guides/cli.md/#options) commands.
 
 #### mode{#serve-watch-mode}
 
 === mode : `string`
 
-During `retype start` and `retype serve`, the `mode` configuration instructs the web server on where to host files from.
+During `taildocs start` and `taildocs serve`, the `mode` configuration instructs the web server on where to host files from.
 
 If `memory`, the entire website is built and then stored in memory during development with no files being written to disk.
 
@@ -1727,7 +1727,7 @@ Default is `memory`.
 
 | Mode     | Description |
 | -------- | ----------- |
-| `memory` | No output files are written to a disk. Retype serves a website from the in-memory storage. |
+| `memory` | No output files are written to a disk. TailDocs serves a website from the in-memory storage. |
 | `disk`   | Output files are written to the [`output`](#output) directory, and updated with each incremental build accordingly. |
 
 ```yml
@@ -1736,7 +1736,7 @@ serve:
     mode: disk
 ```
 
-The command [`retype build`](/guides/cli.md#retype-build) will always build and write all files to disk. The `memory` configuration is not an option with `retype build`. The Retype [GitHub Action](/guides/github-actions.md) uses `retype build`. The command `retype start` is only to be used during local development and not on a live production web server.
+The command [`taildocs build`](/guides/cli.md#taildocs-build) will always build and write all files to disk. The `memory` configuration is not an option with `taildocs build`. The TailDocs [GitHub Action](/guides/github-actions.md) uses `taildocs build`. The command `taildocs start` is only to be used during local development and not on a live production web server.
 
 ===
 
@@ -1748,7 +1748,7 @@ Instructs the local web server on how it should listen for file changes.
 
 If `false`, the native filesystem event listeners are used to monitor for file changes.
 
-If `true`, Retype will poll for file changes within your projects [input](#input) directory. By default, the polling interval is 1000 milliseconds (1 second).
+If `true`, TailDocs will poll for file changes within your projects [input](#input) directory. By default, the polling interval is 1000 milliseconds (1 second).
 
 The poll interval is configurable by setting a `number` value. For instance, setting `polling: 500` would configure a 500ms interval.
 
@@ -1769,7 +1769,7 @@ serve:
 !!! Performance Warning
 Disk polling may be a costly operation, especially in projects with a large quantity of files, and/or running over remote mounted directories (ftp mapping, NFS, SMB...). If configuring the poll interval, please adjust the value down in steps, monitoring performance as the poll interval decreases.
 
-On the flip side, increasing the polling interval may cause an annoying experience during `retype start` as file changes will require a longer time before reflected in the browser.
+On the flip side, increasing the polling interval may cause an annoying experience during `taildocs start` as file changes will require a longer time before reflected in the browser.
 !!!
 
 ===
@@ -1778,7 +1778,7 @@ On the flip side, increasing the polling interval may cause an annoying experien
 
 === validation : `string`
 
-Configure how thorough Retype is while looking for changed files.
+Configure how thorough TailDocs is while looking for changed files.
 
 Default value is `optimal`.
 
@@ -1846,24 +1846,24 @@ snippets:
 
 ## start
 
-The `start` config contains project options that apply during the [`retype start`](../guides/cli.md#retype-start) CLI command.
+The `start` config contains project options that apply during the [`taildocs start`](../guides/cli.md#taildocs-start) CLI command.
 
 ### open
 
 === open : `boolean`
 
-Set to `false` to instruct Retype to not open the default web browser when the command `retype start` is run. By default, Retype will open a web browser when `retype start` is run.
+Set to `false` to instruct TailDocs to not open the default web browser when the command `taildocs start` is run. By default, TailDocs will open a web browser when `taildocs start` is run.
 
 The default is `true`.
 
-The following sample demonstrates how to prevent the default web browser from opening during `retype start`:
+The following sample demonstrates how to prevent the default web browser from opening during `taildocs start`:
 
 ```yml
 start:
   open: false
 ```
 
-Using the [CLI](../guides/cli.md#retype-start) command `retype start -n` or `retype start --no-open` will also prevent the default web browser from being opened.
+Using the [CLI](../guides/cli.md#taildocs-start) command `taildocs start -n` or `taildocs start --no-open` will also prevent the default web browser from being opened.
 
 ===
 
@@ -1873,26 +1873,26 @@ Using the [CLI](../guides/cli.md#retype-start) command `retype start -n` or `ret
 
 The default is `false`.
 
-The following sample demonstrates how to start your project in _Pro mode_ and trial the [Retype Pro](/pro/pro.md) features:
+The following sample demonstrates how to start your project in _Pro mode_ and trial the [TailDocs Pro](/pro/pro.md) features:
 
 ```yml
 start:
   pro: true
 ```
 
-Using the [CLI](../guides/cli.md#retype-start) command `retype start --pro` will also start the project in Pro mode.
+Using the [CLI](../guides/cli.md#taildocs-start) command `taildocs start --pro` will also start the project in Pro mode.
 
 ===
 
 ## templating
 
-Configurations to control the Retype content templating engine for this project.
+Configurations to control the TailDocs content templating engine for this project.
 
 ### enabled
 
 === enabled : `boolean`
 
-A project-wide option to enable or disable the Retype content templating engine. Default is `true`.
+A project-wide option to enable or disable the TailDocs content templating engine. Default is `true`.
 
 ```yml
 templating:
@@ -1907,7 +1907,7 @@ The templating engine can also be disabled on a per-page basis by setting `templ
 
 === liquid : `boolean`
 
-Specifies if Liquid syntax `{% ... %}` is enabled. If `liquid: true` is set, Retype is incompatible with GitBook style of component configuration.
+Specifies if Liquid syntax `{% ... %}` is enabled. If `liquid: true` is set, TailDocs is incompatible with GitBook style of component configuration.
 
 Default is `false`.
 
@@ -1931,7 +1931,7 @@ templating:
   loopLimit: 1000 # Maximum loop iterations allowed
 ```
 
-When a template contains loops that exceed the configured `loopLimit`, Retype will throw a build error and halt the build process.
+When a template contains loops that exceed the configured `loopLimit`, TailDocs will throw a build error and halt the build process.
 
 ```yml
 templating:
@@ -1963,7 +1963,7 @@ templating:
 
 #### Error handling
 
-When the loop limit is exceeded, Retype will display an error message similar to:
+When the loop limit is exceeded, TailDocs will display an error message similar to:
 
 ```
 ERROR: [template.md:1] Evaluation error. Exceeding number of iteration limit `1000` for loop statement.
@@ -1991,9 +1991,9 @@ For most projects, the default limit of 1000 iterations provides a good balance 
 
 ## theme
 
-This setting is Retype [!badge PRO](/pro/pro.md) only.
+This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
-The `theme` configuration allows you to customize the visual appearance of your Retype website by overriding colors and other design elements to match your brand or project preferences.
+The `theme` configuration allows you to customize the visual appearance of your TailDocs website by overriding colors and other design elements to match your brand or project preferences.
 
 [!ref text="Theme Guide"](/guides/themes.md)
 
@@ -2054,7 +2054,7 @@ theme:
 
 ## toc
 
-This setting is Retype [!badge PRO](/pro/pro.md) only.
+This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 The `toc` config contains project options that apply to the right sidebar Table of Contents.
 
@@ -2118,13 +2118,13 @@ The `url` can also be a subdomain.
 url: docs.example.com
 ```
 
-If you deploy your Retype generated website into the subfolder of another website, add the subfolder in the `url`. For example, if the website will be available at `https://example.com/docs`, add that `docs` folder name to the `url`.
+If you deploy your TailDocs generated website into the subfolder of another website, add the subfolder in the `url`. For example, if the website will be available at `https://example.com/docs`, add that `docs` folder name to the `url`.
 
 ```yml
 url: example.com/docs
 ```
 
-If no protocol is supplied, such as `https` or `http`, Retype will assume `https`. A protocol can be explicitly defined by passing in the `url`.
+If no protocol is supplied, such as `https` or `http`, TailDocs will assume `https`. A protocol can be explicitly defined by passing in the `url`.
 
 ```yml
 url: http://example.com/docs/
@@ -2134,7 +2134,7 @@ Another common scenario for setting a `url` is when using [GitHub Pages](/guides
 
 For instance, if your GitHub organization was `CompanyX` and your repo was named `docs`, the URL to your GitHub Pages hosted website would be `https://companyx.github.io/docs/`.
 
-Retype needs to know where your website will be hosted, so the `url` configuration for the above scenario would be:
+TailDocs needs to know where your website will be hosted, so the `url` configuration for the above scenario would be:
 
 ```yml
 url: companyx.github.io/docs

@@ -34,7 +34,7 @@ The `source` is the local path to a file.
 :::code source="<path-to-file>" :::
 ```
 
-Typically, the `source` file must be located within the same repository. At least the file needs to be accessible whenever the project is built by Retype. If building locally, the `source` can be located anywhere accessible in the local file system, although if you are using the Retype [GitHub Action](/guides/github-actions.md), the file must be within the same repo or accessible by the Action.
+Typically, the `source` file must be located within the same repository. At least the file needs to be accessible whenever the project is built by TailDocs. If building locally, the `source` can be located anywhere accessible in the local file system, although if you are using the TailDocs [GitHub Action](/guides/github-actions.md), the file must be within the same repo or accessible by the Action.
 
 In the following demo, we link to the `sample.js` file and include the entire contents of that file into the code block:
 
@@ -102,15 +102,15 @@ Let's add a `title` to our `../static/sample.js` code snippet. Within the `.md` 
 
 The final code blocks allow for a language type to be configured which enables code syntax highlighting within the code block.
 
-The `language` property can be set with any reference language value supported by the Markdown [code blocks](code-block.md) in Retype.
+The `language` property can be set with any reference language value supported by the Markdown [code blocks](code-block.md) in TailDocs.
 
 ```
 :::code source="<path-to-file>" language="<language>" :::
 ```
 
-By default, Retype will try to intelligently determine the `language` based on the file extension of the `source` and the automatically set the `language` property. For instance, if the `source` file is a JavaScript `.js` file, Retype will set the `language` of the code snippet to `js`.
+By default, TailDocs will try to intelligently determine the `language` based on the file extension of the `source` and the automatically set the `language` property. For instance, if the `source` file is a JavaScript `.js` file, TailDocs will set the `language` of the code snippet to `js`.
 
-If the `language` property is explicitly set, Retype will use that value. If the `language` cannot be determined by Retype, no language reference is set and the code block is rendered without syntax highlighting.
+If the `language` property is explicitly set, TailDocs will use that value. If the `language` cannot be determined by TailDocs, no language reference is set and the code block is rendered without syntax highlighting.
 
 ---
 

@@ -30,7 +30,7 @@ Similar to a [Badge](badge.md), the Button component uses the same syntax as a h
 [!button variant="base" text="My Button"]
 
 // With link and variant
-[!button variant="primary" text="My Button"](https://retype.com/)
+[!button variant="primary" text="My Button"](https://example.com/)
 ```
 
 | Variant | Example |
@@ -87,17 +87,17 @@ Similar to a [Badge](badge.md), the Button component uses the same syntax as a h
 
 Sets the `target` attribute of the button and specifies which window or tab to open the link into.
 
-[!button target="blank" text="Retype"](https://retype.com/)
+[!button target="blank" text="TailDocs"](https://example.com/)
 
 ```md
-[!button target="blank" text="Retype"](https://retype.com/)
+[!button target="blank" text="TailDocs"](https://example.com/)
 ```
 
 If no `target` is configured, the link will open in the current tab.
 
-The `target` can be set to any value, although `blank` is common and will open the link in a new tab. Retype will automatically transform the value `blank` into `_blank` which is the actual value required by the browser to indicate that a hyperlink should be opened in a new tab.
+The `target` can be set to any value, although `blank` is common and will open the link in a new tab. TailDocs will automatically transform the value `blank` into `_blank` which is the actual value required by the browser to indicate that a hyperlink should be opened in a new tab.
 
-There are several other values that may be prefixed with an `_` character, including `self`, `parent`, and `top`. The following table demonstrates some common scenarios and naming convention used by Retype to normalize the `target` values.
+There are several other values that may be prefixed with an `_` character, including `self`, `parent`, and `top`. The following table demonstrates some common scenarios and naming convention used by TailDocs to normalize the `target` values.
 
 Config `target` value | Runtime `target` value
 --- | ---
@@ -144,10 +144,10 @@ Emoji `:shortcodes:` can be used for the icon. Please see [Mojee](https://mojeei
 Any image file can be used as the `icon`.
 
 ```md
-[!button icon="../static/retype-icon.svg"](button.md)
+[!button icon="../static/taildocs-icon.svg"](button.md)
 ```
 
-[!button icon="../static/retype-icon.svg"]
+[!button icon="../static/taildocs-icon.svg"]
 
 ### SVG image
 
@@ -163,11 +163,11 @@ The `icon` can also be set with an inline `<svg>` element.
 
 ## Theme variables
 
-Retype gives you full control over the look and feel of your button components through customizable [[theme variables]].
+TailDocs gives you full control over the look and feel of your button components through customizable [[theme variables]].
 
-You can override any of theme variable in your `retype.yml` configuration file using the `theme.base` and `theme.dark` settings.
+You can override any of theme variable in your `taildocs.yml` configuration file using the `theme.base` and `theme.dark` settings.
 
-For example, to change the `primary` button color and text color for all instances of the `primary` button within your project, add the following to your project's `retype.yml` file:
+For example, to change the `primary` button color and text color for all instances of the `primary` button within your project, add the following to your project's `taildocs.yml` file:
 
 ```yaml
 theme:
@@ -181,7 +181,7 @@ theme:
     button-primary-text: "#eff1f5"
 ```
 
-To learn more about theme variables and how they work across Retype, check out the [Themes Guide](/guides/themes.md), the [[Theme Variables]] documentation, and [`theme`](/configuration/project.md#theme) Project settings.
+To learn more about theme variables and how they work across TailDocs, check out the [Themes Guide](/guides/themes.md), the [[Theme Variables]] documentation, and [`theme`](/configuration/project.md#theme) Project settings.
 
 !!!
 All button theme variables can be customized in this way. Please refer to the [Button Component](/configuration/theme-variables.md#button-component) theme variables for the latest options.

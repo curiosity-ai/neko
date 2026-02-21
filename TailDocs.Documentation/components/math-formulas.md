@@ -4,7 +4,7 @@ tags: [component]
 ---
 # Math Formulas
 
-Retype supports rendering math formulas written according to the [LaTeX](https://en.wikipedia.org/wiki/LaTeX) grammar. Internally, Retype is powered by [$\KaTeX$](https://katex.org/) and supports all syntax of the library.
+TailDocs supports rendering math formulas written according to the [LaTeX](https://en.wikipedia.org/wiki/LaTeX) grammar. Internally, TailDocs is powered by [$\KaTeX$](https://katex.org/) and supports all syntax of the library.
 
 Math equations can be rendered inline by wrapping the equation in `$` characters, or as separate blocks by fencing the equation in `$$` characters.
 

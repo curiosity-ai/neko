@@ -4,7 +4,7 @@ tags: [component]
 ---
 # List
 
-Retype includes broad support for creating lists of items, including [unordered](#unordered-lists), [ordered](#ordered-lists), and [description](#description-list) lists.
+TailDocs includes broad support for creating lists of items, including [unordered](#unordered-lists), [ordered](#ordered-lists), and [description](#description-list) lists.
 
 ---
 
@@ -81,7 +81,7 @@ Without the `{.list-icon}` css class applied, the above sample would render as:
     - :icon-circle-slash: This is sub-item 2.4
 
 !!!tip
-Additional techniques for creating icon and emoji lists are outlined in issues [#603](https://github.com/retypeapp/retype/issues/603) and [#370](https://github.com/retypeapp/retype/issues/370).
+Additional techniques for creating icon and emoji lists are outlined in issues [#603](https://github.com/taildocsapp/taildocs/issues/603) and [#370](https://github.com/taildocsapp/taildocs/issues/370).
 !!!
 ---
 

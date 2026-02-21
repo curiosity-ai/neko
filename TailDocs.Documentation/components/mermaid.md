@@ -40,7 +40,7 @@ From the Mermaid docs:
 
 > Directives gives a diagram author the capability to alter the appearance of a diagram before rendering by changing the applied configuration.
 
-All Mermaid directives are supported by Retype.
+All Mermaid directives are supported by TailDocs.
 
 The following sample demonstrates applying a `theme` to the diagram:
 

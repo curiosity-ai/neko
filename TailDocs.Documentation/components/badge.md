@@ -40,7 +40,7 @@ With the Badge component, the link is optional and can be omitted.
 [!badge variant="base" text="My Badge"]
 
 // With link and variant
-[!badge variant="primary" text="My Badge"](https://retype.com/)
+[!badge variant="primary" text="My Badge"](https://example.com/)
 ```
 
 | Variant | Text only | With link |
@@ -97,17 +97,17 @@ With the Badge component, the link is optional and can be omitted.
 
 Sets the `target` attribute of the badge and specifies which window or tab to open the link into.
 
-[!badge target="blank" text="Retype"](https://retype.com/)
+[!badge target="blank" text="TailDocs"](https://example.com/)
 
 ```md
-[!badge target="blank" text="Retype"](https://retype.com/)
+[!badge target="blank" text="TailDocs"](https://example.com/)
 ```
 
 If no `target` is configured, the link will open in the current tab.
 
-The `target` can be set to any value, although `blank` is common and will open the link in a new tab. Retype will automatically transform the value `blank` into `_blank` which is the actual value required by the browser to indicate that a hyperlink should be opened in a new tab.
+The `target` can be set to any value, although `blank` is common and will open the link in a new tab. TailDocs will automatically transform the value `blank` into `_blank` which is the actual value required by the browser to indicate that a hyperlink should be opened in a new tab.
 
-There are several other values that may be prefixed with an `_` character, including `self`, `parent`, and `top`. The following table demonstrates some common scenarios and naming convention used by Retype to normalize the `target` values.
+There are several other values that may be prefixed with an `_` character, including `self`, `parent`, and `top`. The following table demonstrates some common scenarios and naming convention used by TailDocs to normalize the `target` values.
 
 Config `target` value | Runtime `target` value
 --- | ---
@@ -154,10 +154,10 @@ Emoji `:shortcodes:` can be used for the icon. Please see [Mojee](https://mojeei
 Any image file can be used as the `icon`.
 
 ```md
-[!badge icon="../static/retype-icon.svg"]
+[!badge icon="../static/taildocs-icon.svg"]
 ```
 
-[!badge icon="../static/retype-icon.svg"]
+[!badge icon="../static/taildocs-icon.svg"]
 
 ### SVG image
 
@@ -173,11 +173,11 @@ The `icon` can also be set with an inline `<svg>` element.
 
 ## Theme variables
 
-Retype gives you full control over the look and feel of your badge components through customizable [[theme variables]].
+TailDocs gives you full control over the look and feel of your badge components through customizable [[theme variables]].
 
-You can override any of theme variable in your `retype.yml` configuration file using the `theme.base` and `theme.dark` settings.
+You can override any of theme variable in your `taildocs.yml` configuration file using the `theme.base` and `theme.dark` settings.
 
-For example, to change the `primary` badge color and text color for all instances of the `primary` badge within your project, add the following to your project's `retype.yml` file:
+For example, to change the `primary` badge color and text color for all instances of the `primary` badge within your project, add the following to your project's `taildocs.yml` file:
 
 ```yaml
 theme:
@@ -191,7 +191,7 @@ theme:
     badge-primary-text: "#eff1f5"
 ```
 
-To learn more about theme variables and how they work across Retype, check out the [Themes Guide](/guides/themes.md), the [[Theme Variables]] documentation, and [`theme`](/configuration/project.md#theme) Project settings.
+To learn more about theme variables and how they work across TailDocs, check out the [Themes Guide](/guides/themes.md), the [[Theme Variables]] documentation, and [`theme`](/configuration/project.md#theme) Project settings.
 
 !!!
 All badge theme variables can be customized in this way. The full list of available variables is shown below, and you can always refer to the [Badge Component](/configuration/theme-variables.md#badge-component) theme variables for the latest options.

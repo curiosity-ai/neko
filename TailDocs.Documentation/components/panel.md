@@ -39,7 +39,7 @@ Content 2
 ===
 
 !!!
-Currently, Panel components cannot be nested within each other, only stacked. We're hoping to support nesting Panels in a future release. [Let us know](https://github.com/retypeapp/retype/issues) if you require the functionality.
+Currently, Panel components cannot be nested within each other, only stacked. We're hoping to support nesting Panels in a future release. [Let us know](https://github.com/taildocsapp/taildocs/issues) if you require the functionality.
 
 All other components can be nested within any Panel component.
 !!!
@@ -171,24 +171,24 @@ Panels are expanded by default, but can be configured as collapsed too!
 Panels can be used to create an accordion-style layout, perfect for FAQs or collapsible content sections. Here's an example with three collapsed panels:
 
 ```
-==- What is Retype?
-Retype is a modern documentation generator that helps you create beautiful documentation websites from your Markdown files. It's designed to be fast, flexible, and easy to use.
+==- What is TailDocs?
+TailDocs is a modern documentation generator that helps you create beautiful documentation websites from your Markdown files. It's designed to be fast, flexible, and easy to use.
 
 ==- How do I get started?
-Getting started with Retype is simple! Just install the Retype CLI and run `retype init` in your project directory. Then add your Markdown files and run `retype start` to preview your documentation locally.
+Getting started with TailDocs is simple! Just install the TailDocs CLI and run `taildocs init` in your project directory. Then add your Markdown files and run `taildocs start` to preview your documentation locally.
 
-==- Where can I deploy my Retype site?
-Retype sites can be deployed to any static hosting service like GitHub [Pages](/hosting/github-pages.md), [Netlify](/hosting/netlify.md), Vercel, or your own web server.
+==- Where can I deploy my TailDocs site?
+TailDocs sites can be deployed to any static hosting service like GitHub [Pages](/hosting/github-pages.md), [Netlify](/hosting/netlify.md), Vercel, or your own web server.
 ===
 ```
 
-==- What is Retype?
-Retype is a modern documentation generator that helps you create beautiful documentation websites from your Markdown files. It's designed to be fast, flexible, and easy to use.
+==- What is TailDocs?
+TailDocs is a modern documentation generator that helps you create beautiful documentation websites from your Markdown files. It's designed to be fast, flexible, and easy to use.
 
 ==- How do I get started?
-Getting started with Retype is simple! Just install the Retype CLI and run `retype init` in your project directory. Then add your Markdown files and run `retype start` to preview your documentation locally.
+Getting started with TailDocs is simple! Just install the TailDocs CLI and run `taildocs init` in your project directory. Then add your Markdown files and run `taildocs start` to preview your documentation locally.
 
-==- Where can I deploy my Retype site?
-Retype sites can be deployed to any static hosting service like GitHub [Pages](/hosting/github-pages.md), [Netlify](/hosting/netlify.md), Vercel, or your own web server.
+==- Where can I deploy my TailDocs site?
+TailDocs sites can be deployed to any static hosting service like GitHub [Pages](/hosting/github-pages.md), [Netlify](/hosting/netlify.md), Vercel, or your own web server.
 ===
 

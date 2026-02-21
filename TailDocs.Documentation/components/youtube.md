@@ -4,7 +4,7 @@ tags: [component]
 ---
 # YouTube
 
-Retype makes it easy to embed YouTube videos in your documentation. Simply place a YouTube URL on its own line in your markdown file, and Retype will automatically convert it into a responsive embedded video player.
+TailDocs makes it easy to embed YouTube videos in your documentation. Simply place a YouTube URL on its own line in your markdown file, and TailDocs will automatically convert it into a responsive embedded video player.
 
 ## Basic Usage
 
@@ -20,7 +20,7 @@ https://www.youtube.com/watch?v=dQw4w9WgXcQ
 
 ## Supported URL Formats
 
-Retype supports multiple YouTube URL formats:
+TailDocs supports multiple YouTube URL formats:
 
 1. Standard watch URLs: `https://www.youtube.com/watch?v=VIDEO_ID`
 2. Short URLs: `https://youtu.be/VIDEO_ID`

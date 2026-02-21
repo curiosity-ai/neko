@@ -12,7 +12,7 @@ A special type of reference link can be configured by using the `!ref` specifier
 
 [!ref](/guides/getting-started.md)
 
-By default, the text of the link is not required if the `.md` page you are linking to is within the project. Retype will automatically use the `label` of the `.md` page as the link text.
+By default, the text of the link is not required if the `.md` page you are linking to is within the project. TailDocs will automatically use the `label` of the `.md` page as the link text.
 
 ---
 
@@ -44,12 +44,12 @@ The following samples demonstrate setting a custom `icon`:
 ```
 [!ref icon="rocket"](/guides/getting-started.md)
 [!ref icon=":rocket:"](/guides/getting-started.md)
-[!ref icon="../static/retype-icon.svg"](/guides/getting-started.md)
+[!ref icon="../static/taildocs-icon.svg"](/guides/getting-started.md)
 ```
 
 [!ref icon="rocket"](/guides/getting-started.md)
 [!ref icon=":rocket:"](/guides/getting-started.md)
-[!ref icon="../static/retype-icon.svg"](/guides/getting-started.md)
+[!ref icon="../static/taildocs-icon.svg"](/guides/getting-started.md)
 
 By default, the referred page title is used as the component text value and the text can be customized by explicitly passing a separate `text` value.
 
@@ -65,17 +65,17 @@ By default, the referred page title is used as the component text value and the 
 
 Sets the `target` attribute of the reference link and specifies which window or tab to open the link into.
 
-[!ref target="blank" text="Retype"](https://retype.com/)
+[!ref target="blank" text="TailDocs"](https://example.com/)
 
 ```md
-[!ref target="blank" text="Retype"](https://retype.com/)
+[!ref target="blank" text="TailDocs"](https://example.com/)
 ```
 
 If no `target` is configured, the link will open in the current tab.
 
-The `target` can be set to any value, although `blank` is common and will open the link in a new tab. Retype will automatically transform the value `blank` into `_blank` which is the actual value required by the browser to indicate that a hyperlink should be opened in a new tab.
+The `target` can be set to any value, although `blank` is common and will open the link in a new tab. TailDocs will automatically transform the value `blank` into `_blank` which is the actual value required by the browser to indicate that a hyperlink should be opened in a new tab.
 
-There are several other values that may be prefixed with an `_` character, including `self`, `parent`, and `top`. The following table demonstrates some common scenarios and naming convention used by Retype to normalize the `target` values.
+There are several other values that may be prefixed with an `_` character, including `self`, `parent`, and `top`. The following table demonstrates some common scenarios and naming convention used by TailDocs to normalize the `target` values.
 
 Config `target` value | Runtime `target` value
 --- | ---

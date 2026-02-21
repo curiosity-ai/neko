@@ -3,57 +3,57 @@ order: -100
 icon: terminal
 tags: [guide]
 ---
-# Retype CLI
+# TailDocs CLI
 
-The Retype CLI is clean and simple. The majority of the time you will run just one command: `retype start`
+The TailDocs CLI is clean and simple. The majority of the time you will run just one command: `taildocs start`
 
 !!!
-Be sure to review the [project](/configuration/project.md) options available within the **retype.yml** as it does unlock more power, flexibility, and customization.
+Be sure to review the [project](/configuration/project.md) options available within the **taildocs.yml** as it does unlock more power, flexibility, and customization.
 !!!
 
-The `--help` option can be passed with any command to get additional details, for instance `retype start --help` will return all options for the `retype start` command.
+The `--help` option can be passed with any command to get additional details, for instance `taildocs start --help` will return all options for the `taildocs start` command.
 
-The command `retype --version` will return the current version number of your Retype install. See all public Retype [releases](https://github.com/retypeapp/retype/releases).
+The command `taildocs --version` will return the current version number of your TailDocs install. See all public TailDocs [releases](https://github.com/taildocsapp/taildocs/releases).
 
-Let's go through each of the `retype` CLI commands and be sure to check out the [Getting Started](/guides/getting-started.md) guide for step-by-step instructions on using each of these commands.
+Let's go through each of the `taildocs` CLI commands and be sure to check out the [Getting Started](/guides/getting-started.md) guide for step-by-step instructions on using each of these commands.
 
 ```
 Description:
-  Retype CLI
+  TailDocs CLI
 
 Usage:
-  retype [command] [options]
+  taildocs [command] [options]
 
 Options:
-  --info          Display Retype information
+  --info          Display TailDocs information
   -v, --version   Show version information
   -?, -h, --help  Show help and usage information
 
 Commands:
   start <path>  Build and serve the project using a local development only web server
-  init <path>   Initialize a new Retype project
+  init <path>   Initialize a new TailDocs project
   build <path>  Generate a static website from the project
   serve <path>  Serve the website in a local development only web server
   clean <path>  Clean the output directory
-  wallet        Manage Your Retype Keys
+  wallet        Manage Your TailDocs Keys
 ```
 
 ---
 
-## `retype start`
+## `taildocs start`
 
-The `retype start` command is the easiest way to get your project built and running in a browser within seconds.
-
-```
-retype start
-```
-
-The `retype start` command will also watch for file changes and will automatically update the website in your web browser with the updated page.
-
-The `retype start` command automatically opens the default web browser on your machine and loads the website into the browser. You can suppress this automatic opening of the default web browser by passing the `--no-open` flag or its alias `-n`.
+The `taildocs start` command is the easiest way to get your project built and running in a browser within seconds.
 
 ```
-retype start -n
+taildocs start
+```
+
+The `taildocs start` command will also watch for file changes and will automatically update the website in your web browser with the updated page.
+
+The `taildocs start` command automatically opens the default web browser on your machine and loads the website into the browser. You can suppress this automatic opening of the default web browser by passing the `--no-open` flag or its alias `-n`.
+
+```
+taildocs start -n
 ```
 
 ### Options
@@ -63,14 +63,14 @@ Description:
   Build and serve the project using a local development only web server
 
 Usage:
-  retype start [<path>] [options]
+  taildocs start [<path>] [options]
 
 Arguments:
   <path>  Path to the project root or project config file [Optional]
 
 Options:
-  --pro                  Enable Retype Pro preview
-  --key <key>            Your Retype Key
+  --pro                  Enable TailDocs Pro preview
+  --key <key>            Your TailDocs Key
   --password <password>  Private page password
   --host <host>          Custom Host name or IP address
   --port <port>          Custom TCP port
@@ -81,38 +81,38 @@ Options:
 ```
 
 !!!danger
-While it is technically possible to host your website publicly using `retype start` on your own web server hardware, **DON'T DO IT**.
+While it is technically possible to host your website publicly using `taildocs start` on your own web server hardware, **DON'T DO IT**.
 
 You should use a dedicated website hosting service, web server, or VPS service. Hosting options include, [[GitHub Pages]], [[Netlify]], [[Cloudflare]], or absolutely any other web hosting or VPS service.
 
-If you _really really really_ want to try public self-hosting using the built in web server, use [`retype serve`](#retype-serve).
+If you _really really really_ want to try public self-hosting using the built in web server, use [`taildocs serve`](#taildocs-serve).
 !!!
 
 ---
 
-## `retype init`
+## `taildocs init`
 
-You can manually create a **retype.yml** file, or you can have Retype stub out a basic file with a few initial values by running the command `retype init`.
+You can manually create a **taildocs.yml** file, or you can have TailDocs stub out a basic file with a few initial values by running the command `taildocs init`.
 
 From your command line, navigate to any folder location where you have one or more Markdown `.md` files, such as the root of a GitHub project, then run the following command:
 
 ```
-retype init
+taildocs init
 ```
 
-Calling the `retype init` command will create a basic **retype.yml** file with the following default values:
+Calling the `taildocs init` command will create a basic **taildocs.yml** file with the following default values:
 
 {%{
-```yml Sample retype.yml
+```yml Sample taildocs.yml
 input: .
-output: .retype
+output: .taildocs
 url: example.com # Add your website here
 branding:
   title: Project Name
   label: Docs
 links:
   - text: Getting Started
-    link: https://retype.com/guides/getting-started/
+    link: https://example.com/guides/getting-started/
 footer:
   copyright: "&copy; Copyright {{ year }}. All rights reserved."
 ```
@@ -126,24 +126,24 @@ branding:
   title: Company X
 ```
 
-If there is already a **retype.yml** file within the project, running the `retype init` command will not create a new **retype.yml** file.
+If there is already a **taildocs.yml** file within the project, running the `taildocs init` command will not create a new **taildocs.yml** file.
 
-The **retype.yml** file is not _actually_ required, but you will want to make custom [configurations](/configuration/project.md) to your project and this is how those instructions are passed to Retype.
+The **taildocs.yml** file is not _actually_ required, but you will want to make custom [configurations](/configuration/project.md) to your project and this is how those instructions are passed to TailDocs.
 
 ### Options
 
 ```
 Description:
-  Initialize a new Retype project
+  Initialize a new TailDocs project
 
 Usage:
-  retype init [<path>] [options]
+  taildocs init [<path>] [options]
 
 Arguments:
   <path>  Path to the project root [Optional]
 
 Options:
-  --override <override>  JSON configuration overriding Retype config values
+  --override <override>  JSON configuration overriding TailDocs config values
   -v, --verbose          Enable verbose logging
   -?, -h, --help         Show help and usage information
 ```
@@ -151,29 +151,29 @@ Options:
 ///region override
 ### `--override`
 
-See the [`--override`](#retype---override) docs below for additional details.
+See the [`--override`](#taildocs---override) docs below for additional details.
 ///endregion
 
 ---
 
-## `retype build`
+## `taildocs build`
 
-To generate your new website, run the command `retype build`. This command builds a new website based upon the `.md` files within the [`input`](/configuration/project.md) location.
+To generate your new website, run the command `taildocs build`. This command builds a new website based upon the `.md` files within the [`input`](/configuration/project.md) location.
 
 ```
-retype build
+taildocs build
 ```
 
-Within just a few seconds, Retype will create a new website and save to the `output` location as defined in the **retype.yml**. By default, the `output` location is a new folder named `.retype`. You can rename to whatever you like, or adjust the path to generate the output to any other location, such as another sub-folder.
+Within just a few seconds, TailDocs will create a new website and save to the `output` location as defined in the **taildocs.yml**. By default, the `output` location is a new folder named `.taildocs`. You can rename to whatever you like, or adjust the path to generate the output to any other location, such as another sub-folder.
 
-If the `.md` documentation files for your project were not located in the root (`.`) but within a `docs` subfolder AND you wanted to have Retype send the output to a `website` folder, you would use the following config:
+If the `.md` documentation files for your project were not located in the root (`.`) but within a `docs` subfolder AND you wanted to have TailDocs send the output to a `website` folder, you would use the following config:
 
 ```yml
 input: docs
 output: website
 ```
 
-Let's say you wanted your new Retype website to run from within a `docs` folder which was then also inside of a root `website` folder, then you would configure:
+Let's say you wanted your new TailDocs website to run from within a `docs` folder which was then also inside of a root `website` folder, then you would configure:
 
 ```yml
 input: docs
@@ -187,7 +187,7 @@ input: src
 output: docs
 ```
 
-The `input` and `output` configs provide unlimited flexibility to instruct Retype on where to get your project content and configurations files, and where to output the generated website.
+The `input` and `output` configs provide unlimited flexibility to instruct TailDocs on where to get your project content and configurations files, and where to output the generated website.
 
 ### Options
 
@@ -196,14 +196,14 @@ Description:
   Generate a static website from the project
 
 Usage:
-  retype build [<path>] [options]
+  taildocs build [<path>] [options]
 
 Arguments:
   <path>  Path to the project root or project config file [Optional]
 
 Options:
   --output <output>      Custom path to the output directory
-  --key <key>            Your Retype Key
+  --key <key>            Your TailDocs Key
   --password <password>  Private page password
   --override <override>  JSON configuration overriding project config values
   --strict               [PRO] Return a non-zero exit code if the build had errors or warnings
@@ -217,17 +217,17 @@ Options:
 
 ---
 
-## `retype serve`
+## `taildocs serve`
 
-The `retype serve` command starts a local development only web server and hosts your website.
+The `taildocs serve` command starts a local development only web server and hosts your website.
 
 ```
-retype serve
+taildocs serve
 ```
 
-The website generated by Retype is a static HTML and JavaScript site. No special server-side hosting, such as Node, PHP, or Ruby is required. A Retype generated website can be hosted on any web server or hosting service, such as [GitHub Pages](https://docs.github.com/en/github/working-with-github-pages/creating-a-github-pages-site), [GitLab Pages](https://docs.gitlab.com/ee/user/project/pages/), [Netlify](https://www.netlify.com/), or [Cloudflare Pages](https://pages.cloudflare.com/).
+The website generated by TailDocs is a static HTML and JavaScript site. No special server-side hosting, such as Node, PHP, or Ruby is required. A TailDocs generated website can be hosted on any web server or hosting service, such as [GitHub Pages](https://docs.github.com/en/github/working-with-github-pages/creating-a-github-pages-site), [GitLab Pages](https://docs.gitlab.com/ee/user/project/pages/), [Netlify](https://www.netlify.com/), or [Cloudflare Pages](https://pages.cloudflare.com/).
 
-You can also use any other local web server instead of `retype serve`. Retype only includes a web server out of convenience, not requirement. Any web server will do. A couple other simple web server options could be [live-server](https://www.npmjs.com/package/live-server) or [static-server](https://www.npmjs.com/package/static-server).
+You can also use any other local web server instead of `taildocs serve`. TailDocs only includes a web server out of convenience, not requirement. Any web server will do. A couple other simple web server options could be [live-server](https://www.npmjs.com/package/live-server) or [static-server](https://www.npmjs.com/package/static-server).
 
 ### Options
 
@@ -236,7 +236,7 @@ Description:
   Serve the website in a local development only web server
 
 Usage:
-  retype serve [<path>] [options]
+  taildocs serve [<path>] [options]
 
 Arguments:
   <path>  Path to the project root or project config file [Optional]
@@ -253,11 +253,11 @@ Options:
 
 ---
 
-## `retype clean`
+## `taildocs clean`
 
-The `retype clean` command will delete the Retype managed files from the `output` folder.
+The `taildocs clean` command will delete the TailDocs managed files from the `output` folder.
 
-If you manually add files or another process adds files to the `output`, those files will not be removed by `retype clean`.
+If you manually add files or another process adds files to the `output`, those files will not be removed by `taildocs clean`.
 
 Including the `--dry` flag triggers a dry run for the command and will list the files that _**would be**_ deleted if the `--dry` flag was not included.
 
@@ -268,7 +268,7 @@ Description:
   Clean the output directory
 
 Usage:
-  retype clean [<path>] [options]
+  taildocs clean [<path>] [options]
 
 Arguments:
   <path>  Path to the project root or project config file [Optional]
@@ -281,38 +281,38 @@ Options:
 
 ---
 
-## `retype wallet`
+## `taildocs wallet`
 
-The `retype wallet` command is for managing Retype keys.
+The `taildocs wallet` command is for managing TailDocs keys.
 
-Retype keys are stored within an encrypted wallet file called **license.dat**.
+TailDocs keys are stored within an encrypted wallet file called **license.dat**.
 
-To add a Retype key to your wallet, run the following command:
-
-```
-retype wallet --add <your-license-key-here>
-```
-
-Once a key is added to your wallet, the key does not need to be added again. The key is stored in the wallet and Retype will read the key from the wallet with future builds.
-
-A Retype key can also be passed during a build. The key is NOT stored in wallet. The key would need to be passed with each call to `retype build`.
+To add a TailDocs key to your wallet, run the following command:
 
 ```
-retype build --key <your-license-key-here>
+taildocs wallet --add <your-license-key-here>
+```
+
+Once a key is added to your wallet, the key does not need to be added again. The key is stored in the wallet and TailDocs will read the key from the wallet with future builds.
+
+A TailDocs key can also be passed during a build. The key is NOT stored in wallet. The key would need to be passed with each call to `taildocs build`.
+
+```
+taildocs build --key <your-license-key-here>
 ```
 
 ### RETYPE_KEY
 
-See how to configure a [`RETYPE_KEY`](../configuration/envvars.md/#retype_key) Environment variable for an option to set your project key during runtime.
+See how to configure a [`RETYPE_KEY`](../configuration/envvars.md/#taildocs_key) Environment variable for an option to set your project key during runtime.
 
 ### Options
 
 ```
 Description:
-  Manage Your Retype Keys
+  Manage Your TailDocs Keys
 
 Usage:
-  retype wallet [options]
+  taildocs wallet [options]
 
 Options:
   --add <key>     Add a key to the wallet
@@ -324,15 +324,15 @@ Options:
 
 ---
 
-## `retype --override`
+## `taildocs --override`
 
-The Retype CLI [`build`](#retype-build) command supports the `--override` option to allow dynamically modifying **retype.yml** project configurations during build.
+The TailDocs CLI [`build`](#taildocs-build) command supports the `--override` option to allow dynamically modifying **taildocs.yml** project configurations during build.
 
-The `--override` option is helpful in certain scenarios such as generating websites requiring different `url` configs, without the need to maintain several **retype.yml** files.
+The `--override` option is helpful in certain scenarios such as generating websites requiring different `url` configs, without the need to maintain several **taildocs.yml** files.
 
 The CLI expects an escaped json object to be passed as the option value.
 
-Retype merges the **retype.yml** configuration with the provided json object in a way that colliding configurations from the json override will overwrite the **retype.yml** values.
+TailDocs merges the **taildocs.yml** configuration with the provided json object in a way that colliding configurations from the json override will overwrite the **taildocs.yml** values.
 
 !!!
 The `--override` json object may contain duplicate keys which will be processed sequentially. Last in wins.
@@ -340,54 +340,54 @@ The `--override` json object may contain duplicate keys which will be processed 
 
 ### Basic config
 
-Using the following **retype.yml** project configuration file as an example:
+Using the following **taildocs.yml** project configuration file as an example:
 
-~~~yml **retype.yml**
-url: https://retype.com
+~~~yml **taildocs.yml**
+url: https://example.com
 ~~~
 
-The command below will build the website with the url `https://beta.retype.com`.
+The command below will build the website with the url `https://beta.example.com`.
 
 ```
-retype build --override "{ \"url\": \"https://beta.retype.com\" }"
+taildocs build --override "{ \"url\": \"https://beta.example.com\" }"
 ```
 
 ### Nested config
 
 The following sample demonstrates overriding a more complex configuration object.
 
-Using the following **retype.yml** project configuration file as an example, let's change the [`label`](/configuration/project.md#label) to `beta`, instead of `v1.10`.
+Using the following **taildocs.yml** project configuration file as an example, let's change the [`label`](/configuration/project.md#label) to `beta`, instead of `v1.10`.
 
-~~~yml **retype.yml**
+~~~yml **taildocs.yml**
 branding:
-  title: Retype
+  title: TailDocs
   label: v1.10
 ~~~
 
-The `retype build --override` would be:
+The `taildocs build --override` would be:
 
 ```
-retype build --override "{ \"branding\": { \"label\": \"beta\"} }"
+taildocs build --override "{ \"branding\": { \"label\": \"beta\"} }"
 ```
 
 To completely remove all the configs in `branding`, pass `null`:
 
 ```
-retype build --override "{ \"branding\": null }"
+taildocs build --override "{ \"branding\": null }"
 ```
 
 ### Add to list
 
 The following command will add a `GitHub` link to the list of [`links`](/configuration/project.md#links).
 
-~~~yml **retype.yml**
+~~~yml **taildocs.yml**
 links:
-  - link: Retype
-    text: https://retype.com
+  - link: TailDocs
+    text: https://example.com
 ~~~
 
 ```
-retype build --override "{ \"links\": [{ \"link\": \"https://github.com/retypeapp/retype\", \"text\": \"GitHub\" }] }"
+taildocs build --override "{ \"links\": [{ \"link\": \"https://github.com/taildocsapp/taildocs\", \"text\": \"GitHub\" }] }"
 ```
 
 ### Remove config
@@ -397,5 +397,5 @@ Passing `null` will remove the corresponding configuration value.
 In the following sample, the website will be built as though `url` was not configured.
 
 ```
-retype build --override "{ \"url\": null }"
+taildocs build --override "{ \"url\": null }"
 ```

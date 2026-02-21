@@ -13,5 +13,5 @@ Icons can be added anywhere within your document, including paragraph text, head
 Some icon shortcode names are made up of `two-or-more` words. For instance, the :icon-git-branch: `git-branch` icon would be configured as `:icon-git-branch:`.
 
 !!! More icons :icon-heart:
-In future releases of Retype, the plan is to support additional Icon packs and possibily even custom developer defined icon packs. [Let us know](https://github.com/retypeapp/retype/issues/) if you are interested!
+In future releases of TailDocs, the plan is to support additional Icon packs and possibily even custom developer defined icon packs. [Let us know](https://github.com/taildocsapp/taildocs/issues/) if you are interested!
 !!!

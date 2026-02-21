@@ -40,11 +40,11 @@ const msg = "hello, world";
 
 ---
 
-Retype uses [PrismJS](https://prismjs.com/) for syntax highlighting. All PrismJS language modules are dynamically loaded as required and all Prism [supported languages](https://prismjs.com/#supported-languages) are supported by Retype.
+TailDocs uses [PrismJS](https://prismjs.com/) for syntax highlighting. All PrismJS language modules are dynamically loaded as required and all Prism [supported languages](https://prismjs.com/#supported-languages) are supported by TailDocs.
 
 ## Title
 
-Retype includes the functionality to set a title on your markdown code blocks.
+TailDocs includes the functionality to set a title on your markdown code blocks.
 
 +++ :icon-code: Source
 ~~~
@@ -176,7 +176,7 @@ Disable the default line numbering but still highlight a line or range of lines.
 
 ### Using attribute syntax
 
-Configuring line highlighting using the `highlight` attribute syntax is also supported by Retype.
+Configuring line highlighting using the `highlight` attribute syntax is also supported by TailDocs.
 
 +++ :icon-code: Source
 
@@ -234,7 +234,7 @@ The `#` should be separated from the opening `` ``` `` by one space, for example
 
 If a title is added, the title must also be separated from the `#` by one space. For instance, the pattern `` ``` # Your title here`` would work as expected and the pattern `` ``` #Your title here`` would not.
 
-Line numbering can also be configured at the project level using the [`snippets`](/configuration/project.md#snippets) config on your projects **retype.yml** file. For instance, instructing Retype to add line numbering to all `js` and `json` code blocks across the website would require the following config:
+Line numbering can also be configured at the project level using the [`snippets`](/configuration/project.md#snippets) config on your projects **taildocs.yml** file. For instance, instructing TailDocs to add line numbering to all `js` and `json` code blocks across the website would require the following config:
 
 ```json Enable line numbering for js and json code blocks site wide
 {
@@ -280,7 +280,7 @@ const msg = "Hello, world";
 
 Code blocks can be grouped using a [[Tab]] component that lets you combine multiple code blocks into a tabbed interface. Each code block becomes a separate tab that users can switch between.
 
-To create a code group in Retype, simply wrap each code block with `+++` followed by the tab label. The tab label will be displayed as the tab button text.
+To create a code group in TailDocs, simply wrap each code block with `+++` followed by the tab label. The tab label will be displayed as the tab button text.
 
 Here's an example showing the same "Hello, world" program in different languages:
 

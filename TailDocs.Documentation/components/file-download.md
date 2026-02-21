@@ -16,7 +16,7 @@ A static file download component can be configured by using the `!file` specifie
 
 ## Custom text
 
-By default, the text of the file download component is not required. Retype will automatically use the file name as the text.
+By default, the text of the file download component is not required. TailDocs will automatically use the file name as the text.
 
 The text can be explicitly set by passing as the first part of the component config. In the following sample, we explicitly set the text to `Sample`.
 
@@ -42,12 +42,12 @@ The following samples demonstrate setting a custom `icon`:
 ```
 [!file icon="rocket"](/static/sample.txt)
 [!file icon=":rocket:"](/static/sample.txt)
-[!file icon="../static/retype-icon.svg"](/static/sample.txt)
+[!file icon="../static/taildocs-icon.svg"](/static/sample.txt)
 ```
 
 [!file icon="rocket"](/static/sample.txt)
 [!file icon=":rocket:"](/static/sample.txt)
-[!file icon="../static/retype-icon.svg"](/static/sample.txt)
+[!file icon="../static/taildocs-icon.svg"](/static/sample.txt)
 
 By default, the file name is used as the component text value and the text can be customized by explicitly passing a separate `text` value.
 

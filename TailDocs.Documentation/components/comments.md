@@ -4,7 +4,7 @@ tags: [component]
 ---
 # Comments
 
-Retype supports adding hidden comments to your Markdown files that are not rendered in the final generated HTML. Comments are useful for adding notes, reminders, or explanations that should only be visible in the source Markdown files.
+TailDocs supports adding hidden comments to your Markdown files that are not rendered in the final generated HTML. Comments are useful for adding notes, reminders, or explanations that should only be visible in the source Markdown files.
 
 ## Basic Syntax
 

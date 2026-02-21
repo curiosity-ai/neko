@@ -26,4 +26,4 @@ Use the `[!ref text="..." link="..."]` syntax.
 Here are some useful links:
 
 - [!ref text="TailDocs Documentation" link="../index"]
-- [!ref text="Official Website" link="https://taildocs.com"]
+- [!ref text="Official Website" link="https://example.com"]

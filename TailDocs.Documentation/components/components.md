@@ -5,7 +5,7 @@ backlinks:
 ---
 # Components
 
-Retype Flavored [Markdown](/guides/formatting.md) (RFM) supports custom **Components**, including:
+TailDocs Flavored [Markdown](/guides/formatting.md) (RFM) supports custom **Components**, including:
 
 | Text | Layout | Code |
 | --   | --     | --   |

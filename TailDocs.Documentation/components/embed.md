@@ -6,7 +6,7 @@ tags: [component]
 
 The `embed` component helps with content embedding.
 
-The embed component syntax is similar to many other Retype components. The `!embed` keyword is used to specify the component and a link to the resource is included.
+The embed component syntax is similar to many other TailDocs components. The `!embed` keyword is used to specify the component and a link to the resource is included.
 
 ```md
 [!embed](link)
@@ -18,7 +18,7 @@ The link is the full URL to the embedded resource. For instance, embeding a YouT
 [!embed](https://www.youtube.com/embed/C0DPdy98e4c)
 ```
 
-The above Retype component would render as follows:
+The above TailDocs component would render as follows:
 
 [!embed](https://www.youtube.com/embed/C0DPdy98e4c)
 
@@ -32,7 +32,7 @@ Typically, this attribute is used by embeded videos, such as a YouTube or Vimeo,
 
 The default value of `allowFullScreen` is `true`. Setting to `false` will remove or disable the full screen button.
 
-You do not need to explicitly enable the full screen option for videos. By default, the button will be enabled when a Retype `[!embed]` component is used.
+You do not need to explicitly enable the full screen option for videos. By default, the button will be enabled when a TailDocs `[!embed]` component is used.
 
 ```md
 [!embed](https://www.youtube.com/embed/C0DPdy98e4c)

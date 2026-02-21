@@ -6,9 +6,9 @@ nav:
 ---
 # Color Chip
 
-Retype automatically detects hex color codes written in inline code and displays them with a visual color preview chip.
+TailDocs automatically detects hex color codes written in inline code and displays them with a visual color preview chip.
 
-When you write a valid hex color code using backticks, Retype renders the color value alongside a small circular preview of that color.
+When you write a valid hex color code using backticks, TailDocs renders the color value alongside a small circular preview of that color.
 
 ||| Demo
 The primary color is `#5495f1` and the background is `#ffffff`.

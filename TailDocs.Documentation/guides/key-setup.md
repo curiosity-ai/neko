@@ -6,16 +6,16 @@ icon: key
 
 There are 3 different ways you can add a key to your project:
 
-## Option 1: Use `retype wallet`
+## Option 1: Use `taildocs wallet`
 
-To use the key on your local development computer, run the following command and replace the `<key>` with your Retype Key.
+To use the key on your local development computer, run the following command and replace the `<key>` with your TailDocs Key.
 
 ```
-retype wallet --add <key>
+taildocs wallet --add <key>
 ```
 
 !!!
-See more details regarding the [`retype wallet`](/guides/cli.md#retype-wallet) command.
+See more details regarding the [`taildocs wallet`](/guides/cli.md#taildocs-wallet) command.
 !!!
 
 ---
@@ -25,11 +25,11 @@ See more details regarding the [`retype wallet`](/guides/cli.md#retype-wallet) c
 You can pass the key as a command line option by calling:
 
 ```
-retype build --key <key>
+taildocs build --key <key>
 ```
 
 !!!
-See more details regarding the [`retype build`](/guides/cli.md#retype-build) command.
+See more details regarding the [`taildocs build`](/guides/cli.md#taildocs-build) command.
 !!!
 
 ---
@@ -42,7 +42,7 @@ Then add `RETYPE_KEY` secret to your [[GitHub Actions]] file:
 
 {%{
 ```
-- uses: retypeapp/action-build@latest
+- uses: taildocsapp/action-build@latest
   with:
     key: ${{ secrets.RETYPE_KEY }}
 ```

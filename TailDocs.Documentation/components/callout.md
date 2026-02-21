@@ -38,12 +38,12 @@ Some basic Markdown syntax and emoji `:shortcodes:` are supported in the titles.
 
 ```md
 !!! :zap: [Getting Started](/guides/getting-started.md) :zap:
-Get up to speed with Retype quickly by checking out the Getting Started guide.
+Get up to speed with TailDocs quickly by checking out the Getting Started guide.
 !!!
 ```
 
 !!! :zap: [Getting Started](/guides/getting-started.md) :zap:
-Get up to speed with Retype quickly by checking out the Getting Started guide.
+Get up to speed with TailDocs quickly by checking out the Getting Started guide.
 !!!
 
 ---
@@ -180,7 +180,7 @@ This is a `contrast` Callout.
 
 ## GitHub Alerts
 
-In addition to the Retype Callout component syntax options above, Retype also supports fully the GitHub [Alert](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) extension which is an adaptation of the Markdown blockquote syntax.
+In addition to the TailDocs Callout component syntax options above, TailDocs also supports fully the GitHub [Alert](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) extension which is an adaptation of the Markdown blockquote syntax.
 
 ```md
 > [!NOTE]
@@ -218,7 +218,7 @@ Here are the rendered GitHub Alerts:
 
 ### Custom title
 
-Retype also supports setting a custom title value on the GitHub Alerts using the following syntax:
+TailDocs also supports setting a custom title value on the GitHub Alerts using the following syntax:
 
 ```md
 > [!NOTE] Custom Title
@@ -232,11 +232,11 @@ Retype also supports setting a custom title value on the GitHub Alerts using the
 
 ## Theme variables
 
-Retype gives you full control over the look and feel of your callout components through customizable [[theme variables]].
+TailDocs gives you full control over the look and feel of your callout components through customizable [[theme variables]].
 
-You can override any of theme variable in your `retype.yml` configuration file using the `theme.base` and `theme.dark` settings.
+You can override any of theme variable in your `taildocs.yml` configuration file using the `theme.base` and `theme.dark` settings.
 
-For example, to change the `primary` callout color for all instances of the `primary` callout within your project, add the following to your project's `retype.yml` file:
+For example, to change the `primary` callout color for all instances of the `primary` callout within your project, add the following to your project's `taildocs.yml` file:
 
 ```yaml
 theme:
@@ -249,7 +249,7 @@ theme:
     callout-primary: "#209fb5"
 ```
 
-To learn more about theme variables and how they work across Retype, check out the [Themes Guide](/guides/themes.md), the [[Theme Variables]] documentation, and [`theme`](/configuration/project.md#theme) Project settings.
+To learn more about theme variables and how they work across TailDocs, check out the [Themes Guide](/guides/themes.md), the [[Theme Variables]] documentation, and [`theme`](/configuration/project.md#theme) Project settings.
 
 !!!
 All callout theme variables can be customized in this way. The full list of available variables is shown below, and you can always refer to the [Callout Component](/configuration/theme-variables.md#callout-component) theme variables for the latest options.

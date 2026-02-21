@@ -4,7 +4,7 @@ tags: [component, icon]
 ---
 # Emoji
 
-Retype uses [Mojee](https://mojeeio.github.io/Mojee/) to find emoji `:shortcodes:` within your document and replace with actual emoji characters. :+1:
+TailDocs uses [Mojee](https://mojeeio.github.io/Mojee/) to find emoji `:shortcodes:` within your document and replace with actual emoji characters. :+1:
 
 You can place emoji `:shortcodes:` anywhere within your document, such as `:smile:` :smile: or `:unicorn_face:` :unicorn_face:.
 

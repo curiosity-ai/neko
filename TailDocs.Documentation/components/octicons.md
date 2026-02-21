@@ -39,7 +39,7 @@ This is a sample page with a :icon-rocket: icon.
 
 ## New icons
 
-The following [!badge NEW|info] icons are included in Retype **v{{ version }}**:
+The following [!badge NEW|info] icons are included in TailDocs **v{{ version }}**:
 
 
 ## All icons

@@ -6,10 +6,10 @@ tags: [guide, pro]
 ---
 # Themes
 
-Retype's [`theme`](/configuration/project.md#theme) system allows you to customize the visual appearance of your website by overriding [[theme variables]]. With themes, you can adjust colors, spacing, typography, and other design elements to match your brand or project preferences.
+TailDocs's [`theme`](/configuration/project.md#theme) system allows you to customize the visual appearance of your website by overriding [[theme variables]]. With themes, you can adjust colors, spacing, typography, and other design elements to match your brand or project preferences.
 
 !!!base Pro Feature
-The theme functionality requires a [Retype Pro](/pro/pro.md) key or adding the following [`pro`](/configuration/project.md#pro) trial mode setting into your project `retype.yml` configuration file:
+The theme functionality requires a [TailDocs Pro](/pro/pro.md) key or adding the following [`pro`](/configuration/project.md#pro) trial mode setting into your project `taildocs.yml` configuration file:
 
 ```yaml
 start
@@ -19,7 +19,7 @@ start
 
 ## Quick Start
 
-The quickest way to customize your site's appearance is by adding a `theme` configuration to your `retype.yml` file and setting a custom [`base-color`](/configuration/theme-variables.md#base-variables) theme variable.
+The quickest way to customize your site's appearance is by adding a `theme` configuration to your `taildocs.yml` file and setting a custom [`base-color`](/configuration/theme-variables.md#base-variables) theme variable.
 
 ```yml
 theme:
@@ -112,7 +112,7 @@ theme:
 
 ## Best Practices
 
-When customizing your Retype [theme](/configuration/project.md#theme), it’s best to start with small changes and gradually build up. Here are some guidelines to help you maintain a clean, accessible, and consistent design.
+When customizing your TailDocs [theme](/configuration/project.md#theme), it’s best to start with small changes and gradually build up. Here are some guidelines to help you maintain a clean, accessible, and consistent design.
 
 ### 1. Start with the `base-color`
 
@@ -167,8 +167,8 @@ Following these practices helps ensure your site looks good, stays accessible, a
 
 ### Theme Not Applied
 
-- [x] Ensure you have a valid Retype Pro license or add [`start.pro: true`](/configuration/project.md#pro)
-- [x] Check that the syntax is correct in your `retype.yml` file
+- [x] Ensure you have a valid TailDocs Pro license or add [`start.pro: true`](/configuration/project.md#pro)
+- [x] Check that the syntax is correct in your `taildocs.yml` file
 - [x] Verify [theme variable](/configuration/theme-variables.md) names match exactly
 
 ### Dark Mode Issues

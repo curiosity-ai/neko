@@ -6,7 +6,7 @@ nav:
 ---
 # Theme variables
 
-This reference documents all available customizable [`theme`](/configuration/project.md#theme) variables that can be added to your `retype.yml` file. Each variable can be overridden in both `base` (light mode) and `dark` (dark mode) configurations.
+This reference documents all available customizable [`theme`](/configuration/project.md#theme) variables that can be added to your `taildocs.yml` file. Each variable can be overridden in both `base` (light mode) and `dark` (dark mode) configurations.
 
 The following demonstrates a basic configuration where the `base-color` and background color are configured with custom values:
 
@@ -47,7 +47,7 @@ Core variables that define the fundamental appearance of your site.
 
 ## Variants
 
-Semantic color variants are used throughout Retype components. These colors provide consistent theming for different types of content and actions. Each variant is available as a full color palette from `50` (lightest) to `900` (darkest).
+Semantic color variants are used throughout TailDocs components. These colors provide consistent theming for different types of content and actions. Each variant is available as a full color palette from `50` (lightest) to `900` (darkest).
 
 | Variable | Description | Default `base`  |
 | --- | --- | --- |

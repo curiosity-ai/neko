@@ -61,7 +61,7 @@ order: -1000
 
 ## nextprev
 
-This config is Retype [!badge PRO](/pro/pro.md) only.
+This config is TailDocs [!badge PRO](/pro/pro.md) only.
 
 The `nextprev` configuration controls the display of "Next" and "Previous" navigation buttons at the bottom of each page and whether a page is included in the navigation sequence.
 
@@ -109,7 +109,7 @@ Hide a folder by setting the [visibility](/configuration/page.md#visibility) con
 visibility: hidden
 ```
 
-Another option to completely ignore a folder or a file would be to prefix the folder name or file name with an underscore `_`. For instance, naming a folder `_guides` would instruct Retype to ignore the folder.
+Another option to completely ignore a folder or a file would be to prefix the folder name or file name with an underscore `_`. For instance, naming a folder `_guides` would instruct TailDocs to ignore the folder.
 
 Password protect an entire folder by setting the `visibility` to either [`protected`](page.md#protected) or [`private`](page.md#private).
 
