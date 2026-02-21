@@ -10,4 +10,7 @@ This is the sample documentation for TailDocs.
 
 ## Links
 
-[Components](components.md)
+- [Alerts](components/alert)
+- [Badges](components/badge)
+- [Buttons](components/button)
+- And more! Check the sidebar.

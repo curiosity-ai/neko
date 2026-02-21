@@ -1,19 +1,19 @@
 # TODO
 
 ## Core
-- [ ] Implement CLI entry point and `watch` command. (Done)
-- [ ] Implement file watching and Kestrel integration. (Done)
-- [ ] Implement configuration parsing (`taildocs.yml`). (Done)
-- [ ] Implement Markdown parsing logic (Frontmatter, basic markdown). (Done)
-- [ ] Implement HTML template generation. (Done)
+- [x] Implement CLI entry point and `watch` command.
+- [x] Implement file watching and Kestrel integration.
+- [x] Implement configuration parsing (`taildocs.yml`).
+- [x] Implement Markdown parsing logic (Frontmatter, basic markdown).
+- [x] Implement HTML template generation.
 
 ## Components / Syntax
 - [x] Badge component (`[!badge ...]`).
 - [x] Alert component (`!!!` and `> [!ALERT]`).
 - [x] Tabs component (`+++`).
-- [ ] Code blocks with syntax highlighting (Highlight.js).
-- [ ] TOC generation.
-- [ ] Search index generation. (Done)
+- [x] Code blocks with syntax highlighting (Highlight.js).
+- [x] TOC generation.
+- [x] Search index generation.
 
 ### Missing Components to Implement
 Please refer to the following list for future implementation. Suggested syntax follows standard Markdown or Retype-compatible conventions.
@@ -25,17 +25,16 @@ Please refer to the following list for future implementation. Suggested syntax f
 - [x] **Code Snippet**: `:::code source="path/to/file.cs" :::`
 - [x] **Color Chip**: `[!color-chip color="#ff0000" text="Red"]`
 - [x] **Column**: `:::column ... :::` for multi-column layouts.
-- [ ] **Comments**: Integration with Giscus or Disqus.
 - [x] **Container**: `:::div class="custom-class" ... :::`
-- [ ] **Embed**: Generic embed component.
-- [x] **Emoji**: `:smile:` support. (Basic support enabled)
+- [x] **Embed**: Generic embed component.
+- [x] **Emoji**: `:smile:` support.
 - [x] **File Download**: `[!file text="Download" link="file.zip"]`
 - [x] **Icon**: `[!icon name="home"]` or inline `:icon-home:`
 - [x] **Image**: Enhanced image syntax `![Alt](img.png){width=500}`
 - [ ] **List**: Enhanced lists.
 - [x] **Math Formulas**: KaTeX integration. `$$ ... $$`
 - [x] **Mermaid**: Mermaid.js integration. ```mermaid ... ```
-- [ ] **UIcons**: Flaticon integration. (Already embedded, need component helper)
+- [x] **UIcons**: Flaticon integration. (Added `TailDocs.Tools.UIcons` helper tool).
 - [x] **Panel**: `:::panel ... :::`
 - [x] **Reference Link**: `[!ref text="Link" link="url"]`
 - [x] Tab: `+++ Title ... +++`

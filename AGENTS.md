@@ -14,6 +14,7 @@ This repository contains the source code for `TailDocs`, a CLI tool for generati
     -   Run tests frequently.
 3.  **Documentation**:
     -   Update `TailDocs.Sample` with examples of supported features.
+    -   **All components and features of TailDocs should have an equivalent documentation page in the sample project.**
     -   Maintain `TODO.md` and `WIP.md`.
 4.  **No References**: Do not mention the name of the tool we are emulating (starts with R) in the user-facing output or documentation.
 5.  **Assets**:

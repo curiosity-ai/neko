@@ -8,14 +8,12 @@ namespace TailDocs.Tests
 {
     public class E2ETests
     {
-        private string _outputDir;
         private string _sampleDir;
 
         [SetUp]
         public void Setup()
         {
             _sampleDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "E2ESample");
-            _outputDir = Path.Combine(_sampleDir, ".taildocs");
 
             if (Directory.Exists(_sampleDir)) Directory.Delete(_sampleDir, true);
             Directory.CreateDirectory(_sampleDir);
@@ -56,8 +54,11 @@ AlertContent
             var builder = new SiteBuilder(_sampleDir);
             await builder.BuildAsync();
 
-            var indexPath = Path.Combine(_outputDir, "index.html");
-            var componentsPath = Path.Combine(_outputDir, "components.html");
+            var outputDir = builder.OutputDirectory;
+            System.Console.WriteLine($"E2E Output Directory: {outputDir}");
+
+            var indexPath = Path.Combine(outputDir, "index.html");
+            var componentsPath = Path.Combine(outputDir, "components.html");
 
             Assert.That(File.Exists(indexPath), Is.True, "Index.html should exist");
             Assert.That(File.Exists(componentsPath), Is.True, "Components.html should exist");

@@ -56,6 +56,9 @@ namespace TailDocs.CLI.Configuration
 
         [YamlMember(Alias = "target")]
         public string Target { get; set; }
+
+        [YamlMember(Alias = "items")]
+        public List<LinkConfig> Items { get; set; } = new List<LinkConfig>();
     }
 
     public class MetaConfig
