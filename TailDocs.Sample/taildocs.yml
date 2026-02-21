@@ -1,0 +1,10 @@
+input: ./
+output: .taildocs
+url: localhost
+
+branding:
+  title: TailDocs Sample
+
+links:
+  - text: Home
+    link: /
