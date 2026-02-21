@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
 using TailDocs.CLI.Configuration;
 
 namespace TailDocs.CLI.Builder
@@ -77,15 +79,93 @@ namespace TailDocs.CLI.Builder
             var searchIndexer = new SearchIndexGenerator();
 
             // 4. Process Files
+            var parsedDocs = new List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)>();
+
+            // Pass 1: Parse all files
             foreach (var file in files)
             {
-                Console.WriteLine($"Processing {Path.GetFileName(file)}...");
+                Console.WriteLine($"Parsing {Path.GetFileName(file)}...");
                 var markdown = await File.ReadAllTextAsync(file);
                 var doc = parser.Parse(markdown);
-                var html = generator.Generate(doc);
-
                 var relativePath = Path.GetRelativePath(_inputDirectory, file);
-                var htmlFileName = Path.ChangeExtension(relativePath, ".html");
+                parsedDocs.Add((file, relativePath, doc, markdown));
+            }
+
+            // Pass 2: Build Backlinks Map
+            var backlinkMap = new Dictionary<string, List<(string Url, string Title)>>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var item in parsedDocs)
+            {
+                var sourceRelativePath = item.RelativePath;
+                var sourceTitle = !string.IsNullOrEmpty(item.Doc.FrontMatter.Title)
+                    ? item.Doc.FrontMatter.Title
+                    : Path.GetFileNameWithoutExtension(item.FilePath);
+
+                // Source URL for the backlink (relative to root, no extension)
+                var sourceUrl = "/" + sourceRelativePath.Replace("\\", "/");
+                if (sourceUrl.EndsWith(".md")) sourceUrl = sourceUrl.Substring(0, sourceUrl.Length - 3);
+
+                foreach (var link in item.Doc.OutgoingLinks)
+                {
+                    try
+                    {
+                        var sourceDir = Path.GetDirectoryName(item.FilePath) ?? "";
+
+                        // Handle links starting with / as relative to root
+                        string targetFullPath;
+                        if (link.StartsWith("/"))
+                        {
+                            targetFullPath = Path.GetFullPath(Path.Combine(_inputDirectory, link.TrimStart('/')));
+                        }
+                        else
+                        {
+                            targetFullPath = Path.GetFullPath(Path.Combine(sourceDir, link));
+                        }
+
+                        // Normalize extension
+                        if (!File.Exists(targetFullPath) && !targetFullPath.EndsWith(".md"))
+                        {
+                            if (File.Exists(targetFullPath + ".md"))
+                                targetFullPath += ".md";
+                        }
+
+                        if (targetFullPath.StartsWith(_inputDirectory))
+                        {
+                            var targetRelativePath = Path.GetRelativePath(_inputDirectory, targetFullPath);
+
+                            if (!backlinkMap.ContainsKey(targetRelativePath))
+                            {
+                                backlinkMap[targetRelativePath] = new List<(string, string)>();
+                            }
+
+                            if (!backlinkMap[targetRelativePath].Any(b => b.Url == sourceUrl))
+                            {
+                                backlinkMap[targetRelativePath].Add((sourceUrl, sourceTitle));
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore invalid paths
+                    }
+                }
+            }
+
+            // Pass 3: Generate HTML
+            foreach (var item in parsedDocs)
+            {
+                Console.WriteLine($"Generating {Path.GetFileName(item.FilePath)}...");
+
+                // Get backlinks
+                List<(string Url, string Title)> backlinks = null;
+                if (backlinkMap.TryGetValue(item.RelativePath, out var links))
+                {
+                    backlinks = links;
+                }
+
+                var html = generator.Generate(item.Doc, backlinks);
+
+                var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html");
                 var outputPath = Path.Combine(OutputDirectory, htmlFileName);
 
                 var outputDirForFile = Path.GetDirectoryName(outputPath);
@@ -96,9 +176,7 @@ namespace TailDocs.CLI.Builder
 
                 await File.WriteAllTextAsync(outputPath, html);
 
-                // Add to search index
-                // Note: stripping markdown for search content is better
-                searchIndexer.AddDocument(htmlFileName, doc.FrontMatter.Title ?? Path.GetFileNameWithoutExtension(file), markdown);
+                searchIndexer.AddDocument(htmlFileName, item.Doc.FrontMatter.Title ?? Path.GetFileNameWithoutExtension(item.FilePath), item.Markdown);
             }
 
             await searchIndexer.WriteIndexAsync(OutputDirectory);

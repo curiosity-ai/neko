@@ -18,9 +18,9 @@
 ### Missing Components to Implement
 Please refer to the following list for future implementation. Suggested syntax follows standard Markdown or Retype-compatible conventions.
 
-- [ ] **Backlinks**: Automatic generation of backlinks at the bottom of pages.
+- [x] **Backlinks**: Automatic generation of backlinks at the bottom of pages.
 - [x] **Button**: `[!button text="Click Me" link="/url" variant="primary"]`
-- [ ] **Callout**: Enhanced alerts/callouts. Already partially covered by Alerts.
+- [x] **Callout**: Enhanced alerts/callouts. Already partially covered by Alerts.
 - [x] **Code Block**: Standard markdown fence with language. Support `title="filename.cs"` and line highlighting.
 - [x] **Code Snippet**: `:::code source="path/to/file.cs" :::`
 - [x] **Color Chip**: `[!color-chip color="#ff0000" text="Red"]`
@@ -31,7 +31,7 @@ Please refer to the following list for future implementation. Suggested syntax f
 - [x] **File Download**: `[!file text="Download" link="file.zip"]`
 - [x] **Icon**: `[!icon name="home"]` or inline `:icon-home:`
 - [x] **Image**: Enhanced image syntax `![Alt](img.png){width=500}`
-- [ ] **List**: Enhanced lists.
+- [x] **List**: Enhanced lists.
 - [x] **Math Formulas**: KaTeX integration. `$$ ... $$`
 - [x] **Mermaid**: Mermaid.js integration. ```mermaid ... ```
 - [x] **UIcons**: Flaticon integration. (Added `TailDocs.Tools.UIcons` helper tool).

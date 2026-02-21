@@ -13,7 +13,7 @@ namespace TailDocs.CLI.Builder
             _config = config;
         }
 
-        public string Generate(ParsedDocument document)
+        public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null)
         {
             var title = !string.IsNullOrEmpty(document.FrontMatter.Title)
                 ? $"{document.FrontMatter.Title} - {_config.Branding.Title}"
@@ -156,6 +156,19 @@ namespace TailDocs.CLI.Builder
                  htmlContent = System.Text.RegularExpressions.Regex.Replace(htmlContent, "href=\"((?!http:|https:|ftp:|mailto:|#|/)[^\"]+)\\.(md|html)\"", "href=\"$1\"");
             }
             sb.AppendLine(htmlContent);
+
+            if (backlinks != null && backlinks.Count > 0)
+            {
+                sb.AppendLine("                    <div class=\"mt-12 pt-8 border-t border-gray-200 dark:border-gray-800\">");
+                sb.AppendLine("                        <h3 class=\"text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4\">Referenced by</h3>");
+                sb.AppendLine("                        <ul class=\"space-y-2\">");
+                foreach (var link in backlinks)
+                {
+                    sb.AppendLine($"                            <li><a href=\"{link.Url}\" class=\"text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2\"><i class=\"fi fi-rr-arrow-small-right\"></i> {link.Title}</a></li>");
+                }
+                sb.AppendLine("                        </ul>");
+                sb.AppendLine("                    </div>");
+            }
 
             sb.AppendLine("                </div>");
             sb.AppendLine("            </main>");
