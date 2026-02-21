@@ -76,7 +76,7 @@ namespace TailDocs.CLI.Extensions
             var attributes = obj.GetAttributes();
 
             // Add custom class for styling the inner pre/code
-            attributes.AddClass("!my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4"); // Override prose defaults
+            attributes.AddClass("!my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm"); // Override prose defaults
 
             // Store highlight info in data attribute
             if (!string.IsNullOrEmpty(highlight))

@@ -245,34 +245,61 @@ namespace TailDocs.CLI.Extensions
 
             // Map variant to colors
             string borderClass = "border-l-4";
-            string bgClass = "bg-gray-50 dark:bg-gray-800";
+            string bgClass = "bg-blue-50 dark:bg-blue-900/20";
             string borderColor = "border-blue-500";
             string icon = "info";
-            string titleColor = "text-gray-900 dark:text-gray-100";
+            string titleColor = "text-blue-800 dark:text-blue-200";
+            string iconColor = "text-blue-500";
 
             switch (variant)
             {
                 case "primary":
                 case "info":
+                    bgClass = "bg-blue-50 dark:bg-blue-900/20";
                     borderColor = "border-blue-500";
+                    titleColor = "text-blue-800 dark:text-blue-200";
+                    iconColor = "text-blue-500";
                     icon = "info";
                     break;
                 case "success":
                 case "tip":
+                    bgClass = "bg-green-50 dark:bg-green-900/20";
                     borderColor = "border-green-500";
+                    titleColor = "text-green-800 dark:text-green-200";
+                    iconColor = "text-green-500";
                     icon = "check-circle";
                     break;
                 case "warning":
+                    bgClass = "bg-yellow-50 dark:bg-yellow-900/20";
                     borderColor = "border-yellow-500";
+                    titleColor = "text-yellow-800 dark:text-yellow-200";
+                    iconColor = "text-yellow-500";
                     icon = "exclamation";
                     break;
                 case "danger":
+                    bgClass = "bg-red-50 dark:bg-red-900/20";
                     borderColor = "border-red-500";
+                    titleColor = "text-red-800 dark:text-red-200";
+                    iconColor = "text-red-500";
                     icon = "cross-circle";
                     break;
                 case "question":
+                    bgClass = "bg-purple-50 dark:bg-purple-900/20";
                     borderColor = "border-purple-500";
+                    titleColor = "text-purple-800 dark:text-purple-200";
+                    iconColor = "text-purple-500";
                     icon = "question";
+                    break;
+                case "secondary":
+                case "light":
+                case "dark":
+                case "ghost":
+                case "contrast":
+                    bgClass = "bg-gray-50 dark:bg-gray-800";
+                    borderColor = "border-gray-500";
+                    titleColor = "text-gray-900 dark:text-gray-100";
+                    iconColor = "text-gray-500";
+                    icon = "info";
                     break;
             }
 
@@ -281,7 +308,7 @@ namespace TailDocs.CLI.Extensions
             // Header with Icon and Title
             renderer.Write("<div class=\"flex items-start\">");
 
-            renderer.Write($"<div class=\"flex-shrink-0 text-2xl mr-3 opacity-80\">");
+            renderer.Write($"<div class=\"flex-shrink-0 text-xl mr-3 {iconColor}\">");
             renderer.Write($"<i class=\"fi fi-rr-{icon}\"></i>");
             renderer.Write("</div>");
 
