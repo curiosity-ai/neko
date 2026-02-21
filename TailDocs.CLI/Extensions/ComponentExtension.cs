@@ -158,6 +158,9 @@ namespace TailDocs.CLI.Extensions
                 case "color-chip":
                     RenderColorChip(renderer, obj);
                     break;
+                case "embed":
+                    RenderEmbed(renderer, obj);
+                    break;
                 case "file":
                     RenderFile(renderer, obj);
                     break;
@@ -212,6 +215,19 @@ namespace TailDocs.CLI.Extensions
             renderer.Write($"<span class=\"w-3 h-3 rounded-full mr-1.5\" style=\"background-color: {color};\"></span>");
             renderer.Write(text);
             renderer.Write("</span>");
+        }
+
+        private void RenderEmbed(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var src = obj.GetAttribute("src");
+            var height = obj.GetAttribute("height", "400"); // Default height
+
+            if (!string.IsNullOrEmpty(src))
+            {
+                renderer.Write($"<div class=\"my-4 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm\">");
+                renderer.Write($"<iframe src=\"{src}\" style=\"width: 100%; height: {height}px;\" frameborder=\"0\" allowfullscreen></iframe>");
+                renderer.Write("</div>");
+            }
         }
 
         private void RenderFile(HtmlRenderer renderer, ComponentInline obj)

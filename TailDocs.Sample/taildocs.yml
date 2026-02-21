@@ -8,3 +8,35 @@ branding:
 links:
   - text: Home
     link: /
+  - text: Components
+    items:
+      - text: Alert
+        link: components/alert
+      - text: Badge
+        link: components/badge
+      - text: Button
+        link: components/button
+      - text: Code
+        link: components/code
+      - text: Column
+        link: components/column
+      - text: Embed
+        link: components/embed
+      - text: File
+        link: components/file
+      - text: Icon
+        link: components/icon
+      - text: Image
+        link: components/image
+      - text: Math
+        link: components/math
+      - text: Mermaid
+        link: components/mermaid
+      - text: Panel
+        link: components/panel
+      - text: Reference
+        link: components/ref
+      - text: Tab
+        link: components/tab
+      - text: YouTube
+        link: components/youtube

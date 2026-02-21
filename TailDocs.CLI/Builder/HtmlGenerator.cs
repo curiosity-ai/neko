@@ -1,5 +1,6 @@
 using TailDocs.CLI.Configuration;
 using System.Text;
+using System.Collections.Generic;
 
 namespace TailDocs.CLI.Builder
 {
@@ -18,16 +19,19 @@ namespace TailDocs.CLI.Builder
                 ? $"{document.FrontMatter.Title} - {_config.Branding.Title}"
                 : _config.Branding.Title;
 
+            var darkTheme = _config.Theme.Highlight.Dark;
+            var lightTheme = _config.Theme.Highlight.Light;
+
             var sb = new StringBuilder();
             sb.AppendLine("<!DOCTYPE html>");
-            sb.AppendLine("<html lang=\"en\">");
+            sb.AppendLine("<html lang=\"en\" class=\"scroll-smooth\">");
             sb.AppendLine("<head>");
             sb.AppendLine("    <meta charset=\"UTF-8\">");
             sb.AppendLine("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
             sb.AppendLine($"    <title>{title}</title>");
 
             // Tailwind CSS
-            sb.AppendLine("    <script src=\"assets/tailwind.js\"></script>");
+            sb.AppendLine("    <script src=\"/assets/tailwind.js\"></script>");
             sb.AppendLine("    <script>tailwind.config = { darkMode: 'class' }</script>");
 
             // Inter Font
@@ -48,33 +52,12 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("    <script>mermaid.initialize({startOnLoad:true});</script>");
 
             // Search Assets
-            sb.AppendLine("    <script src=\"assets/minisearch.min.js\"></script>");
-            sb.AppendLine("    <script defer src=\"assets/search.js\"></script>");
+            sb.AppendLine("    <script src=\"/assets/minisearch.min.js\"></script>");
+            sb.AppendLine("    <script defer src=\"/assets/search.js\"></script>");
 
             // Highlight.js
-            sb.AppendLine("    <script src=\"assets/highlight/highlight.min.js\"></script>");
-            // Theme - Supporting basic light/dark switch via simple script or CSS?
-            // Highlight.js uses one CSS file. To support dark mode switch, we need to load different CSS or scope them.
-            // Simplest way: Load dark theme by default if user preference is dark, but tailwind uses 'class' strategy.
-            // We can load both and toggle? Or use CSS media query if files support it?
-            // Tokyo Night CSS files just define colors.
-            // We can inject styles conditionally.
-
-            // Let's use a small script to load the correct stylesheet based on html class 'dark'.
-            // Actually, we can just load the dark theme if we are in dark mode?
-            // A common trick is to use media queries or a "dark" selector prefix, but highlight.js themes are global.
-
-            // For now, let's load the configured "dark" theme if checking dark mode, but we need dynamic switch support.
-            // We can wrap the dark theme in `.dark .hljs` selector? That requires modifying the CSS.
-
-            // Let's just load the dark theme as default for now as requested "use tokyo-night / tokyo-night-dark by default".
-            // The prompt says "add a setting ... for setting the default light / dark code highlighting theme".
-
-            var darkTheme = _config.Theme.Highlight.Dark;
-            // var lightTheme = _config.Theme.Highlight.Light;
-
-            sb.AppendLine($"    <link rel=\"stylesheet\" href=\"assets/highlight/{darkTheme}.min.css\">");
-            sb.AppendLine("    <script src=\"assets/highlight/highlight.min.js\"></script>");
+            sb.AppendLine($"    <link id=\"highlight-theme\" rel=\"stylesheet\" href=\"/assets/highlight/{darkTheme}.min.css\">");
+            sb.AppendLine("    <script src=\"/assets/highlight/highlight.min.js\"></script>");
             sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js\"></script>");
             sb.AppendLine("    <style>");
             sb.AppendLine("        /* Highlight.js Line Numbers CSS */");
@@ -90,107 +73,227 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("        .hljs-ln { width: 100%; border-collapse: collapse; }");
             sb.AppendLine("    </style>");
 
-            sb.AppendLine("</head>");
-            sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100\">");
+            // Dark Mode Init
+            sb.AppendLine("    <script>");
+            sb.AppendLine("        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {");
+            sb.AppendLine("            document.documentElement.classList.add('dark');");
+            sb.AppendLine("        } else {");
+            sb.AppendLine("            document.documentElement.classList.remove('dark');");
+            sb.AppendLine("        }");
+            sb.AppendLine("    </script>");
 
-            // Layout container
-            sb.AppendLine("    <div class=\"flex h-screen\">");
+            sb.AppendLine("</head>");
+            sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
+
+            // Navbar
+            sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 z-10\">");
+            sb.AppendLine("        <div class=\"flex items-center gap-4\">");
+            if (!string.IsNullOrEmpty(_config.Branding.Logo))
+            {
+                sb.AppendLine($"            <img src=\"{_config.Branding.Logo}\" class=\"h-8 w-auto dark:hidden\">");
+                if (!string.IsNullOrEmpty(_config.Branding.LogoDark))
+                {
+                    sb.AppendLine($"            <img src=\"{_config.Branding.LogoDark}\" class=\"h-8 w-auto hidden dark:block\">");
+                }
+                else
+                {
+                    sb.AppendLine($"            <img src=\"{_config.Branding.Logo}\" class=\"h-8 w-auto hidden dark:block\">");
+                }
+            }
+            sb.AppendLine($"            <a href=\"/index\" class=\"font-bold text-xl hover:text-blue-600 transition-colors\">{_config.Branding.Title}</a>");
+            sb.AppendLine("        </div>");
+
+            sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300\">");
+            sb.AppendLine("            <!-- Navbar Links Placeholder -->");
+            sb.AppendLine("        </div>");
+
+            sb.AppendLine("        <div class=\"flex items-center gap-4\">");
+            sb.AppendLine("            <button onclick=\"openSearch()\" class=\"flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 focus:ring-2 focus:ring-blue-500\">");
+            sb.AppendLine("                <i class=\"fi fi-rr-search text-sm\"></i>");
+            sb.AppendLine("                <span class=\"hidden lg:inline text-sm\">Search...</span>");
+            sb.AppendLine("                <kbd class=\"hidden lg:inline text-xs border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5 ml-2\">⌘K</kbd>");
+            sb.AppendLine("            </button>");
+            sb.AppendLine("            <button id=\"theme-toggle\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-blue-500\">");
+            sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
+            sb.AppendLine("                <i class=\"fi fi-rr-sun hidden dark:block text-lg\"></i>");
+            sb.AppendLine("            </button>");
+            sb.AppendLine("        </div>");
+            sb.AppendLine("    </header>");
+
+            sb.AppendLine("    <div class=\"flex flex-1 overflow-hidden\">");
 
             // Sidebar
-            sb.AppendLine("        <aside class=\"w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto hidden md:block flex flex-col\">");
-            sb.AppendLine($"            <div class=\"p-4 font-bold text-xl\">{_config.Branding.Title}</div>");
-
-            // Search Trigger
-            sb.AppendLine("            <div class=\"px-4 pb-4\">");
-            sb.AppendLine("                <button onclick=\"openSearch()\" class=\"w-full text-left px-3 py-2 text-sm text-gray-500 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 flex items-center justify-between\">");
-            sb.AppendLine("                    <span class=\"flex items-center gap-2\"><i class=\"fi fi-rr-search\"></i> Search</span>");
-            sb.AppendLine("                    <span class=\"text-xs border border-gray-200 dark:border-gray-700 rounded px-1.5 py-0.5\">⌘K</span>");
-            sb.AppendLine("                </button>");
-            sb.AppendLine("            </div>");
-
+            sb.AppendLine("        <aside class=\"w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto hidden md:flex flex-col shrink-0\">");
             sb.AppendLine("            <nav class=\"p-4 flex-1\">");
-            sb.AppendLine("                <ul class=\"space-y-2\">");
-            foreach (var link in _config.Links)
-            {
-                 var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"fi fi-rr-{link.Icon}\"></i>";
-                 sb.AppendLine($"                    <li><a href=\"{link.Link}\" class=\"block py-2 px-4 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2\">{iconHtml} {link.Text}</a></li>");
-            }
+            sb.AppendLine("                <div class=\"mb-4\">");
+            sb.AppendLine("                    <input type=\"text\" id=\"sidebar-filter\" placeholder=\"Filter...\" class=\"w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500\">");
+            sb.AppendLine("                </div>");
+            sb.AppendLine("                <ul class=\"space-y-1\" id=\"sidebar-list\">");
+
+            RenderSidebarItems(sb, _config.Links, 0);
+
             sb.AppendLine("                </ul>");
             sb.AppendLine("            </nav>");
             sb.AppendLine("        </aside>");
 
-            // Main Content
-            sb.AppendLine("        <main class=\"flex-1 overflow-y-auto p-8\">");
-            sb.AppendLine("            <div class=\"max-w-7xl mx-auto flex gap-12\">");
+            // Content
+            sb.AppendLine("        <div class=\"flex-1 flex overflow-hidden\">");
+            sb.AppendLine("            <main class=\"flex-1 overflow-y-auto p-8 scroll-smooth\" id=\"main-scroll\">");
+            sb.AppendLine("                <div class=\"max-w-4xl mx-auto prose dark:prose-invert\">");
 
-            // Article Content
-            sb.AppendLine("                <div class=\"flex-1 prose dark:prose-invert max-w-4xl\">");
-            sb.AppendLine(document.Html);
+            // Link Cleanup Logic
+            var htmlContent = document.Html;
+            if (!string.IsNullOrEmpty(htmlContent))
+            {
+                 // Strip extension, preserve relative/absolute nature
+                 htmlContent = System.Text.RegularExpressions.Regex.Replace(htmlContent, "href=\"((?!http:|https:|ftp:|mailto:|#|/)[^\"]+)\\.(md|html)\"", "href=\"$1\"");
+            }
+            sb.AppendLine(htmlContent);
+
             sb.AppendLine("                </div>");
+            sb.AppendLine("            </main>");
 
-            // TOC Sidebar
+            // TOC
             if (document.Toc != null && System.Linq.Enumerable.Any(document.Toc))
             {
-                sb.AppendLine("                <aside class=\"w-64 hidden xl:block shrink-0\">");
-                sb.AppendLine("                    <div class=\"sticky top-8\">");
-                sb.AppendLine("                        <h5 class=\"text-xs font-semibold mb-4 text-gray-900 dark:text-gray-100 uppercase tracking-wider\">On this page</h5>");
-                sb.AppendLine("                        <ul class=\"space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800\">");
-
+                sb.AppendLine("            <aside class=\"w-64 hidden xl:block shrink-0 overflow-y-auto border-l border-gray-200 dark:border-gray-800 p-6\">");
+                sb.AppendLine("                <div class=\"sticky top-0\">");
+                sb.AppendLine("                    <h5 class=\"text-xs font-semibold mb-4 text-gray-900 dark:text-gray-100 uppercase tracking-wider\">On this page</h5>");
+                sb.AppendLine("                    <ul class=\"space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800\" id=\"toc-list\">");
                 foreach (var item in document.Toc)
                 {
-                    if (item.Level < 2) continue; // Usually skip H1 as it's the page title
-
-                    // Simple indentation logic
+                    if (item.Level < 2) continue;
                     var padding = item.Level == 2 ? "pl-4" : "pl-8";
-
-                    sb.AppendLine($"                            <li><a href=\"#{item.Id}\" class=\"block {padding} hover:text-blue-600 dark:hover:text-blue-400 transition-colors border-l-2 border-transparent hover:border-blue-600 dark:hover:border-blue-400 -ml-px\">{item.Title}</a></li>");
+                    sb.AppendLine($"                        <li><a href=\"#{item.Id}\" class=\"block {padding} hover:text-blue-600 dark:hover:text-blue-400 transition-colors border-l-2 border-transparent hover:border-blue-600 dark:hover:border-blue-400 -ml-px toc-link\" data-id=\"{item.Id}\">{item.Title}</a></li>");
                 }
-
-                sb.AppendLine("                        </ul>");
-                sb.AppendLine("                    </div>");
-                sb.AppendLine("                </aside>");
+                sb.AppendLine("                    </ul>");
+                sb.AppendLine("                </div>");
+                sb.AppendLine("            </aside>");
             }
 
-            sb.AppendLine("            </div>");
-            sb.AppendLine("        </main>");
-
+            sb.AppendLine("        </div>");
             sb.AppendLine("    </div>");
 
-            // Tab Script (simple implementation for now)
+            // Scripts
             sb.AppendLine("    <script>");
+
+            // Sidebar Filter
+            sb.AppendLine("        const sidebarFilter = document.getElementById('sidebar-filter');");
+            sb.AppendLine("        const sidebarList = document.getElementById('sidebar-list');");
+            sb.AppendLine("        if (sidebarFilter && sidebarList) {");
+            sb.AppendLine("            sidebarFilter.addEventListener('input', (e) => {");
+            sb.AppendLine("                const term = e.target.value.toLowerCase();");
+            sb.AppendLine("                // Expand all details when searching");
+            sb.AppendLine("                const details = sidebarList.querySelectorAll('details');");
+            sb.AppendLine("                if (term) details.forEach(d => d.open = true);");
+            sb.AppendLine("                ");
+            sb.AppendLine("                const items = sidebarList.querySelectorAll('li, summary');");
+            sb.AppendLine("                items.forEach(item => {");
+            sb.AppendLine("                    // Avoid filtering the container li of nested lists, just filter leaf nodes or summary text");
+            sb.AppendLine("                    if (item.tagName === 'LI' && item.querySelector('details')) return;");
+            sb.AppendLine("                    ");
+            sb.AppendLine("                    const text = item.textContent.toLowerCase();");
+            sb.AppendLine("                    if (text.includes(term)) {");
+            sb.AppendLine("                        item.classList.remove('hidden');");
+            sb.AppendLine("                        // Make sure parent is visible");
+            sb.AppendLine("                        let parent = item.parentElement;");
+            sb.AppendLine("                        while(parent && parent !== sidebarList) {");
+            sb.AppendLine("                            parent.classList.remove('hidden');");
+            sb.AppendLine("                            if (parent.tagName === 'DETAILS') parent.open = true;");
+            sb.AppendLine("                            parent = parent.parentElement;");
+            sb.AppendLine("                        }");
+            sb.AppendLine("                    } else {");
+            sb.AppendLine("                        item.classList.add('hidden');");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                });");
+            sb.AppendLine("            });");
+            sb.AppendLine("        }");
+
+            // TOC Highlighting
+            sb.AppendLine("        const tocLinks = document.querySelectorAll('.toc-link');");
+            sb.AppendLine("        const sections = [];");
+            sb.AppendLine("        tocLinks.forEach(link => {");
+            sb.AppendLine("            const id = link.getAttribute('data-id');");
+            sb.AppendLine("            const section = document.getElementById(id);");
+            sb.AppendLine("            if (section) sections.push(section);");
+            sb.AppendLine("        });");
+            sb.AppendLine("");
+            sb.AppendLine("        const observer = new IntersectionObserver((entries) => {");
+            sb.AppendLine("            entries.forEach(entry => {");
+            sb.AppendLine("                if (entry.isIntersecting) {");
+            sb.AppendLine("                     tocLinks.forEach(l => {");
+            sb.AppendLine("                         l.classList.remove('text-blue-600', 'dark:text-blue-400', 'font-medium', 'border-blue-600', 'dark:border-blue-400');");
+            sb.AppendLine("                         l.classList.add('border-transparent');");
+            sb.AppendLine("                     });");
+            sb.AppendLine("                     const id = entry.target.id;");
+            sb.AppendLine("                     const link = document.querySelector(`.toc-link[data-id=\"${id}\"]`);");
+            sb.AppendLine("                     if (link) {");
+            sb.AppendLine("                         link.classList.remove('border-transparent');");
+            sb.AppendLine("                         link.classList.add('text-blue-600', 'dark:text-blue-400', 'font-medium', 'border-blue-600', 'dark:border-blue-400');");
+            sb.AppendLine("                     }");
+            sb.AppendLine("                }");
+            sb.AppendLine("            });");
+            sb.AppendLine("        }, {");
+            sb.AppendLine("            root: document.getElementById('main-scroll'),");
+            sb.AppendLine("            rootMargin: '0px 0px -80% 0px',");
+            sb.AppendLine("            threshold: 0");
+            sb.AppendLine("        });");
+            sb.AppendLine("        sections.forEach(section => observer.observe(section));");
+
+            // Theme Switch
+            sb.AppendLine("        const themeToggleBtn = document.getElementById('theme-toggle');");
+            sb.AppendLine("        const highlightLink = document.getElementById('highlight-theme');");
+            sb.AppendLine($"        const darkHref = '/assets/highlight/{darkTheme}.min.css';");
+            sb.AppendLine($"        const lightHref = '/assets/highlight/{lightTheme}.min.css';");
+            sb.AppendLine("");
+            sb.AppendLine("        function setTheme(isDark) {");
+            sb.AppendLine("            if (isDark) {");
+            sb.AppendLine("                document.documentElement.classList.add('dark');");
+            sb.AppendLine("                localStorage.setItem('theme', 'dark');");
+            sb.AppendLine("                highlightLink.href = darkHref;");
+            sb.AppendLine("            } else {");
+            sb.AppendLine("                document.documentElement.classList.remove('dark');");
+            sb.AppendLine("                localStorage.setItem('theme', 'light');");
+            sb.AppendLine("                highlightLink.href = lightHref;");
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine("");
+            sb.AppendLine("        themeToggleBtn.addEventListener('click', () => {");
+            sb.AppendLine("            setTheme(!document.documentElement.classList.contains('dark'));");
+            sb.AppendLine("        });");
+            sb.AppendLine("");
+            sb.AppendLine("        if (document.documentElement.classList.contains('dark')) {");
+            sb.AppendLine("            highlightLink.href = darkHref;");
+            sb.AppendLine("        } else {");
+            sb.AppendLine("            highlightLink.href = lightHref;");
+            sb.AppendLine("        }");
+
+            // Tab Script
             sb.AppendLine("        function openTab(evt, group, tabId) {");
-            sb.AppendLine("            // Hide all tab contents in group");
             sb.AppendLine("            var contents = document.querySelectorAll(`[id^='tab-${group}-']`);");
             sb.AppendLine("            contents.forEach(c => c.classList.add('hidden'));");
-            sb.AppendLine("            // Remove active class from buttons");
             sb.AppendLine("            var buttons = evt.currentTarget.parentElement.children;");
             sb.AppendLine("            for (var i = 0; i < buttons.length; i++) {");
             sb.AppendLine("                buttons[i].classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'font-medium');");
             sb.AppendLine("                buttons[i].classList.add('border-transparent', 'hover:text-gray-700', 'text-gray-500');");
             sb.AppendLine("            }");
-            sb.AppendLine("            // Show selected tab");
             sb.AppendLine("            document.getElementById(tabId).classList.remove('hidden');");
-            sb.AppendLine("            // Highlight button");
             sb.AppendLine("            evt.currentTarget.classList.remove('border-transparent', 'hover:text-gray-700', 'text-gray-500');");
             sb.AppendLine("            evt.currentTarget.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'font-medium');");
             sb.AppendLine("        }");
-            sb.AppendLine("");
-            sb.AppendLine("        // Copy Code Script");
+
+            // Copy Code Script
             sb.AppendLine("        document.addEventListener('click', function(e) {");
             sb.AppendLine("            const btn = e.target.closest('.copy-btn');");
             sb.AppendLine("            if (!btn) return;");
-            sb.AppendLine("            ");
             sb.AppendLine("            const group = btn.closest('.group');");
             sb.AppendLine("            const codeEl = group.querySelector('code');");
             sb.AppendLine("            let text = \"\";");
-            sb.AppendLine("            ");
-            sb.AppendLine("            // If line numbers are present, extracting text is trickier");
             sb.AppendLine("            if (codeEl.querySelector('.hljs-ln')) {");
             sb.AppendLine("                codeEl.querySelectorAll('.hljs-ln-code').forEach(td => text += td.innerText + \"\\n\");");
             sb.AppendLine("            } else {");
             sb.AppendLine("                text = codeEl.innerText;");
             sb.AppendLine("            }");
-            sb.AppendLine("            ");
             sb.AppendLine("            navigator.clipboard.writeText(text).then(() => {");
             sb.AppendLine("                const icon = btn.querySelector('i');");
             sb.AppendLine("                const originalClass = icon.className;");
@@ -198,19 +301,18 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("                setTimeout(() => icon.className = originalClass, 2000);");
             sb.AppendLine("            });");
             sb.AppendLine("        });");
-            sb.AppendLine("");
-            sb.AppendLine("        // Initialize Highlight.js");
+
+            // Init Highlight.js
             sb.AppendLine("        document.addEventListener('DOMContentLoaded', (event) => {");
             sb.AppendLine("            hljs.highlightAll();");
             sb.AppendLine("            hljs.initLineNumbersOnLoad({ singleLine: true });");
             sb.AppendLine("        });");
-            sb.AppendLine("");
-            sb.AppendLine("        // Apply Line Highlighting");
+
+            // Line Highlighting
             sb.AppendLine("        window.addEventListener('load', function() {");
             sb.AppendLine("            document.querySelectorAll('pre code[data-highlight]').forEach(block => {");
             sb.AppendLine("                const highlightRange = block.getAttribute('data-highlight');");
             sb.AppendLine("                if (!highlightRange) return;");
-            sb.AppendLine("");
             sb.AppendLine("                const linesToHighlight = new Set();");
             sb.AppendLine("                highlightRange.split(',').forEach(part => {");
             sb.AppendLine("                    if (part.includes('-')) {");
@@ -220,21 +322,15 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("                        linesToHighlight.add(Number(part));");
             sb.AppendLine("                    }");
             sb.AppendLine("                });");
-            sb.AppendLine("");
-            sb.AppendLine("                // Check if line numbers table exists");
             sb.AppendLine("                const table = block.querySelector('.hljs-ln');");
             sb.AppendLine("                if (table) {");
             sb.AppendLine("                    const rows = table.querySelectorAll('tr');");
             sb.AppendLine("                    rows.forEach((row, index) => {");
-            sb.AppendLine("                        // index is 0-based, lines are 1-based");
             sb.AppendLine("                        if (linesToHighlight.has(index + 1)) {");
             sb.AppendLine("                            row.classList.add('bg-yellow-100', 'dark:bg-yellow-900', 'bg-opacity-20', 'dark:bg-opacity-20');");
-            sb.AppendLine("                            // Ensure the background spans the whole row");
             sb.AppendLine("                            row.querySelectorAll('td').forEach(td => td.style.backgroundColor = 'inherit');");
             sb.AppendLine("                        }");
             sb.AppendLine("                    });");
-            sb.AppendLine("                } else {");
-            sb.AppendLine("                    // Fallback if no line numbers");
             sb.AppendLine("                }");
             sb.AppendLine("            });");
             sb.AppendLine("        });");
@@ -244,6 +340,49 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("</html>");
 
             return sb.ToString();
+        }
+
+        private void RenderSidebarItems(StringBuilder sb, List<LinkConfig> links, int level)
+        {
+            if (links == null || links.Count == 0) return;
+
+            foreach (var link in links)
+            {
+                var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"fi fi-rr-{link.Icon}\"></i>";
+
+                if (link.Items != null && link.Items.Count > 0)
+                {
+                    // Render as a collapsible group
+                    sb.AppendLine($"                    <li class=\"space-y-1\">");
+                    sb.AppendLine($"                        <details class=\"group\" open>");
+                    sb.AppendLine($"                            <summary class=\"flex items-center justify-between py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none\">");
+                    sb.AppendLine($"                                <span class=\"flex items-center gap-2\">{iconHtml} {link.Text}</span>");
+                    sb.AppendLine($"                                <i class=\"fi fi-rr-angle-small-down transition-transform group-open:rotate-180\"></i>");
+                    sb.AppendLine($"                            </summary>");
+                    sb.AppendLine($"                            <ul class=\"pl-4 space-y-1 mt-1 border-l border-gray-200 dark:border-gray-700 ml-4\">");
+
+                    RenderSidebarItems(sb, link.Items, level + 1);
+
+                    sb.AppendLine($"                            </ul>");
+                    sb.AppendLine($"                        </details>");
+                    sb.AppendLine($"                    </li>");
+                }
+                else
+                {
+                    // Render as a leaf link
+                    var href = link.Link ?? "#";
+                    if (href.EndsWith(".md")) href = href.Substring(0, href.Length - 3);
+                    if (href.EndsWith(".html")) href = href.Substring(0, href.Length - 5);
+
+                    // Ensure absolute path for internal links if not already absolute/external
+                    if (!href.StartsWith("/") && !href.Contains("://") && href != "#")
+                    {
+                        href = "/" + href;
+                    }
+
+                    sb.AppendLine($"                    <li><a href=\"{href}\" class=\"block py-2 px-4 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200\">{iconHtml} {link.Text}</a></li>");
+                }
+            }
         }
     }
 }

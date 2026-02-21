@@ -8,11 +8,15 @@ namespace TailDocs.CLI.Builder
     public class SiteBuilder
     {
         private readonly string _inputDirectory;
+        private readonly string? _outputDirectoryOverride;
         private TailDocsConfig _config;
 
-        public SiteBuilder(string inputDirectory)
+        public string OutputDirectory { get; private set; }
+
+        public SiteBuilder(string inputDirectory, string? outputDirectory = null)
         {
             _inputDirectory = Path.GetFullPath(inputDirectory);
+            _outputDirectoryOverride = outputDirectory;
         }
 
         public async Task BuildAsync()
@@ -21,20 +25,50 @@ namespace TailDocs.CLI.Builder
 
             // 1. Read Configuration
             var configPath = Path.Combine(_inputDirectory, "taildocs.yml");
-            _config = ConfigParser.Parse(configPath);
-
-            // Resolve output directory
-            var outputDir = Path.IsPathRooted(_config.Output)
-                ? _config.Output
-                : Path.Combine(_inputDirectory, _config.Output);
-
-            if (!Directory.Exists(outputDir))
+            try
             {
-                Directory.CreateDirectory(outputDir);
+                _config = ConfigParser.Parse(configPath);
+            }
+            catch
+            {
+                // Fallback if config is missing or invalid?
+                // ConfigParser usually handles missing file by returning default config.
+                _config = new TailDocsConfig();
             }
 
+            // Resolve output directory
+            if (!string.IsNullOrEmpty(_outputDirectoryOverride))
+            {
+                // CLI arg is relative to current working directory
+                OutputDirectory = Path.IsPathRooted(_outputDirectoryOverride)
+                    ? _outputDirectoryOverride
+                    : Path.GetFullPath(_outputDirectoryOverride);
+            }
+            else
+            {
+                // Default to temp folder as requested
+                var projectName = new DirectoryInfo(_inputDirectory).Name;
+                OutputDirectory = Path.Combine(Path.GetTempPath(), "taildocs", projectName);
+            }
+
+            Console.WriteLine($"Output directory: {OutputDirectory}");
+
+            // Clear Output Directory
+            if (Directory.Exists(OutputDirectory))
+            {
+                try
+                {
+                    Directory.Delete(OutputDirectory, true);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warning: Could not clear output directory: {ex.Message}");
+                }
+            }
+            Directory.CreateDirectory(OutputDirectory);
+
             // 2. Scan Files
-            var scanner = new FileScanner(_inputDirectory, outputDir);
+            var scanner = new FileScanner(_inputDirectory, OutputDirectory);
             var files = scanner.Scan();
 
             // 3. Prepare Pipeline
@@ -52,7 +86,7 @@ namespace TailDocs.CLI.Builder
 
                 var relativePath = Path.GetRelativePath(_inputDirectory, file);
                 var htmlFileName = Path.ChangeExtension(relativePath, ".html");
-                var outputPath = Path.Combine(outputDir, htmlFileName);
+                var outputPath = Path.Combine(OutputDirectory, htmlFileName);
 
                 var outputDirForFile = Path.GetDirectoryName(outputPath);
                 if (outputDirForFile != null && !Directory.Exists(outputDirForFile))
@@ -67,12 +101,12 @@ namespace TailDocs.CLI.Builder
                 searchIndexer.AddDocument(htmlFileName, doc.FrontMatter.Title ?? Path.GetFileNameWithoutExtension(file), markdown);
             }
 
-            await searchIndexer.WriteIndexAsync(outputDir);
+            await searchIndexer.WriteIndexAsync(OutputDirectory);
 
             // Copy Assets
-            await CopyAssetsAsync(outputDir);
+            await CopyAssetsAsync(OutputDirectory);
 
-            Console.WriteLine($"Build complete. Output in {outputDir}");
+            Console.WriteLine($"Build complete. Output in {OutputDirectory}");
         }
 
         private async Task CopyAssetsAsync(string outputDir)

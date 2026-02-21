@@ -35,9 +35,10 @@ namespace TailDocs.Tests
             var html = _generator.Generate(doc);
 
             Assert.That(html, Contains.Substring("<title>Page Title - Test Docs</title>"));
-            Assert.That(html, Contains.Substring("<div class=\"p-4 font-bold text-xl\">Test Docs</div>"));
-            // Correct assertion for link without icon
-            Assert.That(html, Contains.Substring("<a href=\"/\" class=\"block py-2 px-4 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2\"> Home</a>"));
+            // Updated assertion for branding in header
+            Assert.That(html, Contains.Substring("<a href=\"/index\" class=\"font-bold text-xl hover:text-blue-600 transition-colors\">Test Docs</a>"));
+            // Updated assertion for link with new classes
+            Assert.That(html, Contains.Substring("<a href=\"/\" class=\"block py-2 px-4 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200\"> Home</a>"));
             Assert.That(html, Contains.Substring("<p>Content</p>"));
         }
     }

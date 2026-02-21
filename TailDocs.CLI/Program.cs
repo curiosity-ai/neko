@@ -18,34 +18,35 @@ namespace TailDocs.CLI
             var buildCommand = new Command("build", "Build the documentation");
 
             var inputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
-            buildCommand.AddOption(inputOption);
+            var outputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
 
-            buildCommand.SetHandler(async (string input) =>
+            buildCommand.AddOption(inputOption);
+            buildCommand.AddOption(outputOption);
+
+            buildCommand.SetHandler(async (string input, string? output) =>
             {
-                var builder = new SiteBuilder(input);
+                var builder = new SiteBuilder(input, output);
                 await builder.BuildAsync();
-            }, inputOption);
+            }, inputOption, outputOption);
 
             // Watch Command
             var watchCommand = new Command("watch", "Watch for changes and rebuild");
             var watchInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
-            watchCommand.AddOption(watchInputOption);
+            var watchOutputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
 
-            watchCommand.SetHandler(async (string input) =>
+            watchCommand.AddOption(watchInputOption);
+            watchCommand.AddOption(watchOutputOption);
+
+            watchCommand.SetHandler(async (string input, string? output) =>
             {
                 Console.WriteLine($"Watching {input}...");
 
-                // Determine output directory to serve
-                // We need to parse config to know where output is, or default to .taildocs
-                var configPath = Path.Combine(input, "taildocs.yml");
-                var config = ConfigParser.Parse(configPath);
-                var outputDir = Path.IsPathRooted(config.Output)
-                    ? config.Output
-                    : Path.Combine(input, config.Output);
-
                 // Initial build
-                var builder = new SiteBuilder(input);
+                var builder = new SiteBuilder(input, output);
                 await builder.BuildAsync();
+
+                // Get the output directory from the builder
+                var outputDir = builder.OutputDirectory;
 
                 // Start Server in background
                 var server = new DevServer(outputDir);
@@ -71,8 +72,11 @@ namespace TailDocs.CLI
                     Console.WriteLine($"Change detected: {e.Name}. Rebuilding...");
                     try
                     {
-                        // Need to reload config in case it changed
-                        // Builder re-parses config on BuildAsync so it's fine.
+                        // Re-instantiate builder to reload config?
+                        // Or just call BuildAsync again.
+                        // Ideally config reload should be handled inside BuildAsync if needed, or we recreate builder.
+                        // Let's recreate builder to be safe if config changed.
+                        builder = new SiteBuilder(input, output);
                         await builder.BuildAsync();
                     }
                     catch (Exception ex)
@@ -90,7 +94,7 @@ namespace TailDocs.CLI
 
                 Console.WriteLine("Press Ctrl+C to exit.");
                 await serverTask; // Wait for server (which runs until cancelled)
-            }, watchInputOption);
+            }, watchInputOption, watchOutputOption);
 
             rootCommand.AddCommand(buildCommand);
             rootCommand.AddCommand(watchCommand);
