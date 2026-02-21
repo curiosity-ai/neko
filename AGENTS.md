@@ -1,0 +1,31 @@
+# AGENTS.md
+
+## Overview
+This repository contains the source code for `TailDocs`, a CLI tool for generating static documentation sites from Markdown files. The tool is designed to be compatible with existing Markdown syntax used by other popular documentation tools, specifically supporting:
+- Frontmatter configuration (YAML).
+- Custom components like Badges, Callouts/Alerts, Tabs, etc.
+- A specific configuration file format (`taildocs.yml` - for compatibility).
+
+## Directives
+1.  **Code Style**: Use modern C# 10 features. Follow standard .NET naming conventions.
+2.  **Testing**:
+    -   Unit tests in `TailDocs.Tests`.
+    -   End-to-end tests using Playwright.
+    -   Run tests frequently.
+3.  **Documentation**:
+    -   Update `TailDocs.Sample` with examples of supported features.
+    -   Maintain `TODO.md` and `WIP.md`.
+4.  **No References**: Do not mention the name of the tool we are emulating (starts with R) in the user-facing output or documentation.
+5.  **Assets**:
+    -   Use embedded resources for CSS, JS, and Fonts.
+    -   Do not use Node.js or NPM at runtime.
+    -   Use vanilla JavaScript. No frameworks like React/Vue/Angular.
+6.  **Architecture**:
+    -   The CLI should support a `watch` command that serves the site on localhost and auto-reloads on file changes.
+    -   Use `System.CommandLine` for argument parsing.
+    -   Use `Markdig` for Markdown parsing.
+    -   Use `Kestrel` for the development server.
+
+## Resources
+-   External libraries are tracked in `reference/` folder.
+-   License information for assets should be in `TailDocs.CLI/Resources/sources.md`.
