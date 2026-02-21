@@ -1,28 +1,24 @@
 # Components
 
-## Badges
+## Code Blocks
 
-[!badge text="Default"]
-[!badge corners="square" text="Square"]
-[!badge variant="info" text="Info"]
+```csharp title="Program.cs" #3-5
+using System;
 
-## Alerts
+public class Program
+{
+    public static void Main()
+    {
+        Console.WriteLine("Hello World");
+    }
+}
+```
 
-!!!
-This is a standard alert.
-!!!
+## Other Components
 
-!!!primary Primary
-This is a primary alert.
-!!!
+::: alert info
+This is an alert.
+:::
 
-> [!NOTE]
-> This is a GitHub style note.
-
-## Tabs
-
-+++ Tab 1
-This is the content of tab 1.
-+++ Tab 2
-This is the content of tab 2.
-+++
+## Table of Contents
+This page should have a TOC on the right.

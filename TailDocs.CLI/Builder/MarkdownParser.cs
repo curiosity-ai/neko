@@ -1,17 +1,29 @@
 using Markdig;
 using Markdig.Extensions.Yaml;
 using Markdig.Syntax;
+using Markdig.Renderers;
+using Markdig.Renderers.Html;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using System.Linq;
+using System.Collections.Generic;
+using System.IO;
 using TailDocs.CLI.Extensions;
 
 namespace TailDocs.CLI.Builder
 {
+    public class TocItem
+    {
+        public string Id { get; set; }
+        public string Title { get; set; }
+        public int Level { get; set; }
+    }
+
     public class ParsedDocument
     {
         public string Html { get; set; }
         public FrontMatter FrontMatter { get; set; } = new FrontMatter();
+        public List<TocItem> Toc { get; set; } = new List<TocItem>();
     }
 
     public class FrontMatter
@@ -39,9 +51,17 @@ namespace TailDocs.CLI.Builder
                 .UseYamlFrontMatter()
                 .UseAdvancedExtensions()
                 .UseEmojiAndSmiley()
+                .UseMathematics()
+                .UseDiagrams()
+                .UseCustomContainers()
+                .Use<CustomContainerExtension>()
+                .UseGenericAttributes() // Enables {width=500}
                 .Use<BadgeExtension>()
                 .Use<AlertExtension>()
                 .Use<TabExtension>()
+                .Use<ComponentExtension>()
+                .Use<CodeBlockExtension>()
+                .Use<CodeSnippetExtension>()
                 .Build();
         }
 
@@ -63,12 +83,35 @@ namespace TailDocs.CLI.Builder
                 frontMatter = deserializer.Deserialize<FrontMatter>(yaml) ?? new FrontMatter();
             }
 
+            // Extract TOC
+            var toc = new List<TocItem>();
+            foreach (var heading in document.Descendants<HeadingBlock>())
+            {
+                var id = heading.GetAttributes().Id;
+                if (string.IsNullOrEmpty(id)) continue;
+
+                // Render inline content to HTML string for the TOC title
+                using var writer = new StringWriter();
+                var renderer = new HtmlRenderer(writer);
+                _pipeline.Setup(renderer);
+                renderer.Render(heading.Inline);
+                var title = writer.ToString();
+
+                toc.Add(new TocItem
+                {
+                    Id = id,
+                    Title = title,
+                    Level = heading.Level
+                });
+            }
+
             var html = document.ToHtml(_pipeline);
 
             return new ParsedDocument
             {
                 Html = html,
-                FrontMatter = frontMatter
+                FrontMatter = frontMatter,
+                Toc = toc
             };
         }
     }

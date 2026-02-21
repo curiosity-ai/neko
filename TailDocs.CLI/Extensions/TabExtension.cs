@@ -90,8 +90,6 @@ namespace TailDocs.CLI.Extensions
                         Column = processor.Column,
                         Span = new SourceSpan(processor.Start, slice.End)
                     };
-                    processor.NewBlocks.Push(tabGroup);
-
                     var tabBlock = new TabBlock(this)
                     {
                         Title = title,
@@ -99,6 +97,7 @@ namespace TailDocs.CLI.Extensions
                         Span = new SourceSpan(processor.Start, slice.End)
                     };
                     processor.NewBlocks.Push(tabBlock);
+                    processor.NewBlocks.Push(tabGroup);
 
                     return BlockState.ContinueDiscard;
                 }
