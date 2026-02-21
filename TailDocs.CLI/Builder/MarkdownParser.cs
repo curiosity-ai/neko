@@ -1,6 +1,7 @@
 using Markdig;
 using Markdig.Extensions.Yaml;
 using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
 using Markdig.Renderers;
 using Markdig.Renderers.Html;
 using YamlDotNet.Serialization;
@@ -24,6 +25,7 @@ namespace TailDocs.CLI.Builder
         public string Html { get; set; }
         public FrontMatter FrontMatter { get; set; } = new FrontMatter();
         public List<TocItem> Toc { get; set; } = new List<TocItem>();
+        public List<string> OutgoingLinks { get; set; } = new List<string>();
     }
 
     public class FrontMatter
@@ -105,13 +107,24 @@ namespace TailDocs.CLI.Builder
                 });
             }
 
+            // Extract Links
+            var outgoingLinks = new List<string>();
+            foreach (var link in document.Descendants<LinkInline>())
+            {
+                if (!link.IsImage && !string.IsNullOrEmpty(link.Url) && !link.Url.Contains("://") && !link.Url.StartsWith("#") && !link.Url.StartsWith("mailto:"))
+                {
+                    outgoingLinks.Add(link.Url);
+                }
+            }
+
             var html = document.ToHtml(_pipeline);
 
             return new ParsedDocument
             {
                 Html = html,
                 FrontMatter = frontMatter,
-                Toc = toc
+                Toc = toc,
+                OutgoingLinks = outgoingLinks
             };
         }
     }
