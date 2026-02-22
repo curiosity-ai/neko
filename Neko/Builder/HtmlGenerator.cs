@@ -78,6 +78,9 @@ namespace Neko.Builder
             // Flaticon UIcons
             sb.AppendLine("    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>");
 
+            // Emoji CSS
+            sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/emoji.css\">");
+
             // KaTeX (Math)
             sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css\">");
             sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js\"></script>");
