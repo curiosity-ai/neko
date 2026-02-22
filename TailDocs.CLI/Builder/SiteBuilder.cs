@@ -81,6 +81,10 @@ namespace TailDocs.CLI.Builder
             // 4. Process Files
             var parsedDocs = new List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)>();
 
+            // Generate Sidebar
+            var sidebarGenerator = new SidebarGenerator(_inputDirectory);
+            var sidebarLinks = sidebarGenerator.Generate();
+
             // Pass 1: Parse all files
             foreach (var file in files)
             {
