@@ -1,4 +1,5 @@
 ---
+order: 6
 icon: log
 ---
 # Changelog
@@ -39,7 +40,7 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v312) for highlights.
 
 +++ New :icon-shield-check:
 
-1. [!badge PRO](/pro/pro.md) New [[Backlinks]] Component, plus [Project](/configuration/project.md#backlinks), and [Page](/configuration/page.md#backlinks) settings
+1. New [[Backlinks]] Component, plus [Project](/configuration/project.md#backlinks), and [Page](/configuration/page.md#backlinks) settings
 1. New color preview chip for hexadecimal color codes
 1. New detection of dark mode image file names and automatic switching between light and dark images
 1. New `favicon` dark variant automatic discovery and automatic light/dark switching
@@ -74,9 +75,9 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v311) for highlights.
 
 +++ New :icon-shield-check:
 
-1. [!badge PRO](/pro/pro.md) New [theme](/configuration/project.md#theme) color customization for `base` and `dark` themes, see [#42](https://github.com/taildocsapp/taildocs/discussions/42) and [#697](https://github.com/taildocsapp/taildocs/discussions/697)
-1. [!badge PRO](/pro/pro.md) New [`branding.baseColor`](/configuration/project.md#basecolor) setting for quick configuration of the project `base-color` [theme variable](/configuration/theme-variables.md) to left navigation nodes, see [#763](https://github.com/taildocsapp/taildocs/discussions/763)
-1. [!badge PRO](/pro/pro.md) New Page level [`nav.badge`](/configuration/page.md#nav-badge) setting for adding a badge component to left navigation nodes, see [#763](https://github.com/taildocsapp/taildocs/discussions/763)
+1. New [theme](/configuration/project.md#theme) color customization for `base` and `dark` themes, see [#42](https://github.com/taildocsapp/taildocs/discussions/42) and [#697](https://github.com/taildocsapp/taildocs/discussions/697)
+1. New [`branding.baseColor`](/configuration/project.md#basecolor) setting for quick configuration of the project `base-color` [theme variable](/configuration/theme-variables.md) to left navigation nodes, see [#763](https://github.com/taildocsapp/taildocs/discussions/763)
+1. New Page level [`nav.badge`](/configuration/page.md#nav-badge) setting for adding a badge component to left navigation nodes, see [#763](https://github.com/taildocsapp/taildocs/discussions/763)
 1. New 3-way `Light`, `Dark`, and `System` color [scheme](/configuration/project.md#scheme) selector, see [#421](https://github.com/taildocsapp/taildocs/discussions/421) and [#624](https://github.com/taildocsapp/taildocs/discussions/624)
 1. New pipe notation syntax support for adding variant to [[Button]], [[Badge]], and [Navigation Badge](/configuration/page.md#nav-badge) components
 1. New support for icon-only [links](/configuration/project.md#links) in header and footer
@@ -111,7 +112,7 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v310) for highlights.
 
 +++ New :icon-shield-check:
 
-1. [!badge PRO](/pro/pro.md) New `nextprev` [project](/configuration/project.md#nextprev) and [page](/configuration/page.md#nextprev) setting to configure Next and Previous page navigation, see [#34](https://github.com/taildocsapp/taildocs/discussions/34)
+1. New `nextprev` [project](/configuration/project.md#nextprev) and [page](/configuration/page.md#nextprev) setting to configure Next and Previous page navigation, see [#34](https://github.com/taildocsapp/taildocs/discussions/34)
 1. New Inline and block level hidden [[comments]] using wrapping `%%`
 1. New [[Callout]] `tip` variant
 1. New Page [`meta.description`](/configuration/page.md#description) configuration, see [#638](https://github.com/taildocsapp/taildocs/discussions/638)
@@ -147,8 +148,8 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v39) for highlights.
 
 +++ New :icon-shield-check:
 
-1. [!badge PRO](/pro/pro.md) New [`nav.icons.enabled`](/configuration/project.md#icons) Project setting to hide icons in navigation, see [#381](https://github.com/taildocsapp/taildocs/discussions/381) and [#621](https://github.com/taildocsapp/taildocs/discussions/621)
-1. [!badge PRO](/pro/pro.md) New [`scheme.mode`](/configuration/project.md#scheme-mode) project setting to default initial page rendering to be explicit `day`,`night`, or `system` modes, see [#421](https://github.com/taildocsapp/taildocs/discussions/421)
+1. New [`nav.icons.enabled`](/configuration/project.md#icons) Project setting to hide icons in navigation, see [#381](https://github.com/taildocsapp/taildocs/discussions/381) and [#621](https://github.com/taildocsapp/taildocs/discussions/621)
+1. New [`scheme.mode`](/configuration/project.md#scheme-mode) project setting to default initial page rendering to be explicit `day`,`night`, or `system` modes, see [#421](https://github.com/taildocsapp/taildocs/discussions/421)
 1. New automatic conversion of `details > summary` elements into TailDocs Panel component
 1. New print friendly stylesheet to enable better printing of pages, see [#85](https://github.com/taildocsapp/taildocs/discussions/85) and [#628](https://github.com/taildocsapp/taildocs/discussions/628)
 1. New [Obsidian](https://obsidian.md/) style of setting width and height of image, see [#694](https://github.com/taildocsapp/taildocs/discussions/692)
@@ -185,7 +186,7 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v38) for highlights.
 
 +++ New :icon-shield-check:
 
-1. [!badge PRO](/pro/pro.md) New stack navigation mode for [Project](/configuration/project.md#nav) and [Page](/configuration/page.md#nav) settings, see [#621](https://github.com/taildocsapp/taildocs/issues/621#issuecomment-2848996632)
+1. New stack navigation mode for [Project](/configuration/project.md#nav) and [Page](/configuration/page.md#nav) settings, see [#621](https://github.com/taildocsapp/taildocs/issues/621#issuecomment-2848996632)
 1. New Greek and Hebrew language support, see [#730](https://github.com/taildocsapp/taildocs/discussions/730)
 1. New [YouTube](/components/youtube.md) link parsing and embed template generation, see [#51](https://github.com/taildocsapp/taildocs/issues/51)
 1. New support for including a file outside the project root when using {%{`{{ include }}`}%}, see [#734](https://github.com/taildocsapp/taildocs/issues/734)
@@ -206,7 +207,7 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v38) for highlights.
 
 +++ Fixed :icon-bug:
 
-1. TailDocs build errors if no matching `url` is found in wallet, see [#549](https://github.com/taildocsapp/taildocs/issues/549)
+1. TailDocs build errors if no matching `url` is found, see [#549](https://github.com/taildocsapp/taildocs/issues/549)
 1. Fix float rendering issue with definition list content wrapping multiple rows, see [#693](https://github.com/taildocsapp/taildocs/issues/693)
 +++
 
@@ -234,7 +235,7 @@ There were **6 changes** in TailDocs `v3.7.0`.
 There were 9 changes in TailDocs `v3.6.0`.
 
 +++ New :icon-shield-check:
-1. [!badge PRO](/pro/pro.md) New `--strict` parameter for `taildocs build`, see [#618](https://github.com/taildocsapp/taildocs/discussions/618)
+1. New `--strict` parameter for `taildocs build`, see [#618](https://github.com/taildocsapp/taildocs/discussions/618)
 +++ Improved :icon-thumbsup:
 1. Upgrade Octicons icons library from v19.7.0 to v19.8.0
 1. Allow words to break for the ToC and Headings, see [#633](https://github.com/taildocsapp/taildocs/discussions/633)
@@ -251,9 +252,6 @@ There were 9 changes in TailDocs `v3.6.0`.
 
 **Released:** [2023-09-16](https://github.com/taildocsapp/taildocs/releases/tag/v3.5.0)
 
-+++ New :icon-shield-check:
-1. New [`--pro`](/guides/cli.md#taildocs-start) flag during `taildocs start` to enable trial mode of TailDocs Pro features, see [#612](https://github.com/taildocsapp/taildocs/discussions/612)
-1. New [`start.pro: true`](/configuration/project.md#pro) project config to enable trial mode of TailDocs Pro features, see [#612](https://github.com/taildocsapp/taildocs/discussions/612)
 +++ Improved :icon-thumbsup:
 1. Path independent doc_theme local storage variable, see [#624](https://github.com/taildocsapp/taildocs/discussions/624)
 +++
@@ -263,8 +261,8 @@ There were 9 changes in TailDocs `v3.6.0`.
 **Released:** [2023-09-08](https://github.com/taildocsapp/taildocs/releases/tag/v3.4.0)
 
 +++ New :icon-shield-check:
-1. [!badge PRO](/pro/pro.md) New `hub` [Project](/configuration/project.md#hub) config with `<` header link, see [#592](https://github.com/taildocsapp/taildocs/discussions/592)
-1. [!badge PRO](/pro/pro.md) New `toc` [Project](/configuration/project.md#toc) and [Page](/configuration/page.md#toc) config and features, see [#598](https://github.com/taildocsapp/taildocs/discussions/598)
+1. New `hub` [Project](/configuration/project.md#hub) config with `<` header link, see [#592](https://github.com/taildocsapp/taildocs/discussions/592)
+1. New `toc` [Project](/configuration/project.md#toc) and [Page](/configuration/page.md#toc) config and features, see [#598](https://github.com/taildocsapp/taildocs/discussions/598)
 1. Automatically scroll ToC with page content, see [#375](https://github.com/taildocsapp/taildocs/discussions/375)
 +++ Improved :icon-thumbsup:
 1. Upgrade Octicons icons library from v19.6.0 to v19.7.0
@@ -277,7 +275,7 @@ There were 9 changes in TailDocs `v3.6.0`.
 **Released:** [2023-08-31](https://github.com/taildocsapp/taildocs/releases/tag/v3.3.0)
 
 +++ New :icon-shield-check:
-1. [!badge PRO](/pro/pro.md) New [breadcrumb](/configuration/project.md#breadcrumb) navigation with [Project](/configuration/project.md#breadcrumb) and [Page](/configuration/page.md#breadcrumb) configs, see [#593](https://github.com/taildocsapp/taildocs/discussions/593)
+1. New [breadcrumb](/configuration/project.md#breadcrumb) navigation with [Project](/configuration/project.md#breadcrumb) and [Page](/configuration/page.md#breadcrumb) configs, see [#593](https://github.com/taildocsapp/taildocs/discussions/593)
 1. New [`list-icon`](/components/list.md#icon-list) css class to simplify creating TailDocs icon lists, see [#370](https://github.com/taildocsapp/taildocs/discussions/370) and [#603](https://github.com/taildocsapp/taildocs/discussions/603)
 +++ Improved :icon-thumbsup:
 1. Update all client libraries
@@ -306,8 +304,8 @@ There were 9 changes in TailDocs `v3.6.0`.
 **Released:** [2023-07-23](https://github.com/taildocsapp/taildocs/releases/tag/v3.1.0)
 
 +++ New :icon-shield-check:
-1. [!badge PRO](/pro/pro.md) New [`outbound`](/configuration/project.md#outbound) project config for outbound external link configuration, see [#465](https://github.com/taildocsapp/taildocs/issues/465)
-1. [!badge PRO](/pro/pro.md) New folder level [`visibility: private`](/configuration/page.md#private) and [`visibility: protected`](/configuration/page.md#protected) support
+1. New [`outbound`](/configuration/project.md#outbound) project config for outbound external link configuration, see [#465](https://github.com/taildocsapp/taildocs/issues/465)
+1. New folder level [`visibility: private`](/configuration/page.md#private) and [`visibility: protected`](/configuration/page.md#protected) support
 1. New support for Armenian, Kannada, Sankrit, and Telugu [languages](/configuration/project.md#supported-languages)
 1. The _includes/*.html files include full Templating support, see [#282](https://github.com/taildocsapp/taildocs/discussions/282)
 +++ Improved :icon-thumbsup:
@@ -331,7 +329,7 @@ There were 9 changes in TailDocs `v3.6.0`.
 **Released:** [2023-05-29](https://github.com/taildocsapp/taildocs/releases/tag/v3.0.0)
 
 +++ New :icon-shield-check:
-1. [!badge PRO](/pro/pro.md) New [`visibility: private`](configuration/page.md#private) and [`visibility: protected`](configuration/page.md#protected) pages, see [#341](https://github.com/taildocsapp/taildocs/discussions/341)
+1. New [`visibility: private`](configuration/page.md#private) and [`visibility: protected`](configuration/page.md#protected) pages, see [#341](https://github.com/taildocsapp/taildocs/discussions/341)
 1. New multi-language [`locale`](configuration/project.md#locale) interface support for 22 languages, see [#18](https://github.com/taildocsapp/taildocs/discussions/18) and [#24](https://github.com/taildocsapp/taildocs/issues/24)
 1. New [`meta.title`](configuration/page.md#title) page level config, see [#346](https://github.com/taildocsapp/taildocs/discussions/346) and [#350](https://github.com/taildocsapp/taildocs/issues/350)
 1. New [CLI commands](guides/cli.md) and flags, see [#94](https://github.com/taildocsapp/taildocs/issues/94) and [#323](https://github.com/taildocsapp/taildocs/discussions/323)
@@ -407,7 +405,6 @@ There were 9 changes in TailDocs `v3.6.0`.
 1. New `search.preload` project config to instruct TailDocs to preload the search index instead of on demand load.
 1. New `generator.directoryIndex.name` project config for setting the default document name.
 1. New `generator.directoryIndex.altNames` [project](/configuration/project.md) config.
-1. New `RETYPE_DEFAULT_HOST` environment variable. See [#239](https://github.com/taildocsapp/taildocs/discussions/239).
 1. New self-referential canonical meta tag for all pages.
 1. Link to API pages using fully qualified class name path.
 +++ Fixed :icon-bug:
@@ -514,7 +511,7 @@ generator:
 
 +++ New :icon-shield-check:
 1. Multi-language search and automatic detection of content languages. See [#197](https://github.com/taildocsapp/taildocs/issues/197).
-1. [TailDocs Pro](/pro/pro.md) with increased page limit and TailDocs branding removal option.
+1. TailDocs branding removal option.
 1. Better style for native scrollbars on Windows. See [#107](https://github.com/taildocsapp/taildocs/issues/107).
 1. [`serve.start.validation`](/configuration/project.md#serve-watch-validation) project configuration option.
 1. All heading elements within the page content are now added to the search index. See [#166](https://github.com/taildocsapp/taildocs/issues/166).

@@ -1,21 +1,13 @@
 ---
+order: 6
 icon: paintbrush
 nav:
   badge: NEW|info
-tags: [guide, pro]
+tags: [guide]
 ---
 # Themes
 
 TailDocs's [`theme`](/configuration/project.md#theme) system allows you to customize the visual appearance of your website by overriding [[theme variables]]. With themes, you can adjust colors, spacing, typography, and other design elements to match your brand or project preferences.
-
-!!!base Pro Feature
-The theme functionality requires a [TailDocs Pro](/pro/pro.md) key or adding the following [`pro`](/configuration/project.md#pro) trial mode setting into your project `taildocs.yml` configuration file:
-
-```yaml
-start
-  pro: true
-```
-!!!
 
 ## Quick Start
 
@@ -167,7 +159,6 @@ Following these practices helps ensure your site looks good, stays accessible, a
 
 ### Theme Not Applied
 
-- [x] Ensure you have a valid TailDocs Pro license or add [`start.pro: true`](/configuration/project.md#pro)
 - [x] Check that the syntax is correct in your `taildocs.yml` file
 - [x] Verify [theme variable](/configuration/theme-variables.md) names match exactly
 

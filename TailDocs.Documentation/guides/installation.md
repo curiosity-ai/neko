@@ -1,5 +1,5 @@
 ---
-order: 1000
+order: 2
 icon: desktop-download
 ---
 # Installation

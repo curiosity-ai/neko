@@ -1,4 +1,5 @@
 ---
+order: 6
 icon: number
 tags: [theme, pro]
 nav:

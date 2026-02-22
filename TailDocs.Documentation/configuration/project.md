@@ -1,6 +1,6 @@
 ---
 label: Project
-order: 200
+order: 1
 icon: package
 tags: [config]
 toc:
@@ -57,15 +57,13 @@ footer:
 
 ## backlinks
 
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
-
 The `backlinks` configuration controls the automatic display of inbound links from other pages in your project. Backlinks help users discover related content by showing which pages reference the current page.
 
 When enabled, backlinks are automatically included at the end of pages that have inbound links from other pages. The feature leverages TailDocs's dependency tracking system to build a web of interconnected content.
 
 ### enabled
 
-=== [!badge PRO] enabled : `boolean`
+=== enabled : `boolean`
 
 Enable or disable backlinks for the entire project. Default is `true`.
 
@@ -80,7 +78,7 @@ When set to `false`, backlinks will not be displayed on any page unless explicit
 
 ### title {#backlinks-title}
 
-=== [!badge PRO] title : `string`
+=== title : `string`
 
 Customize the heading text displayed above the backlinks section. Default is `"See also"`.
 
@@ -93,7 +91,7 @@ The title appears as a heading above the list of pages that link to the current 
 
 ===
 
-### [!badge PRO] maxResults
+### maxResults
 
 === maxResults : `number`
 
@@ -121,9 +119,7 @@ Branding configuration for your TailDocs generated website.
 
 ### baseColor
 
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
-
-=== [!badge PRO] baseColor : `string`
+=== baseColor : `string`
 
 Set the base brand color for your project.
 
@@ -225,18 +221,14 @@ The above `title` would create the following branding title in the upper-left co
 
 ## breadcrumb
 
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
-
 The breadcrumb navigation provides a hierarchical representation of the user's location within the website. The breadcrumb simplifies navigating website content structures, allowing for easier backtracking and understanding of the website layout.
 
 ### enabled
 
 === enabled : `boolean`
-To enable or disable the breadcrumb navigation within TailDocs Pro projects. Default is `true`.
+To enable or disable the breadcrumb navigation within TailDocs projects. Default is `true`.
 
-For TailDocs Pro projects, breadcrumb navigation will be enabled by default.
-
-For TailDocs projects (non-Pro), the breadcrumb navigation will not be added to any pages.
+For TailDocs projects, breadcrumb navigation will be enabled by default.
 
 To disable the breadcrumb navigation across an entire project, set the `enabled` parameter to `false` as shown in the following sample:
 
@@ -682,8 +674,6 @@ generator:
 ---
 
 ## hub
-
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 The Hub creates a handy shortcut link in the top-left of the page, just to the left of your project logo or title.
 
@@ -1224,8 +1214,6 @@ Navigation configuration options to control the behavior of the left sidebar nav
 
 ### mode{#nav-mode}
 
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
-
 === mode : `string`
 Controls how the sidebar navigation is created and functions. The default functionality is to create the navigation as an expandable Tree structure. The default value for `mode` is `default`.
 
@@ -1238,7 +1226,7 @@ The following sample demonstrates how to configure the "stacked" navigation stru
 
 ```yml
 nav:
-  mode: stack # Pro key required
+  mode: stack
 ```
 
 To convert only one top-level directory to a `stack` type layout, please see the Page [`nav`](page.md#nav) setting.
@@ -1248,8 +1236,6 @@ To convert only one top-level directory to a `stack` type layout, please see the
 ### icons
 
 #### mode{#nav-icons-mode}
-
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 The `mode` configuration enables customization for how the icons are displayed in the main navigation. The `mode` allows you to hide all icons (and their reserved space) in the navigation, as well as other icon show/hide scenarios.
 
@@ -1288,8 +1274,6 @@ The `nav.icons.mode` setting can be used in conjunction with [`nav.mode: stack`]
 
 ## nextprev
 
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
-
 The `nextprev` configuration controls the display of "Next" and "Previous" navigation buttons at the bottom of each page and whether a page is included in the navigation sequence.
 
 ### mode{#nextprev-mode}
@@ -1323,11 +1307,7 @@ The `nextprev.mode` setting can be configured at three levels with the following
 
 ## outbound
 
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
-
 The `outbound` configuration gives you the flexibility to customize the behavior of outbound links in your TailDocs project. It allows you to control which links are treated as outbound, where they open, what icon is used, and even exclude or include specific domains. For instance, [example.com](https://example.com/).
-
-The `outbound` functionality will be automatically enabled for TailDocs Pro project. For projects that do not have a TailDocs Pro license, the `outbound` configuration and functionality is ignored.
 
 If `outbound` is enabled, TailDocs will find all external (outbound) links within the project, add a trailing :icon-link-external: icon, and set the link to open in a new tab when clicked.
 
@@ -1337,7 +1317,7 @@ If `outbound` is enabled, TailDocs will find all external (outbound) links withi
 
 Controls whether the outbound links feature is enabled.
 
-The default is `true` for **TailDocs Pro** projects.
+The default is `true`.
 
 The following sample demonstrates disabling the `outbound` functionality:
 
@@ -1469,14 +1449,12 @@ If using [`taildocs start`](/guides/cli.md#taildocs-start), files are stored in 
 
 ## poweredByTailDocs
 
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
-
 Controls whether to include or exclude the `Powered by TailDocs` branding.
 
 ![Sample Powered by TailDocs branding](/static/powered-by-taildocs.png)
 
 === poweredByTailDocs : `boolean`
-With a TailDocs Pro license, the `Powered by TailDocs` branding can be removed by setting to `false`.
+The `Powered by TailDocs` branding can be removed by setting to `false`.
 
 ```yml
 poweredByTailDocs: true # Set to `false` to remove.
@@ -1487,13 +1465,9 @@ poweredByTailDocs: true # Set to `false` to remove.
 
 ## scheme
 
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
-
 The `scheme` configuration allows you to control the default color mode (**light** or **dark**) for your TailDocs generated website. By default, TailDocs will automatically match the visitor's system preference, but you can explicitly set the site to always render in either `dark` or `light` mode.
 
 ### mode{#scheme-mode}
-
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 === mode : `string`
 Controls the default color scheme for the website. The default value is `system`, which will automatically switch between `dark` and `light` modes based on the visitor's system preference.
@@ -1528,13 +1502,6 @@ scheme:
 !!!
 If a visitor has explicitly selected `dark` or `light` mode using the color scheme toggle in the upper-right menu, their choice will take precedence over the `scheme.mode` project setting.
 !!!
-
-You can test the `scheme.mode` feature locally without a TailDocs Pro key by adding the following to your `taildocs.yml` to your project configuration file:
-
-```yml
-start:
-  pro: true
-```
 
 ===
 
@@ -1867,22 +1834,6 @@ Using the [CLI](../guides/cli.md#taildocs-start) command `taildocs start -n` or 
 
 ===
 
-### pro
-
-=== pro : `boolean`
-
-The default is `false`.
-
-The following sample demonstrates how to start your project in _Pro mode_ and trial the [TailDocs Pro](/pro/pro.md) features:
-
-```yml
-start:
-  pro: true
-```
-
-Using the [CLI](../guides/cli.md#taildocs-start) command `taildocs start --pro` will also start the project in Pro mode.
-
-===
 
 ## templating
 
@@ -1991,8 +1942,6 @@ For most projects, the default limit of 1000 iterations provides a good balance 
 
 ## theme
 
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
-
 The `theme` configuration allows you to customize the visual appearance of your TailDocs website by overriding colors and other design elements to match your brand or project preferences.
 
 [!ref text="Theme Guide"](/guides/themes.md)
@@ -2053,8 +2002,6 @@ theme:
 ---
 
 ## toc
-
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 The `toc` config contains project options that apply to the right sidebar Table of Contents.
 

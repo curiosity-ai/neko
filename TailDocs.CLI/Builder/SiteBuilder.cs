@@ -206,7 +206,7 @@ namespace TailDocs.CLI.Builder
                     }
                 }
 
-                var html = generator.Generate(item.Doc, backlinks, navContext);
+                var html = generator.Generate(item.Doc, backlinks, navContext, sidebarLinks);
 
                 var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html");
                 var outputPath = Path.Combine(OutputDirectory, htmlFileName);
