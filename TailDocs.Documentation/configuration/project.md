@@ -1,6 +1,6 @@
 ---
 label: Project
-order: 200
+order: 1
 icon: package
 tags: [config]
 toc:

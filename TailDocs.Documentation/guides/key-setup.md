@@ -1,5 +1,5 @@
 ---
-order: 500
+order: 3
 icon: key
 ---
 # Key setup

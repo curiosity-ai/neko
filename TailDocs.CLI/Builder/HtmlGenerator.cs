@@ -13,7 +13,7 @@ namespace TailDocs.CLI.Builder
             _config = config;
         }
 
-        public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null)
+        public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null, List<LinkConfig> sidebarLinks = null)
         {
             var title = !string.IsNullOrEmpty(document.FrontMatter.Title)
                 ? $"{document.FrontMatter.Title} - {_config.Branding.Title}"
@@ -119,7 +119,15 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("        </div>");
 
             sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300\">");
-            sb.AppendLine("            <!-- Navbar Links Placeholder -->");
+            if (_config.Links != null)
+            {
+                foreach (var link in _config.Links)
+                {
+                     var href = link.Link ?? "#";
+                     var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"fi fi-rr-{link.Icon} mr-1\"></i>";
+                     sb.AppendLine($"            <a href=\"{href}\" class=\"hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center\">{iconHtml}{link.Text}</a>");
+                }
+            }
             sb.AppendLine("        </div>");
 
             sb.AppendLine("        <div class=\"flex items-center gap-4\">");
@@ -151,7 +159,7 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("                </div>");
             sb.AppendLine("                <ul class=\"space-y-1\" id=\"sidebar-list\">");
 
-            RenderSidebarItems(sb, _config.Links, 0);
+            RenderSidebarItems(sb, sidebarLinks ?? new List<LinkConfig>(), 0);
 
             sb.AppendLine("                </ul>");
             sb.AppendLine("            </nav>");

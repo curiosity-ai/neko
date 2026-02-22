@@ -1,6 +1,6 @@
 ---
 label: Page
-order: 100
+order: 2
 icon: file
 tags: [config]
 ---

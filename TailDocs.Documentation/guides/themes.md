@@ -1,4 +1,5 @@
 ---
+order: 6
 icon: paintbrush
 nav:
   badge: NEW|info

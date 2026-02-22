@@ -1,4 +1,5 @@
 ---
+order: 3
 label: Folder
 icon: file-directory
 tags: [config]

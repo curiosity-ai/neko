@@ -81,8 +81,12 @@ namespace TailDocs.CLI.Builder
             // 4. Process Files
             var parsedDocs = new List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)>();
 
+            // Generate Sidebar
+            var sidebarGenerator = new SidebarGenerator(_inputDirectory);
+            var sidebarLinks = sidebarGenerator.Generate();
+
             // Build Navigation Map
-            var navigationMap = BuildNavigationMap(_config.Links);
+            var navigationMap = BuildNavigationMap(sidebarLinks);
 
             // Pass 1: Parse all files
             foreach (var file in files)
@@ -193,7 +197,7 @@ namespace TailDocs.CLI.Builder
                     }
                 }
 
-                var html = generator.Generate(item.Doc, backlinks, navContext);
+                var html = generator.Generate(item.Doc, backlinks, navContext, sidebarLinks);
 
                 var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html");
                 var outputPath = Path.Combine(OutputDirectory, htmlFileName);

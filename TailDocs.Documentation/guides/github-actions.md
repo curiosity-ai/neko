@@ -1,4 +1,5 @@
 ---
+order: 7
 icon: git-compare
 tags:
   - guide

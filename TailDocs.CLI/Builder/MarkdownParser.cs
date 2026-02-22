@@ -37,7 +37,7 @@ namespace TailDocs.CLI.Builder
         public string Icon { get; set; }
 
         [YamlMember(Alias = "order")]
-        public int Order { get; set; }
+        public int? Order { get; set; }
 
         [YamlMember(Alias = "tags")]
         public string[] Tags { get; set; }
