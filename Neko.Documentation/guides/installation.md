@@ -14,44 +14,24 @@ Please see the [Neko CLI](cli.md) for full details on each command.
 
 ## Step 1: Prerequisites
 
-Neko is installed using either [`npm`](https://www.npmjs.com/get-npm), [`yarn`](https://classic.yarnpkg.com/en/docs/install/), or the [`dotnet`](https://dotnet.microsoft.com/download/dotnet-core) CLI.
-
-You only need one of those three package managers as a prerequisite, although all three could be installed on your computer too. It's up to you.
+Neko is installed using the [`dotnet`](https://dotnet.microsoft.com/download/dotnet-core) CLI, which is included with the .NET SDK.
 
 | Package Manager | Supported Platforms |
 | --- | --- |
-| [`npm`](https://www.npmjs.com/get-npm) | [!badge text="Mac" variant="light"] [!badge text="Win" variant="primary"] [!badge text="Linux" variant="dark"]
-| [`yarn`](https://classic.yarnpkg.com/en/docs/install/) | [!badge text="Mac" variant="light"] [!badge text="Win" variant="primary"] [!badge text="Linux" variant="dark"]
 | [`dotnet`](https://dotnet.microsoft.com/download/dotnet-core) | [!badge text="Mac" variant="light"] [!badge text="Win" variant="primary"] [!badge text="Linux" variant="dark"]
 
 ---
 
 ## Step 2: Install
 
-Once you have a package manager installed, it takes just a few seconds to install Neko using any of the following commands. Choose the command based on a package manager you have installed on your computer.
+Once you have the .NET SDK installed, it takes just a few seconds to install Neko.
 
-+++ npm
-```
-npm install neko --global
-neko start
-```
-+++ yarn
-```
-yarn global add neko
-neko start
-```
-+++ dotnet
 ```
 dotnet tool install neko --global
 neko start
 ```
-+++
 
 That's it! Your new Neko website should be up and running. :tada:
-
-!!!
-If you already have the `dotnet` CLI installed on your machine, installing using `dotnet tool install neko --global` will be the fastest option, but any of the options should install within seconds. They all produce the same result and run with the same performance.
-!!!
 
 ---
 
@@ -59,21 +39,11 @@ If you already have the `dotnet` CLI installed on your machine, installing using
 
 ### Update
 
-Update to the latest release of Neko using one of the following commands for the package manager that you initially installed Neko with. For instance, if you used `npm` to install Neko, run the `npm` update command to update Neko locally.
+Update to the latest release of Neko using the following command.
 
-+++ npm
-```
-npm update neko --global
-```
-+++ yarn
-```
-yarn global upgrade neko
-```
-+++ dotnet
 ```
 dotnet tool update neko --global
 ```
-+++
 
 ---
 
@@ -81,79 +51,33 @@ dotnet tool update neko --global
 
 Done with Neko? It's okay, we understand. :cry:
 
-Uninstalling Neko is just as simple as installing. Use the same package manager to uninstall as you did to install. For instance, if you used `npm` to install Neko, run the `npm` uninstall command to remove.
+Uninstalling Neko is just as simple as installing.
 
-+++ npm
-```
-npm uninstall neko --global
-```
-+++ yarn
-```
-yarn global remove neko
-```
-+++ dotnet
 ```
 dotnet tool uninstall neko --global
 ```
-+++
 
 All Neko related files and folders within your project can be deleted, such as the **neko.yml** file and the generated `.neko` folder.
 
 ---
 
-### Version and Tag specific
+### Version Specific
 
-When managing project dependencies, it is sometimes necessary to install a specific version or a tagged release of a software package to ensure compatibility or access to certain features.
+When managing project dependencies, it is sometimes necessary to install a specific version of a software package to ensure compatibility or access to certain features.
 
-[NPM](https://www.npmjs.com/package/neko?activeTab=versions), Yarn, and [dotnet](https://www.nuget.org/packages/neko/) offer their own syntax and methods for specifying which version or tag of a software package to install, enabling precise control over the dependencies of your projects.
+In the following sample, replace `[version]` with the actual version number.
 
-When using NPM or Yarn, specifying the `@latest` tag will always install the latest public release. The `@latest` is optional. If no `@version` or `@tag` is provided, Neko will install the `@latest` release by default.
-
-Using the `@next` tag will install an upcoming `-preview` release, if available.
-
-In the following samples, replace `[version-or-tag]` with the actual version number or tag. For instance, to specifically install the `v{{ version }}` release of Neko using NPM, run the command `npm install neko@{{ version }} --global`.
-
-+++ npm
-```
-npm install neko@[version-or-tag] --global
-```
-+++ yarn
-```
-yarn global add neko@[version-or-tag]
-```
-+++ dotnet
 ```
 dotnet tool install neko --global --version [version]
 ```
-+++
 
 ---
 
-### Platform specific
+### Supported Platforms
 
-The default `retypapp` **NPM** package is a bundle of several platform specific packages. The installer will automatically detect and choose the correct platform package from the bundle during installation.
-
-The bundle provides convenience although at the cost of an increased download size.
-
-The **dotnet** package installer will automatically download the platform specific package.
-
-For **NPM** and **Yarn**, it is possible to install smaller platform specific packages without the bundling. Currently, three separate platforms are supported and can be installed independently from the primary `neko` package.
+Neko supports Windows, macOS, and Linux.
 
 #### :icon-package: macOS
-
-+++ npm
-```
-npm install neko-darwin-x64 --global
-```
-+++ yarn
-```
-yarn global add neko-darwin-x64
-```
-+++ dotnet
-```
-dotnet tool install neko --global
-```
-+++
 
 {.compact}
 OS                                    | Version                 | Architectures     |
@@ -163,24 +87,6 @@ OS                                    | Version                 | Architectures 
 [macOS]: https://support.apple.com/macos
 
 #### :icon-package: Windows
-
-+++ npm
-```
-npm install neko-win-x64 --global
-# or
-npm install neko-win-x86 --global
-```
-+++ yarn
-```
-yarn global add neko-win-x64
-# or
-yarn global add neko-win-x86
-```
-+++ dotnet
-```
-dotnet tool install neko --global
-```
-+++
 
 {.compact}
 OS                                    | Version                 | Architectures     |
@@ -199,20 +105,6 @@ OS                                    | Version                 | Architectures 
 [Windows-Server]: https://learn.microsoft.com/windows-server/
 
 #### :icon-package: Linux
-
-+++ npm
-```
-npm install neko-linux-x64 --global
-```
-+++ yarn
-```
-yarn global add neko-darwin-x64
-```
-+++ dotnet
-```
-dotnet tool install neko --global
-```
-+++
 
 {.compact}
 OS                                    | Version               | Architectures     |

@@ -42,6 +42,12 @@ namespace Neko.Configuration
         [YamlMember(Alias = "logoDark")]
         public string LogoDark { get; set; }
 
+        [YamlMember(Alias = "icon")]
+        public string Icon { get; set; }
+
+        [YamlMember(Alias = "favicon")]
+        public string Favicon { get; set; }
+
         [YamlMember(Alias = "repository")]
         public string Repository { get; set; }
     }
@@ -68,6 +74,33 @@ namespace Neko.Configuration
     {
         [YamlMember(Alias = "title")]
         public string Title { get; set; }
+
+        [YamlMember(Alias = "description")]
+        public string Description { get; set; }
+
+        [YamlMember(Alias = "keywords")]
+        public string Keywords { get; set; }
+
+        [YamlMember(Alias = "author")]
+        public string Author { get; set; }
+
+        [YamlMember(Alias = "image")]
+        public string Image { get; set; }
+
+        [YamlMember(Alias = "url")]
+        public string Url { get; set; }
+
+        [YamlMember(Alias = "type")]
+        public string Type { get; set; }
+
+        [YamlMember(Alias = "twitterCard")]
+        public string TwitterCard { get; set; }
+
+        [YamlMember(Alias = "twitterSite")]
+        public string TwitterSite { get; set; }
+
+        [YamlMember(Alias = "twitterCreator")]
+        public string TwitterCreator { get; set; }
     }
 
     public class ThemeConfig

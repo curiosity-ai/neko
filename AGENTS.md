@@ -4,7 +4,7 @@
 This repository contains the source code for `Neko`, a CLI tool for generating static documentation sites from Markdown files. The tool is designed to be compatible with existing Markdown syntax used by other popular documentation tools, specifically supporting:
 - Frontmatter configuration (YAML).
 - Custom components like Badges, Callouts/Alerts, Tabs, etc.
-- A specific configuration file format (`taildocs.yml` - for compatibility).
+- A specific configuration file format (`neko.yml` - for compatibility).
 
 ## Directives
 1.  **Code Style**: Use modern C# 10 features. Follow standard .NET naming conventions.
@@ -32,3 +32,6 @@ This repository contains the source code for `Neko`, a CLI tool for generating s
 ## Resources
 -   External libraries are tracked in `reference/` folder.
 -   License information for assets should be in `Neko/Resources/sources.md`.
+
+## Testing
+- ALWAYS use the Neko project targeting an output folder in the temp directory.

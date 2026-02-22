@@ -4,7 +4,19 @@ url: localhost
 
 branding:
   title: Neko
+  logo: /assets/neko-logo.png
+  favicon: /assets/favicon.ico
   repository: https://github.com/theolivenbaum/taildocs
+
+meta:
+  description: A modern, lightweight static site generator.
+  keywords: static site generator, csharp, dotnet, documentation, markdown
+  author: Neko Team
+  image: /assets/neko-logo.png
+  type: website
+  twitterCard: summary
+  twitterSite: "@neko"
+  twitterCreator: "@neko"
 
 links:
   - text: Home

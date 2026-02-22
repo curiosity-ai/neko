@@ -43,7 +43,7 @@ icon: home
             var markdown = "Hello :smile:";
             var doc = _parser.Parse(markdown);
 
-            Assert.That(doc.Html, Contains.Substring("😄"));
+            Assert.That(doc.Html, Contains.Substring("<i class=\"em em-smile\"></i>"));
         }
     }
 }

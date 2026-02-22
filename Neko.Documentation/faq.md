@@ -13,24 +13,12 @@ Yes, Neko is free to use with both open-source and commercial projects.
 
 Installing Neko is super simple and takes only a few seconds. Please see our [Getting Started](/guides/getting-started.md) guide for detailed installation instructions.
 
-If you ain't got no time for that, just run the following two commands on a folder that contains at least one `.md` file, depending on your preferred [package manager](/guides/installation.md#step-1-prerequisites).
+If you ain't got no time for that, just run the following two commands on a folder that contains at least one `.md` file.
 
-+++ npm
-```
-npm install neko --global
-neko start
-```
-+++ yarn
-```
-yarn global add neko
-neko start
-```
-+++ dotnet
 ```
 dotnet tool install neko --global
 neko start
 ```
-+++
 
 ## What is page metadata?
 

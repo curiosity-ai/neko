@@ -31,8 +31,9 @@ namespace Neko.Builder
             {
                 _config = ConfigParser.Parse(configPath);
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"ERROR parsing config: {ex}");
                 // Fallback if config is missing or invalid?
                 // ConfigParser usually handles missing file by returning default config.
                 _config = new NekoConfig();
@@ -90,7 +91,7 @@ namespace Neko.Builder
             {
                 Console.WriteLine($"Parsing {Path.GetFileName(file)}...");
                 var markdown = await File.ReadAllTextAsync(file);
-                var doc = parser.Parse(markdown);
+                var doc = parser.Parse(markdown, file, _inputDirectory);
                 var relativePath = Path.GetRelativePath(_inputDirectory, file);
                 parsedDocs.Add((file, relativePath, doc, markdown));
             }

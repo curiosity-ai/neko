@@ -3,23 +3,31 @@ using Markdig.Helpers;
 using Markdig.Parsers;
 using Markdig.Renderers;
 using Markdig.Renderers.Html;
+using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using System.Collections.Generic;
 
 namespace Neko.Extensions
 {
-    public class Badge : Inline
+    public class Badge : ContainerInline
     {
-        public string Text { get; set; }
         public string Variant { get; set; } = "base"; // base, primary, etc.
         public string Corners { get; set; } = "round"; // round, square, pill
         public string Size { get; set; } = "m"; // xs, s, m, l, xl
         public string Icon { get; set; }
         public string Link { get; set; }
+        public string IconAlign { get; set; }
     }
 
     public class BadgeParser : InlineParser
     {
+        internal static readonly System.Lazy<MarkdownPipeline> _innerPipeline = new System.Lazy<MarkdownPipeline>(() =>
+            new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .UseEmojiAndSmiley()
+            .Use<IconExtension>()
+            .Build());
+
         public BadgeParser()
         {
             OpeningCharacters = new[] { '[' };
@@ -71,6 +79,8 @@ namespace Neko.Extensions
             var content = slice.Text.Substring(contentStart, slice.Start - contentStart).Trim();
             slice.NextChar();
 
+            string textContent = content;
+
             // Check for key="value" pattern (Legacy/Advanced support)
             if (content.Contains("=\""))
             {
@@ -101,11 +111,12 @@ namespace Neko.Extensions
 
                         switch (key.ToLower())
                         {
-                            case "text": badge.Text = val; break;
+                            case "text": textContent = val; break;
                             case "variant": badge.Variant = val; break;
                             case "corners": badge.Corners = val; break;
                             case "size": badge.Size = val; break;
                             case "icon": badge.Icon = val; break;
+                            case "iconalign": badge.IconAlign = val; break;
                         }
                     }
                 }
@@ -131,12 +142,12 @@ namespace Neko.Extensions
                 if (IsKnownVariant(firstWord) && !string.IsNullOrEmpty(remainder))
                 {
                     badge.Variant = firstWord;
-                    badge.Text = remainder;
+                    textContent = remainder;
                 }
                 else
                 {
                     badge.Variant = "base";
-                    badge.Text = content;
+                    textContent = content;
                 }
             }
 
@@ -160,6 +171,27 @@ namespace Neko.Extensions
                     badge.Link = link;
                     slice.NextChar();
                 }
+            }
+
+            // Parse textContent as markdown inlines
+            if (!string.IsNullOrEmpty(textContent))
+            {
+                var doc = Markdown.Parse(textContent, _innerPipeline.Value);
+                foreach (var block in doc)
+                {
+                    if (block is ParagraphBlock p && p.Inline != null)
+                    {
+                        var child = p.Inline.FirstChild;
+                        while (child != null)
+                        {
+                            var next = child.NextSibling;
+                            child.Remove();
+                            badge.AppendChild(child);
+                            child = next;
+                        }
+                    }
+                }
+
             }
 
             processor.Inline = badge;
@@ -241,29 +273,49 @@ namespace Neko.Extensions
 
             renderer.Write($"<span class=\"inline-flex items-center font-medium {bgClass} {roundedClass} {sizeClass} mr-2\">");
 
-            if (!string.IsNullOrEmpty(obj.Icon))
+            bool iconRight = string.Equals(obj.IconAlign, "right", System.StringComparison.OrdinalIgnoreCase);
+
+            if (!iconRight && !string.IsNullOrEmpty(obj.Icon))
             {
-                if (obj.Icon.Trim().StartsWith("<svg", System.StringComparison.OrdinalIgnoreCase))
-                {
-                     renderer.Write(System.Net.WebUtility.HtmlDecode(obj.Icon));
-                     renderer.Write(" ");
-                }
-                else if (obj.Icon.StartsWith(":"))
-                {
-                     renderer.Write(obj.Icon.Trim(':') + " ");
-                }
-                else
-                {
-                     renderer.Write($"<i class=\"fi fi-rr-{obj.Icon} mr-1\"></i>");
-                }
+                WriteIcon(renderer, obj.Icon, true);
             }
 
-            renderer.Write(obj.Text);
+            renderer.WriteChildren(obj);
+
+            if (iconRight && !string.IsNullOrEmpty(obj.Icon))
+            {
+                WriteIcon(renderer, obj.Icon, false);
+            }
+
             renderer.Write("</span>");
 
             if (!string.IsNullOrEmpty(obj.Link))
             {
                 renderer.Write("</a>");
+            }
+        }
+
+        private void WriteIcon(HtmlRenderer renderer, string icon, bool isLeft)
+        {
+            var marginClass = isLeft ? "mr-1" : "ml-1";
+
+            if (icon.Trim().StartsWith("<svg", System.StringComparison.OrdinalIgnoreCase))
+            {
+                 var svg = System.Net.WebUtility.HtmlDecode(icon);
+                 renderer.Write($"<span class=\"{marginClass} inline-flex\">{svg}</span>");
+            }
+            else if (icon.StartsWith(":"))
+            {
+                 // Render using pipeline to resolve shortcodes
+                 var pipeline = BadgeParser._innerPipeline.Value;
+                 var html = Markdown.ToHtml(icon, pipeline);
+                 // Strip <p> tags
+                 html = html.Replace("<p>", "").Replace("</p>", "").Trim();
+                 renderer.Write($"<span class=\"{marginClass}\">{html}</span>");
+            }
+            else
+            {
+                 renderer.Write($"<i class=\"fi fi-rr-{icon} {marginClass}\"></i>");
             }
         }
     }
