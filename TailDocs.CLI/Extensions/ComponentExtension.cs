@@ -194,21 +194,100 @@ namespace TailDocs.CLI.Extensions
             var text = obj.GetAttribute("text");
             var link = obj.GetAttribute("link", "#");
             var variant = obj.GetAttribute("variant", "primary");
+            var corners = obj.GetAttribute("corners", "round");
+            var size = obj.GetAttribute("size", "m");
             var icon = obj.GetAttribute("icon");
+            var target = obj.GetAttribute("target");
 
-            var bgClass = "bg-blue-600 hover:bg-blue-700 text-white";
-            switch (variant)
+            // 1. Variant Styles
+            var bgClass = "bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-500"; // default primary
+            switch (variant.ToLower())
             {
-                case "secondary": bgClass = "bg-gray-600 hover:bg-gray-700 text-white"; break;
-                case "outline": bgClass = "bg-transparent border border-blue-600 text-blue-600 hover:bg-blue-50"; break;
-                case "danger": bgClass = "bg-red-600 hover:bg-red-700 text-white"; break;
+                case "base":
+                    bgClass = "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600";
+                    break;
+                case "primary":
+                    bgClass = "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500";
+                    break;
+                case "secondary":
+                    bgClass = "bg-gray-600 text-white hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500";
+                    break;
+                case "success":
+                    bgClass = "bg-green-600 text-white hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500";
+                    break;
+                case "danger":
+                    bgClass = "bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500";
+                    break;
+                case "warning":
+                    bgClass = "bg-yellow-500 text-white hover:bg-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-400";
+                    break;
+                case "info":
+                    bgClass = "bg-sky-500 text-white hover:bg-sky-600 dark:bg-sky-500 dark:hover:bg-sky-400";
+                    break;
+                case "light":
+                    bgClass = "bg-white text-gray-800 border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700";
+                    break;
+                case "dark":
+                    bgClass = "bg-gray-800 text-white hover:bg-gray-900 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200";
+                    break;
+                case "ghost":
+                    bgClass = "bg-transparent text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800";
+                    break;
+                case "contrast":
+                    bgClass = "bg-white text-black hover:bg-gray-100 dark:bg-black dark:text-white dark:hover:bg-gray-900 border border-gray-300 dark:border-gray-700";
+                    break;
+                case "outline":
+                    bgClass = "bg-transparent border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-900/20";
+                    break;
             }
 
-            renderer.Write($"<a href=\"{link}\" class=\"inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm {bgClass} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-2 no-underline\">");
+            // 2. Corners
+            var roundedClass = "rounded-md";
+            switch (corners.ToLower())
+            {
+                case "round": roundedClass = "rounded-md"; break;
+                case "square": roundedClass = "rounded-none"; break;
+                case "pill": roundedClass = "rounded-full"; break;
+            }
+
+            // 3. Size
+            var sizeClass = "px-4 py-2 text-sm";
+            switch (size.ToLower())
+            {
+                case "xs": sizeClass = "px-2.5 py-1.5 text-xs"; break;
+                case "s": sizeClass = "px-3 py-2 text-sm"; break;
+                case "m": sizeClass = "px-4 py-2 text-sm"; break;
+                case "l": sizeClass = "px-4 py-2 text-base"; break;
+                case "xl": sizeClass = "px-6 py-3 text-base"; break;
+                case "2xl": sizeClass = "px-6 py-3.5 text-xl"; break;
+                case "3xl": sizeClass = "px-7 py-4 text-2xl"; break;
+            }
+
+            // Target handling
+            var targetAttr = "";
+            if (!string.IsNullOrEmpty(target))
+            {
+                if (target.Equals("blank", System.StringComparison.OrdinalIgnoreCase)) target = "_blank";
+                targetAttr = $" target=\"{target}\"";
+            }
+
+            renderer.Write($"<a href=\"{link}\"{targetAttr} class=\"inline-flex items-center border border-transparent font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-2 no-underline {bgClass} {roundedClass} {sizeClass}\">");
 
             if (!string.IsNullOrEmpty(icon))
             {
-                renderer.Write($"<i class=\"fi fi-rr-{icon} mr-2\"></i>");
+                if (icon.Trim().StartsWith("<svg", System.StringComparison.OrdinalIgnoreCase))
+                {
+                     renderer.Write(System.Net.WebUtility.HtmlDecode(icon));
+                     renderer.Write(" ");
+                }
+                else if (icon.StartsWith(":"))
+                {
+                     renderer.Write(icon.Trim(':') + " ");
+                }
+                else
+                {
+                     renderer.Write($"<i class=\"fi fi-rr-{icon} mr-2\"></i>");
+                }
             }
 
             renderer.Write(text);

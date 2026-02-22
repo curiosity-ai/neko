@@ -11,6 +11,7 @@ This repository contains the source code for `TailDocs`, a CLI tool for generati
 2.  **Testing**:
     -   Unit tests in `TailDocs.Tests`.
     -   End-to-end tests using Playwright.
+    -   **Documentation pages should always be checked with Playwright as instructed.**
     -   Run tests frequently.
 3.  **Documentation**:
     -   Update `TailDocs.Documentation` with examples of supported features.
