@@ -2,6 +2,8 @@ using Markdig;
 using Markdig.Extensions.CustomContainers;
 using Markdig.Renderers;
 using Markdig.Renderers.Html;
+using System.Linq;
+using System.Net;
 
 namespace Neko.Extensions
 {
@@ -17,6 +19,12 @@ namespace Neko.Extensions
         protected override void Write(HtmlRenderer renderer, CustomContainer obj)
         {
             var type = obj.Info;
+
+            if (type == "card")
+            {
+                RenderCard(renderer, obj);
+                return;
+            }
 
             // Apply styles based on container type
             // Note: UseAddClass helper from Markdig handles appending to existing classes.
@@ -37,6 +45,173 @@ namespace Neko.Extensions
             }
 
             _originalRenderer.Write(renderer, obj);
+        }
+
+        private void RenderCard(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var attributes = obj.GetAttributes();
+            var image = GetAttribute(attributes, "image");
+            var title = GetAttribute(attributes, "title");
+            var link = GetAttribute(attributes, "link");
+            var seeMore = GetAttribute(attributes, "see-more");
+            var tags = GetAttribute(attributes, "tags");
+            var variant = GetAttribute(attributes, "variant") ?? "stacked";
+
+            if (variant == "horizontal")
+            {
+                RenderHorizontalCard(renderer, obj, image, title, link, seeMore, tags);
+            }
+            else
+            {
+                RenderStackedCard(renderer, obj, image, title, link, seeMore, tags);
+            }
+        }
+
+        private string? GetAttribute(HtmlAttributes attributes, string key)
+        {
+            if (attributes.Properties != null)
+            {
+                foreach (var prop in attributes.Properties)
+                {
+                    if (prop.Key == key) return prop.Value;
+                }
+            }
+            return null;
+        }
+
+        private void RenderStackedCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags)
+        {
+            var classes = "max-w-sm rounded overflow-hidden shadow-lg bg-white dark:bg-gray-800 my-4 border border-gray-200 dark:border-gray-700";
+            var attrs = obj.GetAttributes();
+            if (attrs.Classes != null)
+            {
+                var extraClasses = string.Join(" ", attrs.Classes.Where(c => c != "card"));
+                if (!string.IsNullOrEmpty(extraClasses)) classes += " " + extraClasses;
+            }
+
+            renderer.Write($"<div class=\"{classes}\">");
+
+            if (!string.IsNullOrEmpty(image))
+            {
+                var encodedImage = WebUtility.HtmlEncode(image);
+                var encodedTitle = WebUtility.HtmlEncode(title ?? "");
+                if (!string.IsNullOrEmpty(link))
+                {
+                    var encodedLink = WebUtility.HtmlEncode(link);
+                    renderer.Write($"<a href=\"{encodedLink}\">");
+                }
+                renderer.Write($"<img class=\"w-full object-cover\" src=\"{encodedImage}\" alt=\"{encodedTitle}\">");
+                if (!string.IsNullOrEmpty(link)) renderer.Write("</a>");
+            }
+
+            renderer.Write("<div class=\"px-6 py-4\">");
+            if (!string.IsNullOrEmpty(title))
+            {
+                renderer.Write("<div class=\"font-bold text-xl mb-2 text-gray-900 dark:text-white\">");
+                if (!string.IsNullOrEmpty(link))
+                {
+                    var encodedLink = WebUtility.HtmlEncode(link);
+                    renderer.Write($"<a href=\"{encodedLink}\" class=\"hover:underline\">");
+                }
+                renderer.Write(WebUtility.HtmlEncode(title));
+                if (!string.IsNullOrEmpty(link)) renderer.Write("</a>");
+                renderer.Write("</div>");
+            }
+
+            renderer.Write("<div class=\"text-gray-700 dark:text-gray-300 text-base\">");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
+
+            if (!string.IsNullOrEmpty(seeMore))
+            {
+                var encodedSeeMore = WebUtility.HtmlEncode(seeMore);
+                renderer.Write($"<div class=\"mt-4\"><a href=\"{encodedSeeMore}\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">See more &rarr;</a></div>");
+            }
+
+            renderer.Write("</div>");
+
+            if (!string.IsNullOrEmpty(tags))
+            {
+                renderer.Write("<div class=\"px-6 pt-4 pb-2\">");
+                foreach (var tag in tags.Split(new[] { ',' }, System.StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var t = WebUtility.HtmlEncode(tag.Trim());
+                    renderer.Write($"<span class=\"inline-block bg-gray-200 dark:bg-gray-700 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 dark:text-gray-300 mr-2 mb-2\">#{t}</span>");
+                }
+                renderer.Write("</div>");
+            }
+
+            renderer.Write("</div>");
+        }
+
+        private void RenderHorizontalCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags)
+        {
+             var classes = "max-w-sm w-full lg:max-w-full lg:flex my-4 shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800";
+             var attrs = obj.GetAttributes();
+             if (attrs.Classes != null)
+             {
+                 var extraClasses = string.Join(" ", attrs.Classes.Where(c => c != "card"));
+                 if (!string.IsNullOrEmpty(extraClasses)) classes += " " + extraClasses;
+             }
+
+             renderer.Write($"<div class=\"{classes}\">");
+
+             if (!string.IsNullOrEmpty(image))
+             {
+                 var encodedImage = WebUtility.HtmlEncode(image);
+                 var encodedTitle = WebUtility.HtmlEncode(title ?? "");
+                 renderer.Write($"<div class=\"h-48 lg:h-auto lg:w-48 flex-none bg-cover rounded-t lg:rounded-t-none lg:rounded-l text-center overflow-hidden\" style=\"background-image: url('{encodedImage}')\" title=\"{encodedTitle}\"></div>");
+             }
+
+             renderer.Write("<div class=\"p-4 flex flex-col justify-between leading-normal w-full\">");
+
+             renderer.Write("<div class=\"mb-8\">");
+
+             if (!string.IsNullOrEmpty(title))
+             {
+                 renderer.Write("<div class=\"text-gray-900 dark:text-white font-bold text-xl mb-2\">");
+                 if (!string.IsNullOrEmpty(link))
+                 {
+                    var encodedLink = WebUtility.HtmlEncode(link);
+                    renderer.Write($"<a href=\"{encodedLink}\" class=\"hover:underline\">");
+                 }
+                 renderer.Write(WebUtility.HtmlEncode(title));
+                 if (!string.IsNullOrEmpty(link)) renderer.Write("</a>");
+                 renderer.Write("</div>");
+             }
+
+             renderer.Write("<div class=\"text-gray-700 dark:text-gray-300 text-base\">");
+             renderer.WriteChildren(obj);
+             renderer.Write("</div>");
+
+             renderer.Write("</div>");
+
+             if (!string.IsNullOrEmpty(tags) || !string.IsNullOrEmpty(seeMore))
+             {
+                 renderer.Write("<div class=\"flex items-center justify-between mt-auto\">");
+
+                 if (!string.IsNullOrEmpty(tags))
+                 {
+                     renderer.Write("<div class=\"flex flex-wrap\">");
+                     foreach (var tag in tags.Split(new[] { ',' }, System.StringSplitOptions.RemoveEmptyEntries))
+                     {
+                         var t = WebUtility.HtmlEncode(tag.Trim());
+                         renderer.Write($"<span class=\"text-xs font-semibold inline-block py-1 px-2 uppercase rounded text-blue-600 bg-blue-200 dark:text-blue-400 dark:bg-blue-900 last:mr-0 mr-1\">{t}</span>");
+                     }
+                     renderer.Write("</div>");
+                 }
+
+                 if (!string.IsNullOrEmpty(seeMore))
+                 {
+                     var encodedSeeMore = WebUtility.HtmlEncode(seeMore);
+                     renderer.Write($"<div class=\"text-sm\"><a href=\"{encodedSeeMore}\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">See more</a></div>");
+                 }
+
+                 renderer.Write("</div>");
+             }
+
+             renderer.Write("</div>");
+             renderer.Write("</div>");
         }
     }
 
