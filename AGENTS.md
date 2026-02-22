@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Overview
-This repository contains the source code for `TailDocs`, a CLI tool for generating static documentation sites from Markdown files. The tool is designed to be compatible with existing Markdown syntax used by other popular documentation tools, specifically supporting:
+This repository contains the source code for `Neko`, a CLI tool for generating static documentation sites from Markdown files. The tool is designed to be compatible with existing Markdown syntax used by other popular documentation tools, specifically supporting:
 - Frontmatter configuration (YAML).
 - Custom components like Badges, Callouts/Alerts, Tabs, etc.
 - A specific configuration file format (`taildocs.yml` - for compatibility).
@@ -9,13 +9,13 @@ This repository contains the source code for `TailDocs`, a CLI tool for generati
 ## Directives
 1.  **Code Style**: Use modern C# 10 features. Follow standard .NET naming conventions.
 2.  **Testing**:
-    -   Unit tests in `TailDocs.Tests`.
+    -   Unit tests in `Neko.Tests`.
     -   End-to-end tests using Playwright.
     -   **Documentation pages should always be checked with Playwright as instructed.**
     -   Run tests frequently.
 3.  **Documentation**:
-    -   Update `TailDocs.Documentation` with examples of supported features.
-    -   **All components and features of TailDocs should have an equivalent documentation page in the documentation project.**
+    -   Update `Neko.Documentation` with examples of supported features.
+    -   **All components and features of Neko should have an equivalent documentation page in the documentation project.**
     -   Maintain `TODO.md` and `WIP.md`.
 4.  **No References**: Do not mention the name of the tool we are emulating (starts with R) in the user-facing output or documentation.
 5.  **Assets**:
@@ -31,4 +31,4 @@ This repository contains the source code for `TailDocs`, a CLI tool for generati
 
 ## Resources
 -   External libraries are tracked in `reference/` folder.
--   License information for assets should be in `TailDocs.CLI/Resources/sources.md`.
+-   License information for assets should be in `Neko/Resources/sources.md`.

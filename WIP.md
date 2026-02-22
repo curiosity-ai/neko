@@ -4,8 +4,8 @@
 Initial project setup and scaffolding.
 
 ## Accomplished
-- Created project structure (TailDocs.CLI, TailDocs.Tests, TailDocs.Documentation).
-- Renamed `TailDocs.Sample` to `TailDocs.Documentation` and added deep documentation for all components.
+- Created project structure (Neko, Neko.Tests, Neko.Documentation).
+- Renamed `Neko.Sample` to `Neko.Documentation` and added deep documentation for all components.
 - Added `AGENTS.md`, `TODO.md`, `WIP.md`.
 - Added necessary NuGet packages.
 - Cloned reference repositories.

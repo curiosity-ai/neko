@@ -1,0 +1,658 @@
+using Neko.Configuration;
+using System.Text;
+using System.Collections.Generic;
+
+namespace Neko.Builder
+{
+    public class HtmlGenerator
+    {
+        private readonly NekoConfig _config;
+
+        public HtmlGenerator(NekoConfig config)
+        {
+            _config = config;
+        }
+
+        public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null, List<LinkConfig> sidebarLinks = null)
+        {
+            var title = !string.IsNullOrEmpty(document.FrontMatter.Title)
+                ? $"{document.FrontMatter.Title} - {_config.Branding.Title}"
+                : _config.Branding.Title;
+
+            var darkTheme = _config.Theme.Highlight.Dark;
+            var lightTheme = _config.Theme.Highlight.Light;
+
+            var sb = new StringBuilder();
+            sb.AppendLine("<!DOCTYPE html>");
+            sb.AppendLine("<html lang=\"en\" class=\"scroll-smooth\">");
+            sb.AppendLine("<head>");
+            sb.AppendLine("    <meta charset=\"UTF-8\">");
+            sb.AppendLine("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+            sb.AppendLine($"    <title>{title}</title>");
+
+            if (!string.IsNullOrEmpty(document.FrontMatter.Description))
+            {
+                sb.AppendLine($"    <meta name=\"description\" content=\"{document.FrontMatter.Description}\">");
+                sb.AppendLine($"    <meta property=\"og:description\" content=\"{document.FrontMatter.Description}\">");
+            }
+            if (!string.IsNullOrEmpty(document.FrontMatter.Title))
+            {
+                sb.AppendLine($"    <meta property=\"og:title\" content=\"{document.FrontMatter.Title} - {_config.Branding.Title}\">");
+            }
+
+            // Tailwind CSS
+            // Use CDN to ensure plugins (like typography) are available.
+            // The local resource might be missing the typography plugin.
+            sb.AppendLine("    <script src=\"https://cdn.tailwindcss.com?plugins=typography\"></script>");
+            sb.AppendLine("    <script>tailwind.config = { darkMode: 'class' }</script>");
+
+            // Inter Font
+            sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
+            sb.AppendLine("    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>");
+
+            // Flaticon UIcons
+            sb.AppendLine("    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>");
+
+            // KaTeX (Math)
+            sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css\">");
+            sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js\"></script>");
+            sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js\"></script>");
+            sb.AppendLine("    <script>document.addEventListener(\"DOMContentLoaded\", function() { renderMathInElement(document.body); });</script>");
+
+            // Mermaid (Diagrams)
+            sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>");
+            sb.AppendLine("    <script>mermaid.initialize({startOnLoad:true});</script>");
+
+            // Search Assets
+            sb.AppendLine("    <script src=\"/assets/minisearch.min.js\"></script>");
+            sb.AppendLine("    <script defer src=\"/assets/search.js\"></script>");
+
+            // Highlight.js
+            sb.AppendLine($"    <link id=\"highlight-theme\" rel=\"stylesheet\" href=\"/assets/highlight/{darkTheme}.min.css\">");
+            sb.AppendLine("    <script src=\"/assets/highlight/highlight.min.js\"></script>");
+            sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js\"></script>");
+            sb.AppendLine("    <style>");
+            sb.AppendLine("        /* Highlight.js Line Numbers CSS */");
+            sb.AppendLine("        .hljs-ln td { padding-left: 10px; }");
+            sb.AppendLine("        .hljs-ln-numbers { user-select: none; text-align: right; color: #ccc; border-right: 1px solid #ccc; vertical-align: top; padding-right: 5px; }");
+            sb.AppendLine("        .hljs-ln-code { padding-left: 10px; }");
+            sb.AppendLine("        ");
+            sb.AppendLine("        /* Custom Highlight Style */");
+            sb.AppendLine("        .line-highlight { background-color: rgba(255, 255, 0, 0.15); display: block; width: 100%; }");
+            sb.AppendLine("        .dark .line-highlight { background-color: rgba(255, 255, 0, 0.15); }");
+            sb.AppendLine("        ");
+            sb.AppendLine("        /* Fix Table layout for code blocks with line numbers */");
+            sb.AppendLine("        .hljs-ln { width: 100%; border-collapse: collapse; }");
+            sb.AppendLine("    </style>");
+
+            // Dark Mode Init
+            sb.AppendLine("    <script>");
+            sb.AppendLine("        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {");
+            sb.AppendLine("            document.documentElement.classList.add('dark');");
+            sb.AppendLine("        } else {");
+            sb.AppendLine("            document.documentElement.classList.remove('dark');");
+            sb.AppendLine("        }");
+            sb.AppendLine("    </script>");
+
+            sb.AppendLine("</head>");
+            sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
+
+            // Navbar
+            sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10\">");
+            sb.AppendLine("        <div class=\"flex items-center gap-4\">");
+            sb.AppendLine("            <button id=\"mobile-menu-btn\" class=\"md:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none\">");
+            sb.AppendLine("                <i class=\"fi fi-rr-menu-burger text-xl\"></i>");
+            sb.AppendLine("            </button>");
+            if (!string.IsNullOrEmpty(_config.Branding.Logo))
+            {
+                sb.AppendLine($"            <img src=\"{_config.Branding.Logo}\" class=\"h-8 w-auto dark:hidden\">");
+                if (!string.IsNullOrEmpty(_config.Branding.LogoDark))
+                {
+                    sb.AppendLine($"            <img src=\"{_config.Branding.LogoDark}\" class=\"h-8 w-auto hidden dark:block\">");
+                }
+                else
+                {
+                    sb.AppendLine($"            <img src=\"{_config.Branding.Logo}\" class=\"h-8 w-auto hidden dark:block\">");
+                }
+            }
+            sb.AppendLine($"            <a href=\"/index\" class=\"font-bold text-xl hover:text-blue-600 transition-colors\">{_config.Branding.Title}</a>");
+            sb.AppendLine("        </div>");
+
+            sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300\">");
+            if (_config.Links != null)
+            {
+                foreach (var link in _config.Links)
+                {
+                     var href = link.Link ?? "#";
+                     var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"fi fi-rr-{link.Icon} mr-1\"></i>";
+                     sb.AppendLine($"            <a href=\"{href}\" class=\"hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center\">{iconHtml}{link.Text}</a>");
+                }
+            }
+            sb.AppendLine("        </div>");
+
+            sb.AppendLine("        <div class=\"flex items-center gap-4\">");
+            sb.AppendLine("            <button onclick=\"openSearch()\" class=\"flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-blue-500 w-64 justify-between\">");
+            sb.AppendLine("                <div class=\"flex items-center gap-2\">");
+            sb.AppendLine("                    <i class=\"fi fi-rr-search text-sm\"></i>");
+            sb.AppendLine("                    <span class=\"text-sm font-medium\">Search</span>");
+            sb.AppendLine("                </div>");
+            sb.AppendLine("                <kbd class=\"hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400\">⌘K</kbd>");
+            sb.AppendLine("            </button>");
+            sb.AppendLine("            <button id=\"theme-toggle\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-blue-500\">");
+            sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
+            sb.AppendLine("                <i class=\"fi fi-rr-sun hidden dark:block text-lg\"></i>");
+            sb.AppendLine("            </button>");
+            sb.AppendLine("        </div>");
+            sb.AppendLine("    </header>");
+
+            sb.AppendLine("    <div class=\"flex flex-1 overflow-hidden\">");
+
+            // Sidebar
+            sb.AppendLine("        <div id=\"sidebar-overlay\" class=\"fixed inset-0 bg-black/50 z-20 hidden md:hidden glassmorphism\"></div>");
+            sb.AppendLine("        <aside id=\"sidebar\" class=\"w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex flex-col shrink-0 fixed md:static inset-y-0 left-0 z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out h-full\">");
+            sb.AppendLine("            <nav class=\"p-4 flex-1\">");
+            sb.AppendLine("                <div class=\"mb-6 relative\">");
+            sb.AppendLine("                    <div class=\"absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none\">");
+            sb.AppendLine("                        <i class=\"fi fi-rr-filter text-gray-400\"></i>");
+            sb.AppendLine("                    </div>");
+            sb.AppendLine("                    <input type=\"text\" id=\"sidebar-filter\" placeholder=\"Filter...\" class=\"w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm\">");
+            sb.AppendLine("                </div>");
+            sb.AppendLine("                <ul class=\"space-y-1\" id=\"sidebar-list\">");
+
+            RenderSidebarItems(sb, sidebarLinks ?? new List<LinkConfig>(), 0);
+
+            sb.AppendLine("                </ul>");
+            sb.AppendLine("            </nav>");
+            sb.AppendLine("        </aside>");
+
+            // Content
+            sb.AppendLine("        <div class=\"flex-1 flex overflow-hidden\">");
+            sb.AppendLine("            <main class=\"flex-1 overflow-y-auto p-8 scroll-smooth\" id=\"main-scroll\">");
+            sb.AppendLine("                <div class=\"max-w-4xl mx-auto prose dark:prose-invert\">");
+
+            // Breadcrumbs
+            if (navContext != null && navContext.Breadcrumbs.Any())
+            {
+                sb.AppendLine("                    <nav class=\"flex mb-4 text-sm text-gray-500 dark:text-gray-400 not-prose\">");
+                sb.AppendLine("                        <ol class=\"flex items-center space-x-2 flex-wrap\">");
+                for (int i = 0; i < navContext.Breadcrumbs.Count; i++)
+                {
+                    var item = navContext.Breadcrumbs[i];
+                    if (i > 0)
+                    {
+                        sb.AppendLine("                            <li><i class=\"fi fi-rr-angle-small-right text-xs\"></i></li>");
+                    }
+                    if (!string.IsNullOrEmpty(item.Url))
+                    {
+                        sb.AppendLine($"                            <li><a href=\"{item.Url}\" class=\"hover:text-gray-700 dark:hover:text-gray-200 transition-colors\">{item.Title}</a></li>");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"                            <li><span>{item.Title}</span></li>");
+                    }
+                }
+                sb.AppendLine("                        </ol>");
+                sb.AppendLine("                    </nav>");
+            }
+
+            // Link Cleanup Logic
+            var htmlContent = document.Html;
+            if (!string.IsNullOrEmpty(htmlContent))
+            {
+                 // Strip extension, preserve relative/absolute nature
+                 htmlContent = System.Text.RegularExpressions.Regex.Replace(htmlContent, "href=\"((?!http:|https:|ftp:|mailto:|#|/)[^\"]+)\\.(md|html)\"", "href=\"$1\"");
+            }
+            sb.AppendLine(htmlContent);
+
+            // Prev/Next Navigation
+            if (navContext != null && (navContext.Prev != null || navContext.Next != null))
+            {
+                sb.AppendLine("                    <div class=\"grid grid-cols-1 md:grid-cols-2 gap-4 mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 not-prose\">");
+
+                // Prev
+                if (navContext.Prev != null)
+                {
+                    sb.AppendLine($"                        <a href=\"{navContext.Prev.Url}\" class=\"flex flex-col p-4 rounded border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group\">");
+                    sb.AppendLine("                            <span class=\"text-xs text-gray-500 dark:text-gray-400 mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400\">Previous</span>");
+                    sb.AppendLine($"                            <span class=\"font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2\"><i class=\"fi fi-rr-arrow-small-left transition-transform group-hover:-translate-x-1\"></i> {navContext.Prev.Title}</span>");
+                    sb.AppendLine("                        </a>");
+                }
+                else
+                {
+                    sb.AppendLine("                        <div></div>");
+                }
+
+                // Next
+                if (navContext.Next != null)
+                {
+                    sb.AppendLine($"                        <a href=\"{navContext.Next.Url}\" class=\"flex flex-col items-end p-4 rounded border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group text-right\">");
+                    sb.AppendLine("                            <span class=\"text-xs text-gray-500 dark:text-gray-400 mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400\">Next</span>");
+                    sb.AppendLine($"                            <span class=\"font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2\">{navContext.Next.Title} <i class=\"fi fi-rr-arrow-small-right transition-transform group-hover:translate-x-1\"></i></span>");
+                    sb.AppendLine("                        </a>");
+                }
+
+                sb.AppendLine("                    </div>");
+            }
+
+            if (backlinks != null && backlinks.Count > 0)
+            {
+                sb.AppendLine("                    <div class=\"mt-8 pt-8 border-t border-gray-200 dark:border-gray-800\">");
+                sb.AppendLine("                        <h3 class=\"text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4\">Referenced by</h3>");
+                sb.AppendLine("                        <ul class=\"space-y-2\">");
+                foreach (var link in backlinks)
+                {
+                    sb.AppendLine($"                            <li><a href=\"{link.Url}\" class=\"text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2\"><i class=\"fi fi-rr-arrow-small-right\"></i> {link.Title}</a></li>");
+                }
+                sb.AppendLine("                        </ul>");
+                sb.AppendLine("                    </div>");
+            }
+
+            // Footer
+            sb.AppendLine("                    <footer class=\"mt-12 py-6 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400 flex flex-col md:flex-row justify-between items-center not-prose\">");
+            sb.AppendLine($"                        <div>&copy; {System.DateTime.Now.Year} {_config.Branding.Title}. All rights reserved.</div>");
+
+            if (!string.IsNullOrEmpty(_config.Branding.Repository))
+            {
+                 sb.AppendLine($"                        <div class=\"mt-2 md:mt-0\">");
+                 sb.AppendLine($"                            <a href=\"{_config.Branding.Repository}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1\">");
+                 sb.AppendLine("                                <i class=\"fi fi-rr-edit\"></i> Edit on GitHub");
+                 sb.AppendLine("                            </a>");
+                 sb.AppendLine("                        </div>");
+            }
+            else
+            {
+                 sb.AppendLine("                        <div class=\"mt-2 md:mt-0\">Powered by Neko</div>");
+            }
+            sb.AppendLine("                    </footer>");
+
+            sb.AppendLine("                </div>");
+            sb.AppendLine("            </main>");
+
+            // TOC
+            if (document.Toc != null && System.Linq.Enumerable.Any(document.Toc))
+            {
+                sb.AppendLine("            <aside class=\"w-64 hidden xl:block shrink-0 overflow-y-auto border-l border-gray-200 dark:border-gray-800 p-6\">");
+                sb.AppendLine("                <div class=\"sticky top-0\">");
+                sb.AppendLine("                    <h5 class=\"text-xs font-semibold mb-4 text-gray-900 dark:text-gray-100 uppercase tracking-wider\">On this page</h5>");
+                sb.AppendLine("                    <ul class=\"space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800 relative\" id=\"toc-list\">");
+                sb.AppendLine("                        <div id=\"toc-highlight\" class=\"absolute left-0 border-l-2 border-blue-600 dark:border-blue-400 transition-all duration-200 ease-in-out -ml-px\" style=\"top: 0; height: 0; opacity: 0;\"></div>");
+                foreach (var item in document.Toc)
+                {
+                    if (item.Level < 2) continue;
+                    var padding = item.Level == 2 ? "pl-4" : "pl-8";
+                    sb.AppendLine($"                        <li><a href=\"#{item.Id}\" class=\"block {padding} hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link\" data-id=\"{item.Id}\">{item.Title}</a></li>");
+                }
+                sb.AppendLine("                    </ul>");
+                sb.AppendLine("                </div>");
+                sb.AppendLine("            </aside>");
+            }
+
+            sb.AppendLine("        </div>");
+            sb.AppendLine("    </div>");
+
+            // Scripts
+            sb.AppendLine("    <script>");
+
+            // Mobile Menu
+            sb.AppendLine("        const mobileMenuBtn = document.getElementById('mobile-menu-btn');");
+            sb.AppendLine("        const sidebar = document.getElementById('sidebar');");
+            sb.AppendLine("        const sidebarOverlay = document.getElementById('sidebar-overlay');");
+            sb.AppendLine("        ");
+            sb.AppendLine("        function toggleMobileMenu() {");
+            sb.AppendLine("            const isClosed = sidebar.classList.contains('-translate-x-full');");
+            sb.AppendLine("            if (isClosed) {");
+            sb.AppendLine("                sidebar.classList.remove('-translate-x-full');");
+            sb.AppendLine("                sidebarOverlay.classList.remove('hidden');");
+            sb.AppendLine("                document.body.style.overflow = 'hidden';");
+            sb.AppendLine("            } else {");
+            sb.AppendLine("                sidebar.classList.add('-translate-x-full');");
+            sb.AppendLine("                sidebarOverlay.classList.add('hidden');");
+            sb.AppendLine("                document.body.style.overflow = '';");
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine("        ");
+            sb.AppendLine("        if (mobileMenuBtn) {");
+            sb.AppendLine("            mobileMenuBtn.addEventListener('click', toggleMobileMenu);");
+            sb.AppendLine("            sidebarOverlay.addEventListener('click', toggleMobileMenu);");
+            sb.AppendLine("        }");
+
+            // Sidebar Scroll Preservation
+            sb.AppendLine("        if (sidebar) {");
+            var keyBase = System.Text.RegularExpressions.Regex.Replace(_config.Branding.Title ?? "neko", "[^a-zA-Z0-9]", "-").ToLower();
+            sb.AppendLine($"            const scrollKey = '{keyBase}-sidebar-scroll';");
+            sb.AppendLine($"            const timeKey = '{keyBase}-sidebar-scroll-time';");
+            sb.AppendLine("            const savedScroll = localStorage.getItem(scrollKey);");
+            sb.AppendLine("            const savedTime = localStorage.getItem(timeKey);");
+            sb.AppendLine("            if (savedScroll && savedTime) {");
+            sb.AppendLine("                const now = new Date().getTime();");
+            sb.AppendLine("                if (now - parseInt(savedTime) < 60000) {");
+            sb.AppendLine("                    sidebar.scrollTop = parseInt(savedScroll);");
+            sb.AppendLine("                }");
+            sb.AppendLine("            }");
+            sb.AppendLine("            let timeout;");
+            sb.AppendLine("            sidebar.addEventListener('scroll', () => {");
+            sb.AppendLine("                clearTimeout(timeout);");
+            sb.AppendLine("                timeout = setTimeout(() => {");
+            sb.AppendLine("                    localStorage.setItem(scrollKey, sidebar.scrollTop);");
+            sb.AppendLine("                    localStorage.setItem(timeKey, new Date().getTime());");
+            sb.AppendLine("                }, 100);");
+            sb.AppendLine("            });");
+            sb.AppendLine("        }");
+
+            // Sidebar Filter
+            sb.AppendLine("        const sidebarFilter = document.getElementById('sidebar-filter');");
+            sb.AppendLine("        const sidebarList = document.getElementById('sidebar-list');");
+            sb.AppendLine("        if (sidebarFilter && sidebarList) {");
+            sb.AppendLine("            sidebarFilter.addEventListener('input', (e) => {");
+            sb.AppendLine("                const term = e.target.value.toLowerCase();");
+            sb.AppendLine("                // Expand all details when searching");
+            sb.AppendLine("                const details = sidebarList.querySelectorAll('details');");
+            sb.AppendLine("                if (term) details.forEach(d => d.open = true);");
+            sb.AppendLine("                ");
+            sb.AppendLine("                const items = sidebarList.querySelectorAll('li, summary');");
+            sb.AppendLine("                items.forEach(item => {");
+            sb.AppendLine("                    // Avoid filtering the container li of nested lists, just filter leaf nodes or summary text");
+            sb.AppendLine("                    if (item.tagName === 'LI' && item.querySelector('details')) return;");
+            sb.AppendLine("                    ");
+            sb.AppendLine("                    const text = item.textContent.toLowerCase();");
+            sb.AppendLine("                    if (text.includes(term)) {");
+            sb.AppendLine("                        item.classList.remove('hidden');");
+            sb.AppendLine("                        // Make sure parent is visible");
+            sb.AppendLine("                        let parent = item.parentElement;");
+            sb.AppendLine("                        while(parent && parent !== sidebarList) {");
+            sb.AppendLine("                            parent.classList.remove('hidden');");
+            sb.AppendLine("                            if (parent.tagName === 'DETAILS') parent.open = true;");
+            sb.AppendLine("                            parent = parent.parentElement;");
+            sb.AppendLine("                        }");
+            sb.AppendLine("                    } else {");
+            sb.AppendLine("                        item.classList.add('hidden');");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                });");
+            sb.AppendLine("            });");
+            sb.AppendLine("        }");
+
+            // TOC Highlighting
+            // Active Link Highlighting
+            sb.AppendLine("        document.addEventListener('DOMContentLoaded', () => {");
+            sb.AppendLine("            const currentPath = window.location.pathname;");
+            sb.AppendLine("            const sidebarLinks = document.querySelectorAll('#sidebar-list a');");
+            sb.AppendLine("            sidebarLinks.forEach(link => {");
+            sb.AppendLine("                const href = link.getAttribute('href');");
+            sb.AppendLine("                if (href === currentPath || (href !== '/' && currentPath.startsWith(href))) {");
+            sb.AppendLine("                    link.classList.add('bg-blue-50', 'dark:bg-blue-900', 'text-blue-700', 'dark:text-blue-300', 'font-medium');");
+            sb.AppendLine("                    link.classList.remove('text-gray-700', 'dark:text-gray-200');");
+            sb.AppendLine("                    // Open parent details");
+            sb.AppendLine("                    let parent = link.parentElement;");
+            sb.AppendLine("                    while (parent && parent.id !== 'sidebar-list') {");
+            sb.AppendLine("                        if (parent.tagName === 'DETAILS') {");
+            sb.AppendLine("                            parent.open = true;");
+            sb.AppendLine("                        }");
+            sb.AppendLine("                        parent = parent.parentElement;");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                }");
+            sb.AppendLine("            });");
+            sb.AppendLine("        });");
+
+            sb.AppendLine("        const tocLinks = document.querySelectorAll('.toc-link');");
+            sb.AppendLine("        const sections = [];");
+            sb.AppendLine("        tocLinks.forEach(link => {");
+            sb.AppendLine("            const id = link.getAttribute('data-id');");
+            sb.AppendLine("            const section = document.getElementById(id);");
+            sb.AppendLine("            if (section) sections.push(section);");
+            sb.AppendLine("        });");
+            sb.AppendLine("");
+            sb.AppendLine("        const visibleSections = new Set();");
+            sb.AppendLine("        const highlightLine = document.getElementById('toc-highlight');");
+            sb.AppendLine("        const tocList = document.getElementById('toc-list');");
+            sb.AppendLine("");
+            sb.AppendLine("        function updateTocHighlight() {");
+            sb.AppendLine("            if (!highlightLine || !tocList) return;");
+            sb.AppendLine("");
+            sb.AppendLine("            // Clear all highlights");
+            sb.AppendLine("            document.querySelectorAll('.toc-link').forEach(link => {");
+            sb.AppendLine("                link.classList.remove('text-blue-600', 'dark:text-blue-400', 'font-medium');");
+            sb.AppendLine("            });");
+            sb.AppendLine("");
+            sb.AppendLine("            let activeLinks = Array.from(document.querySelectorAll('.toc-link')).filter(link => ");
+            sb.AppendLine("                visibleSections.has(link.getAttribute('data-id'))");
+            sb.AppendLine("            );");
+            sb.AppendLine("");
+            sb.AppendLine("            if (activeLinks.length === 0) {");
+            sb.AppendLine("                // Fallback to last passed section");
+            sb.AppendLine("                const passedSections = sections.filter(section => {");
+            sb.AppendLine("                    const rect = section.getBoundingClientRect();");
+            sb.AppendLine("                    return rect.top < 100;");
+            sb.AppendLine("                });");
+            sb.AppendLine("                ");
+            sb.AppendLine("                if (passedSections.length > 0) {");
+            sb.AppendLine("                    const lastPassedSection = passedSections[passedSections.length - 1];");
+            sb.AppendLine("                    const id = lastPassedSection.id;");
+            sb.AppendLine("                    const link = document.querySelector(`.toc-link[data-id=\"${id}\"]`);");
+            sb.AppendLine("                    if (link) {");
+            sb.AppendLine("                        activeLinks = [link];");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                }");
+            sb.AppendLine("            }");
+            sb.AppendLine("");
+            sb.AppendLine("            if (activeLinks.length === 0) {");
+            sb.AppendLine("                highlightLine.style.opacity = '0';");
+            sb.AppendLine("                return;");
+            sb.AppendLine("            }");
+            sb.AppendLine("");
+            sb.AppendLine("            // Apply highlight");
+            sb.AppendLine("            activeLinks.forEach(link => {");
+            sb.AppendLine("                link.classList.add('text-blue-600', 'dark:text-blue-400', 'font-medium');");
+            sb.AppendLine("            });");
+            sb.AppendLine("");
+            sb.AppendLine("            const firstLink = activeLinks[0];");
+            sb.AppendLine("            const lastLink = activeLinks[activeLinks.length - 1];");
+            sb.AppendLine("            ");
+            sb.AppendLine("            const listRect = tocList.getBoundingClientRect();");
+            sb.AppendLine("            const firstRect = firstLink.getBoundingClientRect();");
+            sb.AppendLine("            const lastRect = lastLink.getBoundingClientRect();");
+            sb.AppendLine("");
+            sb.AppendLine("            const top = firstRect.top - listRect.top;");
+            sb.AppendLine("            const height = lastRect.bottom - firstRect.top;");
+            sb.AppendLine("");
+            sb.AppendLine("            highlightLine.style.top = `${top}px`;");
+            sb.AppendLine("            highlightLine.style.height = `${height}px`;");
+            sb.AppendLine("            highlightLine.style.opacity = '1';");
+            sb.AppendLine("        }");
+            sb.AppendLine("");
+            sb.AppendLine("        const observer = new IntersectionObserver((entries) => {");
+            sb.AppendLine("            entries.forEach(entry => {");
+            sb.AppendLine("                const id = entry.target.id;");
+            sb.AppendLine("                if (entry.isIntersecting) {");
+            sb.AppendLine("                    visibleSections.add(id);");
+            sb.AppendLine("                } else {");
+            sb.AppendLine("                    visibleSections.delete(id);");
+            sb.AppendLine("                }");
+            sb.AppendLine("            });");
+            sb.AppendLine("            requestAnimationFrame(updateTocHighlight);");
+            sb.AppendLine("        }, {");
+            sb.AppendLine("            root: document.getElementById('main-scroll'),");
+            sb.AppendLine("            rootMargin: '0px 0px 0px 0px',");
+            sb.AppendLine("            threshold: 0");
+            sb.AppendLine("        });");
+            sb.AppendLine("        sections.forEach(section => observer.observe(section));");
+
+            // Theme Switch
+            sb.AppendLine("        const themeToggleBtn = document.getElementById('theme-toggle');");
+            sb.AppendLine("        const highlightLink = document.getElementById('highlight-theme');");
+            sb.AppendLine($"        const darkHref = '/assets/highlight/{darkTheme}.min.css';");
+            sb.AppendLine($"        const lightHref = '/assets/highlight/{lightTheme}.min.css';");
+            sb.AppendLine("");
+            sb.AppendLine("        function setTheme(isDark) {");
+            sb.AppendLine("            if (isDark) {");
+            sb.AppendLine("                document.documentElement.classList.add('dark');");
+            sb.AppendLine("                localStorage.setItem('theme', 'dark');");
+            sb.AppendLine("                highlightLink.href = darkHref;");
+            sb.AppendLine("            } else {");
+            sb.AppendLine("                document.documentElement.classList.remove('dark');");
+            sb.AppendLine("                localStorage.setItem('theme', 'light');");
+            sb.AppendLine("                highlightLink.href = lightHref;");
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine("");
+            sb.AppendLine("        themeToggleBtn.addEventListener('click', () => {");
+            sb.AppendLine("            setTheme(!document.documentElement.classList.contains('dark'));");
+            sb.AppendLine("        });");
+            sb.AppendLine("");
+            sb.AppendLine("        if (document.documentElement.classList.contains('dark')) {");
+            sb.AppendLine("            highlightLink.href = darkHref;");
+            sb.AppendLine("        } else {");
+            sb.AppendLine("            highlightLink.href = lightHref;");
+            sb.AppendLine("        }");
+
+            // Tab Script
+            sb.AppendLine("        function openTab(evt, group, tabId) {");
+            sb.AppendLine("            var contents = document.querySelectorAll(`[id^='tab-${group}-']`);");
+            sb.AppendLine("            contents.forEach(c => c.classList.add('hidden'));");
+            sb.AppendLine("            var buttons = evt.currentTarget.parentElement.children;");
+            sb.AppendLine("            for (var i = 0; i < buttons.length; i++) {");
+            sb.AppendLine("                buttons[i].classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'font-medium');");
+            sb.AppendLine("                buttons[i].classList.add('border-transparent', 'hover:text-gray-700', 'text-gray-500');");
+            sb.AppendLine("            }");
+            sb.AppendLine("            document.getElementById(tabId).classList.remove('hidden');");
+            sb.AppendLine("            evt.currentTarget.classList.remove('border-transparent', 'hover:text-gray-700', 'text-gray-500');");
+            sb.AppendLine("            evt.currentTarget.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'font-medium');");
+            sb.AppendLine("        }");
+
+            // Copy Code Script
+            sb.AppendLine("        document.addEventListener('click', function(e) {");
+            sb.AppendLine("            const btn = e.target.closest('.copy-btn');");
+            sb.AppendLine("            if (!btn) return;");
+            sb.AppendLine("            const group = btn.closest('.group');");
+            sb.AppendLine("            const codeEl = group.querySelector('code');");
+            sb.AppendLine("            let text = \"\";");
+            sb.AppendLine("            if (codeEl.querySelector('.hljs-ln')) {");
+            sb.AppendLine("                codeEl.querySelectorAll('.hljs-ln-code').forEach(td => text += td.innerText + \"\\n\");");
+            sb.AppendLine("            } else {");
+            sb.AppendLine("                text = codeEl.innerText;");
+            sb.AppendLine("            }");
+            sb.AppendLine("            navigator.clipboard.writeText(text).then(() => {");
+            sb.AppendLine("                const icon = btn.querySelector('i');");
+            sb.AppendLine("                const originalClass = icon.className;");
+            sb.AppendLine("                icon.className = 'fi fi-rr-check';");
+            sb.AppendLine("                setTimeout(() => icon.className = originalClass, 2000);");
+            sb.AppendLine("            });");
+            sb.AppendLine("        });");
+
+            // Init Highlight.js
+            sb.AppendLine("        document.addEventListener('DOMContentLoaded', (event) => {");
+            sb.AppendLine("            hljs.highlightAll();");
+            sb.AppendLine("            hljs.initLineNumbersOnLoad({ singleLine: true });");
+            sb.AppendLine("");
+            sb.AppendLine("            // Anchor Links");
+            sb.AppendLine("            document.querySelectorAll('h2, h3, h4, h5, h6').forEach(heading => {");
+            sb.AppendLine("                if (heading.id) {");
+            sb.AppendLine("                    heading.classList.add('group', 'relative');");
+            sb.AppendLine("                    const link = document.createElement('a');");
+            sb.AppendLine("                    link.href = '#' + heading.id;");
+            sb.AppendLine("                    link.className = 'absolute -left-6 top-0 bottom-0 flex items-center justify-center text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 no-underline';");
+            sb.AppendLine("                    link.innerHTML = '<i class=\"fi fi-rr-hashtag\"></i>';");
+            sb.AppendLine("                    link.setAttribute('aria-label', 'Anchor');");
+            sb.AppendLine("                    heading.prepend(link);");
+            sb.AppendLine("                }");
+            sb.AppendLine("            });");
+            sb.AppendLine("        });");
+
+            // Line Highlighting
+            sb.AppendLine("        window.addEventListener('load', function() {");
+            sb.AppendLine("            document.querySelectorAll('pre code[data-highlight]').forEach(block => {");
+            sb.AppendLine("                const highlightRange = block.getAttribute('data-highlight');");
+            sb.AppendLine("                if (!highlightRange) return;");
+            sb.AppendLine("                const linesToHighlight = new Set();");
+            sb.AppendLine("                highlightRange.split(',').forEach(part => {");
+            sb.AppendLine("                    if (part.includes('-')) {");
+            sb.AppendLine("                        const [start, end] = part.split('-').map(Number);");
+            sb.AppendLine("                        for (let i = start; i <= end; i++) linesToHighlight.add(i);");
+            sb.AppendLine("                    } else {");
+            sb.AppendLine("                        linesToHighlight.add(Number(part));");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                });");
+            sb.AppendLine("                const table = block.querySelector('.hljs-ln');");
+            sb.AppendLine("                if (table) {");
+            sb.AppendLine("                    const rows = table.querySelectorAll('tr');");
+            sb.AppendLine("                    rows.forEach((row, index) => {");
+            sb.AppendLine("                        if (linesToHighlight.has(index + 1)) {");
+            sb.AppendLine("                            row.classList.add('bg-yellow-100', 'dark:bg-yellow-900', 'bg-opacity-20', 'dark:bg-opacity-20');");
+            sb.AppendLine("                            row.querySelectorAll('td').forEach(td => td.style.backgroundColor = 'inherit');");
+            sb.AppendLine("                        }");
+            sb.AppendLine("                    });");
+            sb.AppendLine("                }");
+            sb.AppendLine("            });");
+            sb.AppendLine("        });");
+            sb.AppendLine("    </script>");
+
+            sb.AppendLine("</body>");
+            sb.AppendLine("</html>");
+
+            return sb.ToString();
+        }
+
+        private void RenderSidebarItems(StringBuilder sb, List<LinkConfig> links, int level)
+        {
+            if (links == null || links.Count == 0) return;
+
+            foreach (var link in links)
+            {
+                var iconHtml = "";
+                if (!string.IsNullOrEmpty(link.Icon))
+                {
+                    iconHtml = $"<i class=\"fi fi-rr-{link.Icon}\"></i>";
+                }
+                else
+                {
+                     // Add invisible icon spacer to align with siblings
+                     iconHtml = "<i class=\"fi fi-rr-circle opacity-0\"></i>";
+                }
+
+                if (link.Items != null && link.Items.Count > 0)
+                {
+                    if (level == 0)
+                    {
+                        // Render as a flat header
+                        sb.AppendLine($"                    <li class=\"mt-6 mb-2 first:mt-0 px-2\">");
+                        sb.AppendLine($"                        <span class=\"text-xs font-bold text-gray-500 uppercase tracking-wider\">{link.Text}</span>");
+                        sb.AppendLine($"                    </li>");
+
+                        RenderSidebarItems(sb, link.Items, level + 1);
+                    }
+                    else
+                    {
+                        // Render as a collapsible group
+                        sb.AppendLine($"                    <li class=\"space-y-1\">");
+                        sb.AppendLine($"                        <details class=\"group\" open>");
+                        sb.AppendLine($"                            <summary class=\"flex items-center justify-between py-1 px-2 text-[13px] whitespace-nowrap font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none\">");
+                        sb.AppendLine($"                                <span class=\"flex items-center gap-2\">{iconHtml} {link.Text}</span>");
+                        sb.AppendLine($"                                <i class=\"fi fi-rr-angle-small-down transition-transform group-open:rotate-180\"></i>");
+                        sb.AppendLine($"                            </summary>");
+                        sb.AppendLine($"                            <ul class=\"pl-0 space-y-1 mt-1 border-l border-gray-200 dark:border-gray-700 ml-3\">");
+
+                        RenderSidebarItems(sb, link.Items, level + 1);
+
+                        sb.AppendLine($"                            </ul>");
+                        sb.AppendLine($"                        </details>");
+                        sb.AppendLine($"                    </li>");
+                    }
+                }
+                else
+                {
+                    // Render as a leaf link
+                    var href = link.Link ?? "#";
+                    if (href.EndsWith(".md")) href = href.Substring(0, href.Length - 3);
+                    if (href.EndsWith(".html")) href = href.Substring(0, href.Length - 5);
+
+                    // Ensure absolute path for internal links if not already absolute/external
+                    if (!href.StartsWith("/") && !href.Contains("://") && href != "#")
+                    {
+                        href = "/" + href;
+                    }
+
+                    sb.AppendLine($"                    <li><a href=\"{href}\" class=\"block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300\">{iconHtml} {link.Text}</a></li>");
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,18 @@
+input: ./
+output: .neko
+url: localhost
+
+branding:
+  title: Neko
+  repository: https://github.com/theolivenbaum/taildocs
+
+links:
+  - text: Home
+    link: /
+    icon: home
+  - text: Guides
+    link: guides/getting-started
+    icon: book
+  - text: GitHub
+    link: https://github.com/theolivenbaum/taildocs
+    icon: github
