@@ -44,6 +44,9 @@ namespace Neko.Builder
 
         [YamlMember(Alias = "description")]
         public string Description { get; set; }
+
+        [YamlMember(Alias = "password")]
+        public string Password { get; set; }
     }
 
     public class MarkdownParser
