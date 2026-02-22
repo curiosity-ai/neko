@@ -15,8 +15,6 @@ links:
         link: guides/getting-started
       - text: Installation
         link: guides/installation
-      - text: Key Setup
-        link: guides/key-setup
       - text: CLI
         link: guides/cli
       - text: Formatting
@@ -25,8 +23,6 @@ links:
         link: guides/themes
       - text: GitHub Actions
         link: guides/github-actions
-      - text: Troubleshooting
-        link: guides/troubleshooting
   - text: Configuration
     items:
       - text: Project
@@ -35,8 +31,6 @@ links:
         link: configuration/page
       - text: Folder
         link: configuration/folder
-      - text: Environment Variables
-        link: configuration/envvars
       - text: Reserved Words
         link: configuration/reserved_words
       - text: Theme Variables

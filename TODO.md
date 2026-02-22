@@ -16,7 +16,7 @@
 - [x] Search index generation.
 
 ### Missing Components to Implement
-Please refer to the following list for future implementation. Suggested syntax follows standard Markdown or Retype-compatible conventions.
+Please refer to the following list for future implementation. Suggested syntax follows standard Markdown or Standard conventions.
 
 - [x] **Backlinks**: Automatic generation of backlinks at the bottom of pages.
 - [x] **Button**: `[!button text="Click Me" link="/url" variant="primary"]`

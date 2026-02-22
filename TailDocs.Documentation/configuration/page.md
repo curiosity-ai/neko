@@ -169,8 +169,6 @@ author:
 
 ## backlinks
 
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
-
 The `backlinks` configuration controls the display of inbound links from other pages in your project on this specific page. Backlinks help users discover related content by showing which pages reference the current page.
 
 ### enabled
@@ -229,8 +227,6 @@ See also [Project](project.md#backlinks) configuration of [`backlinks`](project.
 ---
 
 ## breadcrumb
-
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 === breadcrumb : `boolean`
 
@@ -490,8 +486,6 @@ Navigation configuration options to control the behavior of the left sidebar nav
 
 ### badge{#nav-badge}
 
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
-
 === badge : `string` or `object`
 
 Add a [[badge]] to the navigation item for this page in the left sidebar. The badge can be a simple text string or a detailed configuration object with styling options.
@@ -545,8 +539,6 @@ Property | Type | Description
 
 ### mode{#nav-mode}
 
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
-
 === mode : `string`
 Controls how the sidebar navigation is created and functions. The default functionality is to create the navigation as an expandable Tree structure. The default value for `mode` is `default`.
 
@@ -561,7 +553,7 @@ The following sample demonstrates how to configure the "stacked" navigation stru
 
 ```yml
 nav:
-  mode: stack # Pro key required
+  mode: stack
 ```
 
 When configured on a page within a top-level folder, this setting will only affect that specific folder's navigation structure.
@@ -573,8 +565,6 @@ To convert the entire navigation component to a `stack` type layout, please see 
 ---
 
 ## nextprev
-
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
 
 The `nextprev` configuration controls the display of "Next" and "Previous" navigation buttons at the bottom of each page and whether a page is included in the navigation sequence.
 
@@ -595,7 +585,7 @@ The default value is `show`.
 ```yml
 ---
 nextprev:
-  mode: hide # Pro key required
+  mode: hide
 ---
 ```
 
@@ -932,8 +922,6 @@ Some content here.
 
 ## toc
 
-This setting is TailDocs [!badge PRO](/pro/pro.md) only.
-
 The `toc` config contains page options that apply to the right sidebar Table of Contents.
 
 ### depth
@@ -1041,8 +1029,6 @@ taildocs start --password <your-password>
 taildocs build --password <your-password>
 ```
 
-The project password can also be set as an Environment variable by using [`RETYPE_PASSWORD`](../configuration/envvars.md/#taildocs_password).
-
 An entire folder can be set to `protected` by adding an `index.yml` file with the following configuration to the root of the folder. See the [folder](folder.md) docs for additional examples.
 
 ```yml
@@ -1072,8 +1058,6 @@ Then call either of the following commands to set the password for the project:
 taildocs start --password <your-password>
 taildocs build --password <your-password>
 ```
-
-The project password can also be set as an Environment variable by using [`RETYPE_PASSWORD`](../configuration/envvars.md/#taildocs_password).
 
 !!!
 For `hidden` and `private` pages, TailDocs does not provide a link to the page, but it still uses the same naming convention as all other pages. For instance, if your site is hosted at `https://example.com` and the page was called `my-hidden-page.md`, the URL would be `https://example.com/my-hidden-page/`.

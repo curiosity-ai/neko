@@ -8,8 +8,6 @@ nav:
 
 The Backlinks component displays a list of pages that link to the current page. By default, backlinks are automatically included at the end of each page, but you can manually place them anywhere in your content using the `[!backlinks]` markdown component syntax.
 
-This component is TailDocs [!badge PRO](/pro/pro.md) only.
-
 ```md
 [!backlinks]
 ```
@@ -96,6 +94,5 @@ The backlinks component will only render when:
 
 1. The backlinks feature is enabled (project or page level)
 2. Other pages in your project link to the current page
-3. A valid TailDocs [Pro](/pro/pro.md) license is active
 
 If there are no pages linking to the current page, the backlinks component will not render, even when the `[!backlinks]` component is manually placed.
