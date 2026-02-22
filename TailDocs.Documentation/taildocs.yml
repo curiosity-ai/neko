@@ -4,6 +4,7 @@ url: localhost
 
 branding:
   title: TailDocs
+  repository: https://github.com/theolivenbaum/taildocs
 
 links:
   - text: Home

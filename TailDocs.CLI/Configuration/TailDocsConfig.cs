@@ -41,6 +41,9 @@ namespace TailDocs.CLI.Configuration
 
         [YamlMember(Alias = "logoDark")]
         public string LogoDark { get; set; }
+
+        [YamlMember(Alias = "repository")]
+        public string Repository { get; set; }
     }
 
     public class LinkConfig
