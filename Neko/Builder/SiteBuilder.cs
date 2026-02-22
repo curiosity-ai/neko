@@ -352,6 +352,49 @@ namespace Neko.Builder
                     }
                 }
             }
+
+            // Copy User Assets
+            try
+            {
+                var directories = Directory.GetDirectories(_inputDirectory, "assets", SearchOption.AllDirectories);
+                foreach (var dir in directories)
+                {
+                    // Avoid copying assets from the output directory itself if it's nested
+                    // Also avoid .git and other common hidden folders if possible, but "assets" is specific.
+                    // Checking if the assets folder is within the output directory to avoid infinite loops or conflicts
+                    if (Path.GetFullPath(dir).StartsWith(Path.GetFullPath(outputDir), StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    // Calculate relative path
+                    var relativePath = Path.GetRelativePath(_inputDirectory, dir);
+                    var targetDir = Path.Combine(outputDir, relativePath);
+
+                    if (!Directory.Exists(targetDir))
+                    {
+                        Directory.CreateDirectory(targetDir);
+                    }
+
+                    foreach (var file in Directory.GetFiles(dir, "*", SearchOption.AllDirectories))
+                    {
+                        var fileRelativePath = Path.GetRelativePath(dir, file);
+                        var targetFile = Path.Combine(targetDir, fileRelativePath);
+
+                        var targetFileDir = Path.GetDirectoryName(targetFile);
+                        if (!Directory.Exists(targetFileDir))
+                        {
+                            Directory.CreateDirectory(targetFileDir!);
+                        }
+
+                        File.Copy(file, targetFile, true);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Error copying user assets: {ex.Message}");
+            }
         }
     }
 }
