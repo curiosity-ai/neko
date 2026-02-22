@@ -34,7 +34,7 @@ Please refer to the following list for future implementation. Suggested syntax f
 - [x] **List**: Enhanced lists.
 - [x] **Math Formulas**: KaTeX integration. `$$ ... $$`
 - [x] **Mermaid**: Mermaid.js integration. ```mermaid ... ```
-- [x] **UIcons**: Flaticon integration. (Added `TailDocs.Tools.UIcons` helper tool).
+- [x] **UIcons**: Flaticon integration. (Added `Neko.Tools.UIcons` helper tool).
 - [x] **Panel**: `:::panel ... :::`
 - [x] **Reference Link**: `[!ref text="Link" link="url"]`
 - [x] Tab: `+++ Title ... +++`
