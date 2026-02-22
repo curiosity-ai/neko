@@ -15,6 +15,7 @@ namespace TailDocs.CLI.Extensions
         public TabBlock(BlockParser parser) : base(parser)
         {
         }
+
     }
 
     public class TabGroupBlock : ContainerBlock
@@ -137,14 +138,21 @@ namespace TailDocs.CLI.Extensions
                 if (slice.Match("+++"))
                 {
                     // Let TryOpen handle it
-                    return BlockState.None;
+                    return BlockState.Continue;
                 }
 
                 // If line is blank, continue (ignore).
                 if (processor.IsBlankLine) return BlockState.Continue;
 
-                // If line is content (not +++), and we are in TabGroup (no active Tab), then syntax is invalid or group ended.
-                // We should close the group.
+                // If we have a tab, we accept content into the group (to be associated with the tab later)
+                if (group.LastChild is TabBlock || (group.LastChild != null && group.Count > 0)) // Check if any children exist (assuming first is TabBlock)
+                {
+                     // Actually we just need to know if we started a tab.
+                     // LastChild might be Paragraph now.
+                     // But we want to allow content.
+                     return BlockState.Continue;
+                }
+
                 return BlockState.None;
             }
 
@@ -158,38 +166,77 @@ namespace TailDocs.CLI.Extensions
         {
             var groupId = System.Guid.NewGuid().ToString("N");
 
+            // Collect tabs and their contents
+            var tabs = new List<(TabBlock Tab, List<Block> Content)>();
+            TabBlock currentTab = null;
+            List<Block> currentContent = null;
+
+            void CollectTabs(TabGroupBlock group)
+            {
+                foreach (var child in group)
+                {
+                    if (child is TabBlock tab)
+                    {
+                        currentTab = tab;
+                        currentContent = new List<Block>();
+                        tabs.Add((currentTab, currentContent));
+                        // If TabBlock managed to capture children before closing, treat them as content?
+                        // Currently we assume it closed early.
+                        if (tab.Count > 0)
+                        {
+                            foreach (var tabChild in tab)
+                            {
+                                currentContent.Add(tabChild);
+                            }
+                        }
+                    }
+                    else if (child is TabGroupBlock nestedGroup)
+                    {
+                        CollectTabs(nestedGroup);
+                    }
+                    else if (currentTab != null)
+                    {
+                        currentContent.Add(child);
+                    }
+                }
+            }
+
+            CollectTabs(obj);
+
             renderer.Write("<div class=\"my-4 border rounded-md dark:border-gray-700\">");
 
             // Tab Headers
             renderer.Write("<div class=\"flex border-b bg-gray-50 dark:bg-gray-800 dark:border-gray-700 overflow-x-auto\">");
 
             int index = 0;
-            foreach (var child in obj)
+            foreach (var item in tabs)
             {
-                if (child is TabBlock tab)
-                {
-                    var activeClass = index == 0 ? "border-blue-500 text-blue-600 dark:text-blue-400 font-medium" : "border-transparent hover:text-gray-700 dark:hover:text-gray-300 text-gray-500 dark:text-gray-400";
-                    renderer.Write($"<button class=\"px-4 py-2 border-b-2 focus:outline-none whitespace-nowrap {activeClass}\" onclick=\"openTab(event, '{groupId}', 'tab-{groupId}-{index}')\">");
-                    renderer.Write(tab.Title);
-                    renderer.Write("</button>");
-                    index++;
-                }
+                var tab = item.Tab;
+                var activeClass = index == 0 ? "border-blue-500 text-blue-600 dark:text-blue-400 font-medium" : "border-transparent hover:text-gray-700 dark:hover:text-gray-300 text-gray-500 dark:text-gray-400";
+                renderer.Write($"<button class=\"px-4 py-2 border-b-2 focus:outline-none whitespace-nowrap {activeClass}\" onclick=\"openTab(event, '{groupId}', 'tab-{groupId}-{index}')\">");
+                renderer.Write(tab.Title);
+                renderer.Write("</button>");
+                index++;
             }
             renderer.Write("</div>");
 
             // Tab Contents
             renderer.Write("<div class=\"p-4\">");
             index = 0;
-            foreach (var child in obj)
+            foreach (var item in tabs)
             {
-                if (child is TabBlock tab)
+                var tab = item.Tab;
+                var hiddenClass = index == 0 ? "" : "hidden";
+                renderer.Write($"<div id=\"tab-{groupId}-{index}\" class=\"tab-content {hiddenClass}\">");
+
+                // Render associated content blocks
+                foreach (var block in item.Content)
                 {
-                    var hiddenClass = index == 0 ? "" : "hidden";
-                    renderer.Write($"<div id=\"tab-{groupId}-{index}\" class=\"tab-content {hiddenClass}\">");
-                    renderer.WriteChildren(tab);
-                    renderer.Write("</div>");
-                    index++;
+                    renderer.Render(block);
                 }
+
+                renderer.Write("</div>");
+                index++;
             }
             renderer.Write("</div>");
             renderer.Write("</div>");
