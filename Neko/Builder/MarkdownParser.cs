@@ -64,7 +64,6 @@ namespace Neko.Builder
                 .Use<IconExtension>()
                 .Use<BadgeExtension>()
                 .Use<AlertExtension>()
-                // .UseAlerts() // Not available/needed as UseAdvancedExtensions covers it
                 .Use<GitHubAlertExtension>()
                 .Use<TabExtension>()
                 .Use<ColumnExtension>()
