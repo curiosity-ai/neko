@@ -154,6 +154,25 @@ namespace Neko.Builder
             sb.AppendLine("        ");
             sb.AppendLine("        /* Fix Table layout for code blocks with line numbers */");
             sb.AppendLine("        .hljs-ln { width: 100%; border-collapse: collapse; }");
+            sb.AppendLine("");
+            sb.AppendLine("        /* Custom Scrollbars */");
+            sb.AppendLine("        /* Sidebar */");
+            sb.AppendLine("        #sidebar::-webkit-scrollbar { width: 6px; height: 6px; background-color: transparent; }");
+            sb.AppendLine("        #sidebar::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 3px; }");
+            sb.AppendLine("        #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); }");
+            sb.AppendLine("        .dark #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }");
+            sb.AppendLine("");
+            sb.AppendLine("        /* TOC */");
+            sb.AppendLine("        #toc-sidebar::-webkit-scrollbar { display: none; }");
+            sb.AppendLine("        #toc-sidebar { -ms-overflow-style: none; scrollbar-width: none; }");
+            sb.AppendLine("");
+            sb.AppendLine("        /* Main Content */");
+            sb.AppendLine("        #main-scroll::-webkit-scrollbar { width: 8px; height: 8px; background-color: transparent; }");
+            sb.AppendLine("        #main-scroll::-webkit-scrollbar-track { background-color: transparent; }");
+            sb.AppendLine("        #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(209, 213, 219, 0.5); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }");
+            sb.AppendLine("        .dark #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }");
+            sb.AppendLine("        #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(156, 163, 175, 0.8); }");
+            sb.AppendLine("        .dark #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(107, 114, 128, 0.8); }");
             sb.AppendLine("    </style>");
 
             // Dark Mode Init
@@ -411,7 +430,7 @@ namespace Neko.Builder
             // TOC
             if (document.Toc != null && System.Linq.Enumerable.Any(document.Toc))
             {
-                sb.AppendLine("            <aside class=\"w-64 hidden xl:block shrink-0 overflow-y-auto border-l border-gray-200 dark:border-gray-800 p-6\">");
+                sb.AppendLine("            <aside id=\"toc-sidebar\" class=\"w-64 hidden xl:block shrink-0 overflow-y-auto border-l border-gray-200 dark:border-gray-800 p-6\">");
                 sb.AppendLine("                <div class=\"sticky top-0\">");
                 sb.AppendLine("                    <h5 class=\"text-xs font-semibold mb-4 text-gray-900 dark:text-gray-100 uppercase tracking-wider\">On this page</h5>");
                 sb.AppendLine("                    <ul class=\"space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800 relative\" id=\"toc-list\">");
@@ -604,6 +623,17 @@ namespace Neko.Builder
             sb.AppendLine("            activeLinks.forEach(link => {");
             sb.AppendLine("                link.classList.add('text-blue-600', 'dark:text-blue-400', 'font-medium');");
             sb.AppendLine("            });");
+            sb.AppendLine("");
+            sb.AppendLine("            // Scroll TOC to active link");
+            sb.AppendLine("            const activeLink = activeLinks[0];");
+            sb.AppendLine("            const tocSidebar = document.getElementById('toc-sidebar');");
+            sb.AppendLine("            if (activeLink && tocSidebar) {");
+            sb.AppendLine("                const linkRect = activeLink.getBoundingClientRect();");
+            sb.AppendLine("                const sidebarRect = tocSidebar.getBoundingClientRect();");
+            sb.AppendLine("                if (linkRect.top < sidebarRect.top || linkRect.bottom > sidebarRect.bottom) {");
+            sb.AppendLine("                     activeLink.scrollIntoView({ block: 'center', behavior: 'smooth' });");
+            sb.AppendLine("                }");
+            sb.AppendLine("            }");
             sb.AppendLine("");
             sb.AppendLine("            const firstLink = activeLinks[0];");
             sb.AppendLine("            const lastLink = activeLinks[activeLinks.length - 1];");
