@@ -1,5 +1,6 @@
 ---
 title: File Component
+icon: file
 ---
 
 # File

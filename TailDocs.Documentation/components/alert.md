@@ -1,5 +1,6 @@
 ---
 title: Alert Component
+icon: exclamation
 ---
 
 # Alert

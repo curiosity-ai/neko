@@ -32,7 +32,12 @@ namespace TailDocs.Tests
                 FrontMatter = new FrontMatter { Title = "Page Title" }
             };
 
-            var html = _generator.Generate(doc);
+            var sidebar = new System.Collections.Generic.List<LinkConfig>
+            {
+                new LinkConfig { Text = "Home", Link = "/" }
+            };
+
+            var html = _generator.Generate(doc, sidebarLinks: sidebar);
 
             Assert.That(html, Contains.Substring("<title>Page Title - Test Docs</title>"));
             // Updated assertion for branding in header

@@ -1,6 +1,7 @@
 ---
 layout: central
 visibility: hidden
+icon: image
 ---
 # Image alignment demo
 

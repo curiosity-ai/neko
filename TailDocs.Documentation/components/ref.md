@@ -1,5 +1,6 @@
 ---
 title: Reference Link Component
+icon: link-alt
 ---
 
 # Reference Link

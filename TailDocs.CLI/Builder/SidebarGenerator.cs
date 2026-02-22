@@ -75,7 +75,21 @@ namespace TailDocs.CLI.Builder
                 var markdown = File.ReadAllText(file);
                 var doc = _parser.Parse(markdown);
 
-                var title = !string.IsNullOrEmpty(doc.FrontMatter.Title) ? doc.FrontMatter.Title : Path.GetFileNameWithoutExtension(file);
+                string title = doc.FrontMatter.Title;
+
+                if (string.IsNullOrEmpty(title))
+                {
+                    var h1 = doc.Toc.FirstOrDefault(x => x.Level == 1);
+                    if (h1 != null)
+                    {
+                        title = h1.Title;
+                    }
+                    else
+                    {
+                        title = ToTitleCase(Path.GetFileNameWithoutExtension(file));
+                    }
+                }
+
                 var order = doc.FrontMatter.Order ?? int.MaxValue;
 
                 // Special handling for index.md
@@ -87,9 +101,8 @@ namespace TailDocs.CLI.Builder
                     }
                     else
                     {
-                         // If title is not specified in frontmatter, it defaults to "index" via GetFileNameWithoutExtension usually,
-                         // but here we used frontmatter title.
-                         if (string.IsNullOrEmpty(doc.FrontMatter.Title)) title = "Overview";
+                         // If we fell back to filename "Index", change to "Overview"
+                         if (title == "Index") title = "Overview";
                     }
                 }
 
