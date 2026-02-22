@@ -28,3 +28,13 @@ links:
   - text: GitHub
     link: https://github.com/theolivenbaum/taildocs
     icon: github
+
+banner:
+  text: "Welcome to Neko! Check out our new banner feature."
+  link: /components/banner
+  linkText: "Learn more"
+  visible: true
+  background: bg-indigo-600
+  color: text-white
+  id: neko-banner-v1
+  dismissible: true
