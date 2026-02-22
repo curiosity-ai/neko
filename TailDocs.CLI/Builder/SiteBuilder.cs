@@ -81,13 +81,6 @@ namespace TailDocs.CLI.Builder
             // 4. Process Files
             var parsedDocs = new List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)>();
 
-            // Generate Sidebar
-            var sidebarGenerator = new SidebarGenerator(_inputDirectory);
-            var sidebarLinks = sidebarGenerator.Generate();
-
-            // Build Navigation Map
-            var navigationMap = BuildNavigationMap(sidebarLinks);
-
             // Pass 1: Parse all files
             foreach (var file in files)
             {
@@ -97,6 +90,22 @@ namespace TailDocs.CLI.Builder
                 var relativePath = Path.GetRelativePath(_inputDirectory, file);
                 parsedDocs.Add((file, relativePath, doc, markdown));
             }
+
+            // Auto-generate Navigation if empty
+            if (_config.Links == null || _config.Links.Count == 0)
+            {
+                Console.WriteLine("Generating navigation from file system...");
+                var navGenerator = new NavigationGenerator(_inputDirectory, parsedDocs.Select(p => (p.FilePath, p.RelativePath, p.Doc)).ToList());
+                _config.Links = navGenerator.Generate();
+            }
+            else
+            {
+                // Enrich existing links with icons from frontmatter
+                EnrichLinks(_config.Links, parsedDocs);
+            }
+
+            // Build Navigation Map
+            var navigationMap = BuildNavigationMap(_config.Links);
 
             // Pass 2: Build Backlinks Map
             var backlinkMap = new Dictionary<string, List<(string Url, string Title)>>(StringComparer.OrdinalIgnoreCase);
@@ -226,6 +235,43 @@ namespace TailDocs.CLI.Builder
             var map = new List<(string Url, string Title, List<NavigationItem> Breadcrumbs)>();
             BuildNavigationMapRecursive(links, map, new List<NavigationItem>());
             return map;
+        }
+
+        private void EnrichLinks(List<LinkConfig> links, List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)> docs)
+        {
+            if (links == null) return;
+
+            foreach (var link in links)
+            {
+                if (!string.IsNullOrEmpty(link.Link))
+                {
+                    // Find doc
+                    var relativeUrl = link.Link;
+                    if (relativeUrl.StartsWith("/")) relativeUrl = relativeUrl.Substring(1);
+                    if (relativeUrl.EndsWith(".html")) relativeUrl = relativeUrl.Substring(0, relativeUrl.Length - 5);
+                    if (relativeUrl.EndsWith(".md")) relativeUrl = relativeUrl.Substring(0, relativeUrl.Length - 3);
+
+                    var docItem = docs.FirstOrDefault(d =>
+                    {
+                        var docUrl = d.RelativePath.Replace("\\", "/");
+                        if (docUrl.EndsWith(".md")) docUrl = docUrl.Substring(0, docUrl.Length - 3);
+                        return docUrl.Equals(relativeUrl, StringComparison.OrdinalIgnoreCase);
+                    });
+
+                    if (docItem.Doc != null)
+                    {
+                        if (string.IsNullOrEmpty(link.Icon) && !string.IsNullOrEmpty(docItem.Doc.FrontMatter.Icon))
+                        {
+                            link.Icon = docItem.Doc.FrontMatter.Icon;
+                        }
+                    }
+                }
+
+                if (link.Items != null && link.Items.Count > 0)
+                {
+                    EnrichLinks(link.Items, docs);
+                }
+            }
         }
 
         private void BuildNavigationMapRecursive(List<LinkConfig> links, List<(string Url, string Title, List<NavigationItem> Breadcrumbs)> map, List<NavigationItem> breadcrumbs)
