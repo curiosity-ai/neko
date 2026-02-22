@@ -3,9 +3,16 @@ using Markdig.Renderers;
 using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 
 namespace Neko.Extensions
 {
+    public class ForceGraphNode { public string id { get; set; } }
+    public class ForceGraphLink { public string source { get; set; } public string target { get; set; } public string name { get; set; } }
+    public class ForceGraphData { public List<ForceGraphNode> nodes { get; set; } = new List<ForceGraphNode>(); public List<ForceGraphLink> links { get; set; } = new List<ForceGraphLink>(); }
+
     public class CodeBlockRenderer : Markdig.Renderers.Html.CodeBlockRenderer
     {
         protected override void Write(HtmlRenderer renderer, CodeBlock obj)
@@ -34,6 +41,61 @@ namespace Neko.Extensions
                     }
                 }
                 renderer.Write("</div>");
+                return;
+            }
+
+            // Handle ForceGraph
+            if ((fencedBlock.Info ?? "").ToLower() == "force-graph")
+            {
+                var graphData = new ForceGraphData();
+                var leafBlock = obj as Markdig.Syntax.LeafBlock;
+                if (leafBlock != null)
+                {
+                    var slices = leafBlock.Lines;
+                    for (int i = 0; i < slices.Count; i++)
+                    {
+                        var line = slices.Lines[i].Slice.ToString();
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        // Parse "Source --> Target" or "Source -- Label --> Target"
+                        var labelMatch = Regex.Match(line, @"(.+?)\s+--\s+(.+?)\s+-->\s+(.+)");
+                        if (labelMatch.Success)
+                        {
+                            var source = labelMatch.Groups[1].Value.Trim();
+                            var label = labelMatch.Groups[2].Value.Trim();
+                            var target = labelMatch.Groups[3].Value.Trim();
+
+                            if (!graphData.nodes.Any(n => n.id == source)) graphData.nodes.Add(new ForceGraphNode { id = source });
+                            if (!graphData.nodes.Any(n => n.id == target)) graphData.nodes.Add(new ForceGraphNode { id = target });
+                            graphData.links.Add(new ForceGraphLink { source = source, target = target, name = label });
+                        }
+                        else
+                        {
+                            var simpleMatch = Regex.Match(line, @"(.+?)\s+-->\s+(.+)");
+                            if (simpleMatch.Success)
+                            {
+                                var source = simpleMatch.Groups[1].Value.Trim();
+                                var target = simpleMatch.Groups[2].Value.Trim();
+
+                                if (!graphData.nodes.Any(n => n.id == source)) graphData.nodes.Add(new ForceGraphNode { id = source });
+                                if (!graphData.nodes.Any(n => n.id == target)) graphData.nodes.Add(new ForceGraphNode { id = target });
+                                graphData.links.Add(new ForceGraphLink { source = source, target = target });
+                            }
+                        }
+                    }
+                }
+
+                var graphId = "force-graph-" + System.Guid.NewGuid().ToString("N");
+                var jsonData = JsonSerializer.Serialize(graphData, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+                renderer.Write($"<div id=\"{graphId}\" class=\"force-graph-container w-full h-96 rounded-md border border-gray-200 dark:border-gray-700 my-6\"></div>");
+                renderer.Write("<script>");
+                renderer.Write($"(function() {{ const gData = {jsonData}; ");
+                renderer.Write($"const container = document.getElementById('{graphId}');");
+                renderer.Write($"const width = container.clientWidth > 0 ? container.clientWidth : 800;");
+                renderer.Write($"const height = container.clientHeight > 0 ? container.clientHeight : 400;");
+                renderer.Write($"ForceGraph() (container) .graphData(gData) .nodeId('id') .nodeLabel('id') .linkLabel('name') .linkDirectionalParticles(2) .linkCurvature(0.3) .nodeColor(() => '#4a5568') .linkColor(() => '#cbd5e0') .backgroundColor('#f9fafb') .width(width) .height(height); }})()");
+                renderer.Write("</script>");
                 return;
             }
 

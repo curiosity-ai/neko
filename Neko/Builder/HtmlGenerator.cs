@@ -91,6 +91,9 @@ namespace Neko.Builder
             sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>");
             sb.AppendLine("    <script>mermaid.initialize({startOnLoad:true});</script>");
 
+            // Force Graph
+            sb.AppendLine("    <script src=\"/assets/force-graph.min.js\"></script>");
+
             // Search Assets
             sb.AppendLine("    <script src=\"/assets/minisearch.min.js\"></script>");
             sb.AppendLine("    <script defer src=\"/assets/search.js\"></script>");
