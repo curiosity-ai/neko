@@ -146,6 +146,25 @@ namespace TailDocs.CLI.Extensions
             if (slice.CurrentChar == ']')
             {
                 slice.NextChar();
+
+                // If component is embed, check for following link syntax (url)
+                if (component.Name == "embed" && slice.CurrentChar == '(')
+                {
+                    slice.NextChar(); // Skip (
+                    var linkStart = slice.Start;
+                    while (slice.CurrentChar != ')' && !slice.IsEmpty)
+                    {
+                        slice.NextChar();
+                    }
+
+                    if (slice.CurrentChar == ')')
+                    {
+                        var link = slice.Text.Substring(linkStart, slice.Start - linkStart);
+                        component.Attributes["src"] = link;
+                        slice.NextChar(); // Skip )
+                    }
+                }
+
                 processor.Inline = component;
                 return true;
             }
@@ -308,14 +327,82 @@ namespace TailDocs.CLI.Extensions
         private void RenderEmbed(HtmlRenderer renderer, ComponentInline obj)
         {
             var src = obj.GetAttribute("src");
-            var height = obj.GetAttribute("height", "400"); // Default height
 
-            if (!string.IsNullOrEmpty(src))
+            if (string.IsNullOrEmpty(src)) return;
+
+            var aspect = obj.GetAttribute("aspect", "16:9");
+            var allowFullScreen = obj.GetAttribute("allowfullscreen", "true");
+            var el = obj.GetAttribute("el", "iframe");
+            var text = obj.GetAttribute("text");
+            var width = obj.GetAttribute("width");
+            var height = obj.GetAttribute("height");
+
+            // Calculate padding for aspect ratio
+            string paddingBottom = "56.25%"; // 16:9
+            switch (aspect)
             {
-                renderer.Write($"<div class=\"my-4 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm\">");
-                renderer.Write($"<iframe src=\"{src}\" style=\"width: 100%; height: {height}px;\" frameborder=\"0\" allowfullscreen></iframe>");
-                renderer.Write("</div>");
+                case "1:1": paddingBottom = "100%"; break;
+                case "4:3": paddingBottom = "75%"; break;
+                case "21:9": paddingBottom = "42.857143%"; break;
+                // default 16:9
             }
+
+            var wrapperStyle = "";
+            if (!string.IsNullOrEmpty(width))
+            {
+                wrapperStyle += $"max-width: {width}px; "; // Use max-width to remain responsive
+            }
+
+            // If height is set, use it. Else use aspect ratio.
+            bool useAspectRatio = string.IsNullOrEmpty(height);
+
+            renderer.Write($"<figure class=\"my-4 w-full block\">");
+
+            // Container for border/rounded
+            renderer.Write($"<div class=\"rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm bg-gray-100 dark:bg-gray-800\" style=\"{wrapperStyle}\">");
+
+            if (useAspectRatio)
+            {
+                renderer.Write($"<div style=\"position: relative; padding-bottom: {paddingBottom}; height: 0; overflow: hidden;\">");
+            }
+            else
+            {
+                 renderer.Write($"<div style=\"height: {height}px; position: relative;\">");
+            }
+
+            // Element tag
+            var tag = el.ToLower() switch {
+                "embed" => "embed",
+                "video" => "video",
+                "object" => "object",
+                _ => "iframe"
+            };
+
+            var srcAttr = tag == "object" ? "data" : "src";
+
+            renderer.Write($"<{tag} {srcAttr}=\"{src}\" style=\"position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;\"");
+
+            if (allowFullScreen != "false" && tag == "iframe")
+            {
+                renderer.Write(" allowfullscreen");
+            }
+
+            if (tag == "video")
+            {
+                renderer.Write(" controls");
+            }
+
+            renderer.Write($"></{tag}>");
+
+            renderer.Write("</div>"); // Close inner div
+            renderer.Write("</div>"); // Close border container
+
+            if (!string.IsNullOrEmpty(text))
+            {
+                renderer.Write($"<figcaption class=\"mt-2 text-center text-sm text-gray-500 dark:text-gray-400\">{text}</figcaption>");
+            }
+
+            renderer.Write("</figure>");
         }
 
         private void RenderFile(HtmlRenderer renderer, ComponentInline obj)
