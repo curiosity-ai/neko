@@ -1,5 +1,5 @@
 ---
-icon: code-review
+icon: clipboard-check
 tags: [component]
 ---
 # Embed

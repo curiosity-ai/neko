@@ -1,5 +1,5 @@
 ---
-icon: video
+icon: video-camera
 tags: [component]
 ---
 # YouTube

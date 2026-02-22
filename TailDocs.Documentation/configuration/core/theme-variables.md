@@ -1,6 +1,6 @@
 ---
 order: 6
-icon: number
+icon: hashtag
 tags: [theme, pro]
 nav:
   badge: NEW|info

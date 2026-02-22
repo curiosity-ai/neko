@@ -1,5 +1,5 @@
 ---
-icon: diff-added
+icon: plus
 tags: [component]
 ---
 # Math Formulas

@@ -1,7 +1,7 @@
 ---
 order: 3
 label: Folder
-icon: file-directory
+icon: folder
 tags: [config]
 ---
 # Folder configuration
@@ -19,7 +19,7 @@ Folders support the same properties as [pages](/configuration/page.md), although
 Set a custom [icon](/configuration/page.md#icon) for the folder.
 
 ```yml index.yml
-icon: gear
+icon: settings
 ```
 
 ---

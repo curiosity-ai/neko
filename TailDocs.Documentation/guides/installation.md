@@ -1,6 +1,6 @@
 ---
 order: 2
-icon: desktop-download
+icon: cloud-download
 ---
 # Installation
 

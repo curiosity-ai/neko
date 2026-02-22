@@ -1,5 +1,5 @@
 ---
-icon: container
+icon: box-open
 tags: [component]
 ---
 # Container

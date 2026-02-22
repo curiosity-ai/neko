@@ -1,6 +1,6 @@
 ---
 order: 6
-icon: paintbrush
+icon: paint-brush
 nav:
   badge: NEW|info
 tags: [guide]

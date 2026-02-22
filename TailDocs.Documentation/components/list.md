@@ -1,5 +1,5 @@
 ---
-icon: list-unordered
+icon: list
 tags: [component]
 ---
 # List
@@ -48,37 +48,37 @@ By applying the following `{.list-icon}` generic attribute, you can convert a bu
 {.list-icon}
 - :icon-check-circle: Item 1
     - :icon-check-circle: This is sub-item 1.1
-    - :icon-alert: This is sub-item 1.2
-    - :icon-circle-slash: This is sub-item 1.3
+    - :icon-bell: This is sub-item 1.2
+    - :icon-ban: This is sub-item 1.3
 - :icon-check-circle: Item 2
     - :icon-check-circle: This is sub-item 2.1
     - :icon-check-circle: This is sub-item 2.2
-    - :icon-alert: This is sub-item 2.3
-    - :icon-circle-slash: This is sub-item 2.4
+    - :icon-bell: This is sub-item 2.3
+    - :icon-ban: This is sub-item 2.4
 ```
 
 {.list-icon}
 - :icon-check-circle: Item 1
     - :icon-check-circle: This is sub-item 1.1
-    - :icon-alert: This is sub-item 1.2
-    - :icon-circle-slash: This is sub-item 1.3
+    - :icon-bell: This is sub-item 1.2
+    - :icon-ban: This is sub-item 1.3
 - :icon-check-circle: Item 2
     - :icon-check-circle: This is sub-item 2.1
     - :icon-check-circle: This is sub-item 2.2
-    - :icon-alert: This is sub-item 2.3
-    - :icon-circle-slash: This is sub-item 2.4
+    - :icon-bell: This is sub-item 2.3
+    - :icon-ban: This is sub-item 2.4
 
 Without the `{.list-icon}` css class applied, the above sample would render as:
 
 - :icon-check-circle: Item 1
     - :icon-check-circle: This is sub-item 1.1
-    - :icon-alert: This is sub-item 1.2
-    - :icon-circle-slash: This is sub-item 1.3
+    - :icon-bell: This is sub-item 1.2
+    - :icon-ban: This is sub-item 1.3
 - :icon-check-circle: Item 2
     - :icon-check-circle: This is sub-item 2.1
     - :icon-check-circle: This is sub-item 2.2
-    - :icon-alert: This is sub-item 2.3
-    - :icon-circle-slash: This is sub-item 2.4
+    - :icon-bell: This is sub-item 2.3
+    - :icon-ban: This is sub-item 2.4
 
 !!!tip
 Additional techniques for creating icon and emoji lists are outlined in issues [#603](https://github.com/taildocsapp/taildocs/issues/603) and [#370](https://github.com/taildocsapp/taildocs/issues/370).

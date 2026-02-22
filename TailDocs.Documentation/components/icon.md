@@ -1,12 +1,12 @@
 ---
-icon: smiley
+icon: smile
 tags: [component, icon]
 ---
 # Icon
 
 [UIcons](https://www.flaticon.com/uicons) by Flaticon are the official icon set for TailDocs. Specifically, the **Regular Rounded** style is included by default.
 
-Similar to the [Emoji](emoji.md) `:shortcode:` syntax, you can add icons using `:icon-shortcode:`, where the `shortcode` is a UIcon icon name.
+Similar to the [Emoji](emoji.md) `:shortcode:` syntax, you can add icons using `:icon-code-simple:`, where the `shortcode` is a UIcon icon name.
 
 For example, to add the :icon-star: `star` icon, use the `:icon-star:` icon shortcode.
 
@@ -20,7 +20,7 @@ You can use UIcons in various components by specifying the icon name. The full l
 
 ### Component
 
-For the Icon component, the icon is specified using the syntax `:icon-shortcode:`, where `shortcode` is the name of the icon.
+For the Icon component, the icon is specified using the syntax `:icon-code-simple:`, where `shortcode` is the name of the icon.
 
 For example, use the code `:icon-rocket:` for a :icon-rocket: icon.
 
@@ -429,7 +429,7 @@ Total icons: 2285
 | :icon-h1: | `h1` | :icon-h2: | `h2` | :icon-h3: | `h3` |
 | :icon-h4: | `h4` | :icon-hamburger: | `hamburger` | :icon-hamburger-soda: | `hamburger-soda` |
 | :icon-hammer: | `hammer` | :icon-hammer-crash: | `hammer-crash` | :icon-hammer-war: | `hammer-war` |
-| :icon-hand: | `hand` | :icon-hand-back-fist: | `hand-back-fist` | :icon-hand-back-point-down: | `hand-back-point-down` |
+| :icon-hand-paper: | `hand` | :icon-hand-back-fist: | `hand-back-fist` | :icon-hand-back-point-down: | `hand-back-point-down` |
 | :icon-hand-back-point-left: | `hand-back-point-left` | :icon-hand-back-point-ribbon: | `hand-back-point-ribbon` | :icon-hand-back-point-right: | `hand-back-point-right` |
 | :icon-hand-dots: | `hand-dots` | :icon-hand-fingers-crossed: | `hand-fingers-crossed` | :icon-hand-heart: | `hand-heart` |
 | :icon-hand-holding-box: | `hand-holding-box` | :icon-hand-holding-heart: | `hand-holding-heart` | :icon-hand-holding-medical: | `hand-holding-medical` |
@@ -440,7 +440,7 @@ Total icons: 2285
 | :icon-hand-sparkles: | `hand-sparkles` | :icon-hand-spock: | `hand-spock` | :icon-hand-wave: | `hand-wave` |
 | :icon-hands-bubbles: | `hands-bubbles` | :icon-hands-clapping: | `hands-clapping` | :icon-hands-holding: | `hands-holding` |
 | :icon-hands-holding-diamond: | `hands-holding-diamond` | :icon-hands-usd: | `hands-usd` | :icon-handshake: | `handshake` |
-| :icon-handshake-angle: | `handshake-angle` | :icon-handshake-simple-slash: | `handshake-simple-slash` | :icon-hastag: | `hastag` |
+| :icon-handshake-angle: | `handshake-angle` | :icon-handshake-simple-slash: | `handshake-simple-slash` | :icon-hashtag: | `hastag` |
 | :icon-hat-birthday: | `hat-birthday` | :icon-hat-chef: | `hat-chef` | :icon-hat-santa: | `hat-santa` |
 | :icon-hat-witch: | `hat-witch` | :icon-hat-wizard: | `hat-wizard` | :icon-hdd: | `hdd` |
 | :icon-head-side: | `head-side` | :icon-head-side-brain: | `head-side-brain` | :icon-head-side-cough: | `head-side-cough` |
@@ -675,7 +675,7 @@ Total icons: 2285
 | :icon-snooze: | `snooze` | :icon-snow-blowing: | `snow-blowing` | :icon-snowboarding: | `snowboarding` |
 | :icon-snowflake: | `snowflake` | :icon-snowflakes: | `snowflakes` | :icon-snowman-alt: | `snowman-alt` |
 | :icon-snowman-head: | `snowman-head` | :icon-snowmobile: | `snowmobile` | :icon-snowplow: | `snowplow` |
-| :icon-soap: | `soap` | :icon-social-network: | `social-network` | :icon-solar-system: | `solar-system` |
+| :icon-soap: | `soap` | :icon-network: | `social-network` | :icon-solar-system: | `solar-system` |
 | :icon-sort: | `sort` | :icon-sort-alpha-down: | `sort-alpha-down` | :icon-sort-alpha-down-alt: | `sort-alpha-down-alt` |
 | :icon-sort-alpha-up: | `sort-alpha-up` | :icon-sort-alpha-up-alt: | `sort-alpha-up-alt` | :icon-sort-alt: | `sort-alt` |
 | :icon-sort-amount-down: | `sort-amount-down` | :icon-sort-amount-down-alt: | `sort-amount-down-alt` | :icon-sort-amount-up: | `sort-amount-up` |
