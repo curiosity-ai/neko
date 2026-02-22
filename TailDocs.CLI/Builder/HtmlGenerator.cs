@@ -316,6 +316,29 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("            sidebarOverlay.addEventListener('click', toggleMobileMenu);");
             sb.AppendLine("        }");
 
+            // Sidebar Scroll Preservation
+            sb.AppendLine("        if (sidebar) {");
+            var keyBase = System.Text.RegularExpressions.Regex.Replace(_config.Branding.Title ?? "taildocs", "[^a-zA-Z0-9]", "-").ToLower();
+            sb.AppendLine($"            const scrollKey = '{keyBase}-sidebar-scroll';");
+            sb.AppendLine($"            const timeKey = '{keyBase}-sidebar-scroll-time';");
+            sb.AppendLine("            const savedScroll = localStorage.getItem(scrollKey);");
+            sb.AppendLine("            const savedTime = localStorage.getItem(timeKey);");
+            sb.AppendLine("            if (savedScroll && savedTime) {");
+            sb.AppendLine("                const now = new Date().getTime();");
+            sb.AppendLine("                if (now - parseInt(savedTime) < 60000) {");
+            sb.AppendLine("                    sidebar.scrollTop = parseInt(savedScroll);");
+            sb.AppendLine("                }");
+            sb.AppendLine("            }");
+            sb.AppendLine("            let timeout;");
+            sb.AppendLine("            sidebar.addEventListener('scroll', () => {");
+            sb.AppendLine("                clearTimeout(timeout);");
+            sb.AppendLine("                timeout = setTimeout(() => {");
+            sb.AppendLine("                    localStorage.setItem(scrollKey, sidebar.scrollTop);");
+            sb.AppendLine("                    localStorage.setItem(timeKey, new Date().getTime());");
+            sb.AppendLine("                }, 100);");
+            sb.AppendLine("            });");
+            sb.AppendLine("        }");
+
             // Sidebar Filter
             sb.AppendLine("        const sidebarFilter = document.getElementById('sidebar-filter');");
             sb.AppendLine("        const sidebarList = document.getElementById('sidebar-list');");
