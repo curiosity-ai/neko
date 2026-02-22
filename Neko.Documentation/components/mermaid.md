@@ -1,5 +1,5 @@
 ---
-icon: ":mermaid:"
+icon: diagram-project
 tags: [component]
 ---
 # Mermaid

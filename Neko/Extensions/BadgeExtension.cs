@@ -16,11 +16,12 @@ namespace Neko.Extensions
         public string Size { get; set; } = "m"; // xs, s, m, l, xl
         public string Icon { get; set; }
         public string Link { get; set; }
+        public string IconAlign { get; set; }
     }
 
     public class BadgeParser : InlineParser
     {
-        private static readonly System.Lazy<MarkdownPipeline> _innerPipeline = new System.Lazy<MarkdownPipeline>(() =>
+        internal static readonly System.Lazy<MarkdownPipeline> _innerPipeline = new System.Lazy<MarkdownPipeline>(() =>
             new MarkdownPipelineBuilder()
             .UseAdvancedExtensions()
             .UseEmojiAndSmiley()
@@ -115,6 +116,7 @@ namespace Neko.Extensions
                             case "corners": badge.Corners = val; break;
                             case "size": badge.Size = val; break;
                             case "icon": badge.Icon = val; break;
+                            case "iconalign": badge.IconAlign = val; break;
                         }
                     }
                 }
@@ -271,29 +273,49 @@ namespace Neko.Extensions
 
             renderer.Write($"<span class=\"inline-flex items-center font-medium {bgClass} {roundedClass} {sizeClass} mr-2\">");
 
-            if (!string.IsNullOrEmpty(obj.Icon))
+            bool iconRight = string.Equals(obj.IconAlign, "right", System.StringComparison.OrdinalIgnoreCase);
+
+            if (!iconRight && !string.IsNullOrEmpty(obj.Icon))
             {
-                if (obj.Icon.Trim().StartsWith("<svg", System.StringComparison.OrdinalIgnoreCase))
-                {
-                     renderer.Write(System.Net.WebUtility.HtmlDecode(obj.Icon));
-                     renderer.Write(" ");
-                }
-                else if (obj.Icon.StartsWith(":"))
-                {
-                     renderer.Write(obj.Icon.Trim(':') + " ");
-                }
-                else
-                {
-                     renderer.Write($"<i class=\"fi fi-rr-{obj.Icon} mr-1\"></i>");
-                }
+                WriteIcon(renderer, obj.Icon, true);
             }
 
             renderer.WriteChildren(obj);
+
+            if (iconRight && !string.IsNullOrEmpty(obj.Icon))
+            {
+                WriteIcon(renderer, obj.Icon, false);
+            }
+
             renderer.Write("</span>");
 
             if (!string.IsNullOrEmpty(obj.Link))
             {
                 renderer.Write("</a>");
+            }
+        }
+
+        private void WriteIcon(HtmlRenderer renderer, string icon, bool isLeft)
+        {
+            var marginClass = isLeft ? "mr-1" : "ml-1";
+
+            if (icon.Trim().StartsWith("<svg", System.StringComparison.OrdinalIgnoreCase))
+            {
+                 var svg = System.Net.WebUtility.HtmlDecode(icon);
+                 renderer.Write($"<span class=\"{marginClass} inline-flex\">{svg}</span>");
+            }
+            else if (icon.StartsWith(":"))
+            {
+                 // Render using pipeline to resolve shortcodes
+                 var pipeline = BadgeParser._innerPipeline.Value;
+                 var html = Markdown.ToHtml(icon, pipeline);
+                 // Strip <p> tags
+                 html = html.Replace("<p>", "").Replace("</p>", "").Trim();
+                 renderer.Write($"<span class=\"{marginClass}\">{html}</span>");
+            }
+            else
+            {
+                 renderer.Write($"<i class=\"fi fi-rr-{icon} {marginClass}\"></i>");
             }
         }
     }

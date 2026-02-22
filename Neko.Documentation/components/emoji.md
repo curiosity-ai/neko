@@ -1,13 +1,13 @@
 ---
-icon: ":grinning:"
+icon: smile
 tags: [component, icon]
+title: Emojis
 ---
-# Emoji
 
-Neko uses [Mojee](https://mojeeio.github.io/Mojee/) to find emoji `:shortcodes:` within your document and replace with actual emoji characters. :+1:
+# Emojis
 
-You can place emoji `:shortcodes:` anywhere within your document, such as `:smile:` :smile: or `:unicorn_face:` :unicorn_face:.
+This page lists all supported emojis available via the embedded emoji CSS library.
 
-Below you’ll find all available emojis, their shortcodes, aliases, descriptions, and related tags.
+Usage: `:name:` (e.g., `:smile:`)
 
 [!emoji-table]

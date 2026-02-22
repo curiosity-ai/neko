@@ -1,5 +1,5 @@
 ---
-icon: clipboard-check
+icon: comment
 tags: [component]
 ---
 # Comments
