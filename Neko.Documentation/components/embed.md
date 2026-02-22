@@ -1,5 +1,5 @@
 ---
-icon: clipboard-check
+icon: share
 tags: [component]
 ---
 # Embed

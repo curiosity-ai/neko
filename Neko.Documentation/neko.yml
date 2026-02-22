@@ -9,7 +9,7 @@ branding:
 links:
   - text: Home
     link: /
-    icon: home
+    icon: house-chimney
   - text: Guides
     link: guides/getting-started
     icon: book

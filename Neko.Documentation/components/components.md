@@ -1,6 +1,6 @@
 ---
 order: 1
-icon: tools
+icon: cubes
 backlinks:
   enabled: false
 ---
