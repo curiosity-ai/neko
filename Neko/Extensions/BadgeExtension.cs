@@ -3,14 +3,14 @@ using Markdig.Helpers;
 using Markdig.Parsers;
 using Markdig.Renderers;
 using Markdig.Renderers.Html;
+using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using System.Collections.Generic;
 
 namespace Neko.Extensions
 {
-    public class Badge : Inline
+    public class Badge : ContainerInline
     {
-        public string Text { get; set; }
         public string Variant { get; set; } = "base"; // base, primary, etc.
         public string Corners { get; set; } = "round"; // round, square, pill
         public string Size { get; set; } = "m"; // xs, s, m, l, xl
@@ -20,6 +20,13 @@ namespace Neko.Extensions
 
     public class BadgeParser : InlineParser
     {
+        private static readonly System.Lazy<MarkdownPipeline> _innerPipeline = new System.Lazy<MarkdownPipeline>(() =>
+            new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .UseEmojiAndSmiley()
+            .Use<IconExtension>()
+            .Build());
+
         public BadgeParser()
         {
             OpeningCharacters = new[] { '[' };
@@ -71,6 +78,8 @@ namespace Neko.Extensions
             var content = slice.Text.Substring(contentStart, slice.Start - contentStart).Trim();
             slice.NextChar();
 
+            string textContent = content;
+
             // Check for key="value" pattern (Legacy/Advanced support)
             if (content.Contains("=\""))
             {
@@ -101,7 +110,7 @@ namespace Neko.Extensions
 
                         switch (key.ToLower())
                         {
-                            case "text": badge.Text = val; break;
+                            case "text": textContent = val; break;
                             case "variant": badge.Variant = val; break;
                             case "corners": badge.Corners = val; break;
                             case "size": badge.Size = val; break;
@@ -131,12 +140,12 @@ namespace Neko.Extensions
                 if (IsKnownVariant(firstWord) && !string.IsNullOrEmpty(remainder))
                 {
                     badge.Variant = firstWord;
-                    badge.Text = remainder;
+                    textContent = remainder;
                 }
                 else
                 {
                     badge.Variant = "base";
-                    badge.Text = content;
+                    textContent = content;
                 }
             }
 
@@ -160,6 +169,27 @@ namespace Neko.Extensions
                     badge.Link = link;
                     slice.NextChar();
                 }
+            }
+
+            // Parse textContent as markdown inlines
+            if (!string.IsNullOrEmpty(textContent))
+            {
+                var doc = Markdown.Parse(textContent, _innerPipeline.Value);
+                foreach (var block in doc)
+                {
+                    if (block is ParagraphBlock p && p.Inline != null)
+                    {
+                        var child = p.Inline.FirstChild;
+                        while (child != null)
+                        {
+                            var next = child.NextSibling;
+                            child.Remove();
+                            badge.AppendChild(child);
+                            child = next;
+                        }
+                    }
+                }
+
             }
 
             processor.Inline = badge;
@@ -258,7 +288,7 @@ namespace Neko.Extensions
                 }
             }
 
-            renderer.Write(obj.Text);
+            renderer.WriteChildren(obj);
             renderer.Write("</span>");
 
             if (!string.IsNullOrEmpty(obj.Link))
