@@ -17,16 +17,45 @@ namespace TailDocs.CLI.Extensions
                 return;
             }
 
+            // Handle Mermaid
+            if ((fencedBlock.Info ?? "").ToLower() == "mermaid")
+            {
+                renderer.Write("<div class=\"mermaid flex justify-center bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 overflow-x-auto my-6\">");
+                var leafBlock = obj as Markdig.Syntax.LeafBlock;
+                if (leafBlock != null)
+                {
+                    var slices = leafBlock.Lines;
+                    for (int i = 0; i < slices.Count; i++)
+                    {
+                        var slice = slices.Lines[i].Slice;
+                        if (slice.Text == null) continue;
+                        renderer.WriteEscape(slice.ToString());
+                        renderer.Write("\n");
+                    }
+                }
+                renderer.Write("</div>");
+                return;
+            }
+
             var args = fencedBlock.Arguments ?? "";
             string title = null;
             string highlight = null;
 
-            // 1. Extract Highlight (#1-5,7)
+            // 1. Extract Highlight (#1-5,7) or {1-5,7}
             var highlightMatch = Regex.Match(args, @"#([\d,-]+)");
             if (highlightMatch.Success)
             {
                 highlight = highlightMatch.Groups[1].Value;
                 args = args.Replace(highlightMatch.Value, "").Trim();
+            }
+            else
+            {
+                var curlyHighlightMatch = Regex.Match(args, @"\{([\d,-]+)\}");
+                if (curlyHighlightMatch.Success)
+                {
+                    highlight = curlyHighlightMatch.Groups[1].Value;
+                    args = args.Replace(curlyHighlightMatch.Value, "").Trim();
+                }
             }
 
             // 2. Extract Title (remaining string or title="...")

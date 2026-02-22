@@ -29,11 +29,9 @@ namespace TailDocs.CLI.Extensions
         {
             var saved = slice;
 
-            // Check for starting [
             if (slice.CurrentChar != '[') return false;
             slice.NextChar();
 
-            // Check for !badge
             if (slice.CurrentChar != '!')
             {
                  slice = saved;
@@ -47,104 +45,133 @@ namespace TailDocs.CLI.Extensions
                 slice = saved;
                 return false;
             }
-            slice.Start += 5; // length of "badge"
+            slice.Start += 5;
 
-            // Parse attributes
-            // Expect space
-            if (slice.CurrentChar != ' ')
+            if (slice.CurrentChar != ' ' && slice.CurrentChar != ']')
             {
-                // Maybe just [!badge] ? unlikely without text.
-                // But let's assume attributes follow.
+                 slice = saved;
+                 return false;
             }
+            if (slice.CurrentChar == ' ') slice.NextChar();
 
             var badge = new Badge();
+            var contentStart = slice.Start;
 
-            // Simple attribute parsing loop
-            while (slice.CurrentChar != ']')
+            while (slice.CurrentChar != ']' && !slice.IsEmpty)
             {
-                if (slice.IsEmpty)
-                {
-                    slice = saved;
-                    return false;
-                }
-
-                if (slice.CurrentChar == ' ')
-                {
-                    slice.NextChar();
-                    continue;
-                }
-
-                // Parse key="value"
-                // Find key
-                var keyStart = slice.Start;
-                while (slice.CurrentChar != '=' && slice.CurrentChar != ']' && !slice.IsEmpty)
-                {
-                    slice.NextChar();
-                }
-
-                if (slice.CurrentChar != '=') break; // Should be =
-
-                var key = slice.Text.Substring(keyStart, slice.Start - keyStart).Trim();
-                slice.NextChar(); // Skip =
-
-                // Parse value
-                if (slice.CurrentChar != '"') break; // Should start with "
                 slice.NextChar();
+            }
 
-                var valStart = slice.Start;
-                while (slice.CurrentChar != '"' && !slice.IsEmpty)
+            if (slice.CurrentChar != ']')
+            {
+                slice = saved;
+                return false;
+            }
+
+            var content = slice.Text.Substring(contentStart, slice.Start - contentStart).Trim();
+            slice.NextChar();
+
+            // Check for key="value" pattern (Legacy/Advanced support)
+            if (content.Contains("=\""))
+            {
+                int pos = 0;
+                while (pos < content.Length)
                 {
-                    slice.NextChar();
+                    while (pos < content.Length && content[pos] == ' ') pos++;
+                    if (pos >= content.Length) break;
+
+                    int keyStart = pos;
+                    while (pos < content.Length && content[pos] != '=') pos++;
+                    if (pos >= content.Length) break;
+
+                    var key = content.Substring(keyStart, pos - keyStart).Trim();
+                    pos++;
+
+                    if (pos < content.Length && content[pos] == '"')
+                    {
+                        pos++;
+                        int valStart = pos;
+                        while (pos < content.Length && content[pos] != '"') pos++;
+                        var val = "";
+                        if (pos < content.Length)
+                        {
+                            val = content.Substring(valStart, pos - valStart);
+                            pos++;
+                        }
+
+                        switch (key.ToLower())
+                        {
+                            case "text": badge.Text = val; break;
+                            case "variant": badge.Variant = val; break;
+                            case "corners": badge.Corners = val; break;
+                            case "size": badge.Size = val; break;
+                            case "icon": badge.Icon = val; break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Parse positional args: [!badge variant text] or [!badge text]
+                var firstSpace = content.IndexOf(' ');
+                string firstWord = null;
+                string remainder = null;
+
+                if (firstSpace > 0)
+                {
+                    firstWord = content.Substring(0, firstSpace);
+                    remainder = content.Substring(firstSpace + 1).Trim();
+                }
+                else
+                {
+                    firstWord = content;
+                    remainder = "";
                 }
 
-                if (slice.CurrentChar != '"') break; // Should end with "
-
-                var val = slice.Text.Substring(valStart, slice.Start - valStart);
-                slice.NextChar(); // Skip closing "
-
-                // Assign to badge
-                switch (key.ToLower())
+                if (IsKnownVariant(firstWord) && !string.IsNullOrEmpty(remainder))
                 {
-                    case "text": badge.Text = val; break;
-                    case "variant": badge.Variant = val; break;
-                    case "corners": badge.Corners = val; break;
-                    case "size": badge.Size = val; break;
-                    case "icon": badge.Icon = val; break;
+                    badge.Variant = firstWord;
+                    badge.Text = remainder;
+                }
+                else
+                {
+                    badge.Variant = "base";
+                    badge.Text = content;
                 }
             }
 
-            if (slice.CurrentChar == ']')
+            // Check for optional link (url)
+            if (slice.CurrentChar == '(')
             {
                 slice.NextChar();
-
-                // Check for optional link (url)
-                if (slice.CurrentChar == '(')
+                var linkStart = slice.Start;
+                int parenCount = 1;
+                while (parenCount > 0 && !slice.IsEmpty)
                 {
-                    slice.NextChar();
-                    var linkStart = slice.Start;
-                    int parenCount = 1;
-                    while (parenCount > 0 && !slice.IsEmpty)
-                    {
-                        if (slice.CurrentChar == '(') parenCount++;
-                        else if (slice.CurrentChar == ')') parenCount--;
+                    if (slice.CurrentChar == '(') parenCount++;
+                    else if (slice.CurrentChar == ')') parenCount--;
 
-                        if (parenCount > 0) slice.NextChar();
-                    }
-
-                    if (parenCount == 0)
-                    {
-                        var link = slice.Text.Substring(linkStart, slice.Start - linkStart);
-                        badge.Link = link;
-                        slice.NextChar(); // consume closing )
-                    }
+                    if (parenCount > 0) slice.NextChar();
                 }
 
-                processor.Inline = badge;
-                return true;
+                if (parenCount == 0)
+                {
+                    var link = slice.Text.Substring(linkStart, slice.Start - linkStart);
+                    badge.Link = link;
+                    slice.NextChar();
+                }
             }
 
-            slice = saved;
-            return false;
+            processor.Inline = badge;
+            return true;
+        }
+
+        private bool IsKnownVariant(string v)
+        {
+             if (string.IsNullOrEmpty(v)) return false;
+             var l = v.ToLower();
+             return l == "primary" || l == "secondary" || l == "success" || l == "danger" || l == "warning" || l == "info" || l == "light" || l == "dark" ||
+                    l == "red" || l == "blue" || l == "green" || l == "yellow" || l == "orange" || l == "purple" || l == "sky" || l == "ghost" || l == "contrast";
         }
     }
 
@@ -161,11 +188,37 @@ namespace TailDocs.CLI.Extensions
             var bgClass = "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"; // base
             switch (obj.Variant.ToLower())
             {
-                case "primary": bgClass = "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"; break;
-                case "success": bgClass = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"; break;
-                case "danger": bgClass = "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"; break;
-                case "warning": bgClass = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"; break;
-                case "info": bgClass = "bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-300"; break;
+                case "primary":
+                case "blue":
+                    bgClass = "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+                    break;
+                case "success":
+                case "green":
+                    bgClass = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+                    break;
+                case "danger":
+                case "red":
+                    bgClass = "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+                    break;
+                case "warning":
+                case "yellow":
+                case "orange":
+                    bgClass = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+                    break;
+                case "info":
+                case "sky":
+                    bgClass = "bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-300";
+                    break;
+                case "purple":
+                    bgClass = "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
+                    break;
+                case "light":
+                case "secondary":
+                    bgClass = "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
+                    break;
+                case "dark":
+                    bgClass = "bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900";
+                    break;
             }
 
             var roundedClass = "rounded"; // square
@@ -190,15 +243,17 @@ namespace TailDocs.CLI.Extensions
 
             if (!string.IsNullOrEmpty(obj.Icon))
             {
-                // Simple icon handling
-                if (obj.Icon.StartsWith(":"))
+                if (obj.Icon.Trim().StartsWith("<svg", System.StringComparison.OrdinalIgnoreCase))
                 {
-                     // Emoji
+                     renderer.Write(System.Net.WebUtility.HtmlDecode(obj.Icon));
+                     renderer.Write(" ");
+                }
+                else if (obj.Icon.StartsWith(":"))
+                {
                      renderer.Write(obj.Icon.Trim(':') + " ");
                 }
                 else
                 {
-                    // Assume Flaticon class or name
                      renderer.Write($"<i class=\"fi fi-rr-{obj.Icon} mr-1\"></i>");
                 }
             }
