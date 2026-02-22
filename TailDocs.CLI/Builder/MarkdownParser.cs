@@ -67,6 +67,7 @@ namespace TailDocs.CLI.Builder
                 // .UseAlerts() // Not available/needed as UseAdvancedExtensions covers it
                 .Use<GitHubAlertExtension>()
                 .Use<TabExtension>()
+                .Use<ColumnExtension>()
                 .Use<ComponentExtension>()
                 .Use<CodeBlockExtension>()
                 .Use<CodeSnippetExtension>()
