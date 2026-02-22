@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neko</title>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>
+    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <script>document.addEventListener("DOMContentLoaded", function() { renderMathInElement(document.body); });</script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true});</script>
+    <script src="/assets/minisearch.min.js"></script>
+    <script defer src="/assets/search.js"></script>
+    <link id="highlight-theme" rel="stylesheet" href="/assets/highlight/tokyo-night-dark.min.css">
+    <script src="/assets/highlight/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js"></script>
+    <style>
+        /* Highlight.js Line Numbers CSS */
+        .hljs-ln td { padding-left: 10px; }
+        .hljs-ln-numbers { user-select: none; text-align: right; color: #ccc; border-right: 1px solid #ccc; vertical-align: top; padding-right: 5px; }
+        .hljs-ln-code { padding-left: 10px; }
+
+        /* Custom Highlight Style */
+        .line-highlight { background-color: rgba(255, 255, 0, 0.15); display: block; width: 100%; }
+        .dark .line-highlight { background-color: rgba(255, 255, 0, 0.15); }
+
+        /* Fix Table layout for code blocks with line numbers */
+        .hljs-ln { width: 100%; border-collapse: collapse; }
+    </style>
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden">
+    <header class="h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10">
+        <div class="flex items-center gap-4">
+            <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none">
+                <i class="fi fi-rr-menu-burger text-xl"></i>
+            </button>
+            <img src="/assets/neko-logo.png" class="h-8 w-auto dark:hidden">
+            <img src="/assets/neko-logo.png" class="h-8 w-auto hidden dark:block">
+            <a href="/index" class="font-bold text-xl hover:text-blue-600 transition-colors">Neko</a>
+        </div>
+        <div class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300">
+            <a href="/" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center"><i class="fi fi-rr-home mr-1"></i>Home</a>
+            <a href="guides/getting-started" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center"><i class="fi fi-rr-book mr-1"></i>Guides</a>
+            <a href="https://github.com/theolivenbaum/taildocs" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center"><i class="fi fi-rr-github mr-1"></i>GitHub</a>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="openSearch()" class="flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-blue-500 w-64 justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fi fi-rr-search text-sm"></i>
+                    <span class="text-sm font-medium">Search</span>
+                </div>
+                <kbd class="hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400">⌘K</kbd>
+            </button>
+            <button id="theme-toggle" class="flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-blue-500">
+                <i class="fi fi-rr-moon dark:hidden text-lg"></i>
+                <i class="fi fi-rr-sun hidden dark:block text-lg"></i>
+            </button>
+        </div>
+    </header>
+    <div class="flex flex-1 overflow-hidden">
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden glassmorphism"></div>
+        <aside id="sidebar" class="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex flex-col shrink-0 fixed md:static inset-y-0 left-0 z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out h-full">
+            <nav class="p-4 flex-1">
+                <div class="mb-6 relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fi fi-rr-filter text-gray-400"></i>
+                    </div>
+                    <input type="text" id="sidebar-filter" placeholder="Filter..." class="w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+                </div>
+                <ul class="space-y-1" id="sidebar-list">
+                    <li><a href="/index" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Home</a></li>
+                    <li class="mt-6 mb-2 first:mt-0 px-2">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Guides</span>
+                    </li>
+                    <li><a href="/guides/getting-started" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-rocket"></i> Getting Started</a></li>
+                    <li><a href="/guides/installation" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-cloud-download"></i> Installation</a></li>
+                    <li><a href="/guides/cli" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-terminal"></i> Neko CLI</a></li>
+                    <li><a href="/guides/formatting" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-note"></i> Formatting</a></li>
+                    <li><a href="/guides/themes" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-paint-brush"></i> Themes</a></li>
+                    <li><a href="/guides/github-actions" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-code-compare"></i> GitHub Actions</a></li>
+                    <li class="mt-6 mb-2 first:mt-0 px-2">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Configuration</span>
+                    </li>
+                    <li><a href="/configuration/page" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-file"></i> Page configuration</a></li>
+                    <li><a href="/configuration/folder" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-folder"></i> Folder configuration</a></li>
+                    <li><a href="/configuration/reserved_words" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-info"></i> Reserved words</a></li>
+                    <li class="space-y-1">
+                        <details class="group" open>
+                            <summary class="flex items-center justify-between py-1 px-2 text-[13px] whitespace-nowrap font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none">
+                                <span class="flex items-center gap-2"><i class="fi fi-rr-circle opacity-0"></i> Core</span>
+                                <i class="fi fi-rr-angle-small-down transition-transform group-open:rotate-180"></i>
+                            </summary>
+                            <ul class="pl-0 space-y-1 mt-1 border-l border-gray-200 dark:border-gray-700 ml-3">
+                    <li><a href="/configuration/core/project" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-package"></i> Project configuration</a></li>
+                    <li><a href="/configuration/core/theme-variables" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-hashtag"></i> Theme variables</a></li>
+                            </ul>
+                        </details>
+                    </li>
+                    <li class="mt-6 mb-2 first:mt-0 px-2">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Components</span>
+                    </li>
+                    <li><a href="/components/components" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-tools"></i> Components</a></li>
+                    <li><a href="/components/backlinks" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-refresh"></i> Backlinks</a></li>
+                    <li><a href="/components/alert" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-exclamation"></i> Alert Component</a></li>
+                    <li><a href="/components/badge" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-id-badge"></i> Badge</a></li>
+                    <li><a href="/components/button" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-play"></i> Button</a></li>
+                    <li><a href="/components/callout" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-info"></i> Callout</a></li>
+                    <li><a href="/components/code-block" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-square-code"></i> Code Block</a></li>
+                    <li><a href="/components/code" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-code-simple"></i> Code Blocks</a></li>
+                    <li><a href="/components/code-snippet" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-code-simple"></i> Code Snippet</a></li>
+                    <li><a href="/components/color-chip" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-paint-brush"></i> Color Chip</a></li>
+                    <li><a href="/components/column" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-columns-3"></i> Column</a></li>
+                    <li><a href="/components/comments" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-clipboard-check"></i> Comments</a></li>
+                    <li><a href="/components/container" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-box-open"></i> Container</a></li>
+                    <li><a href="/components/embed" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-clipboard-check"></i> Embed</a></li>
+                    <li><a href="/components/emoji" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-:grinning:"></i> Emoji</a></li>
+                    <li><a href="/components/file" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-file"></i> File Component</a></li>
+                    <li><a href="/components/file-download" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-download"></i> File Download</a></li>
+                    <li><a href="/components/icon" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-smile"></i> Icon</a></li>
+                    <li><a href="/components/image" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-picture"></i> Image</a></li>
+                    <li><a href="/components/image-alignment" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-picture"></i> Image alignment demo</a></li>
+                    <li><a href="/components/list" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-list"></i> List</a></li>
+                    <li><a href="/components/math" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-calculator"></i> Math Component</a></li>
+                    <li><a href="/components/math-formulas" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-plus"></i> Math Formulas</a></li>
+                    <li><a href="/components/mermaid" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-:mermaid:"></i> Mermaid</a></li>
+                    <li><a href="/components/panel" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-table-rows"></i> Panel</a></li>
+                    <li><a href="/components/reference-link" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-link"></i> Reference Link</a></li>
+                    <li><a href="/components/ref" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-link-alt"></i> Reference Link Component</a></li>
+                    <li><a href="/components/tab" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-browser"></i> Tab</a></li>
+                    <li><a href="/components/table" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-table"></i> Table</a></li>
+                    <li><a href="/components/youtube" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-video-camera"></i> YouTube</a></li>
+                    <li><a href="/faq" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-question"></i> Frequently Asked Questions</a></li>
+                    <li><a href="/changelog" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-memo"></i> Changelog</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <div class="flex-1 flex overflow-hidden">
+            <main class="flex-1 overflow-y-auto p-8 scroll-smooth" id="main-scroll">
+                <div class="max-w-4xl mx-auto prose dark:prose-invert">
+<h1 id="page-configuration">Page configuration</h1>
+<p>Individual <code>.md</code> pages can be configured using the Frontmatter <a href="/faq.md#what-is-page-metadata">metadata</a> section added to the top of the page.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">sample.md</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+label: Sample
+layout: page
+order: 100
+---
+# Sample
+
+This is a sample page demonstrating page metadata.
+</code></pre>
+</div><h2 id="default-pages">Default pages</h2>
+<p>{{ include &quot;snippets/default-pages.md&quot; }}</p>
+<h2 id="separate.yml-file">Separate .yml file</h2>
+<p>If you would prefer to keep the page metadata separated and placed outside of the <code>.md</code> content page, the config can be moved into a paired <strong>.yml</strong> file.</p>
+<p>For instance, <strong>sample.md</strong> would need a matching <strong>sample.yml</strong> file. The separate <strong>.yml</strong> file must have the exact same filename as its paired <code>.md</code> page.</p>
+<p>Both <strong>.yml</strong> and <strong>.yaml</strong> extensions are supported.</p>
+<p>Adding your configs into the top metadata section of a <code>.md</code> page, or into a separate <strong>.yml</strong> file is just a matter of preference. Both techniques produce the same result.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">sample.md</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm"># Sample
+
+This is a sample page demonstrating page metadata.
+</code></pre>
+</div><div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">sample.yml</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">label: Sample
+layout: page
+order: 100
+</code></pre>
+</div><div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><div class="prose dark:prose-invert max-w-none"><p>If you add configs to both locations, the page <a href="/faq.md#what-is-page-metadata">metadata</a> takes precedence, even if they are different configs.</p>
+<p>If you add one or more configs to a <code>.md</code> page, Neko will not look for nor read the separate <strong>.yml</strong> file. Just use one or the other, but not both.</p>
+</div></div></div></div>
+<p>See <a href="folder">folder configuration</a> for details on how to configure a folder.</p>
+<hr />
+<h2 id="author">author</h2>
+<div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><div class="prose dark:prose-invert max-w-none"><p>The configuration name <code>authors</code> is also supported. The name <code>authors</code> is an alias of <code>author</code> and both can be used interchangeably.</p>
+</div></div></div></div>
+<p>=== author : <code>string</code>, <code>list</code>, or <code>object</code></p>
+<p>The author or multiple authors of this page.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+author: Frank
+---
+</code></pre>
+</div><div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+author: frank@example.com
+---
+</code></pre>
+</div>
+<p>===</p>
+<p>An author object can also be configured with specific values for the <a href="#name"><code>name</code></a>, <a href="#email"><code>email</code></a>, <a href="#link"><code>link</code></a>, and <a href="#avatar"><code>avatar</code></a>.</p>
+<p>The <code>author</code> config is very flexible and can accept one or more author configurations and even a list of mixed types. The following sample demonstrates adding a list of authors. Two authors are added by name and a third is added only by their email address.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+authors: [Frank, Annette Jones, steffen@example.com]
+---
+</code></pre>
+</div>
+<p>Mixed author types are also permitted, including adding a list of authors by name, email, or author configuration objects.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+# Mix of author types
+authors:
+  - name: Frank Esposito
+    email: frank@example.com
+    link: https://twitter.com/frank
+    avatar: https://example.com/frank.jpg
+  - Annette Jones
+  - steffen@example.com
+---
+</code></pre>
+</div><h3 id="avatar">avatar</h3>
+<p>=== avatar : <code>string</code></p>
+<p>Possible options for the <code>avatar</code> include:</p>
+<ol>
+<li>Path to local image</li>
+<li>URL to an external image</li>
+<li>Inline SVG</li>
+<li><a href="/components/icon.md">Icon</a> shortcode</li>
+<li><a href="/components/emoji.md">Emoji</a> shortcode</li>
+</ol>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+author:
+  name: Frank Esposito
+  avatar: https://example.com/frank.jpg # custom avatar takes precedence
+---
+</code></pre>
+</div>
+<p>===</p>
+<h3 id="email">email</h3>
+<p>=== email : <code>string</code></p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+author:
+  email: frank@example.com
+---
+</code></pre>
+</div>
+<p>===</p>
+<h3 id="link">link</h3>
+<p>=== link : <code>string</code></p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+author:
+  link: https://twitter.com/frank # custom link take precedence
+---
+</code></pre>
+</div>
+<p>===</p>
+<h3 id="name">name</h3>
+<p>=== name : <code>string</code></p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+author:
+  name: Frank Esposito
+---
+</code></pre>
+</div>
+<p>===</p>
+<hr />
+<h2 id="backlinks">backlinks</h2>
+<p>The <code>backlinks</code> configuration controls the display of inbound links from other pages in your project on this specific page. Backlinks help users discover related content by showing which pages reference the current page.</p>
+<h3 id="enabled">enabled</h3>
+<p>=== enabled : <code>boolean</code></p>
+<p>Enable or disable backlinks for this page. Default is <code>true</code>.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+backlinks:
+  enabled: false
+---
+</code></pre>
+</div>
+<p>Set to <code>false</code> to disable backlinks on this page, even if enabled at the <a href="project.md#backlinks">project</a> level.</p>
+<p>===</p>
+<h3 id="backlinks-title">title</h3>
+<p>=== title : <code>string</code></p>
+<p>Customize the heading text displayed above the backlinks section on this page. Default is <code>&quot;See also&quot;</code>.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+backlinks:
+  title: &quot;Related pages&quot;
+---
+</code></pre>
+</div>
+<p>This overrides the project-level title setting for this specific page.</p>
+<p>===</p>
+<h3 id="maxresults">maxResults</h3>
+<p>=== maxResults : <code>number</code></p>
+<p>Set the maximum number of backlinks to display on this page. Default is <code>12</code>.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+backlinks:
+  maxResults: 3
+---
+</code></pre>
+</div>
+<p>This overrides the project-level <a href="project.md#maxresults">maxResults</a> setting for this specific page.</p>
+<p>===</p>
+<p>See also <a href="project.md#backlinks">Project</a> configuration of <a href="project.md#backlinks"><code>backlinks</code></a>.</p>
+<hr />
+<h2 id="breadcrumb">breadcrumb</h2>
+<p>=== breadcrumb : <code>boolean</code></p>
+<p>The <code>breadcrumb</code> config controls whether to include the <a href="project.md#breadcrumb">breadcrumb</a> navigation on this page. Default is <code>true</code>.</p>
+<p>Set to <code>false</code> to disable the breadcrumb navigation on this page.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">breadcrumb: false
+</code></pre>
+</div><h1 id="it-is-also-possible-to-disable-the-breadcrumb-navigation-on-all-pages-within-a-folder-by-setting-breadcrumb-false-in-the-folderhindex.yml-configuration-file-or-the-folder-default-page-such-as-default.md-readme.md-or-index.md">It is also possible to disable the breadcrumb navigation on all pages within a <a href="folder">folder</a> by setting <code>breadcrumb: false</code> in the folderh<code>index.yml</code> configuration file or the folder default page, such as <code>default.md</code>, <code>readme.md</code>, or <code>index.md</code>.</h1>
+<hr />
+<h2 id="category">category</h2>
+<div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><div class="prose dark:prose-invert max-w-none"><p>The configuration name <code>categories</code> is also supported. The name <code>categories</code> is an alias of <code>category</code> and both can be used interchangeably.</p>
+</div></div></div></div>
+<p>=== category : <code>string</code> or <code>list</code></p>
+<p>A category for this page.</p>
+<p>A single <code>category</code> or a list of <code>categories</code> can be configured in each <code>.md</code> page you would like to categorize.</p>
+<p>The <code>category</code> is meant to be a broad grouping of content, where <a href="#tags"><code>tags</code></a> are meant to describe specific details of the content in that particular page. A page can belong to multiple (zero to many) categories and have multiple (zero to many) tags.</p>
+<p>All of the following are acceptable techniques for configuring a single <code>category</code> or multiple <code>categories</code>.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+category: news
+categories: news
+category: [news, general]
+categories: [news, general]
+category:
+  - news
+  - general
+categories:
+  - news
+  - general
+---
+</code></pre>
+</div>
+<p>If a <code>category</code> is configured in the page metadata, the category is added to the top of the page under the main title.</p>
+<p>Individual category summary pages will be automatically generated by Neko at <code>&lt;url&gt;/categories/&lt;category&gt;</code>, plus an additional <code>&lt;url&gt;/categories</code> index page which lists all categories in the project.</p>
+<p>===</p>
+<hr />
+<h2 id="date">date</h2>
+<p>=== date : <code>string</code></p>
+<p>A custom publish date for this page.</p>
+<p>If a <code>date</code> is configured, Neko will add the <strong>Published</strong> date to the top of the page, just under the main title.</p>
+<p>The date must be provided in the <code>yyyy-mm-dd</code> ISO format or <code>yyyy-mm-ddThh:mm</code> if you want to include a date and a time.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">date: 2020-11-25 # November 25, 2020
+date: 2020-11-25T15:30 # November 25, 2020 at 15:30 (3:30 PM)
+</code></pre>
+</div>
+<p>The <code>date</code> is used by Neko to order blog pages. Newer blog pages are ordered first.</p>
+<p>===</p>
+<hr />
+<h2 id="expanded">expanded</h2>
+<p>=== expanded : <code>boolean</code></p>
+<p>Determines whether this <a href="folder">folder</a> should be expanded in the tree navigation on initial page load. Default is <code>false</code>.</p>
+<p>Set to <code>true</code> to expand the folder node in the navigation.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">expanded: true
+</code></pre>
+</div>
+<p>The <code>expanded</code> option only applies to <a href="folder">folders</a> when configured within an <strong>index.yml</strong> folder configuration file.</p>
+<h1 id="setting-expanded-true-within-the-metadata-of-an.md-page-or-the-paired.yml-file-will-be-ignored">Setting <code>expanded: true</code> within the metadata of an <code>.md</code> page or the paired <strong>.yml</strong> file will be ignored.</h1>
+<hr />
+<h2 id="icon">icon</h2>
+<p>=== icon : <code>string</code></p>
+<p>Custom icon for the navigation node of the current page. Default is <code>null</code>.</p>
+<p>Options include using a <a href="/components/uicons.md">UIcon</a> name, <a href="https://mojeeio.github.io/Mojee//emojis/">Emoji</a> shortcode, <code>&lt;svg&gt;</code> element, or a path to an image file.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">UIcon</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">icon: rocket
+</code></pre>
+</div><div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">Emoji shortcode</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">icon: &quot;:rocket:&quot;
+</code></pre>
+</div><div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">SVG element</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">icon: &quot;&lt;svg&gt;...&lt;/svg&gt;&quot;
+</code></pre>
+</div><div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">Path</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">icon: &quot;../static/rocket.png&quot;
+</code></pre>
+</div>
+<p>===</p>
+<hr />
+<h2 id="image">image</h2>
+<p>=== image : <code>string</code></p>
+<p>By default, Neko will try to find the first image on the page and use that image as the feature image to highlight when creating a summary of the page.</p>
+<p>You can customize the feature image by setting the <code>image</code> config to any local path or external image hosted elsewhere.</p>
+<h3 id="local-path">Local path</h3>
+<p>Configure a path to a local file stored within the project.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">image: ../static/feature-image1.jpg
+</code></pre>
+</div><h3 id="external-image">External image</h3>
+<p>Configure a URL to any image hosted elsewhere.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">image: https://example.com/static/feature-image1.jpg
+</code></pre>
+</div>
+<p>===</p>
+<hr />
+<h2 id="label">label</h2>
+<p>=== label : <code>string</code></p>
+<p>Custom label for the navigation node for the current page. Default is <code>null</code>.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">label: Custom label
+</code></pre>
+</div>
+<p>===</p>
+<hr />
+<h2 id="layout">layout</h2>
+<p>=== layout : <code>string</code></p>
+<p>The layout for the page. Default is <code>default</code>.</p>
+<p>Supported values: <code>default</code>, <code>central</code>, <code>page</code>, and <code>blog</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Layout</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>default</code></td>
+<td>The default layout for all <code>.md</code> pages. The page is added to the main navigation.</td>
+</tr>
+<tr>
+<td><code>page</code></td>
+<td>Similar to <code>default</code> layout, but is not added to the main navigation.</td>
+</tr>
+<tr>
+<td><code>central</code></td>
+<td>A page with no left or right sidebar columns.</td>
+</tr>
+<tr>
+<td><code>blog</code></td>
+<td>A blog page layout. Blog pages are not added to the main navigation and include blog specific <code>&lt; Newer</code> and <code>Older &gt;</code> navigation buttons at the bottom of each blog page.</td>
+</tr>
+</tbody>
+</table>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">layout: page
+</code></pre>
+</div>
+<p>===</p>
+<hr />
+<h2 id="meta">meta</h2>
+<h3 id="meta-title">title</h3>
+<p>=== title : <code>string</code></p>
+<p>A custom value for the <code>&lt;title&gt;</code> meta tag.</p>
+<p>If set, the value will completely override any <code>&lt;title&gt;</code> meta tag value generated by Neko.</p>
+<p>Default is <code>null</code>.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+meta:
+  title: &quot;A 100% custom title meta tag value&quot;
+---
+# Sample
+</code></pre>
+</div>
+<p>With the above sample, the <code>&lt;title&gt;</code> will be:</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-html !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">&lt;title&gt;A 100% custom title meta tag value&lt;/title&gt;
+</code></pre>
+</div>
+<p>Without the <code>meta.title</code> set, by default, the <code>&lt;title&gt;</code> would be:</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-html !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">&lt;title&gt;Sample&lt;/title&gt;
+</code></pre>
+</div><div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><div class="prose dark:prose-invert max-w-none"><p>This <code>meta.title</code> config is not to be confused with the Page <a href="#title"><code>title</code></a> config, which we recommend not using.</p>
+<p>This <code>meta.title</code> config is also not to be confused with the Project level <a href="project.md#meta-title"><code>meta.title</code></a> config.</p>
+</div></div></div></div>
+<p>===</p>
+<h3 id="description">description</h3>
+<p>=== description : <code>string</code></p>
+<p>A custom value for the <code>&lt;meta name=&quot;description&quot;&gt;</code> meta tag.</p>
+<p>If set, the value will be used as the <code>content</code> attribute of the <code>&lt;meta name=&quot;description&quot;&gt;</code> tag in the <code>&lt;head&gt;</code> of the page. This value will also be used for the <code>og:description</code> and <code>twitter:description</code> meta tags.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+meta:
+  title: &quot;Profile Page&quot;
+  description: &quot;This is a custom description&quot;
+---
+# Profile
+</code></pre>
+</div>
+<p>With the above sample, the following meta tags will be generated:</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-html !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">&lt;meta name=&quot;description&quot; content=&quot;This is a custom description&quot;&gt;
+&lt;meta property=&quot;og:description&quot; content=&quot;This is a custom description&quot;&gt;
+&lt;meta name=&quot;twitter:description&quot; content=&quot;This is a custom description&quot;&gt;
+</code></pre>
+</div>
+<p>===</p>
+<hr />
+<h2 id="nav">nav</h2>
+<p>Navigation configuration options to control the behavior of the left sidebar navigation.</p>
+<h3 id="nav-badge">badge</h3>
+<p>=== badge : <code>string</code> or <code>object</code></p>
+<p>Add a [<a href="#nav-badge">badge</a>] to the navigation item for this page in the left sidebar. The badge can be a simple text string or a detailed configuration object with styling options.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">Simple text badge</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+nav:
+  badge: NEW
+---
+# Sample Page
+</code></pre>
+</div><div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">Text with variant</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+nav:
+  # Shortcut pipe syntax for setting variant
+  badge: NEW|info
+---
+# Sample Page
+</code></pre>
+</div><div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">Detailed badge configuration</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+nav:
+  badge:
+    text: BETA
+    variant: warning
+    icon: bell
+    iconAlign: right
+    corners: pill
+    size: s
+---
+# Sample Page
+</code></pre>
+</div>
+<p>The badge supports all the same properties as the <a href="/components/badge.md">Badge</a> component, including:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>text</code></td>
+<td><code>string</code></td>
+<td>The text content of the badge</td>
+</tr>
+<tr>
+<td><code>variant</code></td>
+<td><code>string</code></td>
+<td>Add Badge variants supported, including: <code>base</code>, <code>primary</code> (default), <code>secondary</code>, <code>success</code>, <code>danger</code>, <code>warning</code>, <code>info</code>, <code>light</code>, <code>dark</code>, <code>ghost</code>, <code>contrast</code></td>
+</tr>
+<tr>
+<td><code>size</code></td>
+<td><code>string</code></td>
+<td>Badge size: <code>xs</code>, <code>s</code>, <code>m</code>, <code>l</code>, <code>xl</code>, <code>2xl</code>, <code>3xl</code> (default: <code>s</code>)</td>
+</tr>
+<tr>
+<td><code>corners</code></td>
+<td><code>string</code></td>
+<td>Badge corner style: <code>round</code>, <code>square</code>, <code>pill</code></td>
+</tr>
+<tr>
+<td><code>icon</code></td>
+<td><code>string</code></td>
+<td>Icon name from <a href="/components/uicons.md">UIcons</a> or custom icon</td>
+</tr>
+<tr>
+<td><code>iconAlign</code></td>
+<td><code>string</code></td>
+<td>Icon position: <code>left</code> or <code>right</code></td>
+</tr>
+<tr>
+<td><code>link</code></td>
+<td><code>string</code></td>
+<td>Page or URL to navigate to when badge is clicked</td>
+</tr>
+<tr>
+<td><code>target</code></td>
+<td><code>string</code></td>
+<td>Link target: <code>blank</code>, <code>self</code>, <code>parent</code>, <code>top</code></td>
+</tr>
+</tbody>
+</table>
+<p>===</p>
+<h3 id="nav-mode">mode</h3>
+<p>=== mode : <code>string</code>
+Controls how the sidebar navigation is created and functions. The default functionality is to create the navigation as an expandable Tree structure. The default value for <code>mode</code> is <code>default</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>default</code></td>
+<td>Create the navigation as a Tree structure where top-level folders are expandable and collapsible.</td>
+</tr>
+<tr>
+<td><code>stack</code></td>
+<td>Create the navigation where the top-level folders are automatically expanded, creating a &quot;stacked&quot; view of the navigation path.</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>nav.mode</code> setting can be configured on any page within a top-level folder to convert only that specific folder into a &quot;stack&quot; navigation structure. The remaining top-level folders will maintain their default tree navigation behavior.</p>
+<p>The following sample demonstrates how to configure the &quot;stacked&quot; navigation structure for a specific top-level folder:</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">nav:
+  mode: stack
+</code></pre>
+</div>
+<p>When configured on a page within a top-level folder, this setting will only affect that specific folder's navigation structure.</p>
+<p>To convert the entire navigation component to a <code>stack</code> type layout, please see the Project <a href="project.md#nav"><code>nav</code></a> setting.</p>
+<p>===</p>
+<hr />
+<h2 id="nextprev">nextprev</h2>
+<p>The <code>nextprev</code> configuration controls the display of &quot;Next&quot; and &quot;Previous&quot; navigation buttons at the bottom of each page and whether a page is included in the navigation sequence.</p>
+<h3 id="nextprev-mode">mode</h3>
+<p>=== mode : <code>string</code></p>
+<p>Controls how the Next/Previous navigation buttons are displayed and whether the page is included in the navigation sequence.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>show</code></td>
+<td>Show Next and Previous buttons and include page in sequence (Default)</td>
+</tr>
+<tr>
+<td><code>hide</code></td>
+<td>Hide buttons but keep page in sequential order</td>
+</tr>
+<tr>
+<td><code>exclude</code></td>
+<td>Hide buttons and exclude page from sequential order</td>
+</tr>
+</tbody>
+</table>
+<p>The default value is <code>show</code>.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+nextprev:
+  mode: hide
+---
+</code></pre>
+</div>
+<p>See also <a href="project.md#nextprev-mode">Project</a> and <a href="folder.md#nextprev">Folder</a> configuration of <code>nextprev.mode</code>.</p>
+<p>===</p>
+<hr />
+<h2 id="order">order</h2>
+<p>=== order : <code>string</code></p>
+<p>A custom stack order for this page within the left side-bar tree navigation.</p>
+<p>Options can include:</p>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> A number such as <code>100</code> or <code>-100</code></li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> Any string value that will be slotted into the <code>A -&gt; Z</code> alpha ordering of all navigation nodes</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> A <a href="https://semver.org/">SemVer</a> value such as <code>v2.0</code></li>
+</ul>
+<p>If the <code>order</code> is set with a number, a larger positive number will give more <em>weight</em> or <em>priority</em> to that page and Neko will <em>bubble up</em> that page in the navigation. For instance, a page configured with <code>order: 100</code> will be higher in the navigation than a page configured with <code>order: 10</code>.</p>
+<p>Similarily, a page configured with <code>order: -100</code> will be lower in the navigation than a page configured with <code>order: -10</code> or any page where no <code>order</code> is set.</p>
+<div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><div class="prose dark:prose-invert max-w-none"><p>The position of folders within the navigation can be <a href="folder">ordered</a> as well using the same <code>order</code> technique, the only difference that folders are always pinned to the top of their <code>order</code> group.</p>
+</div></div></div></div>
+<p>In order of precedence, the <code>order</code> of a page in the navigation would be determined with the following priority:</p>
+<table>
+<thead>
+<tr>
+<th>Value type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>number</code> (positive)</td>
+<td>A larger positive number gets more <em>weight</em> or <em>priority</em> and is pushed higher in the navigation. Largest number at the top. Example: <code>order: 100</code> will be ordered above <code>order: 10</code>.</td>
+</tr>
+<tr>
+<td><code>alpha</code> (high)</td>
+<td>Setting <code>order</code> with an alpha-numeric value is possible and those pages will be ordered against the <code>label</code> value of all other pages that do not have an <code>order</code> configured.  Example: <code>order: alpha</code> will be ordered above <code>order: beta</code> or a page configured with <code>label: bravo</code>.</td>
+</tr>
+<tr>
+<td>no <code>order</code> set</td>
+<td>If no <code>order</code> is configured, all pages will be ordered alphabetically based on its <code>label</code>, <code>title</code>, the first <code>h1</code> title, or the file name values. The <code>label</code> config has the highest priority.</td>
+</tr>
+<tr>
+<td><code>alpha</code> (low)</td>
+<td>Example: <code>order: zulu</code> will be ordered below <code>order: zebra</code> or a page configured with <code>label: yakee</code>.</td>
+</tr>
+<tr>
+<td><code>vSemver</code> (newer)</td>
+<td>Page <code>order</code> configured with a <a href="https://semver.org/">semver</a> value are ordered with the newest version above an older version. These pages are also moved towards the bottom of the navigation. Example: <code>order: v1.1</code> will be ordered above <code>order: v1.0</code>.</td>
+</tr>
+<tr>
+<td><code>number</code> (negative)</td>
+<td>A negative number gets less <em>weight</em> or <em>priority</em> and is pushed to the bottom of the navigation. Setting the <code>order</code> with a negative number is a simple way to push a page to the bottom of the navigation. Example: <code>order: -100</code> will be ordered below <code>order: -10</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>By default, the home page of the website has an order of <code>10000</code>. To add a page in the navigation just above the home page, set a value of <code>order: 10001</code> or greater. To add a page in the navigation just below the home page, set a value of <code>order: 9999</code> or lower. To move the home page to the bottom of the navigation, set a negative value, such as <code>order: -10000</code>.</p>
+<h3 id="order-by-number">Order by number</h3>
+<p>Larger number = order higher in the stack.</p>
+<p>No order number or <code>0</code> = order by alpha</p>
+<p>Smaller number = order lower in the stack.</p>
+<p>If multiple pages have the same <code>order</code> number, secondary ordering in that cluster is by alpha.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="!my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">+
+0
+-
+</code></pre>
+</div><h3 id="order-by-alpha">Order by alpha</h3>
+<p>Order values by alpha.</p>
+<p><code>a</code> = higher
+<code>z</code> = lower</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="!my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">Alpha
+Bravo
+Charlie
+Zulu
+</code></pre>
+</div><h3 id="order-by-v" semver="">Order by `v</h3>
+<p>Order by <a href="https://semver.org/">semver</a> with latest release at the top</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="!my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">v5.0.1
+v5
+v4.0
+v3.1
+v3.0
+v2.0
+v1.0
+</code></pre>
+</div>
+<p>Items prefixed with <code>v</code> would be grouped below the alpha ordered items.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="!my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">alpha
+bravo
+yankee
+zulu
+v3.0
+v2.1-beta
+v2.0
+v1.0
+v1.0-beta
+v1.0-alpha
+</code></pre>
+</div>
+<p>===</p>
+<hr />
+<h2 id="permalink">permalink</h2>
+<p>=== permalink : <code>string</code></p>
+<p>A custom URL path for this page or folder which overrides the default path generated by Neko.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">sample.md</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+permalink: /custom/path
+---
+# My page title
+
+Some content here.
+</code></pre>
+</div>
+<p>A <code>permalink</code> allows the folder and file structure to remain unchanged, but allowing the final URL's to be customized.</p>
+<p>Configuring the <code>permalink</code> is an excellent solution when moving to Neko from another platform and you would like to maintain existing public URL's, but would prefer to re-organize your <code>.md</code> files into a new structure. A <code>permalink</code> allows for a clean disconnect of the page path from the final published URL path.</p>
+<p>In the following sample, the generated URL by Neko would be <code>/guide/2021-06-25-publishing-to-github-pages/</code>, but we override with a custom permalink which will publish the page to <code>/tutorial/publish-to-github-pages/</code>.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">/guide/2021-06-25-publishing-to-github-pages.md</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+permalink: /tutorial/publish-to-github-pages/
+---
+# Publishing to GitHub Pages
+</code></pre>
+</div>
+<p>If a <code>permalink</code> is configured on a folder, or on a <strong>readme.md</strong> or <strong>index.md</strong> page within the folder, or on an <a href="#separate-yml-file"><strong>index.yml</strong></a> file within the folder, that <code>permalink</code> is assumed to be the base permalink for all pages within that folder.</p>
+<p>The following scenario demonstrates a basic scenario where we configure all pages within the <code>/guides/</code> folder to be served from the custom URL location of <code>/tutorials/</code>.</p>
+<p>To accomplish this goal, configure the <code>permalink</code> on the <strong>readme.md</strong>, then all other pages within the same folder will adjust as well. The <strong>configuration.md</strong> page will now be served from <code>/tutorials/configuration/</code>.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">structure</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-Folder !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">|-- /guides
+    |-- readme.md
+    |-- configuration.md
+</code></pre>
+</div><div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">/guides/readme.md</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+permalink: /tutorials
+---
+# Tutorials
+</code></pre>
+</div><h1 id="file-path-old-url-new-url-guidesreadme.md-guides-tutorials-guidesconfiguration.md-guidesconfiguration-tutorialsconfiguration">File path | Old URL | New URL
+-- | -- | --
+<code>/guides/readme.md</code> | <code>/guides</code> | <code>/tutorials</code>
+<code>/guides/configuration.md</code> | <code>/guides/configuration</code> | <code>/tutorials/configuration</code></h1>
+<hr />
+<h2 id="redirect">redirect</h2>
+<p>=== redirect : <code>string</code></p>
+<p>Redirect requests for this page to another location.</p>
+<p>The <code>redirect</code> can be set to another page within this project, or an external link.</p>
+<p>For example, you have an existing <strong>setup.md</strong> page and you want to move the content to <strong>getting-started.md</strong>, but other websites might still be linking to your old <strong>example.com/setup/</strong> page and you want to ensure those links still work. You would then set the following <code>redirect</code> page config in <strong>setup.md</strong> to redirect to <code>getting-started.md</code>.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+redirect: getting-started.md
+---
+
+# Setup
+</code></pre>
+</div>
+<p>Neko will automatically handle any incoming <strong>example.com/setup</strong> requests and redirect to the new <strong>example.com/getting-started</strong> location.</p>
+<p>Neko is also smart enough to scan your project for any <strong>setup.md</strong> links and replace those with a link directly to <strong>getting-started.md</strong>.</p>
+<p>===</p>
+<hr />
+<h2 id="route">route</h2>
+<p>See <a href="#permalink">permalink</a>.</p>
+<hr />
+<h2 id="tags">tags</h2>
+<p>=== tags : <code>list</code></p>
+<p>A list of tags can be added to the metadata at the top of each <code>.md</code> page you would like to tag.</p>
+<p>The <code>tags</code> are meant to describe specific details of the content in that page. Tags are similar to <a href="#category"><code>category</code></a>, although <code>category</code> is meant to describe be a broad grouping of content. A page can belong to multiple (zero to many) categories and have multiple (zero to many) tags.</p>
+<p>If tags are configured in the page metadata, a list of tag links are added to the bottom of the page. See the bottom of this page for a working sample.</p>
+<p>Individual tag summary pages will be automatically generated by Neko at <a href="/tags/guide/"><code>&lt;url&gt;/tags/&lt;tag&gt;</code></a>, plus an additional <a href="/tags/"><code>&lt;url&gt;/tags</code></a> index page which lists all tags and their count used within the project.</p>
+<div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><div class="prose dark:prose-invert max-w-none"><p>Check out the pages of this website configured with the <a href="/tags/guide/" class="no-underline hover:opacity-80 transition-opacity"><span class="inline-flex items-center font-medium bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-300 rounded-md text-sm px-2.5 py-0.5 mr-2">guide</span></a> tag.</p>
+</div></div></div></div><div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">tags configuration</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-Sample !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+tags: [guide]
+---
+# Page title
+
+Some content here.
+</code></pre>
+</div>
+<p>Multiple tags can be added to the list by separating each with a comma <code>,</code>.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">list of tags</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-Sample !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+tags: [guide, config options, installation]
+---
+# Page title
+
+Some content here.
+</code></pre>
+</div>
+<p>A list style syntax is also supported for <code>tags</code>:</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md"><span class="font-mono text-sm text-gray-700 dark:text-gray-300">tags list</span><button class="copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button></div>
+<pre><code class="language-Sample !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+tags:
+  - guide
+  - config options
+  - installation
+---
+</code></pre>
+</div>
+<p>===</p>
+<hr />
+<h2 id="target">target</h2>
+<p>=== target : <code>string</code></p>
+<p>Controls how navigation links to this page behave when clicked in the sidebar navigation tree.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+target: blank
+---
+# External Documentation
+
+This page will open in a new tab when clicked in the navigation.
+</code></pre>
+</div>
+<p>Supported values:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Transformed To</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>blank</code></td>
+<td><code>_blank</code></td>
+<td>Opens the link in a new tab</td>
+</tr>
+<tr>
+<td><code>self</code></td>
+<td><code>_self</code></td>
+<td>Opens the link in the current tab (default)</td>
+</tr>
+<tr>
+<td><code>parent</code></td>
+<td><code>_parent</code></td>
+<td>Opens the link in the parent frame</td>
+</tr>
+<tr>
+<td><code>top</code></td>
+<td><code>_top</code></td>
+<td>Opens the link in the top-most frame</td>
+</tr>
+</tbody>
+</table>
+<p>Neko automatically transforms common values like <code>blank</code> to <code>_blank</code>.</p>
+<p>This setting is useful when a page redirects to an external location, allowing new tabs to open without losing the current documentation context.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+title: API Reference
+redirect: https://api.example.com/docs
+target: blank
+---
+</code></pre>
+</div>
+<p>===</p>
+<hr />
+<h2 id="templating">templating</h2>
+<p>=== templating: <code>boolean</code></p>
+<p>Templating can be disabled on a per-page basis by setting <code>templating: false</code> in the page metadata.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+templating: false
+---
+</code></pre>
+</div>
+<p>===</p>
+<hr />
+<h2 id="title">title</h2>
+<p>=== title : <code>string</code></p>
+<p>The <code>title</code> config instructs Neko to add a primary <code># Page Title</code> to your page, but it is recommended to manually add a <code># Page Title</code> to each of your pages, instead of setting a <code>title</code>.</p>
+<p>As a general rule, the actual content of your page should not be configured in the page metadata.</p>
+<div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><div class="prose dark:prose-invert max-w-none"><p>The <code>title</code> is primarily used to support backwards compatibiity with the <code>.md</code> content style from other older legacy static site generator applications.</p>
+</div></div></div></div>
+<p>The following sample demonstrates setting the <code>title</code> config instead of explicitly using a <code># Page Title</code> to your page.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="!my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+title: Getting Started
+---
+Some content here.
+</code></pre>
+</div>
+<p>Try to avoid using the <code>title</code> config. Please add a real page <code># Page Title</code> to your document. The <code># Page Title</code> will be rendered in HTML as <code>&lt;h1&gt;Page Title&lt;/h1&gt;</code>.</p>
+<p>For example, the sample above should ideally be written as the following instead of using a <code>title</code> config.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="!my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm"># Getting Started
+
+Some content here.
+</code></pre>
+</div>
+<p>===</p>
+<hr />
+<h2 id="toc">toc</h2>
+<p>The <code>toc</code> config contains page options that apply to the right sidebar Table of Contents.</p>
+<h3 id="depth">depth</h3>
+<p>=== depth : <code>string</code>, <code>number</code>
+The heading depth to include in the right Table of Contents.</p>
+<p>The default is <code>2-3</code>.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">toc:
+  depth: 2-3
+</code></pre>
+</div>
+<p>The <code>toc</code> can be configured at the Page or Project levels.</p>
+<p>Configuring the <code>toc</code> at the Page level overrides the Project level settings.</p>
+<p>Acceptable values for <code>depth</code> include:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2</td>
+<td>Include <code>H2</code> headings only</td>
+</tr>
+<tr>
+<td>2-3</td>
+<td><code>default</code> Include <code>H2</code> to <code>H3</code> headings</td>
+</tr>
+<tr>
+<td>1-4</td>
+<td>Include <code>H1</code> to <code>H3</code> headings</td>
+</tr>
+<tr>
+<td>2,3</td>
+<td>Include <code>H2</code> and <code>H3</code> headings</td>
+</tr>
+<tr>
+<td>2,4</td>
+<td>Include <code>H2</code> and <code>H4</code> headings</td>
+</tr>
+<tr>
+<td>1,3-4</td>
+<td>Include <code>H1</code> and <code>H3</code> to <code>H4</code> headings, skip <code>H2</code></td>
+</tr>
+<tr>
+<td>1,2,3,4</td>
+<td>Include <code>H1</code>, <code>H2</code>, <code>H3</code>, and <code>H4</code> headings</td>
+</tr>
+</tbody>
+</table>
+<p>===</p>
+<h3 id="label-1">label</h3>
+<p>=== label : <code>string</code></p>
+<p>A custom label for the top of the Table of Contents column.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">toc:
+  label: On this page
+</code></pre>
+</div>
+<p>===</p>
+<hr />
+<h2 id="visibility">visibility</h2>
+<p>=== visibility : <code>public|hidden|protected|private</code></p>
+<p>Configure the visibility of the page to be <code>public</code>, <code>hidden</code>, <code>protected</code>, or <code>private</code>. Default is <code>public</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th style="text-align: center;">Navigation</th>
+<th style="text-align: center;">Search</th>
+<th style="text-align: center;">Password</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>public</code></td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">🚫</td>
+<td>The page is public and visible in the main navigation. A password is not required to view this page.</td>
+</tr>
+<tr>
+<td><a href="#hidden"><code>hidden</code></a></td>
+<td style="text-align: center;">🚫</td>
+<td style="text-align: center;">🚫</td>
+<td style="text-align: center;">🚫</td>
+<td>The page will not be included in the navigation or search results, and a password is NOT required to view the page. This visibility is helpful for sharing a draft page before exposing the page to be public (<a href="/samples/hidden.md">sample</a>).</td>
+</tr>
+<tr>
+<td><a href="#protected"><code>protected</code></a></td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">🚫</td>
+<td style="text-align: center;">✅</td>
+<td>The page is added to the public navigation but requires a password to access the content of the page (<a href="/samples/protected.md">sample</a> password: <code>test</code>).</td>
+</tr>
+<tr>
+<td><a href="#private"><code>private</code></a></td>
+<td style="text-align: center;">🚫</td>
+<td style="text-align: center;">🚫</td>
+<td style="text-align: center;">✅</td>
+<td>The page is hidden, not added to the navigation, and a password is required for access (<a href="/samples/private.md">sample</a> password: <code>test</code>).</td>
+</tr>
+</tbody>
+</table>
+<p>===</p>
+<h3 id="hidden">hidden</h3>
+<p>With <code>hidden</code>, the page will still be created and added to the final website, but it is <em>hidden</em>. You can still link to the page or share a link to the page.</p>
+<p>Neko would ensure no automatically generated links or references to the hidden page are created. If on a public page, a link to a hidden page is made by an author, the link will work and the hidden page will be visible.</p>
+<p>The following <a href="/samples/hidden.md">sample</a> demonstrates hiding a page:</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+visibility: hidden
+---
+# A hidden page
+
+This page will be hidden from the menu and search results.
+</code></pre>
+</div>
+<p>The History <i class="fi fi-rr-time-past align-middle"></i> component will continue to function as normal. Any hidden page visited would still be logged in the history, although that history is only available to the visitor.</p>
+<p>Setting <code>visibility: hidden</code> on a page is a good way to create a <em>draft</em> or <em>secret</em> page that you do not want included in the navigation, but you still want to share a link to the page for others to view if they have the link.</p>
+<h3 id="protected">protected</h3>
+<p>To create a protected page, add <code>visibility: protected</code> and then set the password for the project using the <code>--password</code> flag.</p>
+<p>{{ include &quot;snippets/password-notice.md&quot; }}</p>
+<p>The following <a href="/samples/protected.md">sample</a> (password: test) demonstrates creating a protected page:</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+visibility: protected
+---
+# A protected page
+
+This page will be visible in the main navigation, but will require a password to view the page.
+</code></pre>
+</div>
+<p>Then call either of the following commands to set the password for the project:</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="!my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">neko start --password &lt;your-password&gt;
+neko build --password &lt;your-password&gt;
+</code></pre>
+</div>
+<p>An entire folder can be set to <code>protected</code> by adding an <code>index.yml</code> file with the following configuration to the root of the folder. See the <a href="folder">folder</a> docs for additional examples.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">visibility: protected
+</code></pre>
+</div><h3 id="private">private</h3>
+<p>To create a private page, add <code>visibility: private</code> and then set the password for the project using the <code>--password</code> flag.</p>
+<p>{{ include &quot;snippets/password-notice.md&quot; }}</p>
+<p>The following <a href="/samples/private.md">sample</a> (password: test) demonstrates creating a private page:</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">---
+visibility: private
+---
+# A private page
+
+This page will not be visible in the main navigation and will require a password to view the page.
+</code></pre>
+</div>
+<p>Then call either of the following commands to set the password for the project:</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="!my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">neko start --password &lt;your-password&gt;
+neko build --password &lt;your-password&gt;
+</code></pre>
+</div><div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><div class="prose dark:prose-invert max-w-none"><p>For <code>hidden</code> and <code>private</code> pages, Neko does not provide a link to the page, but it still uses the same naming convention as all other pages. For instance, if your site is hosted at <code>https://example.com</code> and the page was called <code>my-hidden-page.md</code>, the URL would be <code>https://example.com/my-hidden-page/</code>.</p>
+</div></div></div></div>
+<p>An entire folder can be set to <code>private</code> by adding an <code>index.yml</code> file with the following configuration to the root of the folder. See the <a href="folder">folder</a> docs for additional examples.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">visibility: private
+</code></pre>
+</div>
+                    <div class="mt-8 pt-8 border-t border-gray-200 dark:border-gray-800">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Referenced by</h3>
+                        <ul class="space-y-2">
+                            <li><a href="/faq" class="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2"><i class="fi fi-rr-arrow-small-right"></i> faq</a></li>
+                            <li><a href="/components/icon" class="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2"><i class="fi fi-rr-arrow-small-right"></i> icon</a></li>
+                            <li><a href="/configuration/folder" class="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2"><i class="fi fi-rr-arrow-small-right"></i> folder</a></li>
+                        </ul>
+                    </div>
+                    <footer class="mt-12 py-6 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400 flex flex-col md:flex-row justify-between items-center not-prose">
+                        <div>&copy; 2026 Neko. All rights reserved.</div>
+                        <div class="mt-2 md:mt-0">
+                            <a href="https://github.com/theolivenbaum/taildocs" target="_blank" rel="noopener noreferrer" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1">
+                                <i class="fi fi-rr-edit"></i> Edit on GitHub
+                            </a>
+                        </div>
+                    </footer>
+                </div>
+            </main>
+            <aside class="w-64 hidden xl:block shrink-0 overflow-y-auto border-l border-gray-200 dark:border-gray-800 p-6">
+                <div class="sticky top-0">
+                    <h5 class="text-xs font-semibold mb-4 text-gray-900 dark:text-gray-100 uppercase tracking-wider">On this page</h5>
+                    <ul class="space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800 relative" id="toc-list">
+                        <div id="toc-highlight" class="absolute left-0 border-l-2 border-blue-600 dark:border-blue-400 transition-all duration-200 ease-in-out -ml-px" style="top: 0; height: 0; opacity: 0;"></div>
+                        <li><a href="#default-pages" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="default-pages">Default pages</a></li>
+                        <li><a href="#separate.yml-file" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="separate.yml-file">Separate .yml file</a></li>
+                        <li><a href="#author" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="author">author</a></li>
+                        <li><a href="#avatar" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="avatar">avatar</a></li>
+                        <li><a href="#email" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="email">email</a></li>
+                        <li><a href="#link" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="link">link</a></li>
+                        <li><a href="#name" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="name">name</a></li>
+                        <li><a href="#backlinks" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="backlinks">backlinks</a></li>
+                        <li><a href="#enabled" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="enabled">enabled</a></li>
+                        <li><a href="#backlinks-title" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="backlinks-title">title</a></li>
+                        <li><a href="#maxresults" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="maxresults">maxResults</a></li>
+                        <li><a href="#breadcrumb" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="breadcrumb">breadcrumb</a></li>
+                        <li><a href="#category" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="category">category</a></li>
+                        <li><a href="#date" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="date">date</a></li>
+                        <li><a href="#expanded" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="expanded">expanded</a></li>
+                        <li><a href="#icon" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="icon">icon</a></li>
+                        <li><a href="#image" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="image">image</a></li>
+                        <li><a href="#local-path" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="local-path">Local path</a></li>
+                        <li><a href="#external-image" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="external-image">External image</a></li>
+                        <li><a href="#label" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="label">label</a></li>
+                        <li><a href="#layout" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="layout">layout</a></li>
+                        <li><a href="#meta" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="meta">meta</a></li>
+                        <li><a href="#meta-title" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="meta-title">title</a></li>
+                        <li><a href="#description" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="description">description</a></li>
+                        <li><a href="#nav" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="nav">nav</a></li>
+                        <li><a href="#nav-badge" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="nav-badge">badge</a></li>
+                        <li><a href="#nav-mode" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="nav-mode">mode</a></li>
+                        <li><a href="#nextprev" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="nextprev">nextprev</a></li>
+                        <li><a href="#nextprev-mode" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="nextprev-mode">mode</a></li>
+                        <li><a href="#order" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="order">order</a></li>
+                        <li><a href="#order-by-number" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="order-by-number">Order by number</a></li>
+                        <li><a href="#order-by-alpha" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="order-by-alpha">Order by alpha</a></li>
+                        <li><a href="#order-by-v" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="order-by-v">Order by `v</a></li>
+                        <li><a href="#permalink" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="permalink">permalink</a></li>
+                        <li><a href="#redirect" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="redirect">redirect</a></li>
+                        <li><a href="#route" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="route">route</a></li>
+                        <li><a href="#tags" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="tags">tags</a></li>
+                        <li><a href="#target" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="target">target</a></li>
+                        <li><a href="#templating" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="templating">templating</a></li>
+                        <li><a href="#title" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="title">title</a></li>
+                        <li><a href="#toc" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="toc">toc</a></li>
+                        <li><a href="#depth" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="depth">depth</a></li>
+                        <li><a href="#label-1" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="label-1">label</a></li>
+                        <li><a href="#visibility" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="visibility">visibility</a></li>
+                        <li><a href="#hidden" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="hidden">hidden</a></li>
+                        <li><a href="#protected" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="protected">protected</a></li>
+                        <li><a href="#private" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="private">private</a></li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
+    </div>
+    <script>
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+        function toggleMobileMenu() {
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            if (isClosed) {
+                sidebar.classList.remove('-translate-x-full');
+                sidebarOverlay.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+            sidebarOverlay.addEventListener('click', toggleMobileMenu);
+        }
+        if (sidebar) {
+            const scrollKey = 'neko-sidebar-scroll';
+            const timeKey = 'neko-sidebar-scroll-time';
+            const savedScroll = localStorage.getItem(scrollKey);
+            const savedTime = localStorage.getItem(timeKey);
+            if (savedScroll && savedTime) {
+                const now = new Date().getTime();
+                if (now - parseInt(savedTime) < 60000) {
+                    sidebar.scrollTop = parseInt(savedScroll);
+                }
+            }
+            let timeout;
+            sidebar.addEventListener('scroll', () => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    localStorage.setItem(scrollKey, sidebar.scrollTop);
+                    localStorage.setItem(timeKey, new Date().getTime());
+                }, 100);
+            });
+        }
+        const sidebarFilter = document.getElementById('sidebar-filter');
+        const sidebarList = document.getElementById('sidebar-list');
+        if (sidebarFilter && sidebarList) {
+            sidebarFilter.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                // Expand all details when searching
+                const details = sidebarList.querySelectorAll('details');
+                if (term) details.forEach(d => d.open = true);
+
+                const items = sidebarList.querySelectorAll('li, summary');
+                items.forEach(item => {
+                    // Avoid filtering the container li of nested lists, just filter leaf nodes or summary text
+                    if (item.tagName === 'LI' && item.querySelector('details')) return;
+
+                    const text = item.textContent.toLowerCase();
+                    if (text.includes(term)) {
+                        item.classList.remove('hidden');
+                        // Make sure parent is visible
+                        let parent = item.parentElement;
+                        while(parent && parent !== sidebarList) {
+                            parent.classList.remove('hidden');
+                            if (parent.tagName === 'DETAILS') parent.open = true;
+                            parent = parent.parentElement;
+                        }
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+            });
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            let currentPath = window.location.pathname;
+            if (currentPath.endsWith('.html')) currentPath = currentPath.substring(0, currentPath.length - 5);
+            const sidebarLinks = document.querySelectorAll('#sidebar-list a');
+            sidebarLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href === currentPath || (href !== '/' && currentPath.startsWith(href) && (href.endsWith('/') || currentPath.charAt(href.length) === '/'))) {
+                    link.classList.add('bg-blue-50', 'dark:bg-blue-900', 'text-blue-700', 'dark:text-blue-300', 'font-medium');
+                    link.classList.remove('text-gray-700', 'dark:text-gray-200');
+                    // Open parent details
+                    let parent = link.parentElement;
+                    while (parent && parent.id !== 'sidebar-list') {
+                        if (parent.tagName === 'DETAILS') {
+                            parent.open = true;
+                        }
+                        parent = parent.parentElement;
+                    }
+                }
+            });
+        });
+        const tocLinks = document.querySelectorAll('.toc-link');
+        const sections = [];
+        tocLinks.forEach(link => {
+            const id = link.getAttribute('data-id');
+            const section = document.getElementById(id);
+            if (section) sections.push(section);
+        });
+
+        const visibleSections = new Set();
+        const highlightLine = document.getElementById('toc-highlight');
+        const tocList = document.getElementById('toc-list');
+
+        function updateTocHighlight() {
+            if (!highlightLine || !tocList) return;
+
+            // Clear all highlights
+            document.querySelectorAll('.toc-link').forEach(link => {
+                link.classList.remove('text-blue-600', 'dark:text-blue-400', 'font-medium');
+            });
+
+            let activeLinks = Array.from(document.querySelectorAll('.toc-link')).filter(link =>
+                visibleSections.has(link.getAttribute('data-id'))
+            );
+
+            if (activeLinks.length === 0) {
+                // Fallback to last passed section
+                const passedSections = sections.filter(section => {
+                    const rect = section.getBoundingClientRect();
+                    return rect.top < 100;
+                });
+
+                if (passedSections.length > 0) {
+                    const lastPassedSection = passedSections[passedSections.length - 1];
+                    const id = lastPassedSection.id;
+                    const link = document.querySelector(`.toc-link[data-id="${id}"]`);
+                    if (link) {
+                        activeLinks = [link];
+                    }
+                }
+            }
+
+            if (activeLinks.length === 0) {
+                highlightLine.style.opacity = '0';
+                return;
+            }
+
+            // Apply highlight
+            activeLinks.forEach(link => {
+                link.classList.add('text-blue-600', 'dark:text-blue-400', 'font-medium');
+            });
+
+            const firstLink = activeLinks[0];
+            const lastLink = activeLinks[activeLinks.length - 1];
+
+            const listRect = tocList.getBoundingClientRect();
+            const firstRect = firstLink.getBoundingClientRect();
+            const lastRect = lastLink.getBoundingClientRect();
+
+            const top = firstRect.top - listRect.top;
+            const height = lastRect.bottom - firstRect.top;
+
+            highlightLine.style.top = `${top}px`;
+            highlightLine.style.height = `${height}px`;
+            highlightLine.style.opacity = '1';
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const id = entry.target.id;
+                if (entry.isIntersecting) {
+                    visibleSections.add(id);
+                } else {
+                    visibleSections.delete(id);
+                }
+            });
+            requestAnimationFrame(updateTocHighlight);
+        }, {
+            root: document.getElementById('main-scroll'),
+            rootMargin: '0px 0px 0px 0px',
+            threshold: 0
+        });
+        sections.forEach(section => observer.observe(section));
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const highlightLink = document.getElementById('highlight-theme');
+        const darkHref = '/assets/highlight/tokyo-night-dark.min.css';
+        const lightHref = '/assets/highlight/tokyo-night-light.min.css';
+
+        function setTheme(isDark) {
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                highlightLink.href = darkHref;
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                highlightLink.href = lightHref;
+            }
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            setTheme(!document.documentElement.classList.contains('dark'));
+        });
+
+        if (document.documentElement.classList.contains('dark')) {
+            highlightLink.href = darkHref;
+        } else {
+            highlightLink.href = lightHref;
+        }
+        function openTab(evt, group, tabId) {
+            var contents = document.querySelectorAll(`[id^='tab-${group}-']`);
+            contents.forEach(c => c.classList.add('hidden'));
+            var buttons = evt.currentTarget.parentElement.children;
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'font-medium');
+                buttons[i].classList.add('border-transparent', 'hover:text-gray-700', 'text-gray-500');
+            }
+            document.getElementById(tabId).classList.remove('hidden');
+            evt.currentTarget.classList.remove('border-transparent', 'hover:text-gray-700', 'text-gray-500');
+            evt.currentTarget.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'font-medium');
+        }
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.copy-btn');
+            if (!btn) return;
+            const group = btn.closest('.group');
+            const codeEl = group.querySelector('code');
+            let text = "";
+            if (codeEl.querySelector('.hljs-ln')) {
+                codeEl.querySelectorAll('.hljs-ln-code').forEach(td => text += td.innerText + "\n");
+            } else {
+                text = codeEl.innerText;
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = btn.querySelector('i');
+                const originalClass = icon.className;
+                icon.className = 'fi fi-rr-check';
+                setTimeout(() => icon.className = originalClass, 2000);
+            });
+        });
+        document.addEventListener('DOMContentLoaded', (event) => {
+            hljs.highlightAll();
+            hljs.initLineNumbersOnLoad({ singleLine: true });
+
+            // Anchor Links
+            document.querySelectorAll('h2, h3, h4, h5, h6').forEach(heading => {
+                if (heading.id) {
+                    heading.classList.add('group', 'relative');
+                    const link = document.createElement('a');
+                    link.href = '#' + heading.id;
+                    link.className = 'absolute -left-6 top-0 bottom-0 flex items-center justify-center text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 no-underline';
+                    link.innerHTML = '<i class="fi fi-rr-hashtag"></i>';
+                    link.setAttribute('aria-label', 'Anchor');
+                    heading.prepend(link);
+                }
+            });
+        });
+        window.addEventListener('load', function() {
+            document.querySelectorAll('pre code[data-highlight]').forEach(block => {
+                const highlightRange = block.getAttribute('data-highlight');
+                if (!highlightRange) return;
+                const linesToHighlight = new Set();
+                highlightRange.split(',').forEach(part => {
+                    if (part.includes('-')) {
+                        const [start, end] = part.split('-').map(Number);
+                        for (let i = start; i <= end; i++) linesToHighlight.add(i);
+                    } else {
+                        linesToHighlight.add(Number(part));
+                    }
+                });
+                const table = block.querySelector('.hljs-ln');
+                if (table) {
+                    const rows = table.querySelectorAll('tr');
+                    rows.forEach((row, index) => {
+                        if (linesToHighlight.has(index + 1)) {
+                            row.classList.add('bg-yellow-100', 'dark:bg-yellow-900', 'bg-opacity-20', 'dark:bg-opacity-20');
+                            row.querySelectorAll('td').forEach(td => td.style.backgroundColor = 'inherit');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -4,6 +4,7 @@ url: localhost
 
 branding:
   title: Neko
+  logo: /assets/neko-logo.png
   repository: https://github.com/theolivenbaum/taildocs
 
 links:

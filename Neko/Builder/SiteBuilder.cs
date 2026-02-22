@@ -90,7 +90,7 @@ namespace Neko.Builder
             {
                 Console.WriteLine($"Parsing {Path.GetFileName(file)}...");
                 var markdown = await File.ReadAllTextAsync(file);
-                var doc = parser.Parse(markdown);
+                var doc = parser.Parse(markdown, file, _inputDirectory);
                 var relativePath = Path.GetRelativePath(_inputDirectory, file);
                 parsedDocs.Add((file, relativePath, doc, markdown));
             }

@@ -74,9 +74,55 @@ namespace Neko.Builder
                 .Build();
         }
 
-        public ParsedDocument Parse(string markdown)
+        public ParsedDocument Parse(string markdown, string filePath = null, string rootDirectory = null)
         {
             var document = Markdig.Markdown.Parse(markdown, _pipeline);
+
+            // Asset Resolution
+            if (!string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(rootDirectory) && File.Exists(filePath))
+            {
+                var currentDir = Path.GetDirectoryName(Path.GetFullPath(filePath));
+                var rootDir = Path.GetFullPath(rootDirectory);
+
+                foreach (var link in document.Descendants<LinkInline>())
+                {
+                    // Only process relative image URLs
+                    if (link.IsImage && !string.IsNullOrEmpty(link.Url) && !link.Url.Contains("://") && !link.Url.StartsWith("/") && !link.Url.StartsWith("#"))
+                    {
+                        var url = link.Url;
+                        var targetPath = Path.Combine(currentDir, url);
+
+                        // If file exists as is, no need to resolve
+                        if (File.Exists(targetPath)) continue;
+
+                        // Try to resolve in assets folders up the tree
+                        var fileName = Path.GetFileName(url);
+                        var searchDir = currentDir;
+                        string foundPath = null;
+
+                        while (searchDir.StartsWith(rootDir, System.StringComparison.OrdinalIgnoreCase))
+                        {
+                            var assetPath = Path.Combine(searchDir, "assets", fileName);
+                            if (File.Exists(assetPath))
+                            {
+                                foundPath = assetPath;
+                                break;
+                            }
+
+                            var parent = Directory.GetParent(searchDir);
+                            if (parent == null) break;
+                            searchDir = parent.FullName;
+                        }
+
+                        if (foundPath != null)
+                        {
+                            // Calculate relative path from currentDir to foundPath
+                            var relativePath = Path.GetRelativePath(currentDir, foundPath).Replace("\\", "/");
+                            link.Url = relativePath;
+                        }
+                    }
+                }
+            }
 
             // Extract FrontMatter
             var frontMatterBlock = document.Descendants<YamlFrontMatterBlock>().FirstOrDefault();
