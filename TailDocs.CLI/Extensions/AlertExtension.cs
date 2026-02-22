@@ -128,7 +128,7 @@ namespace TailDocs.CLI.Extensions
         {
             if (string.IsNullOrEmpty(v)) return false;
             var l = v.ToLower();
-            return l == "primary" || l == "secondary" || l == "success" || l == "danger" || l == "warning" || l == "info" || l == "light" || l == "dark" || l == "tip" || l == "question" || l == "ghost" || l == "contrast";
+            return l == "primary" || l == "secondary" || l == "success" || l == "danger" || l == "warning" || l == "info" || l == "light" || l == "dark" || l == "tip" || l == "question" || l == "ghost" || l == "contrast" || l == "note" || l == "important" || l == "caution";
         }
     }
 
@@ -150,6 +150,7 @@ namespace TailDocs.CLI.Extensions
             {
                 case "primary":
                 case "info":
+                case "note":
                     bgClass = "bg-blue-50 dark:bg-blue-900/20";
                     borderColor = "border-blue-500";
                     titleColor = "text-blue-800 dark:text-blue-200";
@@ -172,6 +173,7 @@ namespace TailDocs.CLI.Extensions
                     icon = "exclamation";
                     break;
                 case "danger":
+                case "caution":
                     bgClass = "bg-red-50 dark:bg-red-900/20";
                     borderColor = "border-red-500";
                     titleColor = "text-red-800 dark:text-red-200";
@@ -179,6 +181,7 @@ namespace TailDocs.CLI.Extensions
                     icon = "cross-circle";
                     break;
                 case "question":
+                case "important":
                     bgClass = "bg-purple-50 dark:bg-purple-900/20";
                     borderColor = "border-purple-500";
                     titleColor = "text-purple-800 dark:text-purple-200";

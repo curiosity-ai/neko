@@ -26,7 +26,7 @@ namespace TailDocs.CLI.Extensions
                     title = "Tip";
                     break;
                 case "IMPORTANT":
-                    variant = "primary"; // Or maybe purple?
+                    variant = "important";
                     title = "Important";
                     break;
                 case "WARNING":
@@ -34,7 +34,7 @@ namespace TailDocs.CLI.Extensions
                     title = "Warning";
                     break;
                 case "CAUTION":
-                    variant = "danger";
+                    variant = "caution";
                     title = "Caution";
                     break;
                 default:
@@ -77,11 +77,19 @@ namespace TailDocs.CLI.Extensions
                     icon = "exclamation";
                     break;
                 case "danger":
+                case "caution":
                     bgClass = "bg-red-50 dark:bg-red-900/20";
                     borderColor = "border-red-500";
                     titleColor = "text-red-800 dark:text-red-200";
                     iconColor = "text-red-500";
                     icon = "cross-circle";
+                    break;
+                case "important":
+                    bgClass = "bg-purple-50 dark:bg-purple-900/20";
+                    borderColor = "border-purple-500";
+                    titleColor = "text-purple-800 dark:text-purple-200";
+                    iconColor = "text-purple-500";
+                    icon = "question";
                     break;
             }
 
