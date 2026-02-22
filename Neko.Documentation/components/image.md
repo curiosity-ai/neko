@@ -15,10 +15,10 @@ Checkout the [Markdown Guide](https://www.markdownguide.org/basic-syntax/#images
 To add an image to your document, a similar syntax to links is used but prefixed with an exclamation mark `!`.
 
 ```md
-![](neko-logo.png)
+![](../assets/neko-logo.png)
 ```
 
-![](neko-logo.png)
+![](../assets/neko-logo.png)
 
 ---
 
@@ -27,10 +27,10 @@ To add an image to your document, a similar syntax to links is used but prefixed
 An optional caption below the image can be set by adding your caption text between the `[]` brackets. The following sample demonstrates adding a caption:
 
 ```md
-![This is an optional caption](neko-logo.png)
+![This is an optional caption](../assets/neko-logo.png)
 ```
 
-![This is an optional caption](neko-logo.png)
+![This is an optional caption](../assets/neko-logo.png)
 
 ---
 
@@ -39,12 +39,12 @@ An optional caption below the image can be set by adding your caption text betwe
 An optional `title` attribute for the resulting HTML `<img>` element can be set by adding the title text after the link. The title can be used differently within different browsers, but is typically shown as a tooltip when mouse pointer is held over the image. The following sample demonstrates adding a title:
 
 ```md
-![This is an optional caption](neko-logo.png "This is an optional title")
+![This is an optional caption](../assets/neko-logo.png "This is an optional title")
 ```
 
 Hold your mouse pointer over the image to see the title.
 
-![This is an optional caption](neko-logo.png "This is an optional title")
+![This is an optional caption](../assets/neko-logo.png "This is an optional title")
 
 ---
 
@@ -57,18 +57,18 @@ You can link to an external (see outbound) location or any page within your proj
 The following demonstrates adding an outbound link to an image:
 
 ```md
-[![neko-logo.png](neko-logo.png)](https://example.com)
+[![neko-logo.png](../assets/neko-logo.png)](https://example.com)
 ```
 
-[![neko-logo.png](neko-logo.png)](https://example.com)
+[![neko-logo.png](../assets/neko-logo.png)](https://example.com)
 
 The following demonstrates adding an outbound link to another page:
 
 ```md
-[![neko-logo.png](neko-logo.png)](/guides/getting-started.md)
+[![neko-logo.png](../assets/neko-logo.png)](/guides/getting-started.md)
 ```
 
-[![neko-logo.png](neko-logo.png)](/guides/getting-started.md)
+[![neko-logo.png](../assets/neko-logo.png)](/guides/getting-started.md)
 
 ---
 
@@ -81,20 +81,20 @@ You can control the size of your images by specifying custom dimensions using th
 To set both width and height, use the format `widthxheight` after the pipe separator:
 
 ```md
-![Sample Image|300x200](neko-logo.png)
+![Sample Image|300x200](../assets/neko-logo.png)
 ```
 
-![Sample Image|300x200](neko-logo.png)
+![Sample Image|300x200](../assets/neko-logo.png)
 
 ### Setting width only
 
 To set only the width, specify a single number after the pipe separator. The image will automatically scale its height to maintain the original aspect ratio:
 
 ```md
-![Sample Image|300](neko-logo.png)
+![Sample Image|300](../assets/neko-logo.png)
 ```
 
-![Sample Image|300](neko-logo.png)
+![Sample Image|300](../assets/neko-logo.png)
 
 !!!
 The dimensions are specified in pixels. For best results, use values that maintain the image's original aspect ratio to prevent distortion.
@@ -111,68 +111,68 @@ Neko allows you to add custom HTML attributes to your images using a simple curl
 Add a unique identifier to your image for styling or JavaScript targeting. The `id` attribute is prefixed with a `#` symbol.
 
 ```md
-![](neko-logo.png){#custom-id}
+![](../assets/neko-logo.png){#custom-id}
 
 // Creates the following HTML
 <img src="neko-logo.png" id="custom-id">
 ```
 
-![](neko-logo.png){#custom-id}
+![](../assets/neko-logo.png){#custom-id}
 
 ### Custom CSS class
 
 Apply CSS classes to your image for styling. Class names are prefixed with a `.` dot. You can add multiple classes by separating them with spaces.
 
 ```md
-![](neko-logo.png){.rounded-lg}
+![](../assets/neko-logo.png){.rounded-lg}
 
 // Creates the following HTML
 <img src="neko-logo.png" class="rounded-lg">
 ```
 
-![](neko-logo.png){.rounded-lg}
+![](../assets/neko-logo.png){.rounded-lg}
 
 ### Custom width or height
 
 Set specific dimensions for your image using the `width` and `height` attributes. Values can be specified in pixels (px) or other CSS units.
 
 ```md
-![](neko-logo.png){width="300" height="200"}
+![](../assets/neko-logo.png){width="300" height="200"}
 
 // Creates the following HTML
 <img src="neko-logo.png" width="300" height="200">
 ```
 
-![](neko-logo.png){width="300" height="200"}
+![](../assets/neko-logo.png){width="300" height="200"}
 
 ### Custom CSS class and width
 
 Combine CSS classes with specific dimensions to create perfectly styled images.
 
 ```md
-![](neko-logo.png){.rounded-lg width="300"}
+![](../assets/neko-logo.png){.rounded-lg width="300"}
 
 // Creates the following HTML
 <img src="neko-logo.png" class="rounded-lg" width="300">
 ```
 
-![](neko-logo.png){.rounded-lg width="300"}
+![](../assets/neko-logo.png){.rounded-lg width="300"}
 
 ### Custom data attributes
 
 Add custom data attributes to your images for JavaScript functionality or additional metadata. Data attributes are created using the `data-*` naming convention.
 
 ```md
-![](neko-logo.png){data-location="Korea"}
+![](../assets/neko-logo.png){data-location="Korea"}
 
 // Creates the following HTML
 <img src="neko-logo.png" data-location="Korea" />
 ```
 
-![](neko-logo.png){data-location="Korea"}
+![](../assets/neko-logo.png){data-location="Korea"}
 
 !!!
-You can combine multiple attributes in a single set of curly braces. For example: `![](neko-logo.png){.rounded-lg width="300" data-location="Korea"}`.
+You can combine multiple attributes in a single set of curly braces. For example: `![](../assets/neko-logo.png){.rounded-lg width="300" data-location="Korea"}`.
 !!!
 
 ---

@@ -31,8 +31,9 @@ namespace Neko.Builder
             {
                 _config = ConfigParser.Parse(configPath);
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"ERROR parsing config: {ex}");
                 // Fallback if config is missing or invalid?
                 // ConfigParser usually handles missing file by returning default config.
                 _config = new NekoConfig();

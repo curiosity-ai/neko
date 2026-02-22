@@ -30,15 +30,40 @@ namespace Neko.Builder
             sb.AppendLine("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
             sb.AppendLine($"    <title>{title}</title>");
 
-            if (!string.IsNullOrEmpty(document.FrontMatter.Description))
+            if (!string.IsNullOrEmpty(_config.Branding.Favicon))
             {
-                sb.AppendLine($"    <meta name=\"description\" content=\"{document.FrontMatter.Description}\">");
-                sb.AppendLine($"    <meta property=\"og:description\" content=\"{document.FrontMatter.Description}\">");
+                sb.AppendLine($"    <link rel=\"icon\" href=\"{_config.Branding.Favicon}\">");
             }
-            if (!string.IsNullOrEmpty(document.FrontMatter.Title))
+
+            var description = !string.IsNullOrEmpty(document.FrontMatter.Description)
+                ? document.FrontMatter.Description
+                : _config.Meta.Description;
+
+            if (!string.IsNullOrEmpty(description))
             {
-                sb.AppendLine($"    <meta property=\"og:title\" content=\"{document.FrontMatter.Title} - {_config.Branding.Title}\">");
+                sb.AppendLine($"    <meta name=\"description\" content=\"{description}\">");
+                sb.AppendLine($"    <meta property=\"og:description\" content=\"{description}\">");
+                sb.AppendLine($"    <meta name=\"twitter:description\" content=\"{description}\">");
             }
+
+            if (!string.IsNullOrEmpty(_config.Meta.Keywords)) sb.AppendLine($"    <meta name=\"keywords\" content=\"{_config.Meta.Keywords}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.Author)) sb.AppendLine($"    <meta name=\"author\" content=\"{_config.Meta.Author}\">");
+
+            var pageTitle = !string.IsNullOrEmpty(document.FrontMatter.Title) ? $"{document.FrontMatter.Title} - {_config.Branding.Title}" : _config.Branding.Title;
+            sb.AppendLine($"    <meta property=\"og:title\" content=\"{pageTitle}\">");
+            sb.AppendLine($"    <meta name=\"twitter:title\" content=\"{pageTitle}\">");
+
+            if (!string.IsNullOrEmpty(_config.Meta.Type)) sb.AppendLine($"    <meta property=\"og:type\" content=\"{_config.Meta.Type}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.Url)) sb.AppendLine($"    <meta property=\"og:url\" content=\"{_config.Meta.Url}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.Image))
+            {
+                sb.AppendLine($"    <meta property=\"og:image\" content=\"{_config.Meta.Image}\">");
+                sb.AppendLine($"    <meta name=\"twitter:image\" content=\"{_config.Meta.Image}\">");
+            }
+
+            if (!string.IsNullOrEmpty(_config.Meta.TwitterCard)) sb.AppendLine($"    <meta name=\"twitter:card\" content=\"{_config.Meta.TwitterCard}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.TwitterSite)) sb.AppendLine($"    <meta name=\"twitter:site\" content=\"{_config.Meta.TwitterSite}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.TwitterCreator)) sb.AppendLine($"    <meta name=\"twitter:creator\" content=\"{_config.Meta.TwitterCreator}\">");
 
             // Tailwind CSS
             // Use CDN to ensure plugins (like typography) are available.
@@ -114,6 +139,10 @@ namespace Neko.Builder
                 {
                     sb.AppendLine($"            <img src=\"{_config.Branding.Logo}\" class=\"h-8 w-auto hidden dark:block\">");
                 }
+            }
+            else if (!string.IsNullOrEmpty(_config.Branding.Icon))
+            {
+                sb.AppendLine($"            <i class=\"{_config.Branding.Icon} text-2xl text-blue-600 dark:text-blue-400\"></i>");
             }
             sb.AppendLine($"            <a href=\"/index\" class=\"font-bold text-xl hover:text-blue-600 transition-colors\">{_config.Branding.Title}</a>");
             sb.AppendLine("        </div>");
