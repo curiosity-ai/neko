@@ -1,15 +1,17 @@
 ---
-icon: mark-github
+icon: smile
 ---
-# Octicons
+# UIcons
 
-[Octicons](https://primer.github.io/octicons/) can be used with the [Icon](icon.md) component and several other components, including the [Badge](badge.md) and [Button](button.md).
+[UIcons](https://www.flaticon.com/uicons) by Flaticon are the official icon set for TailDocs. Specifically, the **Regular Rounded** style is included by default.
 
-## Samples
+## Usage
+
+You can use UIcons in various components by specifying the icon name. The full list of available icons can be found on the [Flaticon UIcons website](https://www.flaticon.com/uicons).
 
 ### Component
 
-For the [Icon](icon.md) component, the icon is specified using the syntax `:icon-shortcode:`, where `shortcode` is the name of the icon (found in the table below).
+For the [Icon](icon.md) component, the icon is specified using the syntax `:icon-shortcode:`, where `shortcode` is the name of the icon.
 
 For example, use the code `:icon-rocket:` for a :icon-rocket: icon.
 
@@ -28,7 +30,7 @@ When an icon is specified within the [Page](../configuration/page.md) or [Projec
 
 The following sample demonstrates setting a Page [icon](../configuration/page.md/#icon) to a :icon-rocket:.
 
-```
+```yaml
 ---
 icon: rocket
 ---
@@ -37,11 +39,6 @@ icon: rocket
 This is a sample page with a :icon-rocket: icon.
 ```
 
-## New icons
+## Icon Search
 
-The following [!badge NEW|info] icons are included in TailDocs **v{{ version }}**:
-
-
-## All icons
-
-As of v{{ version }}, there are {{ octicons.size }} [Octicons](https://primer.github.io/octicons/) supported and more being added with each new release.
+You can search for available icons on the [Flaticon UIcons website](https://www.flaticon.com/uicons). Note that only the **Regular Rounded** style is currently included.
