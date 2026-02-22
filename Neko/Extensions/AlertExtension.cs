@@ -12,6 +12,7 @@ namespace Neko.Extensions
     {
         public string Variant { get; set; } = "primary";
         public string Title { get; set; }
+        public int FenceLength { get; set; }
 
         public AlertBlock(BlockParser parser) : base(parser)
         {
@@ -33,72 +34,75 @@ namespace Neko.Extensions
             }
 
             var slice = processor.Line;
-            // Check for !!! at start
-            if (slice.Match("!!!"))
+            int count = 0;
+            var c = slice.CurrentChar;
+            while (c == '!')
             {
-                var start = slice.Start;
-
-                // Advance the slice past "!!!"
-                slice.Start += 3;
-
-                string variant = "primary";
-                string title = null;
-
-                // Skip spaces
-                slice.TrimStart();
-
-                var variantStart = slice.Start;
-
-                // Read first word (potential variant)
-                while (!slice.IsEmpty && !IsSpace(slice.CurrentChar))
-                {
-                    slice.NextChar();
-                }
-
-                string firstWord = null;
-                if (slice.Start > variantStart)
-                {
-                    firstWord = slice.Text.Substring(variantStart, slice.Start - variantStart);
-                }
-
-                if (IsKnownVariant(firstWord))
-                {
-                    variant = firstWord;
-                    // The rest is title
-                    slice.TrimStart();
-                    if (!slice.IsEmpty)
-                    {
-                        title = slice.ToString();
-                    }
-                }
-                else
-                {
-                    variant = "primary";
-                    // Fallback: title is everything after !!! (excluding initial whitespace)
-                    // We need to reconstruct the title because we might have consumed part of it as "firstWord"
-
-                    // Reset to variantStart (which is after initial spaces)
-                    var lineEnd = slice.End;
-                    if (variantStart <= lineEnd)
-                    {
-                        title = slice.Text.Substring(variantStart, lineEnd - variantStart + 1);
-                    }
-                }
-
-                var block = new AlertBlock(this)
-                {
-                    Variant = variant,
-                    Title = title,
-                    Column = processor.Column,
-                    Span = new SourceSpan(processor.Start, slice.End)
-                };
-
-                processor.NewBlocks.Push(block);
-
-                return BlockState.ContinueDiscard;
+                count++;
+                c = slice.NextChar();
             }
 
-            return BlockState.None;
+            if (count < 3)
+            {
+                return BlockState.None;
+            }
+
+            string variant = "primary";
+            string title = null;
+
+            // Skip spaces
+            slice.TrimStart();
+
+            var variantStart = slice.Start;
+
+            // Read first word (potential variant)
+            while (!slice.IsEmpty && !IsSpace(slice.CurrentChar))
+            {
+                slice.NextChar();
+            }
+
+            string firstWord = null;
+            if (slice.Start > variantStart)
+            {
+                firstWord = slice.Text.Substring(variantStart, slice.Start - variantStart);
+            }
+
+            if (IsKnownVariant(firstWord))
+            {
+                variant = firstWord;
+                // The rest is title
+                slice.TrimStart();
+                if (!slice.IsEmpty)
+                {
+                    title = slice.ToString();
+                }
+            }
+            else
+            {
+                variant = "primary";
+                // Fallback: title is everything after !!! (excluding initial whitespace)
+                // We need to reconstruct the title because we might have consumed part of it as "firstWord"
+
+                // Reset to variantStart (which is after initial spaces)
+                var lineEnd = slice.End;
+                if (variantStart <= lineEnd)
+                {
+                    title = slice.Text.Substring(variantStart, lineEnd - variantStart + 1);
+                }
+            }
+
+            var block = new AlertBlock(this)
+            {
+                Variant = variant,
+                Title = title,
+                FenceLength = count,
+                Column = processor.Column,
+                Span = new SourceSpan(processor.Start, slice.End)
+            };
+
+            processor.NewBlocks.Push(block);
+
+            return BlockState.ContinueDiscard;
         }
 
         public override BlockState TryContinue(BlockProcessor processor, Block block)
@@ -108,12 +112,25 @@ namespace Neko.Extensions
                 return BlockState.Continue;
             }
 
+            var alert = (AlertBlock)block;
             var slice = processor.Line;
 
-            if (slice.Match("!!!"))
+            int count = 0;
+            var c = slice.CurrentChar;
+            while (c == '!')
             {
-                processor.Close(block);
-                return BlockState.BreakDiscard;
+                count++;
+                c = slice.NextChar();
+            }
+
+            if (count >= alert.FenceLength)
+            {
+                slice.TrimStart();
+                if (slice.IsEmpty)
+                {
+                    processor.Close(block);
+                    return BlockState.BreakDiscard;
+                }
             }
 
             return BlockState.Continue;
