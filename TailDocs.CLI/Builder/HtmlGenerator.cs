@@ -13,7 +13,7 @@ namespace TailDocs.CLI.Builder
             _config = config;
         }
 
-        public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null)
+        public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null)
         {
             var title = !string.IsNullOrEmpty(document.FrontMatter.Title)
                 ? $"{document.FrontMatter.Title} - {_config.Branding.Title}"
@@ -29,6 +29,16 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("    <meta charset=\"UTF-8\">");
             sb.AppendLine("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
             sb.AppendLine($"    <title>{title}</title>");
+
+            if (!string.IsNullOrEmpty(document.FrontMatter.Description))
+            {
+                sb.AppendLine($"    <meta name=\"description\" content=\"{document.FrontMatter.Description}\">");
+                sb.AppendLine($"    <meta property=\"og:description\" content=\"{document.FrontMatter.Description}\">");
+            }
+            if (!string.IsNullOrEmpty(document.FrontMatter.Title))
+            {
+                sb.AppendLine($"    <meta property=\"og:title\" content=\"{document.FrontMatter.Title} - {_config.Branding.Title}\">");
+            }
 
             // Tailwind CSS
             // Use CDN to ensure plugins (like typography) are available.
@@ -90,6 +100,9 @@ namespace TailDocs.CLI.Builder
             // Navbar
             sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10\">");
             sb.AppendLine("        <div class=\"flex items-center gap-4\">");
+            sb.AppendLine("            <button id=\"mobile-menu-btn\" class=\"md:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none\">");
+            sb.AppendLine("                <i class=\"fi fi-rr-menu-burger text-xl\"></i>");
+            sb.AppendLine("            </button>");
             if (!string.IsNullOrEmpty(_config.Branding.Logo))
             {
                 sb.AppendLine($"            <img src=\"{_config.Branding.Logo}\" class=\"h-8 w-auto dark:hidden\">");
@@ -127,7 +140,8 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("    <div class=\"flex flex-1 overflow-hidden\">");
 
             // Sidebar
-            sb.AppendLine("        <aside class=\"w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto hidden md:flex flex-col shrink-0\">");
+            sb.AppendLine("        <div id=\"sidebar-overlay\" class=\"fixed inset-0 bg-black/50 z-20 hidden md:hidden glassmorphism\"></div>");
+            sb.AppendLine("        <aside id=\"sidebar\" class=\"w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex flex-col shrink-0 fixed md:static inset-y-0 left-0 z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out h-full\">");
             sb.AppendLine("            <nav class=\"p-4 flex-1\">");
             sb.AppendLine("                <div class=\"mb-6 relative\">");
             sb.AppendLine("                    <div class=\"absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none\">");
@@ -148,6 +162,31 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("            <main class=\"flex-1 overflow-y-auto p-8 scroll-smooth\" id=\"main-scroll\">");
             sb.AppendLine("                <div class=\"max-w-4xl mx-auto prose dark:prose-invert\">");
 
+            // Breadcrumbs
+            if (navContext != null && navContext.Breadcrumbs.Any())
+            {
+                sb.AppendLine("                    <nav class=\"flex mb-4 text-sm text-gray-500 dark:text-gray-400 not-prose\">");
+                sb.AppendLine("                        <ol class=\"flex items-center space-x-2 flex-wrap\">");
+                for (int i = 0; i < navContext.Breadcrumbs.Count; i++)
+                {
+                    var item = navContext.Breadcrumbs[i];
+                    if (i > 0)
+                    {
+                        sb.AppendLine("                            <li><i class=\"fi fi-rr-angle-small-right text-xs\"></i></li>");
+                    }
+                    if (!string.IsNullOrEmpty(item.Url))
+                    {
+                        sb.AppendLine($"                            <li><a href=\"{item.Url}\" class=\"hover:text-gray-700 dark:hover:text-gray-200 transition-colors\">{item.Title}</a></li>");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"                            <li><span>{item.Title}</span></li>");
+                    }
+                }
+                sb.AppendLine("                        </ol>");
+                sb.AppendLine("                    </nav>");
+            }
+
             // Link Cleanup Logic
             var htmlContent = document.Html;
             if (!string.IsNullOrEmpty(htmlContent))
@@ -157,9 +196,39 @@ namespace TailDocs.CLI.Builder
             }
             sb.AppendLine(htmlContent);
 
+            // Prev/Next Navigation
+            if (navContext != null && (navContext.Prev != null || navContext.Next != null))
+            {
+                sb.AppendLine("                    <div class=\"grid grid-cols-1 md:grid-cols-2 gap-4 mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 not-prose\">");
+
+                // Prev
+                if (navContext.Prev != null)
+                {
+                    sb.AppendLine($"                        <a href=\"{navContext.Prev.Url}\" class=\"flex flex-col p-4 rounded border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group\">");
+                    sb.AppendLine("                            <span class=\"text-xs text-gray-500 dark:text-gray-400 mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400\">Previous</span>");
+                    sb.AppendLine($"                            <span class=\"font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2\"><i class=\"fi fi-rr-arrow-small-left transition-transform group-hover:-translate-x-1\"></i> {navContext.Prev.Title}</span>");
+                    sb.AppendLine("                        </a>");
+                }
+                else
+                {
+                    sb.AppendLine("                        <div></div>");
+                }
+
+                // Next
+                if (navContext.Next != null)
+                {
+                    sb.AppendLine($"                        <a href=\"{navContext.Next.Url}\" class=\"flex flex-col items-end p-4 rounded border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group text-right\">");
+                    sb.AppendLine("                            <span class=\"text-xs text-gray-500 dark:text-gray-400 mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400\">Next</span>");
+                    sb.AppendLine($"                            <span class=\"font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2\">{navContext.Next.Title} <i class=\"fi fi-rr-arrow-small-right transition-transform group-hover:translate-x-1\"></i></span>");
+                    sb.AppendLine("                        </a>");
+                }
+
+                sb.AppendLine("                    </div>");
+            }
+
             if (backlinks != null && backlinks.Count > 0)
             {
-                sb.AppendLine("                    <div class=\"mt-12 pt-8 border-t border-gray-200 dark:border-gray-800\">");
+                sb.AppendLine("                    <div class=\"mt-8 pt-8 border-t border-gray-200 dark:border-gray-800\">");
                 sb.AppendLine("                        <h3 class=\"text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4\">Referenced by</h3>");
                 sb.AppendLine("                        <ul class=\"space-y-2\">");
                 foreach (var link in backlinks)
@@ -169,6 +238,24 @@ namespace TailDocs.CLI.Builder
                 sb.AppendLine("                        </ul>");
                 sb.AppendLine("                    </div>");
             }
+
+            // Footer
+            sb.AppendLine("                    <footer class=\"mt-12 py-6 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400 flex flex-col md:flex-row justify-between items-center not-prose\">");
+            sb.AppendLine($"                        <div>&copy; {System.DateTime.Now.Year} {_config.Branding.Title}. All rights reserved.</div>");
+
+            if (!string.IsNullOrEmpty(_config.Branding.Repository))
+            {
+                 sb.AppendLine($"                        <div class=\"mt-2 md:mt-0\">");
+                 sb.AppendLine($"                            <a href=\"{_config.Branding.Repository}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1\">");
+                 sb.AppendLine("                                <i class=\"fi fi-rr-edit\"></i> Edit on GitHub");
+                 sb.AppendLine("                            </a>");
+                 sb.AppendLine("                        </div>");
+            }
+            else
+            {
+                 sb.AppendLine("                        <div class=\"mt-2 md:mt-0\">Powered by TailDocs</div>");
+            }
+            sb.AppendLine("                    </footer>");
 
             sb.AppendLine("                </div>");
             sb.AppendLine("            </main>");
@@ -196,6 +283,29 @@ namespace TailDocs.CLI.Builder
 
             // Scripts
             sb.AppendLine("    <script>");
+
+            // Mobile Menu
+            sb.AppendLine("        const mobileMenuBtn = document.getElementById('mobile-menu-btn');");
+            sb.AppendLine("        const sidebar = document.getElementById('sidebar');");
+            sb.AppendLine("        const sidebarOverlay = document.getElementById('sidebar-overlay');");
+            sb.AppendLine("        ");
+            sb.AppendLine("        function toggleMobileMenu() {");
+            sb.AppendLine("            const isClosed = sidebar.classList.contains('-translate-x-full');");
+            sb.AppendLine("            if (isClosed) {");
+            sb.AppendLine("                sidebar.classList.remove('-translate-x-full');");
+            sb.AppendLine("                sidebarOverlay.classList.remove('hidden');");
+            sb.AppendLine("                document.body.style.overflow = 'hidden';");
+            sb.AppendLine("            } else {");
+            sb.AppendLine("                sidebar.classList.add('-translate-x-full');");
+            sb.AppendLine("                sidebarOverlay.classList.add('hidden');");
+            sb.AppendLine("                document.body.style.overflow = '';");
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine("        ");
+            sb.AppendLine("        if (mobileMenuBtn) {");
+            sb.AppendLine("            mobileMenuBtn.addEventListener('click', toggleMobileMenu);");
+            sb.AppendLine("            sidebarOverlay.addEventListener('click', toggleMobileMenu);");
+            sb.AppendLine("        }");
 
             // Sidebar Filter
             sb.AppendLine("        const sidebarFilter = document.getElementById('sidebar-filter');");
@@ -346,6 +456,19 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("        document.addEventListener('DOMContentLoaded', (event) => {");
             sb.AppendLine("            hljs.highlightAll();");
             sb.AppendLine("            hljs.initLineNumbersOnLoad({ singleLine: true });");
+            sb.AppendLine("");
+            sb.AppendLine("            // Anchor Links");
+            sb.AppendLine("            document.querySelectorAll('h2, h3, h4, h5, h6').forEach(heading => {");
+            sb.AppendLine("                if (heading.id) {");
+            sb.AppendLine("                    heading.classList.add('group', 'relative');");
+            sb.AppendLine("                    const link = document.createElement('a');");
+            sb.AppendLine("                    link.href = '#' + heading.id;");
+            sb.AppendLine("                    link.className = 'absolute -left-6 top-0 bottom-0 flex items-center justify-center text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 no-underline';");
+            sb.AppendLine("                    link.innerHTML = '<i class=\"fi fi-rr-hashtag\"></i>';");
+            sb.AppendLine("                    link.setAttribute('aria-label', 'Anchor');");
+            sb.AppendLine("                    heading.prepend(link);");
+            sb.AppendLine("                }");
+            sb.AppendLine("            });");
             sb.AppendLine("        });");
 
             // Line Highlighting

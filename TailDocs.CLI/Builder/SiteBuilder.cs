@@ -81,6 +81,9 @@ namespace TailDocs.CLI.Builder
             // 4. Process Files
             var parsedDocs = new List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)>();
 
+            // Build Navigation Map
+            var navigationMap = BuildNavigationMap(_config.Links);
+
             // Pass 1: Parse all files
             foreach (var file in files)
             {
@@ -163,7 +166,34 @@ namespace TailDocs.CLI.Builder
                     backlinks = links;
                 }
 
-                var html = generator.Generate(item.Doc, backlinks);
+                // Determine Navigation Context
+                var relativeUrl = "/" + item.RelativePath.Replace("\\", "/");
+                if (relativeUrl.EndsWith(".md")) relativeUrl = relativeUrl.Substring(0, relativeUrl.Length - 3);
+                if (relativeUrl.EndsWith(".html")) relativeUrl = relativeUrl.Substring(0, relativeUrl.Length - 5);
+
+                var navContext = new NavigationContext();
+
+                // Find in navigation map
+                var index = navigationMap.FindIndex(n => n.Url.Equals(relativeUrl, StringComparison.OrdinalIgnoreCase));
+                if (index >= 0)
+                {
+                    var entry = navigationMap[index];
+                    navContext.Breadcrumbs = entry.Breadcrumbs;
+
+                    if (index > 0)
+                    {
+                        var prev = navigationMap[index - 1];
+                        navContext.Prev = new NavigationItem { Title = prev.Title, Url = prev.Url };
+                    }
+
+                    if (index < navigationMap.Count - 1)
+                    {
+                        var next = navigationMap[index + 1];
+                        navContext.Next = new NavigationItem { Title = next.Title, Url = next.Url };
+                    }
+                }
+
+                var html = generator.Generate(item.Doc, backlinks, navContext);
 
                 var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html");
                 var outputPath = Path.Combine(OutputDirectory, htmlFileName);
@@ -185,6 +215,45 @@ namespace TailDocs.CLI.Builder
             await CopyAssetsAsync(OutputDirectory);
 
             Console.WriteLine($"Build complete. Output in {OutputDirectory}");
+        }
+
+        private List<(string Url, string Title, List<NavigationItem> Breadcrumbs)> BuildNavigationMap(List<LinkConfig> links)
+        {
+            var map = new List<(string Url, string Title, List<NavigationItem> Breadcrumbs)>();
+            BuildNavigationMapRecursive(links, map, new List<NavigationItem>());
+            return map;
+        }
+
+        private void BuildNavigationMapRecursive(List<LinkConfig> links, List<(string Url, string Title, List<NavigationItem> Breadcrumbs)> map, List<NavigationItem> breadcrumbs)
+        {
+            if (links == null) return;
+
+            foreach (var link in links)
+            {
+                var currentBreadcrumbs = new List<NavigationItem>(breadcrumbs);
+                if (link.Items != null && link.Items.Count > 0)
+                {
+                    currentBreadcrumbs.Add(new NavigationItem { Title = link.Text, Url = null });
+                }
+
+                if (!string.IsNullOrEmpty(link.Link) && link.Link != "#")
+                {
+                    var url = link.Link;
+                    if (!url.StartsWith("/") && !url.Contains("://"))
+                    {
+                        url = "/" + url;
+                    }
+                    if (url.EndsWith(".md")) url = url.Substring(0, url.Length - 3);
+                    if (url.EndsWith(".html")) url = url.Substring(0, url.Length - 5);
+
+                    map.Add((url, link.Text, new List<NavigationItem>(breadcrumbs))); // Add parent breadcrumbs to this item
+                }
+
+                if (link.Items != null && link.Items.Count > 0)
+                {
+                    BuildNavigationMapRecursive(link.Items, map, currentBreadcrumbs);
+                }
+            }
         }
 
         private async Task CopyAssetsAsync(string outputDir)

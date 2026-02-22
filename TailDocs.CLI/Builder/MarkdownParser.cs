@@ -41,6 +41,9 @@ namespace TailDocs.CLI.Builder
 
         [YamlMember(Alias = "tags")]
         public string[] Tags { get; set; }
+
+        [YamlMember(Alias = "description")]
+        public string Description { get; set; }
     }
 
     public class MarkdownParser
