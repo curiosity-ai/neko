@@ -37,5 +37,18 @@ namespace TailDocs.Tests
             Assert.That(doc.Html, Contains.Substring("Content 1"));
             Assert.That(doc.Html, Contains.Substring("After tabs"));
         }
+
+        [Test]
+        public void TestDuplicateTabs()
+        {
+            var markdown = "+++ Tab 1\nContent 1\n+++\n\n+++ Tab 1\nContent 2\n+++";
+            var doc = _parser.Parse(markdown);
+
+            // We expect TWO tab groups because there are two separate blocks.
+            // Each block starts with +++ Title and ends with +++
+
+            int count = System.Text.RegularExpressions.Regex.Matches(doc.Html, "class=\"my-4 border rounded-md dark:border-gray-700\"").Count;
+            Assert.That(count, Is.EqualTo(2), $"Expected 2 tab groups, found {count}. HTML: {doc.Html}");
+        }
     }
 }

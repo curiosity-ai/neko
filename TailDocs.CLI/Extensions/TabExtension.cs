@@ -54,14 +54,17 @@ namespace TailDocs.CLI.Extensions
                     title = slice.ToString();
                 }
 
+                var currentContainer = processor.CurrentContainer;
+
                 // If we are in a TabBlock, close it.
-                if (processor.CurrentContainer is TabBlock)
+                if (currentContainer is TabBlock)
                 {
-                    processor.Close(processor.CurrentContainer);
+                    processor.Close(currentContainer);
+                    currentContainer = currentContainer.Parent;
                 }
 
                 // If we are in a TabGroupBlock (after closing TabBlock if any)
-                if (processor.CurrentContainer is TabGroupBlock)
+                if (currentContainer is TabGroupBlock)
                 {
                     if (!string.IsNullOrEmpty(title))
                     {
@@ -78,7 +81,7 @@ namespace TailDocs.CLI.Extensions
                     else
                     {
                         // Closing group (+++ without title)
-                        processor.Close(processor.CurrentContainer);
+                        processor.Close(currentContainer);
                         return BlockState.BreakDiscard;
                     }
                 }
