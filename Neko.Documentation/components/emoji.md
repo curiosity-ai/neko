@@ -1,6 +1,7 @@
 ---
-title: Emojis
 icon: smile
+tags: [component, icon]
+title: Emojis
 ---
 
 # Emojis
