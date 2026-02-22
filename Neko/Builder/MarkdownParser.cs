@@ -70,6 +70,7 @@ namespace Neko.Builder
                 .Use<ComponentExtension>()
                 .Use<CodeBlockExtension>()
                 .Use<CodeSnippetExtension>()
+                .Use<PanelExtension>()
                 .Build();
         }
 

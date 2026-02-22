@@ -12,6 +12,7 @@ namespace Neko.Extensions
     {
         public string Name { get; set; }
         public Dictionary<string, string> Attributes { get; set; } = new Dictionary<string, string>();
+        public List<string> Arguments { get; set; } = new List<string>();
 
         public string GetAttribute(string key, string defaultValue = "")
         {
@@ -106,15 +107,23 @@ namespace Neko.Extensions
 
                 if (slice.CurrentChar != '=')
                 {
-                    // Maybe boolean attribute? Or broken syntax.
-                    // For now, assume key=value format strictly as per spec.
-                    // Or if we hit ']', we are done (no more attributes).
+                    var argValue = slice.Text.Substring(keyStart, slice.Start - keyStart).Trim();
+                    if (!string.IsNullOrEmpty(argValue))
+                    {
+                        // Treat as positional argument
+                        component.Arguments.Add(argValue);
+                        // Also treat as boolean attribute if needed by other components
+                        component.Attributes[argValue.ToLower()] = "true";
+                    }
+
                     if (slice.CurrentChar == ']') break;
 
-                    // If we hit space, it might be a boolean attribute, let's skip
-                    if (slice.CurrentChar == ' ') continue;
+                    if (slice.CurrentChar == ' ')
+                    {
+                        slice.NextChar();
+                        continue;
+                    }
 
-                    // Fallback
                     break;
                 }
 
@@ -282,7 +291,15 @@ namespace Neko.Extensions
                 }
                 else if (icon.StartsWith(":"))
                 {
-                     renderer.Write(icon.Trim(':') + " ");
+                     if (icon.StartsWith(":icon-") && icon.EndsWith(":"))
+                     {
+                         var iconName = icon.Substring(6, icon.Length - 7);
+                         renderer.Write($"<i class=\"fi fi-rr-{iconName} mr-2\"></i>");
+                     }
+                     else
+                     {
+                         renderer.Write(icon + " ");
+                     }
                 }
                 else
                 {
@@ -296,8 +313,19 @@ namespace Neko.Extensions
 
         private void RenderColorChip(HtmlRenderer renderer, ComponentInline obj)
         {
-            var color = obj.GetAttribute("color", "#000000");
-            var text = obj.GetAttribute("text", color);
+            var color = obj.GetAttribute("color");
+            if (string.IsNullOrEmpty(color) && obj.Arguments.Count > 0)
+            {
+                color = obj.Arguments[0];
+            }
+            if (string.IsNullOrEmpty(color)) color = "#000000";
+
+            var text = obj.GetAttribute("text");
+            if (string.IsNullOrEmpty(text))
+            {
+                if (obj.Arguments.Count > 1) text = obj.Arguments[1];
+                else text = color;
+            }
 
             renderer.Write($"<span class=\"inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 mr-2 border border-gray-200 dark:border-gray-600\">");
             renderer.Write($"<span class=\"w-3 h-3 rounded-full mr-1.5\" style=\"background-color: {color};\"></span>");
