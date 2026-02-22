@@ -177,6 +177,13 @@ namespace Neko.Extensions
 
     public class PanelRenderer : HtmlObjectRenderer<PanelGroupBlock>
     {
+        private readonly MarkdownPipeline _pipeline;
+
+        public PanelRenderer(MarkdownPipeline pipeline)
+        {
+            _pipeline = pipeline;
+        }
+
         protected override void Write(HtmlRenderer renderer, PanelGroupBlock obj)
         {
             renderer.Write("<div class=\"panel-group my-4\">");
@@ -200,7 +207,25 @@ namespace Neko.Extensions
                     renderer.Write($"<details class=\"bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm mb-2 overflow-hidden\"{openAttr}>");
 
                     renderer.Write("<summary class=\"px-4 py-2 bg-gray-50 dark:bg-gray-900 font-semibold cursor-pointer list-none flex items-center select-none\">");
-                    renderer.WriteEscape(panel.Title);
+
+                    // Render title as inline markdown
+                    if (!string.IsNullOrEmpty(panel.Title))
+                    {
+                         // Parse as document but only render inlines of first paragraph
+                         var doc = Markdig.Markdown.Parse(panel.Title, _pipeline);
+                         foreach (var block in doc)
+                         {
+                             if (block is Markdig.Syntax.ParagraphBlock p)
+                             {
+                                 renderer.Write(p.Inline);
+                             }
+                             else
+                             {
+                                 renderer.Render(block);
+                             }
+                         }
+                    }
+
                     renderer.Write("</summary>");
 
                     renderer.Write("<div class=\"p-4 border-t border-gray-200 dark:border-gray-700\">");
@@ -241,7 +266,10 @@ namespace Neko.Extensions
         {
             if (renderer is HtmlRenderer htmlRenderer)
             {
-                htmlRenderer.ObjectRenderers.AddIfNotAlready<PanelRenderer>();
+                if (!htmlRenderer.ObjectRenderers.Contains<PanelRenderer>())
+                {
+                    htmlRenderer.ObjectRenderers.Add(new PanelRenderer(pipeline));
+                }
             }
         }
     }

@@ -12,6 +12,7 @@ namespace Neko.Extensions
     {
         public string Name { get; set; }
         public Dictionary<string, string> Attributes { get; set; } = new Dictionary<string, string>();
+        public List<string> Arguments { get; set; } = new List<string>();
 
         public string GetAttribute(string key, string defaultValue = "")
         {
@@ -97,50 +98,58 @@ namespace Neko.Extensions
                     continue;
                 }
 
-                // Parse key="value"
-                var keyStart = slice.Start;
+                // Parse key="value" or positional value
+                var start = slice.Start;
                 while (slice.CurrentChar != '=' && slice.CurrentChar != ']' && !slice.IsEmpty && slice.CurrentChar != ' ')
                 {
                     slice.NextChar();
                 }
 
-                if (slice.CurrentChar != '=')
+                if (slice.CurrentChar == '=')
                 {
-                    // Maybe boolean attribute? Or broken syntax.
-                    // For now, assume key=value format strictly as per spec.
-                    // Or if we hit ']', we are done (no more attributes).
+                    var key = slice.Text.Substring(start, slice.Start - start).Trim();
+                    slice.NextChar(); // Skip =
+
+                    // Parse value
+                    if (slice.CurrentChar == '"')
+                    {
+                        slice.NextChar(); // Skip "
+                        var valStart = slice.Start;
+                        while (slice.CurrentChar != '"' && !slice.IsEmpty)
+                        {
+                            slice.NextChar(); // Just advance
+                        }
+
+                        if (slice.CurrentChar != '"') break; // Should end with "
+
+                        var val = slice.Text.Substring(valStart, slice.Start - valStart);
+                        slice.NextChar(); // Skip closing "
+
+                        component.Attributes[key.ToLower()] = val;
+                    }
+                    else
+                    {
+                        // Unquoted value until space or ]
+                        var valStart = slice.Start;
+                        while (slice.CurrentChar != ' ' && slice.CurrentChar != ']' && !slice.IsEmpty)
+                        {
+                            slice.NextChar();
+                        }
+                        var val = slice.Text.Substring(valStart, slice.Start - valStart);
+                        component.Attributes[key.ToLower()] = val;
+                    }
+                }
+                else
+                {
+                    // Positional argument
+                    var val = slice.Text.Substring(start, slice.Start - start).Trim();
+                    if (!string.IsNullOrEmpty(val))
+                    {
+                        component.Arguments.Add(val);
+                    }
+
                     if (slice.CurrentChar == ']') break;
-
-                    // If we hit space, it might be a boolean attribute, let's skip
-                    if (slice.CurrentChar == ' ') continue;
-
-                    // Fallback
-                    break;
                 }
-
-                var key = slice.Text.Substring(keyStart, slice.Start - keyStart).Trim();
-                slice.NextChar(); // Skip =
-
-                // Parse value
-                if (slice.CurrentChar != '"')
-                {
-                     // Maybe unquoted value? Let's skip for now to keep it simple.
-                     break;
-                }
-                slice.NextChar(); // Skip "
-
-                var valStart = slice.Start;
-                while (slice.CurrentChar != '"' && !slice.IsEmpty)
-                {
-                    slice.NextChar(); // Just advance
-                }
-
-                if (slice.CurrentChar != '"') break; // Should end with "
-
-                var val = slice.Text.Substring(valStart, slice.Start - valStart);
-                slice.NextChar(); // Skip closing "
-
-                component.Attributes[key.ToLower()] = val;
             }
 
             if (slice.CurrentChar == ']')
@@ -157,6 +166,13 @@ namespace Neko.Extensions
 
     public class ComponentRenderer : HtmlObjectRenderer<ComponentInline>
     {
+        private readonly MarkdownPipeline _pipeline;
+
+        public ComponentRenderer(MarkdownPipeline pipeline)
+        {
+            _pipeline = pipeline;
+        }
+
         protected override void Write(HtmlRenderer renderer, ComponentInline obj)
         {
             switch (obj.Name)
@@ -181,6 +197,9 @@ namespace Neko.Extensions
                     break;
                 case "youtube":
                     RenderYouTube(renderer, obj);
+                    break;
+                case "emoji-table":
+                    RenderEmojiTable(renderer, obj);
                     break;
                 default:
                     // Fallback or ignore
@@ -282,7 +301,9 @@ namespace Neko.Extensions
                 }
                 else if (icon.StartsWith(":"))
                 {
-                     renderer.Write(icon.Trim(':') + " ");
+                     // Try to parse inline markdown for emoji or icon shortcode
+                     RenderInline(renderer, icon);
+                     renderer.Write(" ");
                 }
                 else
                 {
@@ -290,19 +311,79 @@ namespace Neko.Extensions
                 }
             }
 
-            renderer.Write(text);
+            RenderInline(renderer, text);
             renderer.Write("</a>");
         }
 
         private void RenderColorChip(HtmlRenderer renderer, ComponentInline obj)
         {
             var color = obj.GetAttribute("color", "#000000");
+
+            // Priority to positional arg
+            if (obj.Arguments.Count > 0)
+            {
+                color = obj.Arguments[0];
+            }
+
             var text = obj.GetAttribute("text", color);
 
             renderer.Write($"<span class=\"inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 mr-2 border border-gray-200 dark:border-gray-600\">");
             renderer.Write($"<span class=\"w-3 h-3 rounded-full mr-1.5\" style=\"background-color: {color};\"></span>");
             renderer.Write(text);
             renderer.Write("</span>");
+        }
+
+        private void RenderEmojiTable(HtmlRenderer renderer, ComponentInline obj)
+        {
+            renderer.Write("<div class=\"overflow-x-auto my-4\">");
+            renderer.Write("<table class=\"min-w-full divide-y divide-gray-200 dark:divide-gray-700\">");
+            renderer.Write("<thead class=\"bg-gray-50 dark:bg-gray-800\">");
+            renderer.Write("<tr>");
+            renderer.Write("<th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider\">Emoji</th>");
+            renderer.Write("<th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider\">Shortcode</th>");
+            renderer.Write("</tr>");
+            renderer.Write("</thead>");
+            renderer.Write("<tbody class=\"bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700\">");
+
+            // Markdig Emoji Mapping
+            foreach (var kvp in Markdig.Extensions.Emoji.EmojiMapping.GetDefaultEmojiShortcodeToUnicode())
+            {
+                var shortcode = kvp.Key;
+                var unicode = kvp.Value;
+
+                renderer.Write("<tr>");
+                renderer.Write($"<td class=\"px-6 py-4 whitespace-nowrap text-2xl\">{unicode}</td>");
+                renderer.Write($"<td class=\"px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400\"><code>{shortcode}</code></td>");
+                renderer.Write("</tr>");
+            }
+
+            renderer.Write("</tbody>");
+            renderer.Write("</table>");
+            renderer.Write("</div>");
+        }
+
+        private void RenderInline(HtmlRenderer renderer, string text)
+        {
+             if (string.IsNullOrEmpty(text)) return;
+             // We need a pipeline to parse.
+             if (_pipeline != null)
+             {
+                 // Parse as document but only render inlines of first paragraph
+                 var doc = Markdig.Markdown.Parse(text, _pipeline);
+                 foreach (var block in doc)
+                 {
+                     if (block is Markdig.Syntax.ParagraphBlock p)
+                     {
+                         renderer.Write(p.Inline);
+                     }
+                     else
+                     {
+                         renderer.Render(block);
+                     }
+                 }
+                 return;
+             }
+             renderer.Write(text);
         }
 
         private void RenderEmbed(HtmlRenderer renderer, ComponentInline obj)
@@ -384,7 +465,11 @@ namespace Neko.Extensions
         {
             if (renderer is HtmlRenderer htmlRenderer)
             {
-                htmlRenderer.ObjectRenderers.AddIfNotAlready<ComponentRenderer>();
+                // We need to pass the pipeline to the renderer so it can parse nested markdown (e.g. in button text)
+                if (!htmlRenderer.ObjectRenderers.Contains<ComponentRenderer>())
+                {
+                    htmlRenderer.ObjectRenderers.Add(new ComponentRenderer(pipeline));
+                }
             }
         }
     }
