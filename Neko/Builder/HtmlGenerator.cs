@@ -374,11 +374,12 @@ namespace Neko.Builder
             // TOC Highlighting
             // Active Link Highlighting
             sb.AppendLine("        document.addEventListener('DOMContentLoaded', () => {");
-            sb.AppendLine("            const currentPath = window.location.pathname;");
+            sb.AppendLine("            let currentPath = window.location.pathname;");
+            sb.AppendLine("            if (currentPath.endsWith('.html')) currentPath = currentPath.substring(0, currentPath.length - 5);");
             sb.AppendLine("            const sidebarLinks = document.querySelectorAll('#sidebar-list a');");
             sb.AppendLine("            sidebarLinks.forEach(link => {");
             sb.AppendLine("                const href = link.getAttribute('href');");
-            sb.AppendLine("                if (href === currentPath || (href !== '/' && currentPath.startsWith(href))) {");
+            sb.AppendLine("                if (href === currentPath || (href !== '/' && currentPath.startsWith(href) && (href.endsWith('/') || currentPath.charAt(href.length) === '/'))) {");
             sb.AppendLine("                    link.classList.add('bg-blue-50', 'dark:bg-blue-900', 'text-blue-700', 'dark:text-blue-300', 'font-medium');");
             sb.AppendLine("                    link.classList.remove('text-gray-700', 'dark:text-gray-200');");
             sb.AppendLine("                    // Open parent details");
