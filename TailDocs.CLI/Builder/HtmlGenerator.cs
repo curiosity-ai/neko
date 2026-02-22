@@ -274,12 +274,13 @@ namespace TailDocs.CLI.Builder
                 sb.AppendLine("            <aside class=\"w-64 hidden xl:block shrink-0 overflow-y-auto border-l border-gray-200 dark:border-gray-800 p-6\">");
                 sb.AppendLine("                <div class=\"sticky top-0\">");
                 sb.AppendLine("                    <h5 class=\"text-xs font-semibold mb-4 text-gray-900 dark:text-gray-100 uppercase tracking-wider\">On this page</h5>");
-                sb.AppendLine("                    <ul class=\"space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800\" id=\"toc-list\">");
+                sb.AppendLine("                    <ul class=\"space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800 relative\" id=\"toc-list\">");
+                sb.AppendLine("                        <div id=\"toc-highlight\" class=\"absolute left-0 border-l-2 border-blue-600 dark:border-blue-400 transition-all duration-200 ease-in-out -ml-px\" style=\"top: 0; height: 0; opacity: 0;\"></div>");
                 foreach (var item in document.Toc)
                 {
                     if (item.Level < 2) continue;
                     var padding = item.Level == 2 ? "pl-4" : "pl-8";
-                    sb.AppendLine($"                        <li><a href=\"#{item.Id}\" class=\"block {padding} hover:text-blue-600 dark:hover:text-blue-400 transition-colors border-l-2 border-transparent hover:border-blue-600 dark:hover:border-blue-400 -ml-px toc-link\" data-id=\"{item.Id}\">{item.Title}</a></li>");
+                    sb.AppendLine($"                        <li><a href=\"#{item.Id}\" class=\"block {padding} hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link\" data-id=\"{item.Id}\">{item.Title}</a></li>");
                 }
                 sb.AppendLine("                    </ul>");
                 sb.AppendLine("                </div>");
@@ -377,20 +378,52 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("            if (section) sections.push(section);");
             sb.AppendLine("        });");
             sb.AppendLine("");
+            sb.AppendLine("        const visibleSections = new Set();");
+            sb.AppendLine("        const highlightLine = document.getElementById('toc-highlight');");
+            sb.AppendLine("        const tocList = document.getElementById('toc-list');");
+            sb.AppendLine("");
+            sb.AppendLine("        function updateTocHighlight() {");
+            sb.AppendLine("            if (!highlightLine || !tocList) return;");
+            sb.AppendLine("");
+            sb.AppendLine("            const activeLinks = Array.from(document.querySelectorAll('.toc-link')).filter(link => ");
+            sb.AppendLine("                visibleSections.has(link.getAttribute('data-id'))");
+            sb.AppendLine("            );");
+            sb.AppendLine("");
+            sb.AppendLine("            if (activeLinks.length === 0) {");
+            sb.AppendLine("                highlightLine.style.opacity = '0';");
+            sb.AppendLine("                return;");
+            sb.AppendLine("            }");
+            sb.AppendLine("");
+            sb.AppendLine("            const firstLink = activeLinks[0];");
+            sb.AppendLine("            const lastLink = activeLinks[activeLinks.length - 1];");
+            sb.AppendLine("            ");
+            sb.AppendLine("            const listRect = tocList.getBoundingClientRect();");
+            sb.AppendLine("            const firstRect = firstLink.getBoundingClientRect();");
+            sb.AppendLine("            const lastRect = lastLink.getBoundingClientRect();");
+            sb.AppendLine("");
+            sb.AppendLine("            const top = firstRect.top - listRect.top;");
+            sb.AppendLine("            const height = lastRect.bottom - firstRect.top;");
+            sb.AppendLine("");
+            sb.AppendLine("            highlightLine.style.top = `${top}px`;");
+            sb.AppendLine("            highlightLine.style.height = `${height}px`;");
+            sb.AppendLine("            highlightLine.style.opacity = '1';");
+            sb.AppendLine("        }");
+            sb.AppendLine("");
             sb.AppendLine("        const observer = new IntersectionObserver((entries) => {");
             sb.AppendLine("            entries.forEach(entry => {");
             sb.AppendLine("                const id = entry.target.id;");
             sb.AppendLine("                const link = document.querySelector(`.toc-link[data-id=\"${id}\"]`);");
             sb.AppendLine("                if (link) {");
             sb.AppendLine("                    if (entry.isIntersecting) {");
-            sb.AppendLine("                        link.classList.remove('border-transparent');");
-            sb.AppendLine("                        link.classList.add('text-blue-600', 'dark:text-blue-400', 'font-medium', 'border-blue-600', 'dark:border-blue-400');");
+            sb.AppendLine("                        visibleSections.add(id);");
+            sb.AppendLine("                        link.classList.add('text-blue-600', 'dark:text-blue-400', 'font-medium');");
             sb.AppendLine("                    } else {");
-            sb.AppendLine("                        link.classList.add('border-transparent');");
-            sb.AppendLine("                        link.classList.remove('text-blue-600', 'dark:text-blue-400', 'font-medium', 'border-blue-600', 'dark:border-blue-400');");
+            sb.AppendLine("                        visibleSections.delete(id);");
+            sb.AppendLine("                        link.classList.remove('text-blue-600', 'dark:text-blue-400', 'font-medium');");
             sb.AppendLine("                    }");
             sb.AppendLine("                }");
             sb.AppendLine("            });");
+            sb.AppendLine("            requestAnimationFrame(updateTocHighlight);");
             sb.AppendLine("        }, {");
             sb.AppendLine("            root: document.getElementById('main-scroll'),");
             sb.AppendLine("            rootMargin: '0px 0px 0px 0px',");
@@ -517,9 +550,29 @@ namespace TailDocs.CLI.Builder
         {
             if (links == null || links.Count == 0) return;
 
+            // Check if any sibling in this group has an icon
+            var hasIconInGroup = false;
+            foreach (var l in links)
+            {
+                if (!string.IsNullOrEmpty(l.Icon))
+                {
+                    hasIconInGroup = true;
+                    break;
+                }
+            }
+
             foreach (var link in links)
             {
-                var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"fi fi-rr-{link.Icon}\"></i>";
+                var iconHtml = "";
+                if (!string.IsNullOrEmpty(link.Icon))
+                {
+                    iconHtml = $"<i class=\"fi fi-rr-{link.Icon}\"></i>";
+                }
+                else if (hasIconInGroup)
+                {
+                     // Add invisible icon spacer to align with siblings
+                     iconHtml = "<i class=\"fi fi-rr-document invisible\"></i>";
+                }
 
                 if (link.Items != null && link.Items.Count > 0)
                 {

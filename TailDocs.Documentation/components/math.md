@@ -1,5 +1,6 @@
 ---
 title: Math Component
+icon: calculator
 ---
 
 # Math

@@ -1,5 +1,6 @@
 ---
 title: Code Blocks
+icon: code-simple
 ---
 
 # Code Blocks
