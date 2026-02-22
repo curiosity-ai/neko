@@ -595,17 +595,6 @@ namespace TailDocs.CLI.Builder
         {
             if (links == null || links.Count == 0) return;
 
-            // Check if any sibling in this group has an icon
-            var hasIconInGroup = false;
-            foreach (var l in links)
-            {
-                if (!string.IsNullOrEmpty(l.Icon))
-                {
-                    hasIconInGroup = true;
-                    break;
-                }
-            }
-
             foreach (var link in links)
             {
                 var iconHtml = "";
@@ -613,10 +602,10 @@ namespace TailDocs.CLI.Builder
                 {
                     iconHtml = $"<i class=\"fi fi-rr-{link.Icon}\"></i>";
                 }
-                else if (hasIconInGroup)
+                else
                 {
                      // Add invisible icon spacer to align with siblings
-                     iconHtml = "<i class=\"fi fi-rr-document invisible\"></i>";
+                     iconHtml = "<i class=\"fi fi-rr-circle opacity-0\"></i>";
                 }
 
                 if (link.Items != null && link.Items.Count > 0)

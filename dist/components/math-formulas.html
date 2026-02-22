@@ -79,7 +79,7 @@
                     <input type="text" id="sidebar-filter" placeholder="Filter..." class="w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
                 </div>
                 <ul class="space-y-1" id="sidebar-list">
-                    <li><a href="/index" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-document invisible"></i> Home</a></li>
+                    <li><a href="/index" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Home</a></li>
                     <li class="mt-6 mb-2 first:mt-0 px-2">
                         <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Guides</span>
                     </li>
@@ -98,7 +98,7 @@
                     <li class="space-y-1">
                         <details class="group" open>
                             <summary class="flex items-center justify-between py-1 px-2 text-[13px] whitespace-nowrap font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none">
-                                <span class="flex items-center gap-2"><i class="fi fi-rr-document invisible"></i> Core</span>
+                                <span class="flex items-center gap-2"><i class="fi fi-rr-circle opacity-0"></i> Core</span>
                                 <i class="fi fi-rr-angle-small-down transition-transform group-open:rotate-180"></i>
                             </summary>
                             <ul class="pl-0 space-y-1 mt-1 border-l border-gray-200 dark:border-gray-700 ml-3">
@@ -248,6 +248,26 @@ $$
         if (mobileMenuBtn) {
             mobileMenuBtn.addEventListener('click', toggleMobileMenu);
             sidebarOverlay.addEventListener('click', toggleMobileMenu);
+        }
+        if (sidebar) {
+            const scrollKey = 'taildocs-sidebar-scroll';
+            const timeKey = 'taildocs-sidebar-scroll-time';
+            const savedScroll = localStorage.getItem(scrollKey);
+            const savedTime = localStorage.getItem(timeKey);
+            if (savedScroll && savedTime) {
+                const now = new Date().getTime();
+                if (now - parseInt(savedTime) < 60000) {
+                    sidebar.scrollTop = parseInt(savedScroll);
+                }
+            }
+            let timeout;
+            sidebar.addEventListener('scroll', () => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    localStorage.setItem(scrollKey, sidebar.scrollTop);
+                    localStorage.setItem(timeKey, new Date().getTime());
+                }, 100);
+            });
         }
         const sidebarFilter = document.getElementById('sidebar-filter');
         const sidebarList = document.getElementById('sidebar-list');
