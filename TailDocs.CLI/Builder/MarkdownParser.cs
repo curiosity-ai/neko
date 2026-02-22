@@ -61,6 +61,7 @@ namespace TailDocs.CLI.Builder
                 .UseCustomContainers()
                 .Use<CustomContainerExtension>()
                 .UseGenericAttributes() // Enables {width=500}
+                .Use<IconExtension>()
                 .Use<BadgeExtension>()
                 .Use<AlertExtension>()
                 // .UseAlerts() // Not available/needed as UseAdvancedExtensions covers it
