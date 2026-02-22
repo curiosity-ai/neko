@@ -1,12 +1,12 @@
 ---
-icon: code-square
+icon: square-code
 tags: [component]
 ---
 # Code Block
 
 Blocks of code or any preformatted text can be displayed by wrapping with triple backticks characters before and after.
 
-||| :icon-code: Source
+||| :icon-code-simple: Source
 ~~~
 ```
 A basic code block
@@ -26,7 +26,7 @@ Optional syntax highlighting of the code within the code block can be configured
 
 In the following sample, we configure JavaScript syntax highlighting for the code block by adding the `js` language identifier.
 
-||| :icon-code: Source
+||| :icon-code-simple: Source
 ~~~
 ```js
 const msg = "hello, world";
@@ -46,7 +46,7 @@ TailDocs uses [PrismJS](https://prismjs.com/) for syntax highlighting. All Prism
 
 TailDocs includes the functionality to set a title on your markdown code blocks.
 
-+++ :icon-code: Source
++++ :icon-code-simple: Source
 ~~~
 ``` Code Block title
 const msg = "Set a code block title";
@@ -60,7 +60,7 @@ const msg = "Set a code block title";
 
 The title can be used in conjunction with the code reference type.
 
-+++ :icon-code: Source
++++ :icon-code-simple: Source
 ~~~
 ```js Code Block title
 const msg = "Set a code block title";
@@ -98,7 +98,7 @@ Remove line numbering | `!#4-8` | Remove line numbering and highlight lines #4 t
 
 Highlight a single line number.
 
-+++ :icon-code: Source
++++ :icon-code-simple: Source
 
 ~~~md
 ```js #2
@@ -118,7 +118,7 @@ Highlight a single line number.
 
 Highlight a range of lines by separating the start and end line number with a `-` dash.
 
-+++ :icon-code: Source
++++ :icon-code-simple: Source
 
 ~~~md
 ```js #5-7
@@ -138,7 +138,7 @@ Highlight a range of lines by separating the start and end line number with a `-
 
 Configure multiple line ranges by separating each block with a `,` comma.
 
-+++ :icon-code: Source
++++ :icon-code-simple: Source
 
 ~~~md
 ```js #2-3,5-7
@@ -158,7 +158,7 @@ Configure multiple line ranges by separating each block with a `,` comma.
 
 Disable the default line numbering but still highlight a line or range of lines.
 
-+++ :icon-code: Source
++++ :icon-code-simple: Source
 
 ~~~md
 ```js !#2-3,5-7
@@ -178,7 +178,7 @@ Disable the default line numbering but still highlight a line or range of lines.
 
 Configuring line highlighting using the `highlight` attribute syntax is also supported by TailDocs.
 
-+++ :icon-code: Source
++++ :icon-code-simple: Source
 
 ~~~md
 ```js:highlight="2-3,5-7"
@@ -200,7 +200,7 @@ Configuring line highlighting using the `highlight` attribute syntax is also sup
 
 Adding or removing line numbering for your code blocks can be configured by adding the `#` specifier character to the first line after the reference language.
 
-||| :icon-code: Source
+||| :icon-code-simple: Source
 ~~~
 ```js #
 const msg = "hello, world";
@@ -214,7 +214,7 @@ const msg = "hello, world";
 
 You can also add a title after the `#`:
 
-+++ :icon-code: Source
++++ :icon-code-simple: Source
 
 ~~~
 ```js # Your title here
@@ -262,7 +262,7 @@ const msg = "Hello, world";
 
 If you configure a site wide [`snippets`](/configuration/project.md#snippets) for a language and would like to explicitly remove the line numbering for a code block instance of that language, please add the [`!#`](#disable-line-numbers) specifier to the code block instance.
 
-||| :icon-code: Source
+||| :icon-code-simple: Source
 ~~~
 ```js !#
 const msg = "Hello, world";
@@ -284,15 +284,15 @@ To create a code group in TailDocs, simply wrap each code block with `+++` follo
 
 Here's an example showing the same "Hello, world" program in different languages:
 
-+++ :icon-code: JavaScript
++++ :icon-code-simple: JavaScript
 ```js
 console.log("Hello, world!");
 ```
-+++ :icon-code: TypeScript
++++ :icon-code-simple: TypeScript
 ```ts
 console.log("Hello, world!");
 ```
-+++ :icon-code: Python
++++ :icon-code-simple: Python
 ```py
 print('Hello, world!')
 +++

@@ -513,7 +513,7 @@ nav:
   badge:
     text: BETA
     variant: warning
-    icon: alert
+    icon: bell
     iconAlign: right
     corners: pill
     size: s
@@ -1001,7 +1001,7 @@ visibility: hidden
 This page will be hidden from the menu and search results.
 ```
 
-The History :icon-history: component will continue to function as normal. Any hidden page visited would still be logged in the history, although that history is only available to the visitor.
+The History :icon-time-past: component will continue to function as normal. Any hidden page visited would still be logged in the history, although that history is only available to the visitor.
 
 Setting `visibility: hidden` on a page is a good way to create a _draft_ or _secret_ page that you do not want included in the navigation, but you still want to share a link to the page for others to view if they have the link.
 

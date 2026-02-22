@@ -1,6 +1,6 @@
 ---
 order: 6
-icon: log
+icon: memo
 ---
 # Changelog
 
@@ -36,7 +36,7 @@ Scheduled for late Q1-2026.
 
 There were **15 changes** in TailDocs `v3.12.0`.
 
-See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v312) for highlights.
+See the [:icon-sparkles: Feature Log](/feature-log.md#v312) for highlights.
 
 +++ New :icon-shield-check:
 
@@ -48,7 +48,7 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v312) for highlights.
 1. New `templating.loopLimit` Project configuration setting
 1. New [`target`](/configuration/page.md#target) setting on Page, see [#795](https://github.com/taildocsapp/taildocs/issues/795)
 
-+++ Improved :icon-thumbsup:
++++ Improved :icon-thumbs-up:
 
 1. Added `translate="no"` attribute to inline `<code>` elements
 1. Remove extra bottom margin when a Callout includes a List, see [#769](https://github.com/taildocsapp/taildocs/issues/769)
@@ -71,7 +71,7 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v312) for highlights.
 
 There were **15 changes** in TailDocs `v3.11.0`.
 
-See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v311) for highlights.
+See the [:icon-sparkles: Feature Log](/feature-log.md#v311) for highlights.
 
 +++ New :icon-shield-check:
 
@@ -83,7 +83,7 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v311) for highlights.
 1. New support for icon-only [links](/configuration/project.md#links) in header and footer
 1. New `base` variant for [[Button]], [[Badge]], and [[Callout]]
 
-+++ Improved :icon-thumbsup:
++++ Improved :icon-thumbs-up:
 
 1. Upgrade to latest release of VueJS
 1. Update to latest v3.3.x release of TailwindCSS
@@ -108,7 +108,7 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v311) for highlights.
 
 There were **13 changes** in `v3.10.0`.
 
-See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v310) for highlights.
+See the [:icon-sparkles: Feature Log](/feature-log.md#v310) for highlights.
 
 +++ New :icon-shield-check:
 
@@ -119,7 +119,7 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v310) for highlights.
 1. New support for adding [generic attribute](/components/list.md#generic-attributes) syntax on list items, see [#603](https://github.com/taildocsapp/taildocs/discussions/603)
 1. New custom anchors using Obsidian [`^block`](https://help.obsidian.md/links#Link+to+a+block+in+a+note) syntax
 
-+++ Improved :icon-thumbsup:
++++ Improved :icon-thumbs-up:
 
 1. Handle case-sensitive #anchor links and resolve if case-insensitive version found
 1. Add `translate=\"no\"` attribute to code block `<pre>` element
@@ -144,7 +144,7 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v310) for highlights.
 
 There were **19 changes** in TailDocs `v3.9.0`.
 
-See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v39) for highlights.
+See the [:icon-sparkles: Feature Log](/feature-log.md#v39) for highlights.
 
 +++ New :icon-shield-check:
 
@@ -160,7 +160,7 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v39) for highlights.
 1. New support for [Just the Docs](https://just-the-docs.com/) style of callouts
 1. New support for [Sphinx](https://www.sphinx-doc.org/) style callout syntax
 
-+++ Improved :icon-thumbsup:
++++ Improved :icon-thumbs-up:
 
 1. Rename the Alert component to [Callout](/components/callout.md)
 1. Support titles on Obsidian style callout syntax plus all Obsidian callout types
@@ -182,7 +182,7 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v39) for highlights.
 
 There were **16 changes** in TailDocs `v3.8.0`.
 
-See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v38) for highlights.
+See the [:icon-sparkles: Feature Log](/feature-log.md#v38) for highlights.
 
 +++ New :icon-shield-check:
 
@@ -192,7 +192,7 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v38) for highlights.
 1. New support for including a file outside the project root when using {%{`{{ include }}`}%}, see [#734](https://github.com/taildocsapp/taildocs/issues/734)
 1. New WikiLink and image WikiLink syntax support, including building [Obsidian](https://obsidian.md/) vaults
 
-+++ Improved :icon-thumbsup:
++++ Improved :icon-thumbs-up:
 
 1. Switched order of theme switcher buttons with sun in light mode and moon in dark mode
 1. Revised default server to host on port 5001 instead of 5000, see [#688](https://github.com/taildocsapp/taildocs/issues/688)
@@ -220,7 +220,7 @@ There were **6 changes** in TailDocs `v3.7.0`.
 +++ New :icon-shield-check:
 1. New `-v` flag as an alias on `taildocs --version` in CLI
 1. New [`showSidebarFilter`](/configuration/project.md#showsidebarfilter) project setting to hide navigation Filter component, see [#538](https://github.com/taildocsapp/taildocs/discussions/538)
-+++ Improved :icon-thumbsup:
++++ Improved :icon-thumbs-up:
 1. Restore support for official TailDocs Docker containers
 1. Upgrade Octicons to latest v19.15.1 release
 1. Add support for .NET 9.0 and upgrade internal frameworks
@@ -236,7 +236,7 @@ There were 9 changes in TailDocs `v3.6.0`.
 
 +++ New :icon-shield-check:
 1. New `--strict` parameter for `taildocs build`, see [#618](https://github.com/taildocsapp/taildocs/discussions/618)
-+++ Improved :icon-thumbsup:
++++ Improved :icon-thumbs-up:
 1. Upgrade Octicons icons library from v19.7.0 to v19.8.0
 1. Allow words to break for the ToC and Headings, see [#633](https://github.com/taildocsapp/taildocs/discussions/633)
 1. Match folder node if `searchLabel` includes the filter query, see [#646](https://github.com/taildocsapp/taildocs/discussions/646)
@@ -252,7 +252,7 @@ There were 9 changes in TailDocs `v3.6.0`.
 
 **Released:** [2023-09-16](https://github.com/taildocsapp/taildocs/releases/tag/v3.5.0)
 
-+++ Improved :icon-thumbsup:
++++ Improved :icon-thumbs-up:
 1. Path independent doc_theme local storage variable, see [#624](https://github.com/taildocsapp/taildocs/discussions/624)
 +++
 
@@ -264,7 +264,7 @@ There were 9 changes in TailDocs `v3.6.0`.
 1. New `hub` [Project](/configuration/project.md#hub) config with `<` header link, see [#592](https://github.com/taildocsapp/taildocs/discussions/592)
 1. New `toc` [Project](/configuration/project.md#toc) and [Page](/configuration/page.md#toc) config and features, see [#598](https://github.com/taildocsapp/taildocs/discussions/598)
 1. Automatically scroll ToC with page content, see [#375](https://github.com/taildocsapp/taildocs/discussions/375)
-+++ Improved :icon-thumbsup:
++++ Improved :icon-thumbs-up:
 1. Upgrade Octicons icons library from v19.6.0 to v19.7.0
 +++ Fixed :icon-bug:
 1. Tree nav `expanded` state not saving
@@ -277,7 +277,7 @@ There were 9 changes in TailDocs `v3.6.0`.
 +++ New :icon-shield-check:
 1. New [breadcrumb](/configuration/project.md#breadcrumb) navigation with [Project](/configuration/project.md#breadcrumb) and [Page](/configuration/page.md#breadcrumb) configs, see [#593](https://github.com/taildocsapp/taildocs/discussions/593)
 1. New [`list-icon`](/components/list.md#icon-list) css class to simplify creating TailDocs icon lists, see [#370](https://github.com/taildocsapp/taildocs/discussions/370) and [#603](https://github.com/taildocsapp/taildocs/discussions/603)
-+++ Improved :icon-thumbsup:
++++ Improved :icon-thumbs-up:
 1. Update all client libraries
 +++
 
@@ -287,7 +287,7 @@ There were 9 changes in TailDocs `v3.6.0`.
 
 +++ New :icon-shield-check:
 1. New [Description List](/components/list.md#description-list) support
-+++ Improved :icon-thumbsup:
++++ Improved :icon-thumbs-up:
 1. Upgrade Octicons icons library from v19.4.0 to v19.5.0
 1. Upgrade Octicons icons library from v19.5.0 to v19.6.0
 +++ Fixed :icon-bug:
@@ -308,7 +308,7 @@ There were 9 changes in TailDocs `v3.6.0`.
 1. New folder level [`visibility: private`](/configuration/page.md#private) and [`visibility: protected`](/configuration/page.md#protected) support
 1. New support for Armenian, Kannada, Sankrit, and Telugu [languages](/configuration/project.md#supported-languages)
 1. The _includes/*.html files include full Templating support, see [#282](https://github.com/taildocsapp/taildocs/discussions/282)
-+++ Improved :icon-thumbsup:
++++ Improved :icon-thumbs-up:
 1. Improved support for Cloudflare Rocket Loader, see [#117](https://github.com/taildocsapp/taildocs/discussions/171), [#380](https://github.com/taildocsapp/taildocs/discussions/380), and [#580](https://github.com/taildocsapp/taildocs/issues/580)
 1. Hide Tabs until finished rendering to avoid flash of unstyled content, see [#570](https://github.com/taildocsapp/taildocs/issues/570)
 1. Generated HTML syntax enhancements and clean up, see [#583](https://github.com/taildocsapp/taildocs/issues/583)
@@ -342,7 +342,7 @@ There were 9 changes in TailDocs `v3.6.0`.
 1. New sticky TOC button
 1. New context menu shortcuts for TailDocs components in Edit mode
 1. New custom same name default page for a directory, see [#511](https://github.com/taildocsapp/taildocs/discussions/511)
-+++ Improved :icon-thumbsup:
++++ Improved :icon-thumbs-up:
 1. Add `welcome.md` to the list of default page file names for the root `input` folder, see [#461](https://github.com/taildocsapp/taildocs/issues/461)
 1. Change default search hotkey to `k` instead of `/`
 1. Panel title missing from search index, see [#363](https://github.com/taildocsapp/taildocs/issues/363)
@@ -418,7 +418,7 @@ There were 9 changes in TailDocs `v3.6.0`.
 1. `og:url` and `twitter:url` paths incorrect for API generated pages.
 1. Include full version in the generator meta tag version.
 1. Many `categories` extends beyond page width and does not wrap. See [#316](https://github.com/taildocsapp/taildocs/discussions/316).
-+++ Breaking :icon-shield-x:
++++ Breaking :icon-shield-xmark:
 
 1. Switch `generator.paths` default value to `relative`.
 
@@ -624,7 +624,7 @@ This release failed to run properly if the NPM package was installed. 🧐 We di
 
 +++ New :icon-shield-check:
 1. [`tags`](/configuration/page.md#tags) config for pages.
-1. [`:icon-shortcode:`](/components/icon.md) component.
+1. [`:icon-code-simple:`](/components/icon.md) component.
 1. [`include`](/configuration/project.md#include) project config.
 1. [`exclude`](/configuration/project.md#exclude) project config.
 1. Improved `<table>` styling.

@@ -1,6 +1,6 @@
 ---
 order: 7
-icon: git-compare
+icon: code-compare
 tags:
   - guide
 ---

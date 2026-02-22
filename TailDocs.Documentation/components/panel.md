@@ -1,5 +1,5 @@
 ---
-icon: rows
+icon: table-rows
 tags: [component]
 ---
 # Panel

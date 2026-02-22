@@ -1,5 +1,5 @@
 ---
-icon: image
+icon: picture
 tags: [component]
 ---
 # Image
@@ -179,7 +179,7 @@ You can combine multiple attributes in a single set of curly braces. For example
 
 ## Alignment options
 
-If an image is configured on a separate line, TailDocs includes extra functionality for the custom alignment of images on the page. For instance, you can specify the left or right alignment of an image and have the text flow around the image. Check out the [Image alignment :icon-image:](image-alignment-demo.md) demo.
+If an image is configured on a separate line, TailDocs includes extra functionality for the custom alignment of images on the page. For instance, you can specify the left or right alignment of an image and have the text flow around the image. Check out the [Image alignment :icon-picture:](image-alignment-demo.md) demo.
 
 !!!
 If an image is defined inline with other text on the same line, the image will be treated as an inline image and the following TailDocs alignment options will be ignored.

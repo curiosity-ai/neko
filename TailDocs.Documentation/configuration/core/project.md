@@ -290,7 +290,7 @@ Using an [icon](/components/icon.md) as the separator:
 
 ```yml
 breadcrumb:
-  separator: ":icon-dot:"
+  separator: ":icon-circle-small:"
 ```
 ===
 
@@ -1054,7 +1054,7 @@ The position for the icon relative to the link `text`. Either `left` or `right`.
 links:
   - text: Demos
     link: https://demo.example.com/
-    icon: link-external
+    icon: link-alt
     iconAlign: right
 ```
 ===
@@ -1309,7 +1309,7 @@ The `nextprev.mode` setting can be configured at three levels with the following
 
 The `outbound` configuration gives you the flexibility to customize the behavior of outbound links in your TailDocs project. It allows you to control which links are treated as outbound, where they open, what icon is used, and even exclude or include specific domains. For instance, [example.com](https://example.com/).
 
-If `outbound` is enabled, TailDocs will find all external (outbound) links within the project, add a trailing :icon-link-external: icon, and set the link to open in a new tab when clicked.
+If `outbound` is enabled, TailDocs will find all external (outbound) links within the project, add a trailing :icon-link-alt: icon, and set the link to open in a new tab when clicked.
 
 ### enabled
 
@@ -1345,14 +1345,14 @@ outbound:
 
 === icon : `string`
 
-Defines the icon to be used for outbound links and accepts all the same options as the [`links.icon`](#icon) config. The default value is `link-external` :icon-link-external:.
+Defines the icon to be used for outbound links and accepts all the same options as the [`links.icon`](#icon) config. The default value is `link-external` :icon-link-alt:.
 
 ```yml
 outbound:
-  icon: link-external
+  icon: link-alt
 ```
 
-If you would prefer to keep the `outbound` functionality enabled, but not include the :icon-link-external: icon, please set `icon: ""`. The following sample demonstrates:
+If you would prefer to keep the `outbound` functionality enabled, but not include the :icon-link-alt: icon, please set `icon: ""`. The following sample demonstrates:
 
 ```yml
 outbound:

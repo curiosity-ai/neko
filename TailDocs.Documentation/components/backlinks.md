@@ -1,6 +1,6 @@
 ---
 order: 2
-icon: iterations
+icon: refresh
 tags: [component]
 nav:
   badge: NEW|info
@@ -33,7 +33,7 @@ The custom title overrides the default title configured at the [project](/config
 
 By default, backlinks are automatically included at the end of page content. Using the `[!backlinks]` component allows you to place backlinks anywhere within your page.
 
-||| :icon-code: Source
+||| :icon-code-simple: Source
 ```md
 ---
 title: API Reference

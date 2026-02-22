@@ -1,5 +1,5 @@
 ---
-icon: paintbrush
+icon: paint-brush
 tags: [component]
 nav:
   badge: NEW|info

@@ -1,5 +1,5 @@
 ---
-icon: columns
+icon: columns-3
 tags: [component]
 ---
 # Column
