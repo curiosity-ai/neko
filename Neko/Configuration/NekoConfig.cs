@@ -26,6 +26,36 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "theme")]
         public ThemeConfig Theme { get; set; } = new ThemeConfig();
+
+        [YamlMember(Alias = "banner")]
+        public BannerConfig Banner { get; set; } = new BannerConfig();
+    }
+
+    public class BannerConfig
+    {
+        [YamlMember(Alias = "text")]
+        public string Text { get; set; }
+
+        [YamlMember(Alias = "link")]
+        public string Link { get; set; }
+
+        [YamlMember(Alias = "linkText")]
+        public string LinkText { get; set; }
+
+        [YamlMember(Alias = "visible")]
+        public bool Visible { get; set; } = true;
+
+        [YamlMember(Alias = "background")]
+        public string Background { get; set; } = "bg-indigo-600";
+
+        [YamlMember(Alias = "color")]
+        public string Color { get; set; } = "text-white";
+
+        [YamlMember(Alias = "id")]
+        public string Id { get; set; } = "global-banner";
+
+        [YamlMember(Alias = "dismissible")]
+        public bool Dismissible { get; set; } = true;
     }
 
     public class BrandingConfig

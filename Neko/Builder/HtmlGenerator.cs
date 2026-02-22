@@ -128,6 +128,35 @@ namespace Neko.Builder
             sb.AppendLine("</head>");
             sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
 
+            // Banner
+            if (_config.Banner != null && _config.Banner.Visible && !string.IsNullOrEmpty(_config.Banner.Text))
+            {
+                var banner = _config.Banner;
+                var bannerId = banner.Id ?? "neko-banner";
+                var bg = !string.IsNullOrEmpty(banner.Background) ? banner.Background : "bg-indigo-600";
+                var color = !string.IsNullOrEmpty(banner.Color) ? banner.Color : "text-white";
+
+                sb.AppendLine($"    <div id=\"{bannerId}\" class=\"{bg} {color} relative isolate flex items-center gap-x-6 overflow-hidden px-6 py-2.5 sm:px-3.5 sm:before:flex-1 hidden z-50\">");
+                sb.AppendLine("        <div class=\"flex flex-wrap items-center gap-x-4 gap-y-2\">");
+                sb.AppendLine($"            <p class=\"text-sm leading-6\">{banner.Text}</p>");
+                if (!string.IsNullOrEmpty(banner.Link))
+                {
+                    var linkText = !string.IsNullOrEmpty(banner.LinkText) ? banner.LinkText : "Read more";
+                    sb.AppendLine($"            <a href=\"{banner.Link}\" class=\"flex-none rounded-full bg-gray-900 px-3.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900\">{linkText} <span aria-hidden=\"true\">&rarr;</span></a>");
+                }
+                sb.AppendLine("        </div>");
+                if (banner.Dismissible)
+                {
+                    sb.AppendLine("        <div class=\"flex flex-1 justify-end\">");
+                    sb.AppendLine($"            <button type=\"button\" class=\"-m-3 p-3 focus-visible:outline-offset-[-4px]\" onclick=\"dismissBanner('{bannerId}')\">");
+                    sb.AppendLine("                <span class=\"sr-only\">Dismiss</span>");
+                    sb.AppendLine("                <i class=\"fi fi-rr-cross-small text-xl\"></i>");
+                    sb.AppendLine("            </button>");
+                    sb.AppendLine("        </div>");
+                }
+                sb.AppendLine("    </div>");
+            }
+
             // Navbar
             sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10\">");
             sb.AppendLine("        <div class=\"flex items-center gap-4\">");
@@ -327,6 +356,26 @@ namespace Neko.Builder
 
             // Scripts
             sb.AppendLine("    <script>");
+
+            // Banner
+            if (_config.Banner != null && _config.Banner.Visible && !string.IsNullOrEmpty(_config.Banner.Text))
+            {
+                var banner = _config.Banner;
+                var bannerId = banner.Id ?? "neko-banner";
+                sb.AppendLine($"        const bannerId = '{bannerId}';");
+                sb.AppendLine("        function dismissBanner(id) {");
+                sb.AppendLine("            const banner = document.getElementById(id);");
+                sb.AppendLine("            if (banner) {");
+                sb.AppendLine("                banner.classList.add('hidden');");
+                sb.AppendLine("                localStorage.setItem('banner-dismissed-' + id, 'true');");
+                sb.AppendLine("            }");
+                sb.AppendLine("        }");
+                sb.AppendLine("        ");
+                sb.AppendLine("        if (localStorage.getItem('banner-dismissed-' + bannerId) !== 'true') {");
+                sb.AppendLine("            const banner = document.getElementById(bannerId);");
+                sb.AppendLine("            if (banner) banner.classList.remove('hidden');");
+                sb.AppendLine("        }");
+            }
 
             // Mobile Menu
             sb.AppendLine("        const mobileMenuBtn = document.getElementById('mobile-menu-btn');");
