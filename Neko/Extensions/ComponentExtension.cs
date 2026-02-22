@@ -155,6 +155,23 @@ namespace Neko.Extensions
             if (slice.CurrentChar == ']')
             {
                 slice.NextChar();
+
+                // Check for optional link in parenthesis (url)
+                if (slice.CurrentChar == '(')
+                {
+                    if (LinkHelper.TryParseInlineLink(ref slice, out var link, out var title))
+                    {
+                        if (!string.IsNullOrEmpty(link))
+                        {
+                            component.Attributes["link"] = link;
+                        }
+                        if (!string.IsNullOrEmpty(title))
+                        {
+                            component.Attributes["title"] = title;
+                        }
+                    }
+                }
+
                 processor.Inline = component;
                 return true;
             }
@@ -401,13 +418,60 @@ namespace Neko.Extensions
 
         private void RenderFile(HtmlRenderer renderer, ComponentInline obj)
         {
-            var text = obj.GetAttribute("text", "Download");
             var link = obj.GetAttribute("link", "#");
-            var size = obj.GetAttribute("size"); // Optional file size text
 
-            renderer.Write($"<a href=\"{link}\" class=\"inline-flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors no-underline group my-2\">");
-            renderer.Write($"<div class=\"p-2 bg-blue-50 dark:bg-blue-900 rounded-md mr-4 group-hover:bg-blue-100 dark:group-hover:bg-blue-800 transition-colors\">");
-            renderer.Write($"<i class=\"fi fi-rr-document text-blue-600 dark:text-blue-400 text-xl\"></i>");
+            string text = null;
+            if (obj.Attributes.ContainsKey("text"))
+            {
+                text = obj.Attributes["text"];
+            }
+            else if (obj.Arguments.Count > 0)
+            {
+                text = obj.Arguments[0];
+            }
+
+            if (string.IsNullOrEmpty(text))
+            {
+                try
+                {
+                    if (link != "#")
+                        text = System.IO.Path.GetFileName(link);
+                }
+                catch { }
+            }
+
+            if (string.IsNullOrEmpty(text)) text = "Download";
+
+            var size = obj.GetAttribute("size");
+            var icon = obj.GetAttribute("icon");
+
+            renderer.Write($"<a href=\"{link}\" class=\"inline-flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors no-underline group my-2\" download>");
+            renderer.Write($"<div class=\"p-2 bg-blue-50 dark:bg-blue-900 rounded-md mr-4 group-hover:bg-blue-100 dark:group-hover:bg-blue-800 transition-colors flex items-center justify-center w-11 h-11\">");
+
+            if (!string.IsNullOrEmpty(icon))
+            {
+                if (icon.Trim().StartsWith("<svg", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    renderer.Write(System.Net.WebUtility.HtmlDecode(icon));
+                }
+                else if (icon.StartsWith(":"))
+                {
+                    RenderInline(renderer, icon);
+                }
+                else if (icon.Contains("/") || icon.Contains("."))
+                {
+                    renderer.Write($"<img src=\"{icon}\" class=\"w-6 h-6 object-contain\" alt=\"\" />");
+                }
+                else
+                {
+                    renderer.Write($"<i class=\"fi fi-rr-{icon} text-blue-600 dark:text-blue-400 text-xl\"></i>");
+                }
+            }
+            else
+            {
+                renderer.Write($"<i class=\"fi fi-rr-document text-blue-600 dark:text-blue-400 text-xl\"></i>");
+            }
+
             renderer.Write("</div>");
             renderer.Write("<div>");
             renderer.Write($"<div class=\"font-medium text-gray-900 dark:text-white\">{text}</div>");
