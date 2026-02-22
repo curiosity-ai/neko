@@ -70,7 +70,7 @@ namespace TailDocs.CLI.Extensions
             }
 
             // Wrapper
-            renderer.Write("<div class=\"relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700\">");
+            renderer.Write("<div class=\"relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 not-prose [&>pre]:!m-0 [&>pre]:!p-0 [&>pre]:!bg-transparent [&>pre]:!rounded-none\">");
 
             // Header (if title exists)
             if (!string.IsNullOrEmpty(title))

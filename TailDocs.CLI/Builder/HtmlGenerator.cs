@@ -75,7 +75,6 @@ namespace TailDocs.CLI.Builder
             sb.AppendLine("        /* Highlight.js Line Numbers CSS */");
             sb.AppendLine("        .hljs-ln td { padding-left: 10px; }");
             sb.AppendLine("        .hljs-ln-numbers { user-select: none; text-align: right; color: #ccc; border-right: 1px solid #ccc; vertical-align: top; padding-right: 5px; }");
-            sb.AppendLine("        .hljs-ln-code { padding-left: 10px; }");
             sb.AppendLine("        ");
             sb.AppendLine("        /* Custom Highlight Style */");
             sb.AppendLine("        .line-highlight { background-color: rgba(255, 255, 0, 0.15); display: block; width: 100%; }");
