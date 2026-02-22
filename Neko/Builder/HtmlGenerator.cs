@@ -89,7 +89,47 @@ namespace Neko.Builder
 
             // Mermaid (Diagrams)
             sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>");
-            sb.AppendLine("    <script>mermaid.initialize({startOnLoad:true});</script>");
+            sb.AppendLine("    <script>");
+            sb.AppendLine("        mermaid.initialize({ startOnLoad: false });");
+            sb.AppendLine("        ");
+            sb.AppendLine("        async function renderMermaid() {");
+            sb.AppendLine("            const elements = document.querySelectorAll('.mermaid');");
+            sb.AppendLine("            if (!elements.length) return;");
+            sb.AppendLine("            ");
+            sb.AppendLine("            for (const el of elements) {");
+            sb.AppendLine("                if (el.getAttribute('data-processed')) continue;");
+            sb.AppendLine("                el.setAttribute('data-processed', 'true');");
+            sb.AppendLine("                ");
+            sb.AppendLine("                const source = el.textContent;");
+            sb.AppendLine("                const idBase = 'mermaid-' + Math.random().toString(36).substr(2, 9);");
+            sb.AppendLine("                const idLight = idBase + '-light';");
+            sb.AppendLine("                const idDark = idBase + '-dark';");
+            sb.AppendLine("                ");
+            sb.AppendLine("                // Render Light");
+            sb.AppendLine("                const sourceLight = `%%{init: {'theme':'default'}}%%\\n${source}`;");
+            sb.AppendLine("                // Render Dark");
+            sb.AppendLine("                const sourceDark = `%%{init: {'theme':'dark'}}%%\\n${source}`;");
+            sb.AppendLine("                ");
+            sb.AppendLine("                try {");
+            sb.AppendLine("                    const rLight = await mermaid.render(idLight, sourceLight);");
+            sb.AppendLine("                    const rDark = await mermaid.render(idDark, sourceDark);");
+            sb.AppendLine("                    ");
+            sb.AppendLine("                    el.innerHTML = `");
+            sb.AppendLine("                        <div class=\"dark:hidden\">${rLight.svg}</div>");
+            sb.AppendLine("                        <div class=\"hidden dark:block\">${rDark.svg}</div>");
+            sb.AppendLine("                    `;");
+            sb.AppendLine("                    ");
+            sb.AppendLine("                    if (rLight.bindFunctions) rLight.bindFunctions(el.querySelector('.dark\\\\:hidden'));");
+            sb.AppendLine("                    if (rDark.bindFunctions) rDark.bindFunctions(el.querySelector('.dark\\\\:block'));");
+            sb.AppendLine("                } catch (e) {");
+            sb.AppendLine("                    console.error('Mermaid rendering failed:', e);");
+            sb.AppendLine("                    el.innerHTML = `<div class=\"text-red-500\">Error rendering diagram</div>`;");
+            sb.AppendLine("                }");
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine("        ");
+            sb.AppendLine("        document.addEventListener('DOMContentLoaded', renderMermaid);");
+            sb.AppendLine("    </script>");
 
             // Force Graph
             sb.AppendLine("    <script src=\"/assets/force-graph.min.js\"></script>");
@@ -613,6 +653,7 @@ namespace Neko.Builder
             sb.AppendLine("                localStorage.setItem('theme', 'light');");
             sb.AppendLine("                highlightLink.href = lightHref;");
             sb.AppendLine("            }");
+            sb.AppendLine("            if (typeof renderMermaid === 'function') renderMermaid();");
             sb.AppendLine("        }");
             sb.AppendLine("");
             sb.AppendLine("        themeToggleBtn.addEventListener('click', () => {");
