@@ -111,5 +111,20 @@ namespace Neko.Tests
             Assert.That(doc.Html, Contains.Substring("<div class=\"div\">"));
             Assert.That(doc.Html, Contains.Substring("Content"));
         }
+
+        [Test]
+        public void TestHero()
+        {
+            var markdown = "[!hero title=\"Hero Title\" subtitle=\"Hero Subtitle\" badge-text=\"New\" cta1-text=\"Get Started\" cta1-link=\"/start\"]";
+            var doc = _parser.Parse(markdown);
+
+            Assert.That(doc.Html, Contains.Substring("not-prose"));
+            Assert.That(doc.Html, Contains.Substring("Hero Title"));
+            Assert.That(doc.Html, Contains.Substring("Hero Subtitle"));
+            Assert.That(doc.Html, Contains.Substring("New"));
+            Assert.That(doc.Html, Contains.Substring("Get Started"));
+            Assert.That(doc.Html, Contains.Substring("href=\"/start\""));
+            Assert.That(doc.Html, Contains.Substring("bg-gray-900"));
+        }
     }
 }
