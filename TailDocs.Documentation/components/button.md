@@ -115,17 +115,17 @@ See also the [`links.target`](/configuration/project.md#target) configuration.
 
 ## Icon and Emoji
 
-### Octicons
+### UIcons
 
-[Octicons](/components/octicons.md) can be used as an icon by settiing the `icon` property with the name of the Octicon.
+[UIcons](uicons.md) can be used as an icon by settiing the `icon` property with the name of the UIcon.
 
 ```md
-[!button variant="info" icon="person" text="User"](button.md)
-[!button variant="primary" icon="paper-airplane" iconAlign="right" text="Send"](button.md)
+[!button variant="info" icon="user" text="User"](button.md)
+[!button variant="primary" icon="paper-plane" iconAlign="right" text="Send"](button.md)
 ```
 
-[!button variant="info" icon="person" text="User" margin="0 8 0 0"]
-[!button variant="primary" icon="paper-airplane" iconAlign="right" text="Send"]
+[!button variant="info" icon="user" text="User" margin="0 8 0 0"]
+[!button variant="primary" icon="paper-plane" iconAlign="right" text="Send"]
 
 ### Emoji
 

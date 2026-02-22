@@ -55,7 +55,7 @@ See the [:icon-sparkles-fill: Feature Log](/feature-log.md#v312) for highlights.
 1. Add broader theme variables support for Headings H1 > H6
 1. Improve CNAME validation to help prevent deployment misconfigurations
 1. Print stylesheet refinements, see [#782](https://github.com/taildocsapp/taildocs/issues/782)
-1. Upgrade [Octicons](/components/octicons.md#new-icons) icons library from v19.15.3 to v19.21.2
+1. Upgrade Octicons icons library from v19.15.3 to v19.21.2
 
 +++ Fixed :icon-bug:
 
@@ -222,7 +222,7 @@ There were **6 changes** in TailDocs `v3.7.0`.
 1. New [`showSidebarFilter`](/configuration/project.md#showsidebarfilter) project setting to hide navigation Filter component, see [#538](https://github.com/taildocsapp/taildocs/discussions/538)
 +++ Improved :icon-thumbsup:
 1. Restore support for official TailDocs Docker containers
-1. Upgrade [Octicons](/components/octicons.md) to latest v19.15.1 release
+1. Upgrade Octicons to latest v19.15.1 release
 1. Add support for .NET 9.0 and upgrade internal frameworks
 +++ Fixed :icon-bug:
 1. Fixed TailDocs version number where build hash was being appended
@@ -598,7 +598,7 @@ This release failed to run properly if the NPM package was installed. 🧐 We di
 1. [`visibility`](/configuration/page.md#visibility) page config.
 1. Added logic to handle the manual creation of a [`CNAME`](/configuration/project.md#cname) file and copy to output.
 1. Automated process to check for new Octicons release and merge update.
-1. Update to latest [Octicons](/components/icon.md) icon release.
+1. Update to latest Octicons icon release.
 1. Cleaned up the CLI experience. See [#103](https://github.com/taildocsapp/taildocs/issues/103).
 1. Removed excessive bottom padding on blockquotes, see [#74](https://github.com/taildocsapp/taildocs/issues/74).
 +++

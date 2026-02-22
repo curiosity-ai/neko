@@ -252,7 +252,7 @@ breadcrumb:
   home: Home # custom label
 ```
 
-Use an Octicon [icon](/components/icon.md) instead of text for the Home node:
+Use a UIcon [icon](/components/icon.md) instead of text for the Home node:
 
 ```yml
 breadcrumb:
@@ -1025,9 +1025,9 @@ links:
     icon: bug
 ```
 
-Options include using an [Octicon](https://primer.style/octicons/) name, [Emoji](https://mojeeio.github.io/Mojee//emojis/) shortcode, `<svg>` element, or a path to an image file.
+Options include using a [UIcon](/components/uicons.md) name, [Emoji](https://mojeeio.github.io/Mojee//emojis/) shortcode, `<svg>` element, or a path to an image file.
 
-```yml Octicon
+```yml UIcon
 icon: rocket
 ```
 

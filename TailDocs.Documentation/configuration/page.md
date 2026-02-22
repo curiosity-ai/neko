@@ -328,9 +328,9 @@ Setting `expanded: true` within the metadata of an `.md` page or the paired **.y
 
 Custom icon for the navigation node of the current page. Default is `null`.
 
-Options include using an [Octicon](/components/octicons.md) name, [Emoji](https://mojeeio.github.io/Mojee//emojis/) shortcode, `<svg>` element, or a path to an image file.
+Options include using a [UIcon](/components/uicons.md) name, [Emoji](https://mojeeio.github.io/Mojee//emojis/) shortcode, `<svg>` element, or a path to an image file.
 
-```yml Octicon
+```yml UIcon
 icon: rocket
 ```
 
@@ -529,7 +529,7 @@ Property | Type | Description
 `variant` | `string` | Add Badge variants supported, including: `base`, `primary` (default), `secondary`, `success`, `danger`, `warning`, `info`, `light`, `dark`, `ghost`, `contrast`
 `size` | `string` | Badge size: `xs`, `s`, `m`, `l`, `xl`, `2xl`, `3xl` (default: `s`)
 `corners` | `string` | Badge corner style: `round`, `square`, `pill`
-`icon` | `string` | Icon name from [[Octicons]] or custom icon
+`icon` | `string` | Icon name from [UIcons](/components/uicons.md) or custom icon
 `iconAlign` | `string` | Icon position: `left` or `right`
 `link` | `string` | Page or URL to navigate to when badge is clicked
 `target` | `string` | Link target: `blank`, `self`, `parent`, `top`

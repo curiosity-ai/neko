@@ -21,6 +21,7 @@ This repository contains the source code for `TailDocs`, a CLI tool for generati
     -   Use embedded resources for CSS, JS, and Fonts.
     -   Do not use Node.js or NPM at runtime.
     -   Use vanilla JavaScript. No frameworks like React/Vue/Angular.
+    -   **Icons**: Use Flaticon UIcons (Regular Rounded) as the official icon set. Octicons are no longer supported.
 6.  **Architecture**:
     -   The CLI should support a `watch` command that serves the site on localhost and auto-reloads on file changes.
     -   Use `System.CommandLine` for argument parsing.
