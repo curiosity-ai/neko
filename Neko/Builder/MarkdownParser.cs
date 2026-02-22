@@ -69,6 +69,7 @@ namespace Neko.Builder
                 .Use<PanelExtension>()
                 .Use<ColumnExtension>()
                 .Use<ComponentExtension>()
+                .Use<YouTubeEmbedExtension>()
                 .Use<CodeBlockExtension>()
                 .Use<CodeSnippetExtension>()
                 .Build();
