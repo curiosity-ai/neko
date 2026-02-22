@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TailDocs</title>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>
+    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <script>document.addEventListener("DOMContentLoaded", function() { renderMathInElement(document.body); });</script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true});</script>
+    <script src="/assets/minisearch.min.js"></script>
+    <script defer src="/assets/search.js"></script>
+    <link id="highlight-theme" rel="stylesheet" href="/assets/highlight/tokyo-night-dark.min.css">
+    <script src="/assets/highlight/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js"></script>
+    <style>
+        /* Highlight.js Line Numbers CSS */
+        .hljs-ln td { padding-left: 10px; }
+        .hljs-ln-numbers { user-select: none; text-align: right; color: #ccc; border-right: 1px solid #ccc; vertical-align: top; padding-right: 5px; }
+        .hljs-ln-code { padding-left: 10px; }
+
+        /* Custom Highlight Style */
+        .line-highlight { background-color: rgba(255, 255, 0, 0.15); display: block; width: 100%; }
+        .dark .line-highlight { background-color: rgba(255, 255, 0, 0.15); }
+
+        /* Fix Table layout for code blocks with line numbers */
+        .hljs-ln { width: 100%; border-collapse: collapse; }
+    </style>
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden">
+    <header class="h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10">
+        <div class="flex items-center gap-4">
+            <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none">
+                <i class="fi fi-rr-menu-burger text-xl"></i>
+            </button>
+            <a href="/index" class="font-bold text-xl hover:text-blue-600 transition-colors">TailDocs</a>
+        </div>
+        <div class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300">
+            <a href="/" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center"><i class="fi fi-rr-home mr-1"></i>Home</a>
+            <a href="guides/getting-started" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center"><i class="fi fi-rr-book mr-1"></i>Guides</a>
+            <a href="https://github.com/theolivenbaum/taildocs" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center"><i class="fi fi-rr-brand-github mr-1"></i>GitHub</a>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="openSearch()" class="flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-blue-500 w-64 justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fi fi-rr-search text-sm"></i>
+                    <span class="text-sm font-medium">Search</span>
+                </div>
+                <kbd class="hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400">⌘K</kbd>
+            </button>
+            <button id="theme-toggle" class="flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-blue-500">
+                <i class="fi fi-rr-moon dark:hidden text-lg"></i>
+                <i class="fi fi-rr-sun hidden dark:block text-lg"></i>
+            </button>
+        </div>
+    </header>
+    <div class="flex flex-1 overflow-hidden">
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden glassmorphism"></div>
+        <aside id="sidebar" class="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex flex-col shrink-0 fixed md:static inset-y-0 left-0 z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out h-full">
+            <nav class="p-4 flex-1">
+                <div class="mb-6 relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fi fi-rr-filter text-gray-400"></i>
+                    </div>
+                    <input type="text" id="sidebar-filter" placeholder="Filter..." class="w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+                </div>
+                <ul class="space-y-1" id="sidebar-list">
+                    <li><a href="/index" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-document invisible"></i> Home</a></li>
+                    <li class="mt-6 mb-2 first:mt-0 px-2">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Guides</span>
+                    </li>
+                    <li><a href="/guides/getting-started" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-rocket"></i> Getting Started</a></li>
+                    <li><a href="/guides/installation" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-desktop-download"></i> Installation</a></li>
+                    <li><a href="/guides/cli" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-terminal"></i> TailDocs CLI</a></li>
+                    <li><a href="/guides/formatting" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-note"></i> Formatting</a></li>
+                    <li><a href="/guides/themes" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-paintbrush"></i> Themes</a></li>
+                    <li><a href="/guides/github-actions" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-git-compare"></i> GitHub Actions</a></li>
+                    <li class="mt-6 mb-2 first:mt-0 px-2">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Configuration</span>
+                    </li>
+                    <li><a href="/configuration/page" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-file"></i> Page configuration</a></li>
+                    <li><a href="/configuration/folder" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-file-directory"></i> Folder configuration</a></li>
+                    <li><a href="/configuration/reserved_words" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-info"></i> Reserved words</a></li>
+                    <li class="space-y-1">
+                        <details class="group" open>
+                            <summary class="flex items-center justify-between py-1 px-2 text-[13px] whitespace-nowrap font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none">
+                                <span class="flex items-center gap-2"><i class="fi fi-rr-document invisible"></i> Core</span>
+                                <i class="fi fi-rr-angle-small-down transition-transform group-open:rotate-180"></i>
+                            </summary>
+                            <ul class="pl-0 space-y-1 mt-1 border-l border-gray-200 dark:border-gray-700 ml-3">
+                    <li><a href="/configuration/core/project" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-package"></i> Project configuration</a></li>
+                    <li><a href="/configuration/core/theme-variables" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-number"></i> Theme variables</a></li>
+                            </ul>
+                        </details>
+                    </li>
+                    <li class="mt-6 mb-2 first:mt-0 px-2">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Components</span>
+                    </li>
+                    <li><a href="/components/components" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-tools"></i> Components</a></li>
+                    <li><a href="/components/backlinks" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-iterations"></i> Backlinks</a></li>
+                    <li><a href="/components/alert" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-exclamation"></i> Alert Component</a></li>
+                    <li><a href="/components/badge" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-id-badge"></i> Badge</a></li>
+                    <li><a href="/components/button" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-play"></i> Button</a></li>
+                    <li><a href="/components/callout" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-info"></i> Callout</a></li>
+                    <li><a href="/components/code-block" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-code-square"></i> Code Block</a></li>
+                    <li><a href="/components/code" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-code-simple"></i> Code Blocks</a></li>
+                    <li><a href="/components/code-snippet" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-code"></i> Code Snippet</a></li>
+                    <li><a href="/components/color-chip" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-paintbrush"></i> Color Chip</a></li>
+                    <li><a href="/components/column" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-columns"></i> Column</a></li>
+                    <li><a href="/components/comments" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-code-review"></i> Comments</a></li>
+                    <li><a href="/components/container" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-container"></i> Container</a></li>
+                    <li><a href="/components/embed" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-code-review"></i> Embed</a></li>
+                    <li><a href="/components/emoji" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-:grinning:"></i> Emoji</a></li>
+                    <li><a href="/components/file" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-file"></i> File Component</a></li>
+                    <li><a href="/components/file-download" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-download"></i> File Download</a></li>
+                    <li><a href="/components/icon" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-smiley"></i> Icon</a></li>
+                    <li><a href="/components/image" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-image"></i> Image</a></li>
+                    <li><a href="/components/image-alignment-demo" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-image"></i> Image alignment demo</a></li>
+                    <li><a href="/components/list" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-list-unordered"></i> List</a></li>
+                    <li><a href="/components/math" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-calculator"></i> Math Component</a></li>
+                    <li><a href="/components/math-formulas" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-diff-added"></i> Math Formulas</a></li>
+                    <li><a href="/components/mermaid" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-:mermaid:"></i> Mermaid</a></li>
+                    <li><a href="/components/panel" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-rows"></i> Panel</a></li>
+                    <li><a href="/components/reference-link" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-link"></i> Reference Link</a></li>
+                    <li><a href="/components/ref" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-link-alt"></i> Reference Link Component</a></li>
+                    <li><a href="/components/tab" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-browser"></i> Tab</a></li>
+                    <li><a href="/components/table" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-table"></i> Table</a></li>
+                    <li><a href="/components/youtube" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-video"></i> YouTube</a></li>
+                    <li><a href="/faq" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-question"></i> Frequently Asked Questions</a></li>
+                    <li><a href="/changelog" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-log"></i> Changelog</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <div class="flex-1 flex overflow-hidden">
+            <main class="flex-1 overflow-y-auto p-8 scroll-smooth" id="main-scroll">
+                <div class="max-w-4xl mx-auto prose dark:prose-invert">
+<h1 id="callout">Callout</h1>
+<p>Callout components help to highlight important messages for the reader.</p>
+<p>To create an Callout, just surround a block of text or any markdown content with <code>!!!</code>.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">!!!
+This is an Callout.
+!!!
+</code></pre>
+</div><div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><div class="prose dark:prose-invert max-w-none"><p>This is an Callout.</p>
+</div></div></div></div><hr />
+<h2 id="title">Title</h2>
+<p>Callouts can also have titles. Add a space, then add your title, such as <code>!!! My title</code>.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">!!! My title
+This is an Callout.
+!!!
+</code></pre>
+</div><div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-blue-800 dark:text-blue-200">My title</h5><div class="prose dark:prose-invert max-w-none"><p>This is an Callout.</p>
+</div></div></div></div>
+<p>Some basic Markdown syntax and emoji <code>:shortcodes:</code> are supported in the titles.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">!!! :zap: [Getting Started](/guides/getting-started.md) :zap:
+Get up to speed with TailDocs quickly by checking out the Getting Started guide.
+!!!
+</code></pre>
+</div><div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-blue-800 dark:text-blue-200">:zap: [Getting Started](/guides/getting-started.md) :zap:</h5><div class="prose dark:prose-invert max-w-none"><p>Get up to speed with TailDocs quickly by checking out the Getting Started guide.</p>
+</div></div></div></div><hr />
+<h2 id="variant">Variant</h2>
+<p>Callouts come in nine different flavors which can be specified by passing a <code>variant</code> immediately after the <code>!!!</code>, such as <code>!!!danger</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Variant</th>
+<th>Color</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>base</code></td>
+<td>Uses <code>base-color</code></td>
+</tr>
+<tr>
+<td><code>primary</code> (default)</td>
+<td><code>blue</code></td>
+</tr>
+<tr>
+<td><code>secondary</code></td>
+<td><code>gray</code></td>
+</tr>
+<tr>
+<td><code>success</code></td>
+<td><code>green</code></td>
+</tr>
+<tr>
+<td><code>tip</code></td>
+<td><code>green</code></td>
+</tr>
+<tr>
+<td><code>danger</code></td>
+<td><code>red</code></td>
+</tr>
+<tr>
+<td><code>warning</code></td>
+<td><code>yellow</code></td>
+</tr>
+<tr>
+<td><code>info</code></td>
+<td><code>light-blue</code></td>
+</tr>
+<tr>
+<td><code>question</code></td>
+<td><code>purple</code></td>
+</tr>
+<tr>
+<td><code>light</code></td>
+<td><code>light</code></td>
+</tr>
+<tr>
+<td><code>dark</code></td>
+<td><code>dark</code></td>
+</tr>
+<tr>
+<td><code>ghost</code></td>
+<td><code>light</code> or <code>dark</code> depending on time of day</td>
+</tr>
+<tr>
+<td><code>contrast</code></td>
+<td><code>dark</code> or <code>light</code> depending on time of day</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="samples">Samples</h2>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="!my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">!!!base Base
+This is a `base` Callout.
+!!!
+
+!!!primary Primary
+This is a `primary` Callout.
+!!!
+
+!!!secondary Secondary
+This is a `secondary` Callout.
+!!!
+
+!!!success Success
+This is a `success` Callout.
+!!!
+
+!!!tip Tip
+This is a `tip` Callout.
+!!!
+
+!!!danger Danger
+This is a `danger` Callout.
+!!!
+
+!!!warning Warning
+This is a `warning` Callout.
+!!!
+
+!!!info Info
+This is a `info` Callout.
+!!!
+
+!!!question Question
+This is a `question` Callout.
+!!!
+
+!!!light Light
+This is a `light` Callout.
+!!!
+
+!!!dark Dark
+This is a `dark` Callout.
+!!!
+
+!!!ghost Ghost
+This is a `ghost` Callout.
+!!!
+
+!!!contrast Contrast
+This is a `contrast` Callout.
+!!!
+</code></pre>
+</div><div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-blue-800 dark:text-blue-200">base Base</h5><div class="prose dark:prose-invert max-w-none"><p>This is a <code>base</code> Callout.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-blue-800 dark:text-blue-200">Primary</h5><div class="prose dark:prose-invert max-w-none"><p>This is a <code>primary</code> Callout.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-gray-500 bg-gray-50 dark:bg-gray-800 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-gray-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-gray-900 dark:text-gray-100">Secondary</h5><div class="prose dark:prose-invert max-w-none"><p>This is a <code>secondary</code> Callout.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-green-500"><i class="fi fi-rr-check-circle"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-green-800 dark:text-green-200">Success</h5><div class="prose dark:prose-invert max-w-none"><p>This is a <code>success</code> Callout.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-green-500"><i class="fi fi-rr-check-circle"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-green-800 dark:text-green-200">Tip</h5><div class="prose dark:prose-invert max-w-none"><p>This is a <code>tip</code> Callout.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-red-500"><i class="fi fi-rr-cross-circle"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-red-800 dark:text-red-200">Danger</h5><div class="prose dark:prose-invert max-w-none"><p>This is a <code>danger</code> Callout.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-yellow-500"><i class="fi fi-rr-exclamation"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-yellow-800 dark:text-yellow-200">Warning</h5><div class="prose dark:prose-invert max-w-none"><p>This is a <code>warning</code> Callout.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-blue-800 dark:text-blue-200">Info</h5><div class="prose dark:prose-invert max-w-none"><p>This is a <code>info</code> Callout.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-purple-500"><i class="fi fi-rr-question"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-purple-800 dark:text-purple-200">Question</h5><div class="prose dark:prose-invert max-w-none"><p>This is a <code>question</code> Callout.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-gray-500 bg-gray-50 dark:bg-gray-800 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-gray-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-gray-900 dark:text-gray-100">Light</h5><div class="prose dark:prose-invert max-w-none"><p>This is a <code>light</code> Callout.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-gray-500 bg-gray-50 dark:bg-gray-800 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-gray-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-gray-900 dark:text-gray-100">Dark</h5><div class="prose dark:prose-invert max-w-none"><p>This is a <code>dark</code> Callout.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-gray-500 bg-gray-50 dark:bg-gray-800 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-gray-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-gray-900 dark:text-gray-100">Ghost</h5><div class="prose dark:prose-invert max-w-none"><p>This is a <code>ghost</code> Callout.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-gray-500 bg-gray-50 dark:bg-gray-800 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-gray-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-gray-900 dark:text-gray-100">Contrast</h5><div class="prose dark:prose-invert max-w-none"><p>This is a <code>contrast</code> Callout.</p>
+</div></div></div></div><h2 id="github-alerts">GitHub Alerts</h2>
+<p>In addition to the TailDocs Callout component syntax options above, TailDocs also supports fully the GitHub <a href="https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts">Alert</a> extension which is an adaptation of the Markdown blockquote syntax.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">&gt; [!NOTE]
+&gt; Useful information that users should know.
+
+&gt; [!TIP]
+&gt; Helpful advice for doing things better or more easily.
+
+&gt; [!IMPORTANT]
+&gt; Key information users need to know to achieve their goal.
+
+&gt; [!WARNING]
+&gt; Urgent info that needs immediate user attention to avoid problems.
+
+&gt; [!CAUTION]
+&gt; Advises about risks or negative outcomes of certain actions.
+</code></pre>
+</div>
+<p>Here are the rendered GitHub Alerts:</p>
+<div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-blue-800 dark:text-blue-200">Note</h5><div class="prose dark:prose-invert max-w-none"><p>Useful information that users should know.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-green-500"><i class="fi fi-rr-check-circle"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-green-800 dark:text-green-200">Tip</h5><div class="prose dark:prose-invert max-w-none"><p>Helpful advice for doing things better or more easily.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-purple-500"><i class="fi fi-rr-question"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-purple-800 dark:text-purple-200">Important</h5><div class="prose dark:prose-invert max-w-none"><p>Key information users need to know to achieve their goal.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-yellow-500"><i class="fi fi-rr-exclamation"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-yellow-800 dark:text-yellow-200">Warning</h5><div class="prose dark:prose-invert max-w-none"><p>Urgent info that needs immediate user attention to avoid problems.</p>
+</div></div></div></div><div class="my-4 p-4 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-red-500"><i class="fi fi-rr-cross-circle"></i></div><div class="flex-1"><h5 class="font-bold mb-2 text-red-800 dark:text-red-200">Caution</h5><div class="prose dark:prose-invert max-w-none"><p>Advises about risks or negative outcomes of certain actions.</p>
+</div></div></div></div><h3 id="custom-title">Custom title</h3>
+<p>TailDocs also supports setting a custom title value on the GitHub Alerts using the following syntax:</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-md !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">&gt; [!NOTE] Custom Title
+&gt; Useful information that users should know.
+</code></pre>
+</div>
+<blockquote>
+<p>[!NOTE] Custom Title
+Useful information that users should know.</p>
+</blockquote>
+<hr />
+<h2 id="theme-variables">Theme variables</h2>
+<p>TailDocs gives you full control over the look and feel of your callout components through customizable [<a href="#theme-variables">theme variables</a>].</p>
+<p>You can override any of theme variable in your <code>taildocs.yml</code> configuration file using the <code>theme.base</code> and <code>theme.dark</code> settings.</p>
+<p>For example, to change the <code>primary</code> callout color for all instances of the <code>primary</code> callout within your project, add the following to your project's <code>taildocs.yml</code> file:</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yaml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">theme:
+  base:
+    # Revise the primary variant base color
+    # across all components within the project
+    # primary: &quot;#209fb5&quot;
+
+    # Or, adjust callout only theme variables
+    callout-primary: &quot;#209fb5&quot;
+</code></pre>
+</div>
+<p>To learn more about theme variables and how they work across TailDocs, check out the <a href="/guides/themes.md">Themes Guide</a>, the [<a href="#theme-variables">Theme Variables</a>] documentation, and <a href="/configuration/project.md#theme"><code>theme</code></a> Project settings.</p>
+<div class="my-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r shadow-sm"><div class="flex items-start"><div class="flex-shrink-0 text-xl mr-3 text-blue-500"><i class="fi fi-rr-info"></i></div><div class="flex-1"><div class="prose dark:prose-invert max-w-none"><p>All callout theme variables can be customized in this way. The full list of available variables is shown below, and you can always refer to the <a href="/configuration/theme-variables.md#callout-component">Callout Component</a> theme variables for the latest options.</p>
+</div></div></div></div>
+                    <div class="mt-8 pt-8 border-t border-gray-200 dark:border-gray-800">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Referenced by</h3>
+                        <ul class="space-y-2">
+                            <li><a href="/changelog" class="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2"><i class="fi fi-rr-arrow-small-right"></i> changelog</a></li>
+                            <li><a href="/guides/formatting" class="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2"><i class="fi fi-rr-arrow-small-right"></i> formatting</a></li>
+                            <li><a href="/components/components" class="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2"><i class="fi fi-rr-arrow-small-right"></i> components</a></li>
+                            <li><a href="/components/color-chip" class="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2"><i class="fi fi-rr-arrow-small-right"></i> color-chip</a></li>
+                            <li><a href="/components/icon" class="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2"><i class="fi fi-rr-arrow-small-right"></i> icon</a></li>
+                        </ul>
+                    </div>
+                    <footer class="mt-12 py-6 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400 flex flex-col md:flex-row justify-between items-center not-prose">
+                        <div>&copy; 2026 TailDocs. All rights reserved.</div>
+                        <div class="mt-2 md:mt-0">
+                            <a href="https://github.com/theolivenbaum/taildocs" target="_blank" rel="noopener noreferrer" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1">
+                                <i class="fi fi-rr-edit"></i> Edit on GitHub
+                            </a>
+                        </div>
+                    </footer>
+                </div>
+            </main>
+            <aside class="w-64 hidden xl:block shrink-0 overflow-y-auto border-l border-gray-200 dark:border-gray-800 p-6">
+                <div class="sticky top-0">
+                    <h5 class="text-xs font-semibold mb-4 text-gray-900 dark:text-gray-100 uppercase tracking-wider">On this page</h5>
+                    <ul class="space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800 relative" id="toc-list">
+                        <div id="toc-highlight" class="absolute left-0 border-l-2 border-blue-600 dark:border-blue-400 transition-all duration-200 ease-in-out -ml-px" style="top: 0; height: 0; opacity: 0;"></div>
+                        <li><a href="#title" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="title">Title</a></li>
+                        <li><a href="#variant" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="variant">Variant</a></li>
+                        <li><a href="#samples" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="samples">Samples</a></li>
+                        <li><a href="#github-alerts" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="github-alerts">GitHub Alerts</a></li>
+                        <li><a href="#custom-title" class="block pl-8 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="custom-title">Custom title</a></li>
+                        <li><a href="#theme-variables" class="block pl-4 hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link" data-id="theme-variables">Theme variables</a></li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
+    </div>
+    <script>
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+        function toggleMobileMenu() {
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            if (isClosed) {
+                sidebar.classList.remove('-translate-x-full');
+                sidebarOverlay.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+            sidebarOverlay.addEventListener('click', toggleMobileMenu);
+        }
+        const sidebarFilter = document.getElementById('sidebar-filter');
+        const sidebarList = document.getElementById('sidebar-list');
+        if (sidebarFilter && sidebarList) {
+            sidebarFilter.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                // Expand all details when searching
+                const details = sidebarList.querySelectorAll('details');
+                if (term) details.forEach(d => d.open = true);
+
+                const items = sidebarList.querySelectorAll('li, summary');
+                items.forEach(item => {
+                    // Avoid filtering the container li of nested lists, just filter leaf nodes or summary text
+                    if (item.tagName === 'LI' && item.querySelector('details')) return;
+
+                    const text = item.textContent.toLowerCase();
+                    if (text.includes(term)) {
+                        item.classList.remove('hidden');
+                        // Make sure parent is visible
+                        let parent = item.parentElement;
+                        while(parent && parent !== sidebarList) {
+                            parent.classList.remove('hidden');
+                            if (parent.tagName === 'DETAILS') parent.open = true;
+                            parent = parent.parentElement;
+                        }
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+            });
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            const sidebarLinks = document.querySelectorAll('#sidebar-list a');
+            sidebarLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href === currentPath || (href !== '/' && currentPath.startsWith(href))) {
+                    link.classList.add('bg-blue-50', 'dark:bg-blue-900', 'text-blue-700', 'dark:text-blue-300', 'font-medium');
+                    link.classList.remove('text-gray-700', 'dark:text-gray-200');
+                    // Open parent details
+                    let parent = link.parentElement;
+                    while (parent && parent.id !== 'sidebar-list') {
+                        if (parent.tagName === 'DETAILS') {
+                            parent.open = true;
+                        }
+                        parent = parent.parentElement;
+                    }
+                }
+            });
+        });
+        const tocLinks = document.querySelectorAll('.toc-link');
+        const sections = [];
+        tocLinks.forEach(link => {
+            const id = link.getAttribute('data-id');
+            const section = document.getElementById(id);
+            if (section) sections.push(section);
+        });
+
+        const visibleSections = new Set();
+        const highlightLine = document.getElementById('toc-highlight');
+        const tocList = document.getElementById('toc-list');
+
+        function updateTocHighlight() {
+            if (!highlightLine || !tocList) return;
+
+            // Clear all highlights
+            document.querySelectorAll('.toc-link').forEach(link => {
+                link.classList.remove('text-blue-600', 'dark:text-blue-400', 'font-medium');
+            });
+
+            let activeLinks = Array.from(document.querySelectorAll('.toc-link')).filter(link =>
+                visibleSections.has(link.getAttribute('data-id'))
+            );
+
+            if (activeLinks.length === 0) {
+                // Fallback to last passed section
+                const passedSections = sections.filter(section => {
+                    const rect = section.getBoundingClientRect();
+                    return rect.top < 100;
+                });
+
+                if (passedSections.length > 0) {
+                    const lastPassedSection = passedSections[passedSections.length - 1];
+                    const id = lastPassedSection.id;
+                    const link = document.querySelector(`.toc-link[data-id="${id}"]`);
+                    if (link) {
+                        activeLinks = [link];
+                    }
+                }
+            }
+
+            if (activeLinks.length === 0) {
+                highlightLine.style.opacity = '0';
+                return;
+            }
+
+            // Apply highlight
+            activeLinks.forEach(link => {
+                link.classList.add('text-blue-600', 'dark:text-blue-400', 'font-medium');
+            });
+
+            const firstLink = activeLinks[0];
+            const lastLink = activeLinks[activeLinks.length - 1];
+
+            const listRect = tocList.getBoundingClientRect();
+            const firstRect = firstLink.getBoundingClientRect();
+            const lastRect = lastLink.getBoundingClientRect();
+
+            const top = firstRect.top - listRect.top;
+            const height = lastRect.bottom - firstRect.top;
+
+            highlightLine.style.top = `${top}px`;
+            highlightLine.style.height = `${height}px`;
+            highlightLine.style.opacity = '1';
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const id = entry.target.id;
+                if (entry.isIntersecting) {
+                    visibleSections.add(id);
+                } else {
+                    visibleSections.delete(id);
+                }
+            });
+            requestAnimationFrame(updateTocHighlight);
+        }, {
+            root: document.getElementById('main-scroll'),
+            rootMargin: '0px 0px 0px 0px',
+            threshold: 0
+        });
+        sections.forEach(section => observer.observe(section));
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const highlightLink = document.getElementById('highlight-theme');
+        const darkHref = '/assets/highlight/tokyo-night-dark.min.css';
+        const lightHref = '/assets/highlight/tokyo-night-light.min.css';
+
+        function setTheme(isDark) {
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                highlightLink.href = darkHref;
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                highlightLink.href = lightHref;
+            }
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            setTheme(!document.documentElement.classList.contains('dark'));
+        });
+
+        if (document.documentElement.classList.contains('dark')) {
+            highlightLink.href = darkHref;
+        } else {
+            highlightLink.href = lightHref;
+        }
+        function openTab(evt, group, tabId) {
+            var contents = document.querySelectorAll(`[id^='tab-${group}-']`);
+            contents.forEach(c => c.classList.add('hidden'));
+            var buttons = evt.currentTarget.parentElement.children;
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'font-medium');
+                buttons[i].classList.add('border-transparent', 'hover:text-gray-700', 'text-gray-500');
+            }
+            document.getElementById(tabId).classList.remove('hidden');
+            evt.currentTarget.classList.remove('border-transparent', 'hover:text-gray-700', 'text-gray-500');
+            evt.currentTarget.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'font-medium');
+        }
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.copy-btn');
+            if (!btn) return;
+            const group = btn.closest('.group');
+            const codeEl = group.querySelector('code');
+            let text = "";
+            if (codeEl.querySelector('.hljs-ln')) {
+                codeEl.querySelectorAll('.hljs-ln-code').forEach(td => text += td.innerText + "\n");
+            } else {
+                text = codeEl.innerText;
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = btn.querySelector('i');
+                const originalClass = icon.className;
+                icon.className = 'fi fi-rr-check';
+                setTimeout(() => icon.className = originalClass, 2000);
+            });
+        });
+        document.addEventListener('DOMContentLoaded', (event) => {
+            hljs.highlightAll();
+            hljs.initLineNumbersOnLoad({ singleLine: true });
+
+            // Anchor Links
+            document.querySelectorAll('h2, h3, h4, h5, h6').forEach(heading => {
+                if (heading.id) {
+                    heading.classList.add('group', 'relative');
+                    const link = document.createElement('a');
+                    link.href = '#' + heading.id;
+                    link.className = 'absolute -left-6 top-0 bottom-0 flex items-center justify-center text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 no-underline';
+                    link.innerHTML = '<i class="fi fi-rr-hashtag"></i>';
+                    link.setAttribute('aria-label', 'Anchor');
+                    heading.prepend(link);
+                }
+            });
+        });
+        window.addEventListener('load', function() {
+            document.querySelectorAll('pre code[data-highlight]').forEach(block => {
+                const highlightRange = block.getAttribute('data-highlight');
+                if (!highlightRange) return;
+                const linesToHighlight = new Set();
+                highlightRange.split(',').forEach(part => {
+                    if (part.includes('-')) {
+                        const [start, end] = part.split('-').map(Number);
+                        for (let i = start; i <= end; i++) linesToHighlight.add(i);
+                    } else {
+                        linesToHighlight.add(Number(part));
+                    }
+                });
+                const table = block.querySelector('.hljs-ln');
+                if (table) {
+                    const rows = table.querySelectorAll('tr');
+                    rows.forEach((row, index) => {
+                        if (linesToHighlight.has(index + 1)) {
+                            row.classList.add('bg-yellow-100', 'dark:bg-yellow-900', 'bg-opacity-20', 'dark:bg-opacity-20');
+                            row.querySelectorAll('td').forEach(td => td.style.backgroundColor = 'inherit');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
