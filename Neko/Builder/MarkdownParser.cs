@@ -66,6 +66,7 @@ namespace Neko.Builder
                 .Use<AlertExtension>()
                 .Use<GitHubAlertExtension>()
                 .Use<TabExtension>()
+                .Use<PanelExtension>()
                 .Use<ColumnExtension>()
                 .Use<ComponentExtension>()
                 .Use<CodeBlockExtension>()
