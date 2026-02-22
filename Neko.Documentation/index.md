@@ -3,11 +3,15 @@ order: 1
 title: Introduction
 ---
 
-# Welcome to Neko
+# Welcome to Neko: The Modern .NET Static Site Generator
 
 ![Neko Logo](assets/neko-logo.png)
 
-Neko is a powerful static site generator designed to help you create beautiful, documentation-first websites with ease. Built with .NET 10 and leveraging the flexibility of Markdown and Tailwind CSS, Neko transforms your content into a modern, responsive, and feature-rich documentation site.
+Neko is a modern, high-performance static site generator built on .NET 10. Designed for developers who value simplicity and speed, Neko effortlessly transforms your Markdown files into a stunning, responsive documentation site using the power of Tailwind CSS. Whether you're documenting an API, a library, or a full-scale product, Neko provides the tools you need to create a professional experience.
+
+*Markdown flows to web,*
+*Simple code, stunning design,*
+*Neko builds it fast.*
 
 ## Key Features
 
