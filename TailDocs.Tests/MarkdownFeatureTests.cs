@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace TailDocs.Tests
 {
-    public class RetypeFeatureTests
+    public class MarkdownFeatureTests
     {
         private MarkdownParser _parser;
 

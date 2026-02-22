@@ -35,7 +35,6 @@ Commands:
   build <path>  Generate a static website from the project
   serve <path>  Serve the website in a local development only web server
   clean <path>  Clean the output directory
-  wallet        Manage Your TailDocs Keys
 ```
 
 ---
@@ -69,8 +68,6 @@ Arguments:
   <path>  Path to the project root or project config file [Optional]
 
 Options:
-  --pro                  Enable TailDocs Pro preview
-  --key <key>            Your TailDocs Key
   --password <password>  Private page password
   --host <host>          Custom Host name or IP address
   --port <port>          Custom TCP port
@@ -203,10 +200,9 @@ Arguments:
 
 Options:
   --output <output>      Custom path to the output directory
-  --key <key>            Your TailDocs Key
   --password <password>  Private page password
   --override <override>  JSON configuration overriding project config values
-  --strict               [PRO] Return a non-zero exit code if the build had errors or warnings
+  --strict               Return a non-zero exit code if the build had errors or warnings
   -w, --watch            Watch for file changes
   -v, --verbose          Enable verbose logging
   -a, --api              Watch for API changes
@@ -276,49 +272,6 @@ Arguments:
 Options:
   --dry           List files and directories that would be deleted
   -v, --verbose   Enable verbose logging
-  -?, -h, --help  Show help and usage information
-```
-
----
-
-## `taildocs wallet`
-
-The `taildocs wallet` command is for managing TailDocs keys.
-
-TailDocs keys are stored within an encrypted wallet file called **license.dat**.
-
-To add a TailDocs key to your wallet, run the following command:
-
-```
-taildocs wallet --add <your-license-key-here>
-```
-
-Once a key is added to your wallet, the key does not need to be added again. The key is stored in the wallet and TailDocs will read the key from the wallet with future builds.
-
-A TailDocs key can also be passed during a build. The key is NOT stored in wallet. The key would need to be passed with each call to `taildocs build`.
-
-```
-taildocs build --key <your-license-key-here>
-```
-
-### RETYPE_KEY
-
-See how to configure a [`RETYPE_KEY`](../configuration/envvars.md/#taildocs_key) Environment variable for an option to set your project key during runtime.
-
-### Options
-
-```
-Description:
-  Manage Your TailDocs Keys
-
-Usage:
-  taildocs wallet [options]
-
-Options:
-  --add <key>     Add a key to the wallet
-  --remove <key>  Remove a key from the wallet
-  --list          List the stored keys
-  --clear         Clear the wallet
   -?, -h, --help  Show help and usage information
 ```
 
