@@ -45,5 +45,22 @@ namespace Neko.Tests
 
             Assert.That(html, Contains.Substring("if (now - parseInt(savedTime) < 60000)"));
         }
+
+        [Test]
+        public void TestSidebarHighlightingLogic()
+        {
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Content</p>",
+                FrontMatter = new FrontMatter { Title = "Page Title" }
+            };
+
+            var html = _generator.Generate(doc);
+
+            // Verify the highlighting logic includes boundary check and path normalization
+            Assert.That(html, Contains.Substring("let currentPath = window.location.pathname;"));
+            Assert.That(html, Contains.Substring("if (currentPath.endsWith('.html')) currentPath = currentPath.substring(0, currentPath.length - 5);"));
+            Assert.That(html, Contains.Substring("if (href === currentPath || (href !== '/' && currentPath.startsWith(href) && (href.endsWith('/') || currentPath.charAt(href.length) === '/')))"));
+        }
     }
 }
