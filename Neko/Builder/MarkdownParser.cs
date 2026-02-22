@@ -71,6 +71,7 @@ namespace Neko.Builder
                 .Use<ComponentExtension>()
                 .Use<CodeBlockExtension>()
                 .Use<CodeSnippetExtension>()
+                .Use<ImageAlignmentExtension>()
                 .Build();
         }
 
