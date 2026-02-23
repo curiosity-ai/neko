@@ -340,7 +340,7 @@ namespace Neko.Builder
             }
             sb.AppendLine("        </div>");
 
-            sb.AppendLine("        <div class=\"flex items-center gap-4\">");
+            sb.AppendLine("        <div class=\"flex items-center gap-4 hidden md:flex\">");
             sb.AppendLine("            <button onclick=\"openSearch()\" class=\"flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-blue-500 w-64 justify-between\">");
             sb.AppendLine("                <div class=\"flex items-center gap-2\">");
             sb.AppendLine("                    <i class=\"fi fi-rr-search text-sm\"></i>");
@@ -377,7 +377,7 @@ namespace Neko.Builder
 
             // Content
             sb.AppendLine("        <div class=\"flex-1 flex overflow-hidden\">");
-            sb.AppendLine("            <main class=\"flex-1 overflow-y-auto p-8 scroll-smooth\" id=\"main-scroll\">");
+            sb.AppendLine("            <main class=\"flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth\" id=\"main-scroll\">");
             sb.AppendLine("                <div class=\"max-w-4xl mx-auto prose dark:prose-invert\">");
 
             // Breadcrumbs
