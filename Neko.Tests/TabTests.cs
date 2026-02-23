@@ -50,5 +50,16 @@ namespace Neko.Tests
             int count = System.Text.RegularExpressions.Regex.Matches(doc.Html, "class=\"my-4 border rounded-md dark:border-gray-700\"").Count;
             Assert.That(count, Is.EqualTo(2), $"Expected 2 tab groups, found {count}. HTML: {doc.Html}");
         }
+
+        [Test]
+        public void TestTabWithIcon()
+        {
+            var markdown = "+++ :icon-code-simple: Source\nCode\n+++";
+            var doc = _parser.Parse(markdown);
+
+            // Expect the icon class to be present
+            Assert.That(doc.Html, Contains.Substring("fi-rr-code-simple"));
+            Assert.That(doc.Html, Contains.Substring("Source"));
+        }
     }
 }
