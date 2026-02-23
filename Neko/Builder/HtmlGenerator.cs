@@ -58,6 +58,10 @@ namespace Neko.Builder
                 ? $"{document.FrontMatter.Title} - {_config.Branding.Title}"
                 : _config.Branding.Title;
 
+            // Search Assets
+            sb.AppendLine("    <script src=\"/assets/minisearch.min.js\"></script>");
+            sb.AppendLine("    <script defer src=\"/assets/search.js\"></script>");
+            sb.AppendLine("    <script defer src=\"/assets/history.js\"></script>");
             var description = !string.IsNullOrEmpty(document.FrontMatter.Description)
                 ? document.FrontMatter.Description
                 : _config.Meta.Description;
@@ -214,6 +218,18 @@ namespace Neko.Builder
             sb.AppendLine("                </div>");
             sb.AppendLine("                <kbd class=\"hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400\">⌘K</kbd>");
             sb.AppendLine("            </button>");
+            sb.AppendLine("            <div class=\"relative\">");
+            sb.AppendLine("                <button id=\"history-btn\" onclick=\"toggleHistory()\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-blue-500\">");
+            sb.AppendLine("                    <i class=\"fi fi-rr-clock text-lg\"></i>");
+            sb.AppendLine("                </button>");
+            sb.AppendLine("                <div id=\"history-popup\" class=\"absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden border border-gray-200 dark:border-gray-700\">");
+            sb.AppendLine("                    <div class=\"px-4 py-2 border-b border-gray-200 dark:border-gray-700\">");
+            sb.AppendLine("                        <h3 class=\"text-sm font-semibold text-gray-900 dark:text-gray-100\">Recent Pages</h3>");
+            sb.AppendLine("                    </div>");
+            sb.AppendLine("                    <ul id=\"history-list\" class=\"max-h-64 overflow-y-auto\">");
+            sb.AppendLine("                    </ul>");
+            sb.AppendLine("                </div>");
+            sb.AppendLine("            </div>");
             sb.AppendLine("            <button id=\"theme-toggle\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-blue-500\">");
             sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
             sb.AppendLine("                <i class=\"fi fi-rr-sun hidden dark:block text-lg\"></i>");

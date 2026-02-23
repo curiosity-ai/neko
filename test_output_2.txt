@@ -1,0 +1,30 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Neko -> /app/Neko/bin/Debug/net10.0/Neko.dll
+/app/Neko.Tests/RegressionTests.cs(22,13): warning NUnit1033: The Write methods are wrappers on TestContext.Out (https://github.com/nunit/nunit.analyzers/tree/master/documentation/NUnit1033.md) [/app/Neko.Tests/Neko.Tests.csproj]
+/app/Neko.Tests/RegressionTests.cs(35,13): warning NUnit1033: The Write methods are wrappers on TestContext.Out (https://github.com/nunit/nunit.analyzers/tree/master/documentation/NUnit1033.md) [/app/Neko.Tests/Neko.Tests.csproj]
+/app/Neko.Tests/RegressionTests.cs(45,13): warning NUnit1033: The Write methods are wrappers on TestContext.Out (https://github.com/nunit/nunit.analyzers/tree/master/documentation/NUnit1033.md) [/app/Neko.Tests/Neko.Tests.csproj]
+/app/Neko.Tests/RegressionTests.cs(55,13): warning NUnit1033: The Write methods are wrappers on TestContext.Out (https://github.com/nunit/nunit.analyzers/tree/master/documentation/NUnit1033.md) [/app/Neko.Tests/Neko.Tests.csproj]
+/app/Neko.Tests/RegressionTests.cs(66,13): warning NUnit1033: The Write methods are wrappers on TestContext.Out (https://github.com/nunit/nunit.analyzers/tree/master/documentation/NUnit1033.md) [/app/Neko.Tests/Neko.Tests.csproj]
+/app/Neko.Tests/RegressionTests.cs(76,13): warning NUnit1033: The Write methods are wrappers on TestContext.Out (https://github.com/nunit/nunit.analyzers/tree/master/documentation/NUnit1033.md) [/app/Neko.Tests/Neko.Tests.csproj]
+  Neko.Tests -> /app/Neko.Tests/bin/Debug/net10.0/Neko.Tests.dll
+Test run for /app/Neko.Tests/bin/Debug/net10.0/Neko.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+  Failed TestStackedCard [37 ms]
+  Error Message:
+     Assert.That(doc, Contains.Substring("<div class=\"font-bold text-xl mb-2 text-gray-900 dark:text-white\">Title</div>"))
+  Expected: String containing "<div class="font-bold text-xl mb-2 text-gray-900 dark:text-white">Title</div>"
+  But was:  "<div class="max-w-sm rounded overflow-hidden shadow-lg bg-white dark:bg-gray-800 my-4 border border-gray-200 dark:border-gray-700"><img class="w-full object-cover" src="img.jpg" alt="Title"><div class="px-6 py-4"><div class="font-bold text-xl mt-1 mb-2 text-gray-900 dark:text-white">Title</div><div class="text-gray-700 dark:text-gray-300 text-base"><p>Description</p>
+</div></div><div class="px-6 pt-4 pb-2"><span class="inline-block bg-gray-200 dark:bg-gray-700 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 dark:text-gray-300 mr-2 mb-2">#tag1</span><span class="inline-block bg-gray-200 dark:bg-gray-700 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 dark:text-gray-300 mr-2 mb-2">#tag2</span></div></div>"
+
+  Stack Trace:
+     at Neko.Tests.CardTests.TestStackedCard() in /app/Neko.Tests/CardTests.cs:line 24
+
+1)    at Neko.Tests.CardTests.TestStackedCard() in /app/Neko.Tests/CardTests.cs:line 24
+
+
+
+Failed!  - Failed:     1, Passed:    99, Skipped:     0, Total:   100, Duration: 743 ms - Neko.Tests.dll (net10.0)
