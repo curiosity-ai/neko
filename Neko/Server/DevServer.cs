@@ -64,7 +64,7 @@ namespace Neko.Server
             }
         }
 
-        public async Task StartAsync()
+        public async Task StartAsync(CancellationToken cancellationToken = default)
         {
             var builder = WebApplication.CreateBuilder();
             builder.Logging.ClearProviders(); // Reduce noise
@@ -232,7 +232,7 @@ namespace Neko.Server
 
             System.Console.WriteLine($"Server started at http://localhost:{_port}");
 
-            await app.RunAsync();
+            await app.RunAsync(cancellationToken);
         }
 
         public class ContentUpdate
