@@ -1,23 +1,66 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Rewrite;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Threading.Tasks;
+using System.Net.WebSockets;
+using System.Collections.Concurrent;
+using System.Threading;
+using System.Text;
+using System.Collections.Generic;
+using System.Linq;
+using System;
 
 namespace Neko.Server
 {
     public class DevServer
     {
         private readonly string _rootPath;
+        private readonly string _inputPath;
         private readonly int _port;
+        private readonly ConcurrentDictionary<string, WebSocket> _sockets = new ConcurrentDictionary<string, WebSocket>();
 
-        public DevServer(string rootPath, int port = 5000)
+        public DevServer(string rootPath, string inputPath, int port = 5000)
         {
             _rootPath = Path.GetFullPath(rootPath);
+            _inputPath = Path.GetFullPath(inputPath);
             _port = port;
+        }
+
+        public async Task NotifyChange()
+        {
+            var buffer = Encoding.UTF8.GetBytes("reload");
+            var segment = new ArraySegment<byte>(buffer);
+            var deadSockets = new List<string>();
+
+            foreach (var kvp in _sockets)
+            {
+                var socket = kvp.Value;
+                if (socket.State == WebSocketState.Open)
+                {
+                    try
+                    {
+                        await socket.SendAsync(segment, WebSocketMessageType.Text, true, CancellationToken.None);
+                    }
+                    catch
+                    {
+                        deadSockets.Add(kvp.Key);
+                    }
+                }
+                else
+                {
+                    deadSockets.Add(kvp.Key);
+                }
+            }
+
+            foreach (var key in deadSockets)
+            {
+                _sockets.TryRemove(key, out _);
+            }
         }
 
         public async Task StartAsync()
@@ -28,6 +71,115 @@ namespace Neko.Server
 
             var app = builder.Build();
 
+            app.UseWebSockets();
+
+            app.Map("/neko-live", async (HttpContext context) =>
+            {
+                if (context.WebSockets.IsWebSocketRequest)
+                {
+                    using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+                    var id = System.Guid.NewGuid().ToString();
+                    _sockets.TryAdd(id, webSocket);
+
+                    var buffer = new byte[1024 * 4];
+                    try
+                    {
+                        while (webSocket.State == WebSocketState.Open)
+                        {
+                            var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                            if (result.MessageType == WebSocketMessageType.Close)
+                            {
+                                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed by client", CancellationToken.None);
+                            }
+                        }
+                    }
+                    catch {}
+                    finally
+                    {
+                        _sockets.TryRemove(id, out _);
+                    }
+                }
+                else
+                {
+                    context.Response.StatusCode = 400;
+                }
+            });
+
+            app.MapGet("/api/neko/content", async (string path) => {
+                if (string.IsNullOrEmpty(path)) return Results.BadRequest("Path is required");
+
+                // path is usually /folder/file.html or /folder/file
+                // Resolve to .md file in input path
+                var relativePath = path.TrimStart('/');
+                // Handle optional leading slash in query param just in case
+
+                if (relativePath.EndsWith(".html")) relativePath = relativePath.Substring(0, relativePath.Length - 5);
+
+                // Try .md
+                var mdPath = Path.Combine(_inputPath, relativePath + ".md");
+                if (!File.Exists(mdPath))
+                {
+                    // Try index.md
+                    mdPath = Path.Combine(_inputPath, relativePath, "index.md");
+                    if (!File.Exists(mdPath))
+                    {
+                        // Try just file
+                        mdPath = Path.Combine(_inputPath, relativePath);
+                        if (!File.Exists(mdPath))
+                        {
+                             return Results.NotFound($"File not found: {relativePath}");
+                        }
+                    }
+                }
+
+                // Prevent directory traversal outside input path
+                if (!Path.GetFullPath(mdPath).StartsWith(_inputPath))
+                {
+                    return Results.BadRequest("Invalid path");
+                }
+
+                var content = await File.ReadAllTextAsync(mdPath);
+                return Results.Text(content);
+            });
+
+            app.MapPost("/api/neko/content", async (HttpRequest request) => {
+                try
+                {
+                    var body = await request.ReadFromJsonAsync<ContentUpdate>();
+                    if (body == null || string.IsNullOrEmpty(body.Path)) return Results.BadRequest("Invalid body");
+
+                    var relativePath = body.Path.TrimStart('/');
+                    if (relativePath.EndsWith(".html")) relativePath = relativePath.Substring(0, relativePath.Length - 5);
+
+                    var mdPath = Path.Combine(_inputPath, relativePath + ".md");
+                     if (!File.Exists(mdPath))
+                    {
+                        // Try index.md
+                        var indexMdPath = Path.Combine(_inputPath, relativePath, "index.md");
+                        if (File.Exists(indexMdPath))
+                        {
+                            mdPath = indexMdPath;
+                        }
+                        else
+                        {
+                             return Results.NotFound($"File not found to update: {relativePath}");
+                        }
+                    }
+
+                    if (!Path.GetFullPath(mdPath).StartsWith(_inputPath))
+                    {
+                        return Results.BadRequest("Invalid path");
+                    }
+
+                    await File.WriteAllTextAsync(mdPath, body.Content);
+                    return Results.Ok();
+                }
+                catch (System.Exception ex)
+                {
+                    return Results.Problem(ex.Message);
+                }
+            });
+
             if (Directory.Exists(_rootPath))
             {
                 // Rewriter for extensionless URLs
@@ -37,15 +189,15 @@ namespace Neko.Server
                         var path = request.Path.Value;
                         if (string.IsNullOrEmpty(path) || path == "/") return;
 
+                        // If api or websocket, skip
+                        if (path.StartsWith("/api/") || path == "/neko-live") return;
+
                         // If path has extension, skip
                         if (Path.HasExtension(path)) return;
 
                         // Check if .html file exists
                         var relativePath = path.TrimStart('/');
                         var filePath = Path.Combine(_rootPath, relativePath + ".html");
-
-                        // Also check if directory + index.html exists? usually FileServer handles directory index but rewrite might be needed if url is /folder without slash
-                        // But let's stick to extensionless file rewriting first.
 
                         if (File.Exists(filePath))
                         {
@@ -67,6 +219,12 @@ namespace Neko.Server
             System.Console.WriteLine($"Server started at http://localhost:{_port}");
 
             await app.RunAsync();
+        }
+
+        public class ContentUpdate
+        {
+            public string Path { get; set; }
+            public string Content { get; set; }
         }
     }
 }

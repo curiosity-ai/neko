@@ -1,16 +1,19 @@
 using Neko.Configuration;
 using System.Text;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Neko.Builder
 {
     public class HtmlGenerator
     {
         private readonly NekoConfig _config;
+        private readonly bool _isWatchMode;
 
-        public HtmlGenerator(NekoConfig config)
+        public HtmlGenerator(NekoConfig config, bool isWatchMode = false)
         {
             _config = config;
+            _isWatchMode = isWatchMode;
         }
 
         public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null, List<LinkConfig> sidebarLinks = null)
@@ -399,6 +402,28 @@ namespace Neko.Builder
                  htmlContent = System.Text.RegularExpressions.Regex.Replace(htmlContent, "href=\"((?!http:|https:|ftp:|mailto:|#|/)[^\"]+)\\.(md|html)\"", "href=\"$1\"");
             }
 
+            // Watch Mode Button Injection
+            if (_isWatchMode)
+            {
+                var editButtonHtml = "<button onclick=\"nekoOpenEditor()\" class=\"ml-3 inline-flex items-center rounded-md bg-white dark:bg-gray-800 px-2.5 py-1.5 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 not-prose\"><i class=\"fi fi-rr-edit mr-1\"></i> Edit</button>";
+
+                // Inject after the first header opening tag and content, but before closing tag?
+                // Or just append to the content.
+                // Regex: Find <h[1-6]...>(...)</h[1-6]>
+                var regex = new Regex(@"(<h[1-6][^>]*>)(.*?)(</h[1-6]>)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                var match = regex.Match(htmlContent);
+                if (match.Success)
+                {
+                    // Inject button after the content of the header, but inside the tag
+                    htmlContent = regex.Replace(htmlContent, $"$1$2{editButtonHtml}$3", 1);
+                }
+                else
+                {
+                    // If no header, prepend to top
+                    htmlContent = editButtonHtml + htmlContent;
+                }
+            }
+
             if (!string.IsNullOrEmpty(document.FrontMatter.Password))
             {
                 var encryptionResult = Neko.Encryption.PageEncryptor.Encrypt(htmlContent, document.FrontMatter.Password);
@@ -521,6 +546,105 @@ namespace Neko.Builder
 
             sb.AppendLine("        </div>");
             sb.AppendLine("    </div>");
+
+            // Watch Mode UI
+            if (_isWatchMode)
+            {
+                sb.AppendLine("    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js\"></script>");
+
+                // Editor Modal
+                sb.AppendLine("    <div id=\"neko-editor-modal\" class=\"fixed inset-0 z-50 hidden\">");
+                sb.AppendLine("        <div class=\"absolute inset-0 bg-black/50 backdrop-blur-sm\"></div>");
+                sb.AppendLine("        <div class=\"absolute inset-0 flex items-center justify-center p-4\">");
+                sb.AppendLine("            <div class=\"bg-white dark:bg-gray-900 w-full max-w-6xl h-[90vh] rounded-lg shadow-xl flex flex-col border border-gray-200 dark:border-gray-700\">");
+                sb.AppendLine("                <div class=\"flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700\">");
+                sb.AppendLine("                    <h3 class=\"text-lg font-semibold text-gray-900 dark:text-gray-100\">Edit Content</h3>");
+                sb.AppendLine("                    <div class=\"flex items-center gap-2\">");
+                sb.AppendLine("                        <button onclick=\"nekoCancelEdit()\" class=\"px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors\">Cancel</button>");
+                sb.AppendLine("                        <button onclick=\"nekoSaveContent()\" class=\"px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors\">Save</button>");
+                sb.AppendLine("                    </div>");
+                sb.AppendLine("                </div>");
+                sb.AppendLine("                <div id=\"neko-editor-container\" class=\"flex-1 overflow-hidden\"></div>");
+                sb.AppendLine("            </div>");
+                sb.AppendLine("        </div>");
+                sb.AppendLine("    </div>");
+
+                // Watch Script
+                sb.AppendLine("    <script>");
+                sb.AppendLine("        // WebSocket for Live Reload");
+                sb.AppendLine("        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';");
+                sb.AppendLine("        const wsUrl = `${protocol}//${window.location.host}/neko-live`;");
+                sb.AppendLine("        let ws;");
+                sb.AppendLine("");
+                sb.AppendLine("        function connectWs() {");
+                sb.AppendLine("            ws = new WebSocket(wsUrl);");
+                sb.AppendLine("            ws.onmessage = (event) => {");
+                sb.AppendLine("                if (event.data === 'reload') {");
+                sb.AppendLine("                    window.location.reload();");
+                sb.AppendLine("                }");
+                sb.AppendLine("            };");
+                sb.AppendLine("            ws.onclose = () => {");
+                sb.AppendLine("                setTimeout(connectWs, 1000);");
+                sb.AppendLine("            };");
+                sb.AppendLine("        }");
+                sb.AppendLine("        connectWs();");
+                sb.AppendLine("");
+                sb.AppendLine("        // Monaco Editor");
+                sb.AppendLine("        let editor;");
+                sb.AppendLine("        const modal = document.getElementById('neko-editor-modal');");
+                sb.AppendLine("        const container = document.getElementById('neko-editor-container');");
+                sb.AppendLine("");
+                sb.AppendLine("        function nekoOpenEditor() {");
+                sb.AppendLine("            const path = window.location.pathname;");
+                sb.AppendLine("            fetch('/api/neko/content?path=' + encodeURIComponent(path))");
+                sb.AppendLine("                .then(res => res.text())");
+                sb.AppendLine("                .then(markdown => {");
+                sb.AppendLine("                    modal.classList.remove('hidden');");
+                sb.AppendLine("                    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});");
+                sb.AppendLine("                    require(['vs/editor/editor.main'], function() {");
+                sb.AppendLine("                        if (editor) {");
+                sb.AppendLine("                            editor.setValue(markdown);");
+                sb.AppendLine("                        } else {");
+                sb.AppendLine("                            editor = monaco.editor.create(container, {");
+                sb.AppendLine("                                value: markdown,");
+                sb.AppendLine("                                language: 'markdown',");
+                sb.AppendLine("                                theme: document.documentElement.classList.contains('dark') ? 'vs-dark' : 'vs',");
+                sb.AppendLine("                                automaticLayout: true,");
+                sb.AppendLine("                                minimap: { enabled: false },");
+                sb.AppendLine("                                wordWrap: 'on',");
+                sb.AppendLine("                                fontSize: 14");
+                sb.AppendLine("                            });");
+                sb.AppendLine("                        }");
+                sb.AppendLine("                    });");
+                sb.AppendLine("                })");
+                sb.AppendLine("                .catch(err => console.error('Failed to load content', err));");
+                sb.AppendLine("        }");
+                sb.AppendLine("");
+                sb.AppendLine("        function nekoCancelEdit() {");
+                sb.AppendLine("            modal.classList.add('hidden');");
+                sb.AppendLine("        }");
+                sb.AppendLine("");
+                sb.AppendLine("        function nekoSaveContent() {");
+                sb.AppendLine("            if (!editor) return;");
+                sb.AppendLine("            const content = editor.getValue();");
+                sb.AppendLine("            const path = window.location.pathname;");
+                sb.AppendLine("            fetch('/api/neko/content', {");
+                sb.AppendLine("                method: 'POST',");
+                sb.AppendLine("                headers: { 'Content-Type': 'application/json' },");
+                sb.AppendLine("                body: JSON.stringify({ path, content })");
+                sb.AppendLine("            })");
+                sb.AppendLine("            .then(res => {");
+                sb.AppendLine("                if (res.ok) {");
+                sb.AppendLine("                    nekoCancelEdit();");
+                sb.AppendLine("                    // Notification handled by websocket reload usually, but we can do instant feedback");
+                sb.AppendLine("                } else {");
+                sb.AppendLine("                    alert('Failed to save');");
+                sb.AppendLine("                }");
+                sb.AppendLine("            })");
+                sb.AppendLine("            .catch(err => alert('Failed to save: ' + err));");
+                sb.AppendLine("        }");
+                sb.AppendLine("    </script>");
+            }
 
             // Scripts
             sb.AppendLine("    <script>");
