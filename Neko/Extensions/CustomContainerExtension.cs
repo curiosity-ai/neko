@@ -43,6 +43,11 @@ namespace Neko.Extensions
                 var classes = "flex flex-col md:flex-row gap-4 my-4";
                 obj.GetAttributes().AddClass(classes);
             }
+            else if (type == "card-grid")
+            {
+                var classes = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 my-8";
+                obj.GetAttributes().AddClass(classes);
+            }
 
             _originalRenderer.Write(renderer, obj);
         }
@@ -61,6 +66,10 @@ namespace Neko.Extensions
             {
                 RenderHorizontalCard(renderer, obj, image, title, link, seeMore, tags);
             }
+            else if (variant == "grid")
+            {
+                RenderGridCard(renderer, obj, image, title, link, seeMore, tags);
+            }
             else
             {
                 RenderStackedCard(renderer, obj, image, title, link, seeMore, tags);
@@ -77,6 +86,85 @@ namespace Neko.Extensions
                 }
             }
             return null;
+        }
+
+        private void RenderGridCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags)
+        {
+            var classes = "flex flex-col h-full rounded-lg border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800 overflow-hidden";
+            var attrs = obj.GetAttributes();
+            if (attrs.Classes != null)
+            {
+                var extraClasses = string.Join(" ", attrs.Classes.Where(c => c != "card"));
+                if (!string.IsNullOrEmpty(extraClasses)) classes += " " + extraClasses;
+            }
+
+            renderer.Write($"<div class=\"{classes}\">");
+
+            if (!string.IsNullOrEmpty(image))
+            {
+                var encodedImage = WebUtility.HtmlEncode(image);
+                var encodedTitle = WebUtility.HtmlEncode(title ?? "");
+
+                renderer.Write("<div class=\"flex h-48 w-full items-center justify-center bg-gray-50 dark:bg-white p-6\">");
+
+                if (!string.IsNullOrEmpty(link))
+                {
+                    var encodedLink = WebUtility.HtmlEncode(link);
+                    renderer.Write($"<a href=\"{encodedLink}\" class=\"flex h-full w-full items-center justify-center\">");
+                }
+
+                renderer.Write($"<img class=\"max-h-full max-w-full object-contain\" src=\"{encodedImage}\" alt=\"{encodedTitle}\">");
+
+                if (!string.IsNullOrEmpty(link)) renderer.Write("</a>");
+
+                renderer.Write("</div>");
+            }
+
+            renderer.Write("<div class=\"flex flex-1 flex-col p-6\">");
+
+            if (!string.IsNullOrEmpty(title))
+            {
+                renderer.Write("<h3 class=\"mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white\">");
+                if (!string.IsNullOrEmpty(link))
+                {
+                    var encodedLink = WebUtility.HtmlEncode(link);
+                    renderer.Write($"<a href=\"{encodedLink}\" class=\"hover:underline\">");
+                }
+                renderer.Write(WebUtility.HtmlEncode(title));
+                if (!string.IsNullOrEmpty(link)) renderer.Write("</a>");
+                renderer.Write("</h3>");
+            }
+
+            renderer.Write("<div class=\"mb-4 flex-1 text-gray-700 dark:text-gray-400\">");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
+
+            if (!string.IsNullOrEmpty(tags) || !string.IsNullOrEmpty(seeMore))
+            {
+                renderer.Write("<div class=\"mt-auto pt-4 flex items-center justify-between\">");
+
+                if (!string.IsNullOrEmpty(tags))
+                {
+                    renderer.Write("<div class=\"flex flex-wrap gap-2\">");
+                    foreach (var tag in tags.Split(new[] { ',' }, System.StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var t = WebUtility.HtmlEncode(tag.Trim());
+                        renderer.Write($"<span class=\"inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300\">#{t}</span>");
+                    }
+                    renderer.Write("</div>");
+                }
+
+                if (!string.IsNullOrEmpty(seeMore))
+                {
+                    var encodedSeeMore = WebUtility.HtmlEncode(seeMore);
+                    renderer.Write($"<a href=\"{encodedSeeMore}\" class=\"inline-flex items-center text-sm font-medium text-blue-600 hover:underline dark:text-blue-500\">See more &rarr;</a>");
+                }
+
+                renderer.Write("</div>");
+            }
+
+            renderer.Write("</div>"); // End content div
+            renderer.Write("</div>"); // End card div
         }
 
         private void RenderStackedCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags)

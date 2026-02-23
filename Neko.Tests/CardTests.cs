@@ -46,5 +46,29 @@ namespace Neko.Tests
 
             Assert.That(doc, Contains.Substring("my-class"));
         }
+
+        [Test]
+        public void TestGridCard()
+        {
+            var markdown = "::: card {variant=\"grid\" image=\"img.jpg\" title=\"Title\" link=\"#\"}\nContent\n:::";
+            var doc = _parser.Parse(markdown).Html;
+
+            Assert.That(doc, Contains.Substring("flex flex-col h-full rounded-lg"));
+            Assert.That(doc, Contains.Substring("bg-gray-50 dark:bg-white")); // Image container
+            Assert.That(doc, Contains.Substring("object-contain")); // Image fit
+            Assert.That(doc, Contains.Substring("Title"));
+            Assert.That(doc, Contains.Substring("Content"));
+        }
+
+        [Test]
+        public void TestCardGridContainer()
+        {
+            var markdown = "::: card-grid\n::: card {variant=\"grid\"}\nC1\n:::\n::: card {variant=\"grid\"}\nC2\n:::\n:::";
+            var doc = _parser.Parse(markdown).Html;
+
+            Assert.That(doc, Contains.Substring("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 my-8"));
+            Assert.That(doc, Contains.Substring("C1"));
+            Assert.That(doc, Contains.Substring("C2"));
+        }
     }
 }
