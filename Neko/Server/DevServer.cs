@@ -14,6 +14,7 @@ using System.Text;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using System.Security.Cryptography;
 
 namespace Neko.Server
 {
@@ -108,29 +109,8 @@ namespace Neko.Server
             app.MapGet("/api/neko/content", async (string path) => {
                 if (string.IsNullOrEmpty(path)) return Results.BadRequest("Path is required");
 
-                // path is usually /folder/file.html or /folder/file
-                // Resolve to .md file in input path
-                var relativePath = path.TrimStart('/');
-                // Handle optional leading slash in query param just in case
-
-                if (relativePath.EndsWith(".html")) relativePath = relativePath.Substring(0, relativePath.Length - 5);
-
-                // Try .md
-                var mdPath = Path.Combine(_inputPath, relativePath + ".md");
-                if (!File.Exists(mdPath))
-                {
-                    // Try index.md
-                    mdPath = Path.Combine(_inputPath, relativePath, "index.md");
-                    if (!File.Exists(mdPath))
-                    {
-                        // Try just file
-                        mdPath = Path.Combine(_inputPath, relativePath);
-                        if (!File.Exists(mdPath))
-                        {
-                             return Results.NotFound($"File not found: {relativePath}");
-                        }
-                    }
-                }
+                var mdPath = ResolveMarkdownPath(path);
+                if (mdPath == null) return Results.NotFound($"File not found: {path}");
 
                 // Prevent directory traversal outside input path
                 if (!Path.GetFullPath(mdPath).StartsWith(_inputPath))
@@ -148,23 +128,8 @@ namespace Neko.Server
                     var body = await request.ReadFromJsonAsync<ContentUpdate>();
                     if (body == null || string.IsNullOrEmpty(body.Path)) return Results.BadRequest("Invalid body");
 
-                    var relativePath = body.Path.TrimStart('/');
-                    if (relativePath.EndsWith(".html")) relativePath = relativePath.Substring(0, relativePath.Length - 5);
-
-                    var mdPath = Path.Combine(_inputPath, relativePath + ".md");
-                     if (!File.Exists(mdPath))
-                    {
-                        // Try index.md
-                        var indexMdPath = Path.Combine(_inputPath, relativePath, "index.md");
-                        if (File.Exists(indexMdPath))
-                        {
-                            mdPath = indexMdPath;
-                        }
-                        else
-                        {
-                             return Results.NotFound($"File not found to update: {relativePath}");
-                        }
-                    }
+                    var mdPath = ResolveMarkdownPath(body.Path);
+                    if (mdPath == null) return Results.NotFound($"File not found to update: {body.Path}");
 
                     if (!Path.GetFullPath(mdPath).StartsWith(_inputPath))
                     {
@@ -178,6 +143,55 @@ namespace Neko.Server
                 {
                     return Results.Problem(ex.Message);
                 }
+            });
+
+            app.MapPost("/api/neko/upload-image", async (HttpRequest request) => {
+                if (!request.HasFormContentType) return Results.BadRequest("Expected form data");
+
+                var form = await request.ReadFormAsync();
+                var file = form.Files["file"];
+                var path = form["path"];
+
+                if (file == null || file.Length == 0) return Results.BadRequest("No file uploaded");
+                if (string.IsNullOrEmpty(path)) return Results.BadRequest("Path is required");
+
+                var mdPath = ResolveMarkdownPath(path);
+                // If the markdown file doesn't exist yet (new page?), we might want to allow it, but for now strict check.
+                if (mdPath == null) return Results.NotFound($"Markdown file not found for path: {path}");
+
+                if (!Path.GetFullPath(mdPath).StartsWith(_inputPath))
+                {
+                    return Results.BadRequest("Invalid path");
+                }
+
+                var mdDir = Path.GetDirectoryName(mdPath);
+                var assetsDir = Path.Combine(mdDir, "assets");
+
+                if (!Directory.Exists(assetsDir))
+                {
+                    Directory.CreateDirectory(assetsDir);
+                }
+
+                // Generate safe filename with hash
+                using var sha256 = SHA256.Create();
+                using var stream = file.OpenReadStream();
+                var hashBytes = await sha256.ComputeHashAsync(stream);
+                var hash = BitConverter.ToString(hashBytes).Replace("-", "").Substring(0, 8).ToLower();
+
+                var extension = Path.GetExtension(file.FileName).ToLower();
+                if (string.IsNullOrEmpty(extension)) extension = ".png"; // Default fallback
+
+                var safeName = "image_" + hash + extension;
+                var savePath = Path.Combine(assetsDir, safeName);
+
+                // Rewind stream to save
+                stream.Position = 0;
+                using var fileStream = File.Create(savePath);
+                await stream.CopyToAsync(fileStream);
+
+                // Return relative path for markdown
+                // format: assets/filename.ext
+                return Results.Ok(new { url = $"assets/{safeName}" });
             });
 
             if (Directory.Exists(_rootPath))
@@ -225,6 +239,26 @@ namespace Neko.Server
         {
             public string Path { get; set; }
             public string Content { get; set; }
+        }
+
+        private string ResolveMarkdownPath(string path)
+        {
+            var relativePath = path.TrimStart('/');
+            if (relativePath.EndsWith(".html")) relativePath = relativePath.Substring(0, relativePath.Length - 5);
+
+            // Try .md
+            var mdPath = Path.Combine(_inputPath, relativePath + ".md");
+            if (File.Exists(mdPath)) return mdPath;
+
+            // Try index.md
+            mdPath = Path.Combine(_inputPath, relativePath, "index.md");
+            if (File.Exists(mdPath)) return mdPath;
+
+            // Try just file
+            mdPath = Path.Combine(_inputPath, relativePath);
+            if (File.Exists(mdPath)) return mdPath;
+
+            return null;
         }
     }
 }
