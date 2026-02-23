@@ -18,11 +18,49 @@ namespace Neko.Builder
           _headIncludes = headIncludes;
         }
 
+        public string GenerateNotFound(NotFoundConfig config)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("<!DOCTYPE html>");
+            sb.AppendLine("<html lang=\"en\" class=\"scroll-smooth h-full\">");
+
+            GenerateHead(sb, config.Title, config.Message);
+
+            sb.AppendLine("<body class=\"h-full\">");
+
+            // Tailwind UI 404 Simple Layout
+            sb.AppendLine("  <main class=\"grid min-h-full place-items-center bg-white dark:bg-gray-900 px-6 py-24 sm:py-32 lg:px-8\">");
+            sb.AppendLine("    <div class=\"text-center\">");
+            sb.AppendLine("      <p class=\"text-base font-semibold text-indigo-600 dark:text-indigo-400\">404</p>");
+            sb.AppendLine($"      <h1 class=\"mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 sm:text-5xl\">{config.Title}</h1>");
+            sb.AppendLine($"      <p class=\"mt-6 text-base leading-7 text-gray-600 dark:text-gray-400\">{config.Message}</p>");
+            sb.AppendLine("      <div class=\"mt-10 flex items-center justify-center gap-x-6\">");
+            sb.AppendLine($"        <a href=\"{config.HomeLink}\" class=\"rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600\">{config.HomeText}</a>");
+
+            if (!string.IsNullOrEmpty(config.ContactText))
+            {
+                sb.AppendLine($"        <a href=\"{config.ContactLink}\" class=\"text-sm font-semibold text-gray-900 dark:text-gray-100\">{config.ContactText} <span aria-hidden=\"true\">&rarr;</span></a>");
+            }
+
+            sb.AppendLine("      </div>");
+            sb.AppendLine("    </div>");
+            sb.AppendLine("  </main>");
+
+            sb.AppendLine("</body>");
+            sb.AppendLine("</html>");
+
+            return sb.ToString();
+        }
+
         public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null, List<LinkConfig> sidebarLinks = null)
         {
             var title = !string.IsNullOrEmpty(document.FrontMatter.Title)
                 ? $"{document.FrontMatter.Title} - {_config.Branding.Title}"
                 : _config.Branding.Title;
+
+            var description = !string.IsNullOrEmpty(document.FrontMatter.Description)
+                ? document.FrontMatter.Description
+                : _config.Meta.Description;
 
             var darkTheme = _config.Theme.Highlight.Dark;
             var lightTheme = _config.Theme.Highlight.Light;
@@ -30,181 +68,9 @@ namespace Neko.Builder
             var sb = new StringBuilder();
             sb.AppendLine("<!DOCTYPE html>");
             sb.AppendLine("<html lang=\"en\" class=\"scroll-smooth\">");
-            sb.AppendLine("<head>");
-            sb.AppendLine("    <meta charset=\"UTF-8\">");
-            sb.AppendLine("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
-            sb.AppendLine($"    <title>{title}</title>");
 
-            if (!string.IsNullOrEmpty(_config.Branding.Favicon))
-            {
-                sb.AppendLine($"    <link rel=\"icon\" href=\"{_config.Branding.Favicon}\">");
-            }
+            GenerateHead(sb, title, description);
 
-            var description = !string.IsNullOrEmpty(document.FrontMatter.Description)
-                ? document.FrontMatter.Description
-                : _config.Meta.Description;
-
-            if (!string.IsNullOrEmpty(description))
-            {
-                sb.AppendLine($"    <meta name=\"description\" content=\"{description}\">");
-                sb.AppendLine($"    <meta property=\"og:description\" content=\"{description}\">");
-                sb.AppendLine($"    <meta name=\"twitter:description\" content=\"{description}\">");
-            }
-
-            if (!string.IsNullOrEmpty(_config.Meta.Keywords)) sb.AppendLine($"    <meta name=\"keywords\" content=\"{_config.Meta.Keywords}\">");
-            if (!string.IsNullOrEmpty(_config.Meta.Author)) sb.AppendLine($"    <meta name=\"author\" content=\"{_config.Meta.Author}\">");
-
-            var pageTitle = !string.IsNullOrEmpty(document.FrontMatter.Title) ? $"{document.FrontMatter.Title} - {_config.Branding.Title}" : _config.Branding.Title;
-            sb.AppendLine($"    <meta property=\"og:title\" content=\"{pageTitle}\">");
-            sb.AppendLine($"    <meta name=\"twitter:title\" content=\"{pageTitle}\">");
-
-            if (!string.IsNullOrEmpty(_config.Meta.Type)) sb.AppendLine($"    <meta property=\"og:type\" content=\"{_config.Meta.Type}\">");
-            if (!string.IsNullOrEmpty(_config.Meta.Url)) sb.AppendLine($"    <meta property=\"og:url\" content=\"{_config.Meta.Url}\">");
-            if (!string.IsNullOrEmpty(_config.Meta.Image))
-            {
-                sb.AppendLine($"    <meta property=\"og:image\" content=\"{_config.Meta.Image}\">");
-                sb.AppendLine($"    <meta name=\"twitter:image\" content=\"{_config.Meta.Image}\">");
-            }
-
-            if (!string.IsNullOrEmpty(_config.Meta.TwitterCard)) sb.AppendLine($"    <meta name=\"twitter:card\" content=\"{_config.Meta.TwitterCard}\">");
-            if (!string.IsNullOrEmpty(_config.Meta.TwitterSite)) sb.AppendLine($"    <meta name=\"twitter:site\" content=\"{_config.Meta.TwitterSite}\">");
-            if (!string.IsNullOrEmpty(_config.Meta.TwitterCreator)) sb.AppendLine($"    <meta name=\"twitter:creator\" content=\"{_config.Meta.TwitterCreator}\">");
-
-            // Tailwind CSS
-            // Use CDN to ensure plugins (like typography) are available.
-            // The local resource might be missing the typography plugin.
-            sb.AppendLine("    <script src=\"https://cdn.tailwindcss.com?plugins=typography\"></script>");
-            sb.AppendLine("    <script>tailwind.config = { darkMode: 'class' }</script>");
-
-            // Neko Config
-            var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
-            var snippetsJson = _config.Snippets != null ? System.Text.Json.JsonSerializer.Serialize(_config.Snippets, jsonOptions) : "{}";
-            sb.AppendLine($"    <script>window.nekoConfig = {{ snippets: {snippetsJson} }};</script>");
-
-            // Inter Font
-            sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
-            sb.AppendLine("    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>");
-
-            // Flaticon UIcons
-            sb.AppendLine("    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>");
-
-            // Emoji CSS
-            sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/emoji.css\">");
-
-            // KaTeX (Math)
-            sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css\">");
-            sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js\"></script>");
-            sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js\"></script>");
-            sb.AppendLine("    <script>document.addEventListener(\"DOMContentLoaded\", function() { renderMathInElement(document.body); });</script>");
-
-            // Mermaid (Diagrams)
-            sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>");
-            sb.AppendLine("    <script>");
-            sb.AppendLine("        mermaid.initialize({ startOnLoad: false });");
-            sb.AppendLine("        ");
-            sb.AppendLine("        async function renderMermaid() {");
-            sb.AppendLine("            const elements = document.querySelectorAll('.mermaid');");
-            sb.AppendLine("            if (!elements.length) return;");
-            sb.AppendLine("            ");
-            sb.AppendLine("            for (const el of elements) {");
-            sb.AppendLine("                if (el.getAttribute('data-processed')) continue;");
-            sb.AppendLine("                el.setAttribute('data-processed', 'true');");
-            sb.AppendLine("                ");
-            sb.AppendLine("                const source = el.textContent;");
-            sb.AppendLine("                const idBase = 'mermaid-' + Math.random().toString(36).substr(2, 9);");
-            sb.AppendLine("                const idLight = idBase + '-light';");
-            sb.AppendLine("                const idDark = idBase + '-dark';");
-            sb.AppendLine("                ");
-            sb.AppendLine("                // Render Light");
-            sb.AppendLine("                const sourceLight = `%%{init: {'theme':'default'}}%%\\n${source}`;");
-            sb.AppendLine("                // Render Dark");
-            sb.AppendLine("                const sourceDark = `%%{init: {'theme':'dark'}}%%\\n${source}`;");
-            sb.AppendLine("                ");
-            sb.AppendLine("                try {");
-            sb.AppendLine("                    const rLight = await mermaid.render(idLight, sourceLight);");
-            sb.AppendLine("                    const rDark = await mermaid.render(idDark, sourceDark);");
-            sb.AppendLine("                    ");
-            sb.AppendLine("                    el.innerHTML = `");
-            sb.AppendLine("                        <div class=\"dark:hidden\">${rLight.svg}</div>");
-            sb.AppendLine("                        <div class=\"hidden dark:block\">${rDark.svg}</div>");
-            sb.AppendLine("                    `;");
-            sb.AppendLine("                    ");
-            sb.AppendLine("                    if (rLight.bindFunctions) rLight.bindFunctions(el.querySelector('.dark\\\\:hidden'));");
-            sb.AppendLine("                    if (rDark.bindFunctions) rDark.bindFunctions(el.querySelector('.dark\\\\:block'));");
-            sb.AppendLine("                } catch (e) {");
-            sb.AppendLine("                    console.error('Mermaid rendering failed:', e);");
-            sb.AppendLine("                    el.innerHTML = `<div class=\"text-red-500\">Error rendering diagram</div>`;");
-            sb.AppendLine("                }");
-            sb.AppendLine("            }");
-            sb.AppendLine("        }");
-            sb.AppendLine("        ");
-            sb.AppendLine("        document.addEventListener('DOMContentLoaded', renderMermaid);");
-            sb.AppendLine("    </script>");
-
-            // Force Graph
-            sb.AppendLine("    <script src=\"/assets/force-graph.min.js\"></script>");
-
-            // Search Assets
-            sb.AppendLine("    <script src=\"/assets/minisearch.min.js\"></script>");
-            sb.AppendLine("    <script defer src=\"/assets/search.js\"></script>");
-
-            // Highlight.js
-            sb.AppendLine($"    <link id=\"highlight-theme\" rel=\"stylesheet\" href=\"/assets/highlight/{darkTheme}.min.css\">");
-            sb.AppendLine("    <script src=\"/assets/highlight/highlight.min.js\"></script>");
-            sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js\"></script>");
-            sb.AppendLine("    <style>");
-            sb.AppendLine("        /* Highlight.js Line Numbers CSS */");
-            sb.AppendLine("        .prose table.hljs-ln tr { border: none !important; }");
-            sb.AppendLine("        .prose table.hljs-ln td { padding: 0 !important; }");
-            sb.AppendLine("        .prose table.hljs-ln td.hljs-ln-numbers { user-select: none; text-align: right; color: #ccc; border-right: 1px solid #ccc; vertical-align: top; padding-right: 5px !important; padding-left: 10px !important; }");
-            sb.AppendLine("        .prose table.hljs-ln td.hljs-ln-code { padding-left: 10px !important; }");
-            sb.AppendLine("        ");
-            sb.AppendLine("        /* Hide Line Numbers when disabled but table is present (for highlighting) */");
-            sb.AppendLine("        .hide-line-numbers .hljs-ln-numbers { display: none !important; }");
-            sb.AppendLine("        .hide-line-numbers .hljs-ln-code { padding-left: 5px !important; }");
-            sb.AppendLine("        ");
-            sb.AppendLine("        /* Custom Highlight Style */");
-            sb.AppendLine("        .line-highlight { background-color: rgba(255, 255, 0, 0.15); display: block; width: 100%; }");
-            sb.AppendLine("        .dark .line-highlight { background-color: rgba(255, 255, 0, 0.15); }");
-            sb.AppendLine("        ");
-            sb.AppendLine("        /* Fix Table layout for code blocks with line numbers */");
-            sb.AppendLine("        .hljs-ln { width: 100%; border-collapse: collapse; }");
-            sb.AppendLine("");
-            sb.AppendLine("        /* Custom Scrollbars */");
-            sb.AppendLine("        /* Sidebar */");
-            sb.AppendLine("        #sidebar::-webkit-scrollbar { width: 6px; height: 6px; background-color: transparent; }");
-            sb.AppendLine("        #sidebar::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 3px; }");
-            sb.AppendLine("        #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); }");
-            sb.AppendLine("        .dark #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }");
-            sb.AppendLine("");
-            sb.AppendLine("        /* TOC */");
-            sb.AppendLine("        #toc-sidebar::-webkit-scrollbar { display: none; }");
-            sb.AppendLine("        #toc-sidebar { -ms-overflow-style: none; scrollbar-width: none; }");
-            sb.AppendLine("");
-            sb.AppendLine("        /* Main Content */");
-            sb.AppendLine("        #main-scroll::-webkit-scrollbar { width: 8px; height: 8px; background-color: transparent; }");
-            sb.AppendLine("        #main-scroll::-webkit-scrollbar-track { background-color: transparent; }");
-            sb.AppendLine("        #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(209, 213, 219, 0.5); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }");
-            sb.AppendLine("        .dark #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }");
-            sb.AppendLine("        #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(156, 163, 175, 0.8); }");
-            sb.AppendLine("        .dark #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(107, 114, 128, 0.8); }");
-            sb.AppendLine("    </style>");
-
-            // Dark Mode Init
-            sb.AppendLine("    <script>");
-            sb.AppendLine("        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {");
-            sb.AppendLine("            document.documentElement.classList.add('dark');");
-            sb.AppendLine("        } else {");
-            sb.AppendLine("            document.documentElement.classList.remove('dark');");
-            sb.AppendLine("        }");
-            sb.AppendLine("    </script>");
-
-            if (!string.IsNullOrEmpty(_headIncludes))
-            {
-                sb.AppendLine(_headIncludes);
-            }
-
-            sb.AppendLine("</head>");
             sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
 
             // Banner
@@ -1133,6 +999,183 @@ namespace Neko.Builder
             sb.AppendLine("</html>");
 
             return sb.ToString();
+        }
+
+        private void GenerateHead(StringBuilder sb, string title, string description)
+        {
+            var darkTheme = _config.Theme.Highlight.Dark;
+            var lightTheme = _config.Theme.Highlight.Light;
+
+            sb.AppendLine("<head>");
+            sb.AppendLine("    <meta charset=\"UTF-8\">");
+            sb.AppendLine("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+            sb.AppendLine($"    <title>{title}</title>");
+
+            if (!string.IsNullOrEmpty(_config.Branding.Favicon))
+            {
+                sb.AppendLine($"    <link rel=\"icon\" href=\"{_config.Branding.Favicon}\">");
+            }
+
+            if (!string.IsNullOrEmpty(description))
+            {
+                sb.AppendLine($"    <meta name=\"description\" content=\"{description}\">");
+                sb.AppendLine($"    <meta property=\"og:description\" content=\"{description}\">");
+                sb.AppendLine($"    <meta name=\"twitter:description\" content=\"{description}\">");
+            }
+
+            if (!string.IsNullOrEmpty(_config.Meta.Keywords)) sb.AppendLine($"    <meta name=\"keywords\" content=\"{_config.Meta.Keywords}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.Author)) sb.AppendLine($"    <meta name=\"author\" content=\"{_config.Meta.Author}\">");
+
+            sb.AppendLine($"    <meta property=\"og:title\" content=\"{title}\">");
+            sb.AppendLine($"    <meta name=\"twitter:title\" content=\"{title}\">");
+
+            if (!string.IsNullOrEmpty(_config.Meta.Type)) sb.AppendLine($"    <meta property=\"og:type\" content=\"{_config.Meta.Type}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.Url)) sb.AppendLine($"    <meta property=\"og:url\" content=\"{_config.Meta.Url}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.Image))
+            {
+                sb.AppendLine($"    <meta property=\"og:image\" content=\"{_config.Meta.Image}\">");
+                sb.AppendLine($"    <meta name=\"twitter:image\" content=\"{_config.Meta.Image}\">");
+            }
+
+            if (!string.IsNullOrEmpty(_config.Meta.TwitterCard)) sb.AppendLine($"    <meta name=\"twitter:card\" content=\"{_config.Meta.TwitterCard}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.TwitterSite)) sb.AppendLine($"    <meta name=\"twitter:site\" content=\"{_config.Meta.TwitterSite}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.TwitterCreator)) sb.AppendLine($"    <meta name=\"twitter:creator\" content=\"{_config.Meta.TwitterCreator}\">");
+
+            // Tailwind CSS
+            // Use CDN to ensure plugins (like typography) are available.
+            // The local resource might be missing the typography plugin.
+            sb.AppendLine("    <script src=\"https://cdn.tailwindcss.com?plugins=typography\"></script>");
+            sb.AppendLine("    <script>tailwind.config = { darkMode: 'class' }</script>");
+
+            // Neko Config
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+            var snippetsJson = _config.Snippets != null ? System.Text.Json.JsonSerializer.Serialize(_config.Snippets, jsonOptions) : "{}";
+            sb.AppendLine($"    <script>window.nekoConfig = {{ snippets: {snippetsJson} }};</script>");
+
+            // Inter Font
+            sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
+            sb.AppendLine("    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>");
+
+            // Flaticon UIcons
+            sb.AppendLine("    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>");
+
+            // Emoji CSS
+            sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/emoji.css\">");
+
+            // KaTeX (Math)
+            sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css\">");
+            sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js\"></script>");
+            sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js\"></script>");
+            sb.AppendLine("    <script>document.addEventListener(\"DOMContentLoaded\", function() { renderMathInElement(document.body); });</script>");
+
+            // Mermaid (Diagrams)
+            sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>");
+            sb.AppendLine("    <script>");
+            sb.AppendLine("        mermaid.initialize({ startOnLoad: false });");
+            sb.AppendLine("        ");
+            sb.AppendLine("        async function renderMermaid() {");
+            sb.AppendLine("            const elements = document.querySelectorAll('.mermaid');");
+            sb.AppendLine("            if (!elements.length) return;");
+            sb.AppendLine("            ");
+            sb.AppendLine("            for (const el of elements) {");
+            sb.AppendLine("                if (el.getAttribute('data-processed')) continue;");
+            sb.AppendLine("                el.setAttribute('data-processed', 'true');");
+            sb.AppendLine("                ");
+            sb.AppendLine("                const source = el.textContent;");
+            sb.AppendLine("                const idBase = 'mermaid-' + Math.random().toString(36).substr(2, 9);");
+            sb.AppendLine("                const idLight = idBase + '-light';");
+            sb.AppendLine("                const idDark = idBase + '-dark';");
+            sb.AppendLine("                ");
+            sb.AppendLine("                // Render Light");
+            sb.AppendLine("                const sourceLight = `%%{init: {'theme':'default'}}%%\\n${source}`;");
+            sb.AppendLine("                // Render Dark");
+            sb.AppendLine("                const sourceDark = `%%{init: {'theme':'dark'}}%%\\n${source}`;");
+            sb.AppendLine("                ");
+            sb.AppendLine("                try {");
+            sb.AppendLine("                    const rLight = await mermaid.render(idLight, sourceLight);");
+            sb.AppendLine("                    const rDark = await mermaid.render(idDark, sourceDark);");
+            sb.AppendLine("                    ");
+            sb.AppendLine("                    el.innerHTML = `");
+            sb.AppendLine("                        <div class=\"dark:hidden\">${rLight.svg}</div>");
+            sb.AppendLine("                        <div class=\"hidden dark:block\">${rDark.svg}</div>");
+            sb.AppendLine("                    `;");
+            sb.AppendLine("                    ");
+            sb.AppendLine("                    if (rLight.bindFunctions) rLight.bindFunctions(el.querySelector('.dark\\\\:hidden'));");
+            sb.AppendLine("                    if (rDark.bindFunctions) rDark.bindFunctions(el.querySelector('.dark\\\\:block'));");
+            sb.AppendLine("                } catch (e) {");
+            sb.AppendLine("                    console.error('Mermaid rendering failed:', e);");
+            sb.AppendLine("                    el.innerHTML = `<div class=\"text-red-500\">Error rendering diagram</div>`;");
+            sb.AppendLine("                }");
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine("        ");
+            sb.AppendLine("        document.addEventListener('DOMContentLoaded', renderMermaid);");
+            sb.AppendLine("    </script>");
+
+            // Force Graph
+            sb.AppendLine("    <script src=\"/assets/force-graph.min.js\"></script>");
+
+            // Search Assets
+            sb.AppendLine("    <script src=\"/assets/minisearch.min.js\"></script>");
+            sb.AppendLine("    <script defer src=\"/assets/search.js\"></script>");
+
+            // Highlight.js
+            sb.AppendLine($"    <link id=\"highlight-theme\" rel=\"stylesheet\" href=\"/assets/highlight/{darkTheme}.min.css\">");
+            sb.AppendLine("    <script src=\"/assets/highlight/highlight.min.js\"></script>");
+            sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js\"></script>");
+            sb.AppendLine("    <style>");
+            sb.AppendLine("        /* Highlight.js Line Numbers CSS */");
+            sb.AppendLine("        .prose table.hljs-ln tr { border: none !important; }");
+            sb.AppendLine("        .prose table.hljs-ln td { padding: 0 !important; }");
+            sb.AppendLine("        .prose table.hljs-ln td.hljs-ln-numbers { user-select: none; text-align: right; color: #ccc; border-right: 1px solid #ccc; vertical-align: top; padding-right: 5px !important; padding-left: 10px !important; }");
+            sb.AppendLine("        .prose table.hljs-ln td.hljs-ln-code { padding-left: 10px !important; }");
+            sb.AppendLine("        ");
+            sb.AppendLine("        /* Hide Line Numbers when disabled but table is present (for highlighting) */");
+            sb.AppendLine("        .hide-line-numbers .hljs-ln-numbers { display: none !important; }");
+            sb.AppendLine("        .hide-line-numbers .hljs-ln-code { padding-left: 5px !important; }");
+            sb.AppendLine("        ");
+            sb.AppendLine("        /* Custom Highlight Style */");
+            sb.AppendLine("        .line-highlight { background-color: rgba(255, 255, 0, 0.15); display: block; width: 100%; }");
+            sb.AppendLine("        .dark .line-highlight { background-color: rgba(255, 255, 0, 0.15); }");
+            sb.AppendLine("        ");
+            sb.AppendLine("        /* Fix Table layout for code blocks with line numbers */");
+            sb.AppendLine("        .hljs-ln { width: 100%; border-collapse: collapse; }");
+            sb.AppendLine("");
+            sb.AppendLine("        /* Custom Scrollbars */");
+            sb.AppendLine("        /* Sidebar */");
+            sb.AppendLine("        #sidebar::-webkit-scrollbar { width: 6px; height: 6px; background-color: transparent; }");
+            sb.AppendLine("        #sidebar::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 3px; }");
+            sb.AppendLine("        #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); }");
+            sb.AppendLine("        .dark #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }");
+            sb.AppendLine("");
+            sb.AppendLine("        /* TOC */");
+            sb.AppendLine("        #toc-sidebar::-webkit-scrollbar { display: none; }");
+            sb.AppendLine("        #toc-sidebar { -ms-overflow-style: none; scrollbar-width: none; }");
+            sb.AppendLine("");
+            sb.AppendLine("        /* Main Content */");
+            sb.AppendLine("        #main-scroll::-webkit-scrollbar { width: 8px; height: 8px; background-color: transparent; }");
+            sb.AppendLine("        #main-scroll::-webkit-scrollbar-track { background-color: transparent; }");
+            sb.AppendLine("        #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(209, 213, 219, 0.5); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }");
+            sb.AppendLine("        .dark #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }");
+            sb.AppendLine("        #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(156, 163, 175, 0.8); }");
+            sb.AppendLine("        .dark #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(107, 114, 128, 0.8); }");
+            sb.AppendLine("    </style>");
+
+            // Dark Mode Init
+            sb.AppendLine("    <script>");
+            sb.AppendLine("        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {");
+            sb.AppendLine("            document.documentElement.classList.add('dark');");
+            sb.AppendLine("        } else {");
+            sb.AppendLine("            document.documentElement.classList.remove('dark');");
+            sb.AppendLine("        }");
+            sb.AppendLine("    </script>");
+
+            if (!string.IsNullOrEmpty(_headIncludes))
+            {
+                sb.AppendLine(_headIncludes);
+            }
+
+            sb.AppendLine("</head>");
         }
 
         private void RenderSidebarItems(StringBuilder sb, List<LinkConfig> links, int level)
