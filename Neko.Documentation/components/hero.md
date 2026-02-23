@@ -53,7 +53,7 @@ You can align content to the left and provide a custom background image.
     align="left"
     cta1-text="Start Free Trial"
     cta1-link="#"
-    image="https://images.unsplash.com/photo-1519681393798-3828fb4090bb?ixlib=rb-4.0.3&auto=format&fit=crop&w=2830&q=80"
+    image="/assets/demo-image.png"
 ]
 ```
 
@@ -65,7 +65,7 @@ You can align content to the left and provide a custom background image.
     align="left"
     cta1-text="Start Free Trial"
     cta1-link="#"
-    image="https://images.unsplash.com/photo-1519681393798-3828fb4090bb?ixlib=rb-4.0.3&auto=format&fit=crop&w=2830&q=80"
+    image="/assets/demo-image.png"
 ]
 
 ## Attributes
