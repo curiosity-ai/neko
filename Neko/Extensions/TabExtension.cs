@@ -165,6 +165,13 @@ namespace Neko.Extensions
 
     public class TabRenderer : HtmlObjectRenderer<TabGroupBlock>
     {
+        private readonly MarkdownPipeline _pipeline;
+
+        public TabRenderer(MarkdownPipeline pipeline)
+        {
+            _pipeline = pipeline;
+        }
+
         protected override void Write(HtmlRenderer renderer, TabGroupBlock obj)
         {
             var groupId = System.Guid.NewGuid().ToString("N");
@@ -217,7 +224,22 @@ namespace Neko.Extensions
                 var tab = item.Tab;
                 var activeClass = index == 0 ? "border-blue-500 text-blue-600 dark:text-blue-400 font-medium" : "border-transparent hover:text-gray-700 dark:hover:text-gray-300 text-gray-500 dark:text-gray-400";
                 renderer.Write($"<button class=\"px-4 py-2 border-b-2 focus:outline-none whitespace-nowrap {activeClass}\" onclick=\"openTab(event, '{groupId}', 'tab-{groupId}-{index}')\">");
-                renderer.Write(tab.Title);
+                if (!string.IsNullOrEmpty(tab.Title))
+                {
+                    // Parse as document but only render inlines of first paragraph
+                    var doc = Markdig.Markdown.Parse(tab.Title, _pipeline);
+                    foreach (var block in doc)
+                    {
+                        if (block is Markdig.Syntax.ParagraphBlock p)
+                        {
+                            renderer.Write(p.Inline);
+                        }
+                        else
+                        {
+                            renderer.Render(block);
+                        }
+                    }
+                }
                 renderer.Write("</button>");
                 index++;
             }
@@ -260,7 +282,10 @@ namespace Neko.Extensions
         {
             if (renderer is HtmlRenderer htmlRenderer)
             {
-                htmlRenderer.ObjectRenderers.AddIfNotAlready<TabRenderer>();
+                if (!htmlRenderer.ObjectRenderers.Contains<TabRenderer>())
+                {
+                    htmlRenderer.ObjectRenderers.Add(new TabRenderer(pipeline));
+                }
             }
         }
     }

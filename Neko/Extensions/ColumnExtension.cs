@@ -161,6 +161,13 @@ namespace Neko.Extensions
 
     public class ColumnRenderer : HtmlObjectRenderer<ColumnGroupBlock>
     {
+        private readonly MarkdownPipeline _pipeline;
+
+        public ColumnRenderer(MarkdownPipeline pipeline)
+        {
+            _pipeline = pipeline;
+        }
+
         protected override void Write(HtmlRenderer renderer, ColumnGroupBlock obj)
         {
             renderer.Write("<div class=\"flex flex-col md:flex-row gap-4 my-4\">");
@@ -209,7 +216,19 @@ namespace Neko.Extensions
                 if (!string.IsNullOrEmpty(col.Title))
                 {
                      renderer.Write("<div class=\"font-bold mb-2\">");
-                     renderer.WriteEscape(col.Title);
+                     // Parse as document but only render inlines of first paragraph
+                     var doc = Markdig.Markdown.Parse(col.Title, _pipeline);
+                     foreach (var block in doc)
+                     {
+                         if (block is Markdig.Syntax.ParagraphBlock p)
+                         {
+                             renderer.Write(p.Inline);
+                         }
+                         else
+                         {
+                             renderer.Render(block);
+                         }
+                     }
                      renderer.Write("</div>");
                 }
 
@@ -240,7 +259,10 @@ namespace Neko.Extensions
         {
             if (renderer is HtmlRenderer htmlRenderer)
             {
-                htmlRenderer.ObjectRenderers.AddIfNotAlready<ColumnRenderer>();
+                if (!htmlRenderer.ObjectRenderers.Contains<ColumnRenderer>())
+                {
+                    htmlRenderer.ObjectRenderers.Add(new ColumnRenderer(pipeline));
+                }
             }
         }
     }

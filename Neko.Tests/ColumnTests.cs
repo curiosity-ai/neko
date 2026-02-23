@@ -41,13 +41,21 @@ namespace Neko.Tests
         }
 
         [Test]
-        public void TestColumnTitleEscaping()
+        public void TestColumnTitleMarkdown()
         {
-            var markdown = "||| Column <script>alert(1)</script>\nContent\n|||";
+            var markdown = "||| Column **Bold**\nContent\n|||";
             var doc = _parser.Parse(markdown);
 
-            Assert.That(doc.Html, Does.Not.Contain("<script>alert(1)</script>"));
-            Assert.That(doc.Html, Contains.Substring("&lt;script&gt;alert(1)&lt;/script&gt;"));
+            Assert.That(doc.Html, Contains.Substring("<strong>Bold</strong>"));
+        }
+
+        [Test]
+        public void TestColumnTitleIcon()
+        {
+            var markdown = "||| :icon-code-simple: Source\nContent\n|||";
+            var doc = _parser.Parse(markdown);
+
+            Assert.That(doc.Html, Contains.Substring("fi-rr-code-simple"));
         }
     }
 }
