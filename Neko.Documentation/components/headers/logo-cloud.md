@@ -13,11 +13,11 @@ The `logo-cloud` component displays a grid of logos, typically used to show trus
 ```markdown
 [!logo-cloud
     heading="Trusted by the world’s most innovative teams"
-    "https://tailwindui.com/img/logos/158x48/transistor-logo-gray-900.svg" "Transistor"
-    "https://tailwindui.com/img/logos/158x48/reform-logo-gray-900.svg" "Reform"
-    "https://tailwindui.com/img/logos/158x48/tuple-logo-gray-900.svg" "Tuple"
-    "https://tailwindui.com/img/logos/158x48/savvycal-logo-gray-900.svg" "SavvyCal"
-    "https://tailwindui.com/img/logos/158x48/statamic-logo-gray-900.svg" "Statamic"
+    "https://laracasts.com/images/series/2018/transistor-logo.svg" "Transistor"
+    "https://cdn.prod.website-files.com/660f132d9a66031a172a6ed2/68937c22c4b02702748d5a15_Reform%20by%20Funnel%20Envy%20Logo.svg" "Reform"
+    "https://laracasts.com/images/series/2018/tuple-logo.svg" "Tuple"
+    "https://cdn.prod.website-files.com/660f38f06a23cf2d2fb65170/6932d5548e9cef3b0f3e86a7_660f38ff6f83171ad7ec13f1_savvycal-logo.svg" "SavvyCal"
+    "https://statamic.com/assets/branding/squircle/statamic-logo-black.svg" "Statamic"
 ]
 ```
 
@@ -25,11 +25,11 @@ The `logo-cloud` component displays a grid of logos, typically used to show trus
 
 [!logo-cloud
     heading="Trusted by the world’s most innovative teams"
-    "https://tailwindui.com/img/logos/158x48/transistor-logo-gray-900.svg" "Transistor"
-    "https://tailwindui.com/img/logos/158x48/reform-logo-gray-900.svg" "Reform"
-    "https://tailwindui.com/img/logos/158x48/tuple-logo-gray-900.svg" "Tuple"
-    "https://tailwindui.com/img/logos/158x48/savvycal-logo-gray-900.svg" "SavvyCal"
-    "https://tailwindui.com/img/logos/158x48/statamic-logo-gray-900.svg" "Statamic"
+    "https://laracasts.com/images/series/2018/transistor-logo.svg" "Transistor"
+    "https://cdn.prod.website-files.com/660f132d9a66031a172a6ed2/68937c22c4b02702748d5a15_Reform%20by%20Funnel%20Envy%20Logo.svg" "Reform"
+    "https://laracasts.com/images/series/2018/tuple-logo.svg" "Tuple"
+    "https://cdn.prod.website-files.com/660f38f06a23cf2d2fb65170/6932d5548e9cef3b0f3e86a7_660f38ff6f83171ad7ec13f1_savvycal-logo.svg" "SavvyCal"
+    "https://statamic.com/assets/branding/squircle/statamic-logo-black.svg" "Statamic"
 ]
 
 ## Attributes
