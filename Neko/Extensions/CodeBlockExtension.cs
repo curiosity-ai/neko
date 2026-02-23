@@ -108,11 +108,17 @@ namespace Neko.Extensions
             bool enableLineNumbers = false;
             bool disableLineNumbers = false;
 
-            // Check for disable line numbers (!#)
-            if (args.Contains("!#"))
+            // Check for disable line numbers (!#) with optional range
+            var disableLnMatch = Regex.Match(args, @"!#([\d,-]*)");
+            if (disableLnMatch.Success)
             {
                 disableLineNumbers = true;
-                args = args.Replace("!#", "").Trim();
+                var range = disableLnMatch.Groups[1].Value;
+                if (!string.IsNullOrEmpty(range))
+                {
+                    highlight = range;
+                }
+                args = args.Replace(disableLnMatch.Value, "").Trim();
             }
 
             // 2. Extract Highlight (#1-5,7) or {1-5,7}
