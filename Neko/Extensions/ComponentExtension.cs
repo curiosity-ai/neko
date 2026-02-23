@@ -853,6 +853,11 @@ namespace Neko.Extensions
         private void RenderButton(HtmlRenderer renderer, ComponentInline obj)
         {
             var text = obj.GetAttribute("text");
+            if (string.IsNullOrEmpty(text) && obj.Arguments.Count > 0)
+            {
+                text = obj.Arguments[0];
+            }
+
             var link = obj.GetAttribute("link", "#");
             var variant = obj.GetAttribute("variant", "primary");
             var corners = obj.GetAttribute("corners", "round");
@@ -944,8 +949,9 @@ namespace Neko.Extensions
                 else if (icon.StartsWith(":"))
                 {
                      // Try to parse inline markdown for emoji or icon shortcode
+                     renderer.Write("<span class=\"mr-2\">");
                      RenderInline(renderer, icon);
-                     renderer.Write(" ");
+                     renderer.Write("</span>");
                 }
                 else
                 {
