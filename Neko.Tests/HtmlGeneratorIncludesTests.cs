@@ -25,7 +25,7 @@ namespace Neko.Tests
         public void TestGenerateWithHeadIncludes()
         {
             var headIncludes = "<script>console.log('test');</script>";
-            var generator = new HtmlGenerator(_config, false, headIncludes);
+            var generator = new HtmlGenerator(_config, isWatchMode: false, headIncludes: headIncludes);
 
             var doc = new ParsedDocument
             {
