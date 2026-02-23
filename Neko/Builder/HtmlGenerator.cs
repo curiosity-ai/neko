@@ -603,6 +603,45 @@ namespace Neko.Builder
                 sb.AppendLine("        const modal = document.getElementById('neko-editor-modal');");
                 sb.AppendLine("        const container = document.getElementById('neko-editor-container');");
                 sb.AppendLine("");
+              
+                sb.AppendLine("        // Image Paste Handler");
+                sb.AppendLine("        container.addEventListener('paste', (event) => {");
+                sb.AppendLine("            if (!editor) return;");
+                sb.AppendLine("            const items = (event.clipboardData || event.originalEvent.clipboardData).items;");
+                sb.AppendLine("            for (const item of items) {");
+                sb.AppendLine("                if (item.kind === 'file' && item.type.startsWith('image/')) {");
+                sb.AppendLine("                    event.preventDefault();");
+                sb.AppendLine("                    const file = item.getAsFile();");
+                sb.AppendLine("                    const path = window.location.pathname;");
+                sb.AppendLine("                    const formData = new FormData();");
+                sb.AppendLine("                    formData.append('file', file);");
+                sb.AppendLine("                    formData.append('path', path);");
+                sb.AppendLine("                    fetch('/api/neko/upload-image', {");
+                sb.AppendLine("                        method: 'POST',");
+                sb.AppendLine("                        body: formData");
+                sb.AppendLine("                    })");
+                sb.AppendLine("                    .then(res => {");
+                sb.AppendLine("                        if (!res.ok) throw new Error('Upload failed');");
+                sb.AppendLine("                        return res.json();");
+                sb.AppendLine("                    })");
+                sb.AppendLine("                    .then(data => {");
+                sb.AppendLine("                        const imageUrl = data.url;");
+                sb.AppendLine("                        const markdownImage = `![Image](${imageUrl})`;");
+                sb.AppendLine("                        const position = editor.getPosition();");
+                sb.AppendLine("                        editor.executeEdits('paste-image', [{");
+                sb.AppendLine("                            range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),");
+                sb.AppendLine("                            text: markdownImage,");
+                sb.AppendLine("                            forceMoveMarkers: true");
+                sb.AppendLine("                        }]);");
+                sb.AppendLine("                    })");
+                sb.AppendLine("                    .catch(err => {");
+                sb.AppendLine("                        console.error('Image upload failed', err);");
+                sb.AppendLine("                        alert('Failed to upload image: ' + err.message);");
+                sb.AppendLine("                    });");
+                sb.AppendLine("                }");
+                sb.AppendLine("            }");
+                sb.AppendLine("        });");
+              
                 sb.AppendLine("        function loadMonaco(callback) {");
                 sb.AppendLine("            if (window.nekoMonacoLoaded) {");
                 sb.AppendLine("                callback();");
@@ -617,6 +656,7 @@ namespace Neko.Builder
                 sb.AppendLine("            document.body.appendChild(script);");
                 sb.AppendLine("        }");
                 sb.AppendLine("");
+              
                 sb.AppendLine("        function nekoOpenEditor() {");
                 sb.AppendLine("            const path = window.location.pathname;");
                 sb.AppendLine("            fetch('/api/neko/content?path=' + encodeURIComponent(path))");
