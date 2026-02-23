@@ -20,7 +20,7 @@ namespace Neko.Tests
             var doc = _parser.Parse(markdown).Html;
 
             Assert.That(doc, Contains.Substring("<div class=\"max-w-sm rounded overflow-hidden shadow-lg"));
-            Assert.That(doc, Contains.Substring("<img class=\"w-full object-cover\" src=\"img.jpg\" alt=\"Title\">"));
+            Assert.That(doc, Contains.Substring("<img class=\"mt-0 mb-0 w-full object-cover\" src=\"img.jpg\" alt=\"Title\">"));
             Assert.That(doc, Contains.Substring("<div class=\"font-bold text-xl mt-1 mb-2 text-gray-900 dark:text-white\">Title</div>"));
             Assert.That(doc, Contains.Substring("Description"));
             Assert.That(doc, Contains.Substring("#tag1"));
