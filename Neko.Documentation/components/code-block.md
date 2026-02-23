@@ -102,7 +102,7 @@ Highlight a single line number.
 
 ~~~md
 ```js #2
-{{ include "snippets/simple-code-sample" }}
+{{​ include "snippets/simple-code-sample" \}\}
 ```
 ~~~
 
@@ -122,7 +122,7 @@ Highlight a range of lines by separating the start and end line number with a `-
 
 ~~~md
 ```js #5-7
-{{ include "snippets/simple-code-sample" }}
+{{​ include "snippets/simple-code-sample" \}\}
 ```
 ~~~
 
@@ -142,7 +142,7 @@ Configure multiple line ranges by separating each block with a `,` comma.
 
 ~~~md
 ```js #2-3,5-7
-{{ include "snippets/simple-code-sample" }}
+{{​ include "snippets/simple-code-sample" \}\}
 ```
 ~~~
 
@@ -162,7 +162,7 @@ Disable the default line numbering but still highlight a line or range of lines.
 
 ~~~md
 ```js !#2-3,5-7
-{{ include "snippets/simple-code-sample" }}
+{{​ include "snippets/simple-code-sample" \}\}
 ```
 ~~~
 
@@ -182,7 +182,7 @@ Configuring line highlighting using the `highlight` attribute syntax is also sup
 
 ~~~md
 ```js:highlight="2-3,5-7"
-{{ include "snippets/simple-code-sample" }}
+{{​ include "snippets/simple-code-sample" \}\}
 ```
 ~~~
 
