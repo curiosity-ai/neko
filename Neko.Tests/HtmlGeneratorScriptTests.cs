@@ -62,5 +62,27 @@ namespace Neko.Tests
             Assert.That(html, Contains.Substring("if (currentPath.endsWith('.html')) currentPath = currentPath.substring(0, currentPath.length - 5);"));
             Assert.That(html, Contains.Substring("if (href === currentPath || (href !== '/' && currentPath.startsWith(href) && (href.endsWith('/') || currentPath.charAt(href.length) === '/')))"));
         }
+
+        [Test]
+        public void TestPasteHandlerInjectionLocation()
+        {
+            var config = new NekoConfig();
+            var generator = new HtmlGenerator(config, isWatchMode: true);
+            var doc = new ParsedDocument { Html = "<h1>Title</h1>" };
+
+            var html = generator.Generate(doc);
+
+            // Verify paste handler is present
+            Assert.That(html, Contains.Substring("container.addEventListener('paste',"));
+
+            // Verify it is inside nekoOpenEditor -> loadMonaco -> require
+            var openEditorIndex = html.IndexOf("function nekoOpenEditor()");
+            var createEditorIndex = html.IndexOf("editor = monaco.editor.create");
+            var pasteHandlerIndex = html.IndexOf("container.addEventListener('paste',");
+
+            Assert.That(openEditorIndex, Is.GreaterThan(-1), "nekoOpenEditor should be present");
+            Assert.That(createEditorIndex, Is.GreaterThan(openEditorIndex), "monaco.editor.create should be inside nekoOpenEditor");
+            Assert.That(pasteHandlerIndex, Is.GreaterThan(createEditorIndex), "Paste handler should be after editor creation");
+        }
     }
 }
