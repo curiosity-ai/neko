@@ -76,6 +76,7 @@ namespace Neko.Builder
                 .Use<YouTubeEmbedExtension>()
                 .Use<CodeBlockExtension>()
                 .Use<CodeSnippetExtension>()
+                .Use<ImageAlignmentExtension>()
                 .Build();
         }
 
