@@ -45,69 +45,86 @@ namespace Neko
                 var output = context.ParseResult.GetValueForOption(watchOutputOption);
                 var token = context.GetCancellationToken();
 
-                Console.WriteLine($"Watching {input}...");
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
 
-                // Initial build
-                var builder = new SiteBuilder(input, output, true);
-                await builder.BuildAsync();
-
-                // Get the output directory from the builder
-                var outputDir = builder.OutputDirectory;
-
-                // Start Server in background
-                var server = new DevServer(outputDir, input);
-                var serverTask = server.StartAsync(token);
-
-                // Watch file changes
-                using var watcher = new FileSystemWatcher(input);
-                watcher.IncludeSubdirectories = true;
-                watcher.Filters.Add("*.md");
-                watcher.Filters.Add("neko.yml");
-
-                // Debounce logic
-                DateTime lastBuild = DateTime.MinValue;
-
-                FileSystemEventHandler onChanged = async (sender, e) =>
+                // Extra safety: Hook Console.CancelKeyPress manually
+                ConsoleCancelEventHandler cancelHandler = (sender, e) =>
                 {
-                    // Ignore changes in output dir
-                    if (e.FullPath.Contains(Path.GetFullPath(outputDir))) return;
-
-                    if ((DateTime.Now - lastBuild).TotalMilliseconds < 500) return;
-                    lastBuild = DateTime.Now;
-
-                    Console.WriteLine($"Change detected: {e.Name}. Rebuilding...");
-                    try
-                    {
-                        // Re-instantiate builder to reload config?
-                        // Or just call BuildAsync again.
-                        // Ideally config reload should be handled inside BuildAsync if needed, or we recreate builder.
-                        // Let's recreate builder to be safe if config changed.
-                        builder = new SiteBuilder(input, output, true);
-                        await builder.BuildAsync();
-
-                        await server.NotifyChange();
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Build failed: {ex.Message}");
-                    }
+                    e.Cancel = true; // Prevent immediate termination
+                    cts.Cancel();
                 };
+                Console.CancelKeyPress += cancelHandler;
 
-                watcher.Changed += onChanged;
-                watcher.Created += onChanged;
-                watcher.Deleted += onChanged;
-                watcher.Renamed += new RenamedEventHandler(onChanged);
-
-                watcher.EnableRaisingEvents = true;
-
-                Console.WriteLine("Press Ctrl+C to exit.");
                 try
                 {
-                    await serverTask; // Wait for server (which runs until cancelled)
+                    Console.WriteLine($"Watching {input}...");
+
+                    // Initial build
+                    var builder = new SiteBuilder(input, output, true);
+                    await builder.BuildAsync();
+
+                    // Get the output directory from the builder
+                    var outputDir = builder.OutputDirectory;
+
+                    // Start Server in background
+                    var server = new DevServer(outputDir, input);
+                    var serverTask = server.StartAsync(cts.Token);
+
+                    // Watch file changes
+                    using var watcher = new FileSystemWatcher(input);
+                    watcher.IncludeSubdirectories = true;
+                    watcher.Filters.Add("*.md");
+                    watcher.Filters.Add("neko.yml");
+
+                    // Debounce logic
+                    DateTime lastBuild = DateTime.MinValue;
+
+                    FileSystemEventHandler onChanged = async (sender, e) =>
+                    {
+                        // Ignore changes in output dir
+                        if (e.FullPath.Contains(Path.GetFullPath(outputDir))) return;
+
+                        if ((DateTime.Now - lastBuild).TotalMilliseconds < 500) return;
+                        lastBuild = DateTime.Now;
+
+                        Console.WriteLine($"Change detected: {e.Name}. Rebuilding...");
+                        try
+                        {
+                            // Re-instantiate builder to reload config?
+                            // Or just call BuildAsync again.
+                            // Ideally config reload should be handled inside BuildAsync if needed, or we recreate builder.
+                            // Let's recreate builder to be safe if config changed.
+                            builder = new SiteBuilder(input, output, true);
+                            await builder.BuildAsync();
+
+                            await server.NotifyChange();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Build failed: {ex.Message}");
+                        }
+                    };
+
+                    watcher.Changed += onChanged;
+                    watcher.Created += onChanged;
+                    watcher.Deleted += onChanged;
+                    watcher.Renamed += new RenamedEventHandler(onChanged);
+
+                    watcher.EnableRaisingEvents = true;
+
+                    Console.WriteLine("Press Ctrl+C to exit.");
+                    try
+                    {
+                        await serverTask; // Wait for server (which runs until cancelled)
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Console.WriteLine("Shutdown requested.");
+                    }
                 }
-                catch (OperationCanceledException)
+                finally
                 {
-                    Console.WriteLine("Shutdown requested.");
+                    Console.CancelKeyPress -= cancelHandler;
                 }
             });
 
