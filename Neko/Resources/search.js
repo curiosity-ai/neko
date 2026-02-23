@@ -24,6 +24,7 @@
     }
 
     function createSearchModal() {
+        let selectedIndex = -1;
         const modal = document.createElement('div');
         modal.id = 'search-modal';
         modal.className = 'fixed inset-0 z-50 flex items-start justify-center pt-24 hidden';
@@ -53,6 +54,7 @@
         closeBtn.addEventListener('click', closeSearch);
 
         input.addEventListener('input', (e) => {
+            selectedIndex = -1;
             const query = e.target.value;
             if (!query) {
                 resultsContainer.innerHTML = '';
@@ -64,7 +66,37 @@
             }
         });
 
-        // Keyboard navigation support could be added here
+        function updateSelection() {
+            const items = resultsContainer.querySelectorAll('a');
+            items.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.classList.add('bg-gray-100', 'dark:bg-gray-700/50');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('bg-gray-100', 'dark:bg-gray-700/50');
+                }
+            });
+        }
+
+        input.addEventListener('keydown', (e) => {
+            const items = resultsContainer.querySelectorAll('a');
+            if (items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedIndex = (selectedIndex + 1) % items.length;
+                updateSelection();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedIndex = (selectedIndex <= 0) ? items.length - 1 : selectedIndex - 1;
+                updateSelection();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (selectedIndex >= 0 && selectedIndex < items.length) {
+                    items[selectedIndex].click();
+                }
+            }
+        });
     }
 
     function renderResults(results, container) {
