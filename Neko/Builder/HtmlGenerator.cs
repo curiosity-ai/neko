@@ -664,9 +664,11 @@ namespace Neko.Builder
                 sb.AppendLine("                                });");
                 sb.AppendLine("");
                 sb.AppendLine("                                // Image Paste Handler");
-                sb.AppendLine("                                window.addEventListener('paste', (event) => {");
-                sb.AppendLine("                                    if (!editor || !editor.hasTextFocus()) return;");
-                sb.AppendLine("                                    const items = (event.clipboardData || event.originalEvent.clipboardData).items;");
+                sb.AppendLine("                                editor.onDidPaste((e) => {");
+                sb.AppendLine("                                    if (!e.clipboardEvent) return;");
+                sb.AppendLine("                                    const event = e.clipboardEvent;");
+                sb.AppendLine("                                    const items = (event.clipboardData || event.originalEvent?.clipboardData)?.items;");
+                sb.AppendLine("                                    if (!items) return;");
                 sb.AppendLine("                                    for (const item of items) {");
                 sb.AppendLine("                                        if (item.kind === 'file' && item.type.startsWith('image/')) {");
                 sb.AppendLine("                                            event.preventDefault();");
