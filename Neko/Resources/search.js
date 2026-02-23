@@ -23,6 +23,18 @@
         }
     }
 
+    function renderStatus(container, icon, title, subtitle) {
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-12 text-center">
+                <div class="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 mb-4">
+                    <i class="${icon} text-2xl text-gray-500 dark:text-gray-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">${title}</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">${subtitle}</p>
+            </div>
+        `;
+    }
+
     function createSearchModal() {
         let selectedIndex = -1;
         const modal = document.createElement('div');
@@ -50,6 +62,8 @@
         const closeBtn = modal.querySelector('#search-close');
         const resultsContainer = modal.querySelector('#search-results');
 
+        renderStatus(resultsContainer, 'fi fi-rr-search', 'Type to search', 'Start typing to search the documentation.');
+
         backdrop.addEventListener('click', closeSearch);
         closeBtn.addEventListener('click', closeSearch);
 
@@ -57,7 +71,7 @@
             selectedIndex = -1;
             const query = e.target.value;
             if (!query) {
-                resultsContainer.innerHTML = '';
+                renderStatus(resultsContainer, 'fi fi-rr-search', 'Type to search', 'Start typing to search the documentation.');
                 return;
             }
             if (miniSearch) {
@@ -101,7 +115,7 @@
 
     function renderResults(results, container) {
         if (results.length === 0) {
-            container.innerHTML = '<div class="px-4 py-3 text-sm text-gray-500">No results found.</div>';
+            renderStatus(container, 'fi fi-rr-search', 'No results found', 'We couldn\'t find any items matching your search criteria.');
             return;
         }
 
