@@ -36,7 +36,7 @@ This content is encrypted and can only be seen with the password.
 
 1.  **Prompt**: Visitors will see a clean, centered password form.
 2.  **Unlock**: Upon entering the correct password, the content is instantly decrypted and displayed without a page reload.
-3.  **Persistence**: The password is temporarily saved in the browser's local storage so the user doesn't have to re-enter it if they refresh the page during the same session.
+3.  **Persistence**: The password is temporarily saved in the browser's session storage so the user doesn't have to re-enter it if they refresh the page. The password is cleared when the browser tab is closed.
 
 ## Live Demo
 
