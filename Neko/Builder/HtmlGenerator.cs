@@ -55,7 +55,7 @@ namespace Neko.Builder
         public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null, List<LinkConfig> sidebarLinks = null)
         {
             var title = !string.IsNullOrEmpty(document.FrontMatter.Title)
-                ? $"{document.FrontMatter.Title} - {_config.Branding.Title}"
+                ? $"{_config.Branding.Title} - {document.FrontMatter.Title}"
                 : _config.Branding.Title;
 
             var description = !string.IsNullOrEmpty(document.FrontMatter.Description)
@@ -1062,7 +1062,8 @@ namespace Neko.Builder
             // Neko Config
             var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
             var snippetsJson = _config.Snippets != null ? System.Text.Json.JsonSerializer.Serialize(_config.Snippets, jsonOptions) : "{}";
-            sb.AppendLine($"    <script>window.nekoConfig = {{ snippets: {snippetsJson} }};</script>");
+            var brandingJson = _config.Branding != null ? System.Text.Json.JsonSerializer.Serialize(_config.Branding, jsonOptions) : "{}";
+            sb.AppendLine($"    <script>window.nekoConfig = {{ snippets: {snippetsJson}, branding: {brandingJson} }};</script>");
 
             // Inter Font
             sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");

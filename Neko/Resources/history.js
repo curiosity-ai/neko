@@ -6,10 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         const currentUrl = window.location.pathname;
         let currentTitle = document.title;
-        // Clean title if it contains " - Site Name" suffix
-        if (currentTitle.includes(' - ')) {
-            const parts = currentTitle.split(' - ');
-            currentTitle = parts[0];
+
+        // Clean title if it starts with "Site Name - " prefix
+        const siteTitle = window.nekoConfig?.branding?.title;
+        if (siteTitle && currentTitle.startsWith(siteTitle + ' - ')) {
+            currentTitle = currentTitle.substring(siteTitle.length + 3);
         }
 
         let history = [];
