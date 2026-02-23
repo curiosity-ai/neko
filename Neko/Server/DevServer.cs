@@ -228,6 +228,22 @@ namespace Neko.Server
                     RequestPath = "",
                     EnableDirectoryBrowsing = false
                 });
+
+                // 404 Handler
+                app.Use(async (context, next) =>
+                {
+                    await next();
+
+                    if (context.Response.StatusCode == 404 && !context.Response.HasStarted)
+                    {
+                        var notFoundPath = Path.Combine(_rootPath, "404.html");
+                        if (File.Exists(notFoundPath))
+                        {
+                            context.Response.ContentType = "text/html";
+                            await context.Response.SendFileAsync(notFoundPath);
+                        }
+                    }
+                });
             }
 
             System.Console.WriteLine($"Server started at http://localhost:{_port}");
