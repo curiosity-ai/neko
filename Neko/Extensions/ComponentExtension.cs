@@ -76,7 +76,7 @@ namespace Neko.Extensions
             }
 
             // Skip space if any
-            if (slice.CurrentChar == ' ')
+            while (slice.CurrentChar.IsWhitespace())
             {
                 slice.NextChar();
             }
@@ -92,15 +92,34 @@ namespace Neko.Extensions
                     return false;
                 }
 
-                if (slice.CurrentChar == ' ')
+                if (slice.CurrentChar.IsWhitespace())
                 {
                     slice.NextChar();
                     continue;
                 }
 
+                // Check if current token starts with quote (positional quoted arg)
+                if (slice.CurrentChar == '"')
+                {
+                    slice.NextChar(); // Skip "
+                    var valStart = slice.Start;
+                    while (slice.CurrentChar != '"' && !slice.IsEmpty)
+                    {
+                        slice.NextChar();
+                    }
+
+                    if (slice.CurrentChar != '"') break; // Should end with "
+
+                    var val = slice.Text.Substring(valStart, slice.Start - valStart);
+                    slice.NextChar(); // Skip closing "
+
+                    component.Arguments.Add(val);
+                    continue;
+                }
+
                 // Parse key="value" or positional value
                 var start = slice.Start;
-                while (slice.CurrentChar != '=' && slice.CurrentChar != ']' && !slice.IsEmpty && slice.CurrentChar != ' ')
+                while (slice.CurrentChar != '=' && slice.CurrentChar != ']' && !slice.IsEmpty && !slice.CurrentChar.IsWhitespace())
                 {
                     slice.NextChar();
                 }
@@ -131,7 +150,7 @@ namespace Neko.Extensions
                     {
                         // Unquoted value until space or ]
                         var valStart = slice.Start;
-                        while (slice.CurrentChar != ' ' && slice.CurrentChar != ']' && !slice.IsEmpty)
+                        while (slice.CurrentChar != ']' && !slice.CurrentChar.IsWhitespace() && !slice.IsEmpty)
                         {
                             slice.NextChar();
                         }
@@ -382,44 +401,37 @@ namespace Neko.Extensions
                 renderer.WriteEscape(title);
                 renderer.Write("</p>");
             }
-             if (!string.IsNullOrEmpty(subtitle))
+
+            if (!string.IsNullOrEmpty(subtitle))
             {
-                 renderer.Write("<div class=\"mt-10 grid gap-4 sm:mt-16 lg:grid-cols-3 lg:grid-rows-2\">");
+                renderer.Write("<p class=\"mx-auto mt-6 max-w-2xl text-center text-lg leading-8 text-gray-600 dark:text-gray-300\">");
+                renderer.WriteEscape(subtitle);
+                renderer.Write("</p>");
             }
-            else
+
+            renderer.Write("<div class=\"mt-10 grid gap-4 sm:mt-16 lg:grid-cols-3\">");
+
+            // Expecting items in groups of 3 (Title, Desc, Img)
+            // Bento Layout Strategy (3-column):
+            // Pattern repeats every 4 items:
+            // Item 0: span-2
+            // Item 1: span-1
+            // Item 2: span-1
+            // Item 3: span-2
+            // This creates a nice alternating layout.
+
+            for (int i = 0; i < obj.Arguments.Count; i += 3)
             {
-                 renderer.Write("<div class=\"mt-10 grid gap-4 sm:mt-16 lg:grid-cols-3 lg:grid-rows-2\">");
-            }
+                if (i + 2 >= obj.Arguments.Count) break;
+                var itemTitle = obj.Arguments[i];
+                var itemDesc = obj.Arguments[i + 1];
+                var itemImg = obj.Arguments[i + 2];
 
-            // Expecting 3 items usually for this specific layout, but loop handling generic
-            // Layout:
-            // Item 0: span-2 col?
-            // Let's implement a specific bento layout:
-            // 1. Large (span 2 cols)
-            // 2. Tall (span 2 rows, col 3) ?
-            // Or the Tailwind UI "Three column bento grid" usually has:
-            // Top left (small), Top Middle (small), Top Right (small) - No that's grid.
-            // Bento usually: 1 big, 2 small stacked.
-            // Let's iterate and apply classes based on index.
+                int itemIndex = i / 3;
+                bool isWide = (itemIndex % 4 == 0) || (itemIndex % 4 == 3);
+                var className = isWide ? "relative lg:col-span-2" : "relative lg:col-span-1";
 
-            for (int i = 0; i < obj.Arguments.Count; i+=3)
-            {
-                 if (i + 2 >= obj.Arguments.Count) break;
-                 var itemTitle = obj.Arguments[i];
-                 var itemDesc = obj.Arguments[i+1];
-                 var itemImg = obj.Arguments[i+2];
-
-                 var className = "relative lg:col-span-1";
-                 if (i == 0) className = "relative lg:col-span-2"; // First item wide
-                 if (i == 3) className = "relative lg:col-span-2"; // Fourth item wide (if 6 items)
-
-                 // Tailwind UI Bento often:
-                 // 1. (col-span-2)
-                 // 2. (col-span-1)
-                 // 3. (col-span-1)
-                 // 4. (col-span-2)
-
-                 renderer.Write($"<div class=\"{className}\">");
+                renderer.Write($"<div class=\"{className}\">");
                  renderer.Write("<div class=\"absolute inset-px rounded-lg bg-white dark:bg-gray-800 max-lg:rounded-t-[2rem] lg:rounded-tl-[2rem]\"></div>");
                  renderer.Write("<div class=\"relative flex h-full flex-col overflow-hidden rounded-[calc(theme(borderRadius.lg)+1px)] max-lg:rounded-t-[calc(2rem+1px)] lg:rounded-tl-[calc(2rem+1px)]\">");
                  renderer.Write($"<img class=\"h-80 object-cover object-left\" src=\"{itemImg}\" alt=\"\">");
@@ -695,7 +707,7 @@ namespace Neko.Extensions
             renderer.Write("</p>");
 
             renderer.Write("<div class=\"mt-6 space-y-6 text-lg leading-8 text-gray-600 dark:text-gray-300\">");
-            foreach(var arg in obj.Arguments)
+            foreach (var arg in obj.Arguments)
             {
                 renderer.Write($"<p>{arg}</p>");
             }
@@ -704,8 +716,7 @@ namespace Neko.Extensions
             renderer.Write("</div></div>"); // End left col
 
             // Right col sticky image
-            renderer.Write("<div class=\"flex items-start justify-end lg:order-last\">"); // Actually Tailwind UI often puts image on right. Sticky requires relative positioning usually.
-            // Sticky logic:
+            renderer.Write("<div class=\"flex items-start justify-end lg:order-last sticky top-8\">");
             renderer.Write($"<img src=\"{image}\" alt=\"Product screenshot\" class=\"w-[48rem] max-w-none rounded-xl shadow-xl ring-1 ring-gray-400/10 sm:w-[57rem] md:-ml-4 lg:-ml-0\" width=\"2432\" height=\"1442\">");
             renderer.Write("</div>");
 
