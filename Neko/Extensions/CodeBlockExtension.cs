@@ -104,7 +104,18 @@ namespace Neko.Extensions
             string title = null;
             string highlight = null;
 
-            // 1. Extract Highlight (#1-5,7) or {1-5,7}
+            // 1. Handle Line Numbers Flags
+            bool enableLineNumbers = false;
+            bool disableLineNumbers = false;
+
+            // Check for disable line numbers (!#)
+            if (args.Contains("!#"))
+            {
+                disableLineNumbers = true;
+                args = args.Replace("!#", "").Trim();
+            }
+
+            // 2. Extract Highlight (#1-5,7) or {1-5,7}
             var highlightMatch = Regex.Match(args, @"#([\d,-]+)");
             if (highlightMatch.Success)
             {
@@ -121,7 +132,15 @@ namespace Neko.Extensions
                 }
             }
 
-            // 2. Extract Title (remaining string or title="...")
+            // 3. Check for enable line numbers (#) - AFTER extracting highlight
+            var lnMatch = Regex.Match(args, @"(?:^|\s)#(?:$|\s)");
+            if (lnMatch.Success)
+            {
+                enableLineNumbers = true;
+                args = Regex.Replace(args, @"(?:^|\s)#(?:$|\s)", " ").Trim();
+            }
+
+            // 4. Extract Title (remaining string or title="...")
             var titleMatch = Regex.Match(args, "title=\"([^\"]+)\"");
             if (titleMatch.Success)
             {
@@ -169,6 +188,16 @@ namespace Neko.Extensions
 
             // Add custom class for styling the inner pre/code
             attributes.AddClass("!my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm"); // Override prose defaults
+
+            // Line Numbers Classes
+            if (enableLineNumbers)
+            {
+                attributes.AddClass("line-numbers");
+            }
+            if (disableLineNumbers)
+            {
+                attributes.AddClass("no-line-numbers");
+            }
 
             // Store highlight info in data attribute
             if (!string.IsNullOrEmpty(highlight))

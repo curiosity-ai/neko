@@ -9,6 +9,7 @@ using YamlDotNet.Serialization.NamingConventions;
 using System.Linq;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using Neko.Extensions;
 
 namespace Neko.Builder
@@ -78,8 +79,62 @@ namespace Neko.Builder
                 .Build();
         }
 
+        private string PreProcessIncludes(string content, string currentFilePath, string rootDirectory, int depth = 0)
+        {
+            if (depth > 5) return content; // Recursion limit
+
+            var currentDir = Path.GetDirectoryName(currentFilePath);
+
+            // Regex to find {{ include "path" }}
+            return Regex.Replace(content, @"\{\{\s*include\s+""([^""]+)""\s*\}\}", match =>
+            {
+                var relativePath = match.Groups[1].Value;
+
+                // Ignore anchors for file resolution
+                if (relativePath.Contains("#"))
+                {
+                    relativePath = relativePath.Split('#')[0];
+                }
+
+                if (string.IsNullOrEmpty(relativePath)) return match.Value;
+
+                var targetPath = Path.Combine(currentDir, relativePath);
+
+                if (!File.Exists(targetPath))
+                {
+                    // Try relative to root
+                    var rootPath = Path.Combine(rootDirectory, relativePath.TrimStart('/', '\\'));
+                    if (File.Exists(rootPath))
+                    {
+                        targetPath = rootPath;
+                    }
+                    else
+                    {
+                        return $"<!-- Include file not found: {relativePath} -->";
+                    }
+                }
+
+                try
+                {
+                    var includedContent = File.ReadAllText(targetPath);
+                    // Recursively process includes
+                    return PreProcessIncludes(includedContent, targetPath, rootDirectory, depth + 1);
+                }
+                catch (System.Exception ex)
+                {
+                    return $"<!-- Error including file {relativePath}: {ex.Message} -->";
+                }
+            });
+        }
+
         public ParsedDocument Parse(string markdown, string filePath = null, string rootDirectory = null)
         {
+            // Pre-process includes
+            if (!string.IsNullOrEmpty(markdown) && !string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(rootDirectory))
+            {
+                markdown = PreProcessIncludes(markdown, filePath, rootDirectory);
+            }
+
             var document = Markdig.Markdown.Parse(markdown, _pipeline);
 
             // Asset Resolution
