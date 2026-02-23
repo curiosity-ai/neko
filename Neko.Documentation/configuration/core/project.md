@@ -1091,6 +1091,66 @@ There are several other values that may be prefixed with an `_` character, inclu
 
 ===
 
+### items
+
+=== items : `list`
+
+Allows defining a dropdown (flyout) menu of sub-links. If `items` are present, the top-level link becomes a trigger for the menu.
+
+Each item in the list supports `text`, `link`, `icon`, `target`, and `description`.
+
+```yml
+links:
+  - text: Products
+    items:
+      - text: Analytics
+        link: /products/analytics
+        icon: chart-pie
+        description: Understand your traffic
+      - text: Security
+        link: /products/security
+        icon: lock
+        description: Protect your data
+```
+===
+
+### description
+
+=== description : `string`
+
+A short description for the link. This is primarily used within [`items`](#items) to provide more context in flyout menus.
+
+```yml
+links:
+  - text: Features
+    items:
+      - text: Components
+        link: /components
+        description: Explore built-in components
+```
+===
+
+### footerItems
+
+=== footerItems : `list`
+
+Allows defining a footer section within a flyout menu. These items are displayed at the bottom of the dropdown in a distinct style.
+
+This property is only used when [`items`](#items) are also defined.
+
+```yml
+links:
+  - text: Resources
+    items:
+      - text: Blog
+        link: /blog
+    footerItems:
+      - text: Contact Sales
+        link: /contact
+        icon: phone-call
+```
+===
+
 ---
 
 ## locale
