@@ -91,5 +91,32 @@ namespace Neko.Tests
 
             Assert.That(doc.EndsWith("</div>") || doc.Trim().EndsWith("</div>"));
         }
+
+        [Test]
+        public void TestLinkCard()
+        {
+            // Test Light Variant
+            var markdownLight = "::: card {variant=\"link\" title=\"Light Card\" link=\"#\" link-text=\"View docs\"}\nContent Light\n:::";
+            var docLight = _parser.Parse(markdownLight).Html;
+
+            Assert.That(docLight, Contains.Substring("bg-white"));
+            Assert.That(docLight, Contains.Substring("border-gray-200"));
+            Assert.That(docLight, Contains.Substring("Light Card"));
+            Assert.That(docLight, Contains.Substring("Content Light"));
+            Assert.That(docLight, Contains.Substring("View docs"));
+            Assert.That(docLight, Contains.Substring("text-blue-600"));
+            Assert.That(docLight, Does.Not.Contain("&rarr;"));
+
+            // Test Dark Variant with Arrow
+            var markdownDark = "::: card {variant=\"link\" theme=\"dark\" title=\"Dark Card\" link=\"#\" link-text=\"View dark\" arrow=\"true\"}\nContent Dark\n:::";
+            var docDark = _parser.Parse(markdownDark).Html;
+
+            Assert.That(docDark, Contains.Substring("bg-gray-900"));
+            Assert.That(docDark, Contains.Substring("text-white"));
+            Assert.That(docDark, Contains.Substring("Dark Card"));
+            Assert.That(docDark, Contains.Substring("Content Dark"));
+            Assert.That(docDark, Contains.Substring("View dark"));
+            Assert.That(docDark, Contains.Substring("&rarr;"));
+        }
     }
 }
