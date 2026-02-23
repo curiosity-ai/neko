@@ -690,28 +690,6 @@ v1.0-alpha
 
 ---
 
-## password
-
-=== password : `string`
-
-Password-protect this specific page.
-
-```yml
----
-password: "your-secret-password"
----
-```
-
-When a visitor navigates to the page, they will be prompted to enter the password to unlock and view the content.
-
-The content is encrypted at build time and decrypted in the browser using the password provided by the user.
-
-See [password protection](/guides/password-protection.md) for more details.
-
-===
-
----
-
 ## permalink
 
 === permalink : `string`

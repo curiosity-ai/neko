@@ -133,7 +133,7 @@
             }
 
             // Save password
-            sessionStorage.setItem('neko-page-password-' + window.location.pathname, password);
+            localStorage.setItem('neko-page-password-' + window.location.pathname, password);
 
         } catch (e) {
             if (errorMsg) errorMsg.classList.remove('hidden');
@@ -141,12 +141,12 @@
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Unlock';
             }
-            sessionStorage.removeItem('neko-page-password-' + window.location.pathname);
+            localStorage.removeItem('neko-page-password-' + window.location.pathname);
         }
     }
 
     // Check saved password
-    const saved = sessionStorage.getItem('neko-page-password-' + window.location.pathname);
+    const saved = localStorage.getItem('neko-page-password-' + window.location.pathname);
     if (saved) {
         handleUnlock(saved);
     }

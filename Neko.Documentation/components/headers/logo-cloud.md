@@ -13,11 +13,11 @@ The `logo-cloud` component displays a grid of logos, typically used to show trus
 ```markdown
 [!logo-cloud
     heading="Trusted by the world’s most innovative teams"
-    "https://laracasts.com/images/series/2018/transistor-logo.svg" "Transistor"
-    "https://cdn.prod.website-files.com/660f132d9a66031a172a6ed2/68937c22c4b02702748d5a15_Reform%20by%20Funnel%20Envy%20Logo.svg" "Reform"
-    "https://laracasts.com/images/series/2018/tuple-logo.svg" "Tuple"
-    "https://cdn.prod.website-files.com/660f38f06a23cf2d2fb65170/6932d5548e9cef3b0f3e86a7_660f38ff6f83171ad7ec13f1_savvycal-logo.svg" "SavvyCal"
-    "https://statamic.com/assets/branding/squircle/statamic-logo-black.svg" "Statamic"
+    "https://cdn.worldvectorlogo.com/logos/nasa-6.svg" "NASA"
+    "https://cdn.worldvectorlogo.com/logos/spacex.svg" "SpaceX"
+    "https://cdn.worldvectorlogo.com/logos/blue-origin.svg" "Blue Origin"
+    "https://cdn.worldvectorlogo.com/logos/lockheed-martin.svg" "Lockheed Martin"
+    "https://cdn.worldvectorlogo.com/logos/airbus.svg" "Airbus"
 ]
 ```
 
@@ -25,11 +25,11 @@ The `logo-cloud` component displays a grid of logos, typically used to show trus
 
 [!logo-cloud
     heading="Trusted by the world’s most innovative teams"
-    "https://laracasts.com/images/series/2018/transistor-logo.svg" "Transistor"
-    "https://cdn.prod.website-files.com/660f132d9a66031a172a6ed2/68937c22c4b02702748d5a15_Reform%20by%20Funnel%20Envy%20Logo.svg" "Reform"
-    "https://laracasts.com/images/series/2018/tuple-logo.svg" "Tuple"
-    "https://cdn.prod.website-files.com/660f38f06a23cf2d2fb65170/6932d5548e9cef3b0f3e86a7_660f38ff6f83171ad7ec13f1_savvycal-logo.svg" "SavvyCal"
-    "https://statamic.com/assets/branding/squircle/statamic-logo-black.svg" "Statamic"
+    "https://cdn.worldvectorlogo.com/logos/nasa-6.svg" "NASA"
+    "https://cdn.worldvectorlogo.com/logos/spacex.svg" "SpaceX"
+    "https://cdn.worldvectorlogo.com/logos/blue-origin.svg" "Blue Origin"
+    "https://cdn.worldvectorlogo.com/logos/lockheed-martin.svg" "Lockheed Martin"
+    "https://cdn.worldvectorlogo.com/logos/airbus.svg" "Airbus"
 ]
 
 ## Attributes

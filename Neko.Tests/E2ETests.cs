@@ -65,7 +65,7 @@ AlertContent
 
             // Verify Index
             var indexContent = await File.ReadAllTextAsync(indexPath);
-            Assert.That(indexContent, Contains.Substring("<title>E2E Docs - Hello E2E</title>"));
+            Assert.That(indexContent, Contains.Substring("<title>Hello E2E - E2E Docs</title>"));
             Assert.That(indexContent, Contains.Substring("Hello E2E"));
             Assert.That(indexContent, Contains.Substring("E2E Docs"));
 

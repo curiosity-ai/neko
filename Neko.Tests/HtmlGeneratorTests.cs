@@ -39,7 +39,7 @@ namespace Neko.Tests
 
             var html = _generator.Generate(doc, sidebarLinks: sidebar);
 
-            Assert.That(html, Contains.Substring("<title>Test Docs - Page Title</title>"));
+            Assert.That(html, Contains.Substring("<title>Page Title - Test Docs</title>"));
             // Updated assertion for branding in header
             Assert.That(html, Contains.Substring("<a href=\"/index\" class=\"font-bold text-xl hover:text-blue-600 transition-colors\">Test Docs</a>"));
             // Updated assertion for link with new classes
