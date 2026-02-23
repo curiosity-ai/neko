@@ -1,0 +1,1144 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Neko -> /app/Neko/bin/Debug/net10.0/Neko.dll
+  Neko.Tests -> /app/Neko.Tests/bin/Debug/net10.0/Neko.Tests.dll
+Test run for /app/Neko.Tests/bin/Debug/net10.0/Neko.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+  Failed TestStackedCard [35 ms]
+  Error Message:
+     Assert.That(doc, Contains.Substring("<div class=\"font-bold text-xl mb-2 text-gray-900 dark:text-white\">Title</div>"))
+  Expected: String containing "<div class="font-bold text-xl mb-2 text-gray-900 dark:text-white">Title</div>"
+  But was:  "<div class="max-w-sm rounded overflow-hidden shadow-lg bg-white dark:bg-gray-800 my-4 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 dark:hover:border-gray-600"><img class="w-full object-cover" src="img.jpg" alt="Title"><div class="px-6 py-4"><div class="font-bold text-xl mt-1 mb-2 text-gray-900 dark:text-white">Title</div><div class="text-gray-700 dark:text-gray-300 text-base"><p>Description</p>
+</div></div><div class="px-6 pt-4 pb-2"><span class="inline-block bg-gray-200 dark:bg-gray-700 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 dark:text-gray-300 mr-2 mb-2">#tag1</span><span class="inline-block bg-gray-200 dark:bg-gray-700 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 dark:text-gray-300 mr-2 mb-2">#tag2</span></div></div>"
+
+  Stack Trace:
+     at Neko.Tests.CardTests.TestStackedCard() in /app/Neko.Tests/CardTests.cs:line 24
+
+1)    at Neko.Tests.CardTests.TestStackedCard() in /app/Neko.Tests/CardTests.cs:line 24
+
+
+  Failed TestPasteHandlerInjectionLocation [7 ms]
+  Error Message:
+     Assert.That(html, Contains.Substring("editor.onDidPaste("))
+  Expected: String containing "editor.onDidPaste("
+  But was:  "<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neko</title>
+    <meta property="og:title" content="Neko">
+    <meta name="twitter:title" content="Neko">
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
+    <script>window.nekoConfig = { snippets: {"lineNumbers":[]} };</script>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>
+    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>
+    <link rel="stylesheet" href="/assets/emoji.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <script>document.addEventListener("DOMContentLoaded", function() { renderMathInElement(document.body); });</script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: false });
+
+        async function renderMermaid() {
+            const elements = document.querySelectorAll('.mermaid');
+            if (!elements.length) return;
+
+            for (const el of elements) {
+                if (el.getAttribute('data-processed')) continue;
+                el.setAttribute('data-processed', 'true');
+
+                const source = el.textContent;
+                const idBase = 'mermaid-' + Math.random().toString(36).substr(2, 9);
+                const idLight = idBase + '-light';
+                const idDark = idBase + '-dark';
+
+                // Render Light
+                const sourceLight = `%%{init: {'theme':'default'}}%%\n${source}`;
+                // Render Dark
+                const sourceDark = `%%{init: {'theme':'dark'}}%%\n${source}`;
+
+                try {
+                    const rLight = await mermaid.render(idLight, sourceLight);
+                    const rDark = await mermaid.render(idDark, sourceDark);
+
+                    el.innerHTML = `
+                        <div class="dark:hidden">${rLight.svg}</div>
+                        <div class="hidden dark:block">${rDark.svg}</div>
+                    `;
+
+                    if (rLight.bindFunctions) rLight.bindFunctions(el.querySelector('.dark\\:hidden'));
+                    if (rDark.bindFunctions) rDark.bindFunctions(el.querySelector('.dark\\:block'));
+                } catch (e) {
+                    console.error('Mermaid rendering failed:', e);
+                    el.innerHTML = `<div class="text-red-500">Error rendering diagram</div>`;
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', renderMermaid);
+    </script>
+    <script src="/assets/force-graph.min.js"></script>
+    <script src="/assets/minisearch.min.js"></script>
+    <script defer src="/assets/search.js"></script>
+    <link id="highlight-theme" rel="stylesheet" href="/assets/highlight/tokyo-night-dark.min.css">
+    <script src="/assets/highlight/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js"></script>
+    <style>
+        /* Highlight.js Line Numbers CSS */
+        .prose table.hljs-ln tr { border: none !important; }
+        .prose table.hljs-ln td { padding: 0 !important; }
+        .prose table.hljs-ln td.hljs-ln-numbers { user-select: none; text-align: right; color: #ccc; border-right: 1px solid #ccc; vertical-align: top; padding-right: 5px !important; padding-left: 10px !important; }
+        .prose table.hljs-ln td.hljs-ln-code { padding-left: 10px !important; }
+
+        /* Hide Line Numbers when disabled but table is present (for highlighting) */
+        .hide-line-numbers .hljs-ln-numbers { display: none !important; }
+        .hide-line-numbers .hljs-ln-code { padding-left: 5px !important; }
+
+        /* Custom Highlight Style */
+        .line-highlight { background-color: rgba(255, 255, 0, 0.15); display: block; width: 100%; }
+        .dark .line-highlight { background-color: rgba(255, 255, 0, 0.15); }
+
+        /* Fix Table layout for code blocks with line numbers */
+        .hljs-ln { width: 100%; border-collapse: collapse; }
+
+        /* Custom Scrollbars */
+        /* Sidebar */
+        #sidebar::-webkit-scrollbar { width: 6px; height: 6px; background-color: transparent; }
+        #sidebar::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 3px; }
+        #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); }
+        .dark #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }
+
+        /* TOC */
+        #toc-sidebar::-webkit-scrollbar { display: none; }
+        #toc-sidebar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Main Content */
+        #main-scroll::-webkit-scrollbar { width: 8px; height: 8px; background-color: transparent; }
+        #main-scroll::-webkit-scrollbar-track { background-color: transparent; }
+        #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(209, 213, 219, 0.5); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+        .dark #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }
+        #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(156, 163, 175, 0.8); }
+        .dark #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(107, 114, 128, 0.8); }
+    </style>
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden">
+    <header class="h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10">
+        <div class="flex items-center gap-4">
+            <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none">
+                <i class="fi fi-rr-menu-burger text-xl"></i>
+            </button>
+            <a href="/index" class="font-bold text-xl hover:text-blue-600 transition-colors">Neko</a>
+        </div>
+        <div class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300">
+        </div>
+        <div class="flex items-center gap-4 hidden md:flex">
+            <button onclick="openSearch()" class="flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-blue-500 w-64 justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fi fi-rr-search text-sm"></i>
+                    <span class="text-sm font-medium">Search</span>
+                </div>
+                <kbd class="hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400">⌘K</kbd>
+            </button>
+            <button id="theme-toggle" class="flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-blue-500">
+                <i class="fi fi-rr-moon dark:hidden text-lg"></i>
+                <i class="fi fi-rr-sun hidden dark:block text-lg"></i>
+            </button>
+        </div>
+    </header>
+    <div class="flex flex-1 overflow-hidden">
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden glassmorphism"></div>
+        <aside id="sidebar" class="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex flex-col shrink-0 fixed md:static inset-y-0 left-0 z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out h-full">
+            <nav class="p-4 flex-1">
+                <div class="mb-6 relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fi fi-rr-filter text-gray-400"></i>
+                    </div>
+                    <input type="text" id="sidebar-filter" placeholder="Filter..." class="w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+                </div>
+                <ul class="space-y-1" id="sidebar-list">
+                </ul>
+            </nav>
+        </aside>
+        <div class="flex-1 flex overflow-hidden">
+            <main class="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth" id="main-scroll">
+                <div class="max-w-4xl mx-auto prose dark:prose-invert">
+<h1 class="flex justify-between">Title<button onclick="nekoOpenEditor()" class="ml-3 inline-flex items-center rounded-md bg-white dark:bg-gray-800 px-2.5 py-1.5 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 not-prose"><i class="fi fi-rr-edit mr-1"></i> Edit</button></h1>
+                    <footer class="mt-12 py-6 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400 flex flex-col md:flex-row justify-between items-center not-prose">
+                        <div>&copy; 2026 Neko. All rights reserved.</div>
+                        <div class="mt-2 md:mt-0">Powered by Neko</div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+    <div id="neko-editor-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-gray-900 w-full max-w-6xl h-[90vh] rounded-lg shadow-xl flex flex-col border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit Content</h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="nekoCancelEdit()" class="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors">Cancel</button>
+                        <button onclick="nekoSaveContent()" class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors">Save</button>
+                    </div>
+                </div>
+                <div id="neko-editor-container" class="flex-1 overflow-hidden"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // WebSocket for Live Reload
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/neko-live`;
+        let ws;
+
+        function connectWs() {
+            ws = new WebSocket(wsUrl);
+            ws.onmessage = (event) => {
+                if (event.data === 'reload') {
+                    window.location.reload();
+                }
+            };
+            ws.onclose = () => {
+                setTimeout(connectWs, 1000);
+            };
+        }
+        connectWs();
+
+        // Monaco Editor
+        let editor;
+        const modal = document.getElementById('neko-editor-modal');
+        const container = document.getElementById('neko-editor-container');
+
+        function loadMonaco(callback) {
+            if (window.nekoMonacoLoaded) {
+                callback();
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js';
+            script.onload = () => {
+                window.nekoMonacoLoaded = true;
+                callback();
+            };
+            document.body.appendChild(script);
+        }
+
+        function nekoOpenEditor() {
+            const path = window.location.pathname;
+            fetch('/api/neko/content?path=' + encodeURIComponent(path))
+                .then(res => res.text())
+                .then(markdown => {
+                    modal.classList.remove('hidden');
+                    loadMonaco(() => {
+                        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+                        require(['vs/editor/editor.main'], function() {
+                            if (editor) {
+                                editor.setValue(markdown);
+                            } else {
+                                editor = monaco.editor.create(container, {
+                                    value: markdown,
+                                    language: 'markdown',
+                                    theme: document.documentElement.classList.contains('dark') ? 'vs-dark' : 'vs',
+                                    automaticLayout: true,
+                                    minimap: { enabled: false },
+                                    wordWrap: 'on',
+                                    pasteAs: { enabled: false, },
+                                    fontSize: 14
+                                });
+
+                                // Image Paste Handler
+                    editor.getContainerDomNode().addEventListener('paste', (event) => {
+                                    if (!editor || !editor.hasTextFocus()) return;
+                                    const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+                                    for (const item of items) {
+                                        if (item.kind === 'file' && item.type.startsWith('image/')) {
+                                            event.preventDefault();
+                                            const file = item.getAsFile();
+                                            const path = window.location.pathname;
+                                            const formData = new FormData();
+                                            formData.append('file', file);
+                                            formData.append('path', path);
+                                            fetch('/api/neko/upload-image', {
+                                                method: 'POST',
+                                                body: formData
+                                            })
+                                            .then(res => {
+                                                if (!res.ok) throw new Error('Upload failed');
+                                                return res.json();
+                                            })
+                                            .then(data => {
+                                                const imageUrl = data.url;
+                                                const markdownImage = `![Image](${imageUrl})`;
+                                                const position = editor.getPosition();
+                                                editor.executeEdits('paste-image', [{
+                                                    range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
+                                                    text: markdownImage,
+                                                    forceMoveMarkers: true
+                                                }]);
+                                            })
+                                            .catch(err => {
+                                                console.error('Image upload failed', err);
+                                                alert('Failed to upload image: ' + err.message);
+                                            });
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    });
+                })
+                .catch(err => console.error('Failed to load content', err));
+        }
+
+        function nekoCancelEdit() {
+            modal.classList.add('hidden');
+        }
+
+        function nekoSaveContent() {
+            if (!editor) return;
+            const content = editor.getValue();
+            const path = window.location.pathname;
+            fetch('/api/neko/content', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path, content })
+            })
+            .then(res => {
+                if (res.ok) {
+                    nekoCancelEdit();
+                    // Notification handled by websocket reload usually, but we can do instant feedback
+                } else {
+                    alert('Failed to save');
+                }
+            })
+            .catch(err => alert('Failed to save: ' + err));
+        }
+    </script>
+    <script>
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+        function toggleMobileMenu() {
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            if (isClosed) {
+                sidebar.classList.remove('-translate-x-full');
+                sidebarOverlay.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+            sidebarOverlay.addEventListener('click', toggleMobileMenu);
+        }
+        if (sidebar) {
+            const scrollKey = 'neko-sidebar-scroll';
+            const timeKey = 'neko-sidebar-scroll-time';
+            const savedScroll = localStorage.getItem(scrollKey);
+            const savedTime = localStorage.getItem(timeKey);
+            if (savedScroll && savedTime) {
+                const now = new Date().getTime();
+                if (now - parseInt(savedTime) < 60000) {
+                    sidebar.scrollTop = parseInt(savedScroll);
+                }
+            }
+            let timeout;
+            sidebar.addEventListener('scroll', () => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    localStorage.setItem(scrollKey, sidebar.scrollTop);
+                    localStorage.setItem(timeKey, new Date().getTime());
+                }, 100);
+            });
+        }
+        const sidebarFilter = document.getElementById('sidebar-filter');
+        const sidebarList = document.getElementById('sidebar-list');
+        if (sidebarFilter && sidebarList) {
+            sidebarFilter.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                // Expand all details when searching
+                const details = sidebarList.querySelectorAll('details');
+                if (term) details.forEach(d => d.open = true);
+
+                const items = sidebarList.querySelectorAll('li, summary');
+                items.forEach(item => {
+                    // Avoid filtering the container li of nested lists, just filter leaf nodes or summary text
+                    if (item.tagName === 'LI' && item.querySelector('details')) return;
+
+                    const text = item.textContent.toLowerCase();
+                    if (text.includes(term)) {
+                        item.classList.remove('hidden');
+                        // Make sure parent is visible
+                        let parent = item.parentElement;
+                        while(parent && parent !== sidebarList) {
+                            parent.classList.remove('hidden');
+                            if (parent.tagName === 'DETAILS') parent.open = true;
+                            parent = parent.parentElement;
+                        }
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+            });
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            let currentPath = window.location.pathname;
+            if (currentPath.endsWith('.html')) currentPath = currentPath.substring(0, currentPath.length - 5);
+            const sidebarLinks = document.querySelectorAll('#sidebar-list a');
+            sidebarLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href === currentPath || (href !== '/' && currentPath.startsWith(href) && (href.endsWith('/') || currentPath.charAt(href.length) === '/'))) {
+                    link.classList.add('bg-blue-50', 'dark:bg-blue-900', 'text-blue-700', 'dark:text-blue-300', 'font-medium');
+                    link.classList.remove('text-gray-700', 'dark:text-gray-200');
+                    // Open parent details
+                    let parent = link.parentElement;
+                    while (parent && parent.id !== 'sidebar-list') {
+                        if (parent.tagName === 'DETAILS') {
+                            parent.open = true;
+                        }
+                        parent = parent.parentElement;
+                    }
+                }
+            });
+        });
+        const tocLinks = document.querySelectorAll('.toc-link');
+        const sections = [];
+        tocLinks.forEach(link => {
+            const id = link.getAttribute('data-id');
+            const section = document.getElementById(id);
+            if (section) sections.push(section);
+        });
+
+        const visibleSections = new Set();
+        const highlightLine = document.getElementById('toc-highlight');
+        const tocList = document.getElementById('toc-list');
+
+        function updateTocHighlight() {
+            if (!highlightLine || !tocList) return;
+
+            // Clear all highlights
+            document.querySelectorAll('.toc-link').forEach(link => {
+                link.classList.remove('text-blue-600', 'dark:text-blue-400', 'font-medium');
+            });
+
+            let activeLinks = Array.from(document.querySelectorAll('.toc-link')).filter(link =>
+                visibleSections.has(link.getAttribute('data-id'))
+            );
+
+            if (activeLinks.length === 0) {
+                // Fallback to last passed section
+                const passedSections = sections.filter(section => {
+                    const rect = section.getBoundingClientRect();
+                    return rect.top < 100;
+                });
+
+                if (passedSections.length > 0) {
+                    const lastPassedSection = passedSections[passedSections.length - 1];
+                    const id = lastPassedSection.id;
+                    const link = document.querySelector(`.toc-link[data-id="${id}"]`);
+                    if (link) {
+                        activeLinks = [link];
+                    }
+                }
+            }
+
+            if (activeLinks.length === 0) {
+                highlightLine.style.opacity = '0';
+                return;
+            }
+
+            // Apply highlight
+            activeLinks.forEach(link => {
+                link.classList.add('text-blue-600', 'dark:text-blue-400', 'font-medium');
+            });
+
+            // Scroll TOC to active link
+            const activeLink = activeLinks[0];
+            const tocSidebar = document.getElementById('toc-sidebar');
+            if (activeLink && tocSidebar) {
+                const linkRect = activeLink.getBoundingClientRect();
+                const sidebarRect = tocSidebar.getBoundingClientRect();
+                if (linkRect.top < sidebarRect.top || linkRect.bottom > sidebarRect.bottom) {
+                     activeLink.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
+            }
+
+            const firstLink = activeLinks[0];
+            const lastLink = activeLinks[activeLinks.length - 1];
+
+            const listRect = tocList.getBoundingClientRect();
+            const firstRect = firstLink.getBoundingClientRect();
+            const lastRect = lastLink.getBoundingClientRect();
+
+            const top = firstRect.top - listRect.top;
+            const height = lastRect.bottom - firstRect.top;
+
+            highlightLine.style.top = `${top}px`;
+            highlightLine.style.height = `${height}px`;
+            highlightLine.style.opacity = '1';
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const id = entry.target.id;
+                if (entry.isIntersecting) {
+                    visibleSections.add(id);
+                } else {
+                    visibleSections.delete(id);
+                }
+            });
+            requestAnimationFrame(updateTocHighlight);
+        }, {
+            root: document.getElementById('main-scroll'),
+            rootMargin: '0px 0px 0px 0px',
+            threshold: 0
+        });
+        sections.forEach(section => observer.observe(section));
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const highlightLink = document.getElementById('highlight-theme');
+        const darkHref = '/assets/highlight/tokyo-night-dark.min.css';
+        const lightHref = '/assets/highlight/tokyo-night-light.min.css';
+
+        function setTheme(isDark) {
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                highlightLink.href = darkHref;
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                highlightLink.href = lightHref;
+            }
+            if (typeof renderMermaid === 'function') renderMermaid();
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            setTheme(!document.documentElement.classList.contains('dark'));
+        });
+
+        if (document.documentElement.classList.contains('dark')) {
+            highlightLink.href = darkHref;
+        } else {
+            highlightLink.href = lightHref;
+        }
+        function openTab(evt, group, tabId) {
+            var contents = document.querySelectorAll(`[id^='tab-${group}-']`);
+            contents.forEach(c => c.classList.add('hidden'));
+            var buttons = evt.currentTarget.parentElement.children;
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'font-medium');
+                buttons[i].classList.add('border-transparent', 'hover:text-gray-700', 'text-gray-500');
+            }
+            document.getElementById(tabId).classList.remove('hidden');
+            evt.currentTarget.classList.remove('border-transparent', 'hover:text-gray-700', 'text-gray-500');
+            evt.currentTarget.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'font-medium');
+        }
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.copy-btn');
+            if (!btn) return;
+            const group = btn.closest('.group');
+            const codeEl = group.querySelector('code');
+            let text = "";
+            if (codeEl.querySelector('.hljs-ln')) {
+                codeEl.querySelectorAll('.hljs-ln-code').forEach(td => text += td.innerText + "\n");
+            } else {
+                text = codeEl.innerText;
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = btn.querySelector('i');
+                const originalClass = icon.className;
+                icon.className = 'fi fi-rr-check';
+                setTimeout(() => icon.className = originalClass, 2000);
+            });
+        });
+        document.addEventListener('DOMContentLoaded', (event) => {
+            hljs.highlightAll();
+
+            // Init Line Numbers
+            document.querySelectorAll('code.hljs').forEach(block => {
+                const language = Array.from(block.classList).find(c => c.startsWith('language-'))?.replace('language-', '');
+                const configLineNumbers = window.nekoConfig?.snippets?.lineNumbers || [];
+                const globalEnabled = language && configLineNumbers.includes(language);
+                const localEnabled = block.classList.contains('line-numbers') || block.parentElement.classList.contains('line-numbers');
+                const localDisabled = block.classList.contains('no-line-numbers') || block.parentElement.classList.contains('no-line-numbers');
+                const hasHighlight = block.parentElement.getAttribute('data-highlight') || block.getAttribute('data-highlight');
+
+                // We need the table if line numbers are enabled OR if highlighting is requested (as highlighting depends on the table)
+                const needsTable = (globalEnabled || localEnabled || hasHighlight) && !(localDisabled && !hasHighlight);
+
+                if (needsTable) {
+                    // Hide numbers if explicitly disabled, or if not enabled (but table exists for highlight)
+                    const hideNumbers = localDisabled || (!globalEnabled && !localEnabled);
+                    if (hideNumbers) {
+                        block.parentElement.classList.add('hide-line-numbers');
+                    }
+                    hljs.lineNumbersBlock(block, { singleLine: true });
+                }
+            });
+
+            // Anchor Links
+            document.querySelectorAll('h2, h3, h4, h5, h6').forEach(heading => {
+                if (heading.id) {
+                    heading.classList.add('group', 'relative');
+                    const link = document.createElement('a');
+                    link.href = '#' + heading.id;
+                    link.className = 'absolute -left-6 top-0 bottom-0 flex items-center justify-center text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 no-underline';
+                    link.innerHTML = '<i class="fi fi-rr-hashtag"></i>';
+                    link.setAttribute('aria-label', 'Anchor');
+                    heading.prepend(link);
+                }
+            });
+        });
+        window.addEventListener('load', function() {
+            document.querySelectorAll('pre').forEach(pre => {
+                const highlightRange = pre.getAttribute('data-highlight') || pre.querySelector('code')?.getAttribute('data-highlight');
+                if (!highlightRange) return;
+                const block = pre.querySelector('code');
+                if (!block) return;
+                const linesToHighlight = new Set();
+                highlightRange.split(',').forEach(part => {
+                    if (part.includes('-')) {
+                        const [start, end] = part.split('-').map(Number);
+                        for (let i = start; i <= end; i++) linesToHighlight.add(i);
+                    } else {
+                        linesToHighlight.add(Number(part));
+                    }
+                });
+                const table = block.querySelector('.hljs-ln');
+                if (table) {
+                    const rows = table.querySelectorAll('tr');
+                    rows.forEach((row, index) => {
+                        if (linesToHighlight.has(index + 1)) {
+                            row.classList.add('bg-yellow-100', 'dark:bg-yellow-900', 'bg-opacity-20', 'dark:bg-opacity-20');
+                            row.querySelectorAll('td').forEach(td => td.style.backgroundColor = 'inherit');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+"
+
+  Stack Trace:
+     at Neko.Tests.HtmlGeneratorScriptTests.TestPasteHandlerInjectionLocation() in /app/Neko.Tests/HtmlGeneratorScriptTests.cs:line 76
+
+1)    at Neko.Tests.HtmlGeneratorScriptTests.TestPasteHandlerInjectionLocation() in /app/Neko.Tests/HtmlGeneratorScriptTests.cs:line 76
+
+
+  Failed TestSidebarSectionSpacing [4 ms]
+  Error Message:
+     Assert.That(html, Contains.Substring("<li class=\"mt-10 mb-2 first:mt-0 px-2\">"))
+  Expected: String containing "<li class="mt-10 mb-2 first:mt-0 px-2">"
+  But was:  "<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Title - Test Docs</title>
+    <meta property="og:title" content="Page Title - Test Docs">
+    <meta name="twitter:title" content="Page Title - Test Docs">
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
+    <script>window.nekoConfig = { snippets: {"lineNumbers":[]} };</script>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>
+    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>
+    <link rel="stylesheet" href="/assets/emoji.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <script>document.addEventListener("DOMContentLoaded", function() { renderMathInElement(document.body); });</script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: false });
+
+        async function renderMermaid() {
+            const elements = document.querySelectorAll('.mermaid');
+            if (!elements.length) return;
+
+            for (const el of elements) {
+                if (el.getAttribute('data-processed')) continue;
+                el.setAttribute('data-processed', 'true');
+
+                const source = el.textContent;
+                const idBase = 'mermaid-' + Math.random().toString(36).substr(2, 9);
+                const idLight = idBase + '-light';
+                const idDark = idBase + '-dark';
+
+                // Render Light
+                const sourceLight = `%%{init: {'theme':'default'}}%%\n${source}`;
+                // Render Dark
+                const sourceDark = `%%{init: {'theme':'dark'}}%%\n${source}`;
+
+                try {
+                    const rLight = await mermaid.render(idLight, sourceLight);
+                    const rDark = await mermaid.render(idDark, sourceDark);
+
+                    el.innerHTML = `
+                        <div class="dark:hidden">${rLight.svg}</div>
+                        <div class="hidden dark:block">${rDark.svg}</div>
+                    `;
+
+                    if (rLight.bindFunctions) rLight.bindFunctions(el.querySelector('.dark\\:hidden'));
+                    if (rDark.bindFunctions) rDark.bindFunctions(el.querySelector('.dark\\:block'));
+                } catch (e) {
+                    console.error('Mermaid rendering failed:', e);
+                    el.innerHTML = `<div class="text-red-500">Error rendering diagram</div>`;
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', renderMermaid);
+    </script>
+    <script src="/assets/force-graph.min.js"></script>
+    <script src="/assets/minisearch.min.js"></script>
+    <script defer src="/assets/search.js"></script>
+    <link id="highlight-theme" rel="stylesheet" href="/assets/highlight/tokyo-night-dark.min.css">
+    <script src="/assets/highlight/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js"></script>
+    <style>
+        /* Highlight.js Line Numbers CSS */
+        .prose table.hljs-ln tr { border: none !important; }
+        .prose table.hljs-ln td { padding: 0 !important; }
+        .prose table.hljs-ln td.hljs-ln-numbers { user-select: none; text-align: right; color: #ccc; border-right: 1px solid #ccc; vertical-align: top; padding-right: 5px !important; padding-left: 10px !important; }
+        .prose table.hljs-ln td.hljs-ln-code { padding-left: 10px !important; }
+
+        /* Hide Line Numbers when disabled but table is present (for highlighting) */
+        .hide-line-numbers .hljs-ln-numbers { display: none !important; }
+        .hide-line-numbers .hljs-ln-code { padding-left: 5px !important; }
+
+        /* Custom Highlight Style */
+        .line-highlight { background-color: rgba(255, 255, 0, 0.15); display: block; width: 100%; }
+        .dark .line-highlight { background-color: rgba(255, 255, 0, 0.15); }
+
+        /* Fix Table layout for code blocks with line numbers */
+        .hljs-ln { width: 100%; border-collapse: collapse; }
+
+        /* Custom Scrollbars */
+        /* Sidebar */
+        #sidebar::-webkit-scrollbar { width: 6px; height: 6px; background-color: transparent; }
+        #sidebar::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 3px; }
+        #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); }
+        .dark #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }
+
+        /* TOC */
+        #toc-sidebar::-webkit-scrollbar { display: none; }
+        #toc-sidebar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Main Content */
+        #main-scroll::-webkit-scrollbar { width: 8px; height: 8px; background-color: transparent; }
+        #main-scroll::-webkit-scrollbar-track { background-color: transparent; }
+        #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(209, 213, 219, 0.5); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+        .dark #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }
+        #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(156, 163, 175, 0.8); }
+        .dark #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(107, 114, 128, 0.8); }
+    </style>
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden">
+    <header class="h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10">
+        <div class="flex items-center gap-4">
+            <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none">
+                <i class="fi fi-rr-menu-burger text-xl"></i>
+            </button>
+            <a href="/index" class="font-bold text-xl hover:text-blue-600 transition-colors">Test Docs</a>
+        </div>
+        <div class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300">
+        </div>
+        <div class="flex items-center gap-4 hidden md:flex">
+            <button onclick="openSearch()" class="flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-blue-500 w-64 justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fi fi-rr-search text-sm"></i>
+                    <span class="text-sm font-medium">Search</span>
+                </div>
+                <kbd class="hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400">⌘K</kbd>
+            </button>
+            <button id="theme-toggle" class="flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-blue-500">
+                <i class="fi fi-rr-moon dark:hidden text-lg"></i>
+                <i class="fi fi-rr-sun hidden dark:block text-lg"></i>
+            </button>
+        </div>
+    </header>
+    <div class="flex flex-1 overflow-hidden">
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden glassmorphism"></div>
+        <aside id="sidebar" class="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex flex-col shrink-0 fixed md:static inset-y-0 left-0 z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out h-full">
+            <nav class="p-4 flex-1">
+                <div class="mb-6 relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fi fi-rr-filter text-gray-400"></i>
+                    </div>
+                    <input type="text" id="sidebar-filter" placeholder="Filter..." class="w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+                </div>
+                <ul class="space-y-1" id="sidebar-list">
+                    <li class="first:mt-0 px-2" style="margin-top:1.2rem;margin-bottom:0.5rem;">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Section 1</span>
+                    </li>
+                    <li><a href="/item1" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Item 1</a></li>
+                    <li class="first:mt-0 px-2" style="margin-top:1.2rem;margin-bottom:0.5rem;">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Section 2</span>
+                    </li>
+                    <li><a href="/item2" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Item 2</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <div class="flex-1 flex overflow-hidden">
+            <main class="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth" id="main-scroll">
+                <div class="max-w-4xl mx-auto prose dark:prose-invert">
+<p>Content</p>
+                    <footer class="mt-12 py-6 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400 flex flex-col md:flex-row justify-between items-center not-prose">
+                        <div>&copy; 2026 Test Docs. All rights reserved.</div>
+                        <div class="mt-2 md:mt-0">Powered by Neko</div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script>
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+        function toggleMobileMenu() {
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            if (isClosed) {
+                sidebar.classList.remove('-translate-x-full');
+                sidebarOverlay.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+            sidebarOverlay.addEventListener('click', toggleMobileMenu);
+        }
+        if (sidebar) {
+            const scrollKey = 'test-docs-sidebar-scroll';
+            const timeKey = 'test-docs-sidebar-scroll-time';
+            const savedScroll = localStorage.getItem(scrollKey);
+            const savedTime = localStorage.getItem(timeKey);
+            if (savedScroll && savedTime) {
+                const now = new Date().getTime();
+                if (now - parseInt(savedTime) < 60000) {
+                    sidebar.scrollTop = parseInt(savedScroll);
+                }
+            }
+            let timeout;
+            sidebar.addEventListener('scroll', () => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    localStorage.setItem(scrollKey, sidebar.scrollTop);
+                    localStorage.setItem(timeKey, new Date().getTime());
+                }, 100);
+            });
+        }
+        const sidebarFilter = document.getElementById('sidebar-filter');
+        const sidebarList = document.getElementById('sidebar-list');
+        if (sidebarFilter && sidebarList) {
+            sidebarFilter.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                // Expand all details when searching
+                const details = sidebarList.querySelectorAll('details');
+                if (term) details.forEach(d => d.open = true);
+
+                const items = sidebarList.querySelectorAll('li, summary');
+                items.forEach(item => {
+                    // Avoid filtering the container li of nested lists, just filter leaf nodes or summary text
+                    if (item.tagName === 'LI' && item.querySelector('details')) return;
+
+                    const text = item.textContent.toLowerCase();
+                    if (text.includes(term)) {
+                        item.classList.remove('hidden');
+                        // Make sure parent is visible
+                        let parent = item.parentElement;
+                        while(parent && parent !== sidebarList) {
+                            parent.classList.remove('hidden');
+                            if (parent.tagName === 'DETAILS') parent.open = true;
+                            parent = parent.parentElement;
+                        }
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+            });
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            let currentPath = window.location.pathname;
+            if (currentPath.endsWith('.html')) currentPath = currentPath.substring(0, currentPath.length - 5);
+            const sidebarLinks = document.querySelectorAll('#sidebar-list a');
+            sidebarLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href === currentPath || (href !== '/' && currentPath.startsWith(href) && (href.endsWith('/') || currentPath.charAt(href.length) === '/'))) {
+                    link.classList.add('bg-blue-50', 'dark:bg-blue-900', 'text-blue-700', 'dark:text-blue-300', 'font-medium');
+                    link.classList.remove('text-gray-700', 'dark:text-gray-200');
+                    // Open parent details
+                    let parent = link.parentElement;
+                    while (parent && parent.id !== 'sidebar-list') {
+                        if (parent.tagName === 'DETAILS') {
+                            parent.open = true;
+                        }
+                        parent = parent.parentElement;
+                    }
+                }
+            });
+        });
+        const tocLinks = document.querySelectorAll('.toc-link');
+        const sections = [];
+        tocLinks.forEach(link => {
+            const id = link.getAttribute('data-id');
+            const section = document.getElementById(id);
+            if (section) sections.push(section);
+        });
+
+        const visibleSections = new Set();
+        const highlightLine = document.getElementById('toc-highlight');
+        const tocList = document.getElementById('toc-list');
+
+        function updateTocHighlight() {
+            if (!highlightLine || !tocList) return;
+
+            // Clear all highlights
+            document.querySelectorAll('.toc-link').forEach(link => {
+                link.classList.remove('text-blue-600', 'dark:text-blue-400', 'font-medium');
+            });
+
+            let activeLinks = Array.from(document.querySelectorAll('.toc-link')).filter(link =>
+                visibleSections.has(link.getAttribute('data-id'))
+            );
+
+            if (activeLinks.length === 0) {
+                // Fallback to last passed section
+                const passedSections = sections.filter(section => {
+                    const rect = section.getBoundingClientRect();
+                    return rect.top < 100;
+                });
+
+                if (passedSections.length > 0) {
+                    const lastPassedSection = passedSections[passedSections.length - 1];
+                    const id = lastPassedSection.id;
+                    const link = document.querySelector(`.toc-link[data-id="${id}"]`);
+                    if (link) {
+                        activeLinks = [link];
+                    }
+                }
+            }
+
+            if (activeLinks.length === 0) {
+                highlightLine.style.opacity = '0';
+                return;
+            }
+
+            // Apply highlight
+            activeLinks.forEach(link => {
+                link.classList.add('text-blue-600', 'dark:text-blue-400', 'font-medium');
+            });
+
+            // Scroll TOC to active link
+            const activeLink = activeLinks[0];
+            const tocSidebar = document.getElementById('toc-sidebar');
+            if (activeLink && tocSidebar) {
+                const linkRect = activeLink.getBoundingClientRect();
+                const sidebarRect = tocSidebar.getBoundingClientRect();
+                if (linkRect.top < sidebarRect.top || linkRect.bottom > sidebarRect.bottom) {
+                     activeLink.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
+            }
+
+            const firstLink = activeLinks[0];
+            const lastLink = activeLinks[activeLinks.length - 1];
+
+            const listRect = tocList.getBoundingClientRect();
+            const firstRect = firstLink.getBoundingClientRect();
+            const lastRect = lastLink.getBoundingClientRect();
+
+            const top = firstRect.top - listRect.top;
+            const height = lastRect.bottom - firstRect.top;
+
+            highlightLine.style.top = `${top}px`;
+            highlightLine.style.height = `${height}px`;
+            highlightLine.style.opacity = '1';
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const id = entry.target.id;
+                if (entry.isIntersecting) {
+                    visibleSections.add(id);
+                } else {
+                    visibleSections.delete(id);
+                }
+            });
+            requestAnimationFrame(updateTocHighlight);
+        }, {
+            root: document.getElementById('main-scroll'),
+            rootMargin: '0px 0px 0px 0px',
+            threshold: 0
+        });
+        sections.forEach(section => observer.observe(section));
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const highlightLink = document.getElementById('highlight-theme');
+        const darkHref = '/assets/highlight/tokyo-night-dark.min.css';
+        const lightHref = '/assets/highlight/tokyo-night-light.min.css';
+
+        function setTheme(isDark) {
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                highlightLink.href = darkHref;
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                highlightLink.href = lightHref;
+            }
+            if (typeof renderMermaid === 'function') renderMermaid();
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            setTheme(!document.documentElement.classList.contains('dark'));
+        });
+
+        if (document.documentElement.classList.contains('dark')) {
+            highlightLink.href = darkHref;
+        } else {
+            highlightLink.href = lightHref;
+        }
+        function openTab(evt, group, tabId) {
+            var contents = document.querySelectorAll(`[id^='tab-${group}-']`);
+            contents.forEach(c => c.classList.add('hidden'));
+            var buttons = evt.currentTarget.parentElement.children;
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'font-medium');
+                buttons[i].classList.add('border-transparent', 'hover:text-gray-700', 'text-gray-500');
+            }
+            document.getElementById(tabId).classList.remove('hidden');
+            evt.currentTarget.classList.remove('border-transparent', 'hover:text-gray-700', 'text-gray-500');
+            evt.currentTarget.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'font-medium');
+        }
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.copy-btn');
+            if (!btn) return;
+            const group = btn.closest('.group');
+            const codeEl = group.querySelector('code');
+            let text = "";
+            if (codeEl.querySelector('.hljs-ln')) {
+                codeEl.querySelectorAll('.hljs-ln-code').forEach(td => text += td.innerText + "\n");
+            } else {
+                text = codeEl.innerText;
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = btn.querySelector('i');
+                const originalClass = icon.className;
+                icon.className = 'fi fi-rr-check';
+                setTimeout(() => icon.className = originalClass, 2000);
+            });
+        });
+        document.addEventListener('DOMContentLoaded', (event) => {
+            hljs.highlightAll();
+
+            // Init Line Numbers
+            document.querySelectorAll('code.hljs').forEach(block => {
+                const language = Array.from(block.classList).find(c => c.startsWith('language-'))?.replace('language-', '');
+                const configLineNumbers = window.nekoConfig?.snippets?.lineNumbers || [];
+                const globalEnabled = language && configLineNumbers.includes(language);
+                const localEnabled = block.classList.contains('line-numbers') || block.parentElement.classList.contains('line-numbers');
+                const localDisabled = block.classList.contains('no-line-numbers') || block.parentElement.classList.contains('no-line-numbers');
+                const hasHighlight = block.parentElement.getAttribute('data-highlight') || block.getAttribute('data-highlight');
+
+                // We need the table if line numbers are enabled OR if highlighting is requested (as highlighting depends on the table)
+                const needsTable = (globalEnabled || localEnabled || hasHighlight) && !(localDisabled && !hasHighlight);
+
+                if (needsTable) {
+                    // Hide numbers if explicitly disabled, or if not enabled (but table exists for highlight)
+                    const hideNumbers = localDisabled || (!globalEnabled && !localEnabled);
+                    if (hideNumbers) {
+                        block.parentElement.classList.add('hide-line-numbers');
+                    }
+                    hljs.lineNumbersBlock(block, { singleLine: true });
+                }
+            });
+
+            // Anchor Links
+            document.querySelectorAll('h2, h3, h4, h5, h6').forEach(heading => {
+                if (heading.id) {
+                    heading.classList.add('group', 'relative');
+                    const link = document.createElement('a');
+                    link.href = '#' + heading.id;
+                    link.className = 'absolute -left-6 top-0 bottom-0 flex items-center justify-center text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 no-underline';
+                    link.innerHTML = '<i class="fi fi-rr-hashtag"></i>';
+                    link.setAttribute('aria-label', 'Anchor');
+                    heading.prepend(link);
+                }
+            });
+        });
+        window.addEventListener('load', function() {
+            document.querySelectorAll('pre').forEach(pre => {
+                const highlightRange = pre.getAttribute('data-highlight') || pre.querySelector('code')?.getAttribute('data-highlight');
+                if (!highlightRange) return;
+                const block = pre.querySelector('code');
+                if (!block) return;
+                const linesToHighlight = new Set();
+                highlightRange.split(',').forEach(part => {
+                    if (part.includes('-')) {
+                        const [start, end] = part.split('-').map(Number);
+                        for (let i = start; i <= end; i++) linesToHighlight.add(i);
+                    } else {
+                        linesToHighlight.add(Number(part));
+                    }
+                });
+                const table = block.querySelector('.hljs-ln');
+                if (table) {
+                    const rows = table.querySelectorAll('tr');
+                    rows.forEach((row, index) => {
+                        if (linesToHighlight.has(index + 1)) {
+                            row.classList.add('bg-yellow-100', 'dark:bg-yellow-900', 'bg-opacity-20', 'dark:bg-opacity-20');
+                            row.querySelectorAll('td').forEach(td => td.style.backgroundColor = 'inherit');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+"
+
+  Stack Trace:
+     at Neko.Tests.SidebarSpacingTests.TestSidebarSectionSpacing() in /app/Neko.Tests/SidebarSpacingTests.cs:line 59
+
+1)    at Neko.Tests.SidebarSpacingTests.TestSidebarSectionSpacing() in /app/Neko.Tests/SidebarSpacingTests.cs:line 59
+
+
+
+Failed!  - Failed:     3, Passed:   100, Skipped:     0, Total:   103, Duration: 682 ms - Neko.Tests.dll (net10.0)

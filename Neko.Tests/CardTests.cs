@@ -21,7 +21,7 @@ namespace Neko.Tests
 
             Assert.That(doc, Contains.Substring("<div class=\"max-w-sm rounded overflow-hidden shadow-lg"));
             Assert.That(doc, Contains.Substring("<img class=\"w-full object-cover\" src=\"img.jpg\" alt=\"Title\">"));
-            Assert.That(doc, Contains.Substring("<div class=\"font-bold text-xl mb-2 text-gray-900 dark:text-white\">Title</div>"));
+            Assert.That(doc, Contains.Substring("<div class=\"font-bold text-xl mt-1 mb-2 text-gray-900 dark:text-white\">Title</div>"));
             Assert.That(doc, Contains.Substring("Description"));
             Assert.That(doc, Contains.Substring("#tag1"));
             Assert.That(doc, Contains.Substring("#tag2"));
