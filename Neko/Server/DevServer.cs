@@ -87,10 +87,10 @@ namespace Neko.Server
                     {
                         while (webSocket.State == WebSocketState.Open)
                         {
-                            var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                            var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
                             if (result.MessageType == WebSocketMessageType.Close)
                             {
-                                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed by client", CancellationToken.None);
+                                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed by client", cancellationToken);
                             }
                         }
                     }
