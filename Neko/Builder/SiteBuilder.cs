@@ -76,7 +76,22 @@ namespace Neko.Builder
 
             // 3. Prepare Pipeline
             var parser = new MarkdownParser();
-            var generator = new HtmlGenerator(_config);
+
+            string headIncludes = null;
+            var headIncludesPath = Path.Combine(_inputDirectory, "_includes", "head.html");
+            if (File.Exists(headIncludesPath))
+            {
+                try
+                {
+                    headIncludes = await File.ReadAllTextAsync(headIncludesPath);
+                }
+                catch (Exception ex)
+                {
+                     Console.WriteLine($"Warning: Failed to read _includes/head.html: {ex.Message}");
+                }
+            }
+
+            var generator = new HtmlGenerator(_config, headIncludes);
             var searchIndexer = new SearchIndexGenerator();
 
             // 4. Process Files
