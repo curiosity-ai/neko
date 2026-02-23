@@ -58,10 +58,6 @@ namespace Neko.Builder
                 ? $"{document.FrontMatter.Title} - {_config.Branding.Title}"
                 : _config.Branding.Title;
 
-            // Search Assets
-            sb.AppendLine("    <script src=\"/assets/minisearch.min.js\"></script>");
-            sb.AppendLine("    <script defer src=\"/assets/search.js\"></script>");
-            sb.AppendLine("    <script defer src=\"/assets/history.js\"></script>");
             var description = !string.IsNullOrEmpty(document.FrontMatter.Description)
                 ? document.FrontMatter.Description
                 : _config.Meta.Description;
@@ -1077,6 +1073,7 @@ namespace Neko.Builder
 
             // Emoji CSS
             sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/emoji.css\">");
+            
 
             // KaTeX (Math)
             sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css\">");
@@ -1134,6 +1131,7 @@ namespace Neko.Builder
             // Search Assets
             sb.AppendLine("    <script src=\"/assets/minisearch.min.js\"></script>");
             sb.AppendLine("    <script defer src=\"/assets/search.js\"></script>");
+            sb.AppendLine("    <script defer src=\"/assets/history.js\"></script>");
 
             // Highlight.js
             sb.AppendLine($"    <link id=\"highlight-theme\" rel=\"stylesheet\" href=\"/assets/highlight/{darkTheme}.min.css\">");
