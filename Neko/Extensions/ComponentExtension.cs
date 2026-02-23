@@ -457,8 +457,8 @@ namespace Neko.Extensions
 
             var text = obj.GetAttribute("text", color);
 
-            renderer.Write($"<span class=\"inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 mr-2 border border-gray-200 dark:border-gray-600\">");
-            renderer.Write($"<span class=\"w-3 h-3 rounded-full mr-1.5\" style=\"background-color: {color};\"></span>");
+            renderer.Write($"<span class=\"inline-flex items-center align-middle bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-1.5 py-0.5 text-sm font-mono text-gray-800 dark:text-gray-200\">");
+            renderer.Write($"<span class=\"w-3 h-3 rounded-full mr-1.5 border border-gray-300 dark:border-gray-600\" style=\"background-color: {color};\"></span>");
             renderer.Write(text);
             renderer.Write("</span>");
         }
