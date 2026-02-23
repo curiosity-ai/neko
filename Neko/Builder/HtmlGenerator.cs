@@ -149,10 +149,10 @@ namespace Neko.Builder
             sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js\"></script>");
             sb.AppendLine("    <style>");
             sb.AppendLine("        /* Highlight.js Line Numbers CSS */");
-            sb.AppendLine("        .prose .hljs-ln tr { border: none !important; }");
-            sb.AppendLine("        .prose .hljs-ln td { padding: 0 !important; }");
-            sb.AppendLine("        .hljs-ln td.hljs-ln-numbers { user-select: none; text-align: right; color: #ccc; border-right: 1px solid #ccc; vertical-align: top; padding-right: 5px !important; padding-left: 10px !important; }");
-            sb.AppendLine("        .hljs-ln td.hljs-ln-code { padding-left: 10px !important; }");
+            sb.AppendLine("        .prose table.hljs-ln tr { border: none !important; }");
+            sb.AppendLine("        .prose table.hljs-ln td { padding: 0 !important; }");
+            sb.AppendLine("        .prose table.hljs-ln td.hljs-ln-numbers { user-select: none; text-align: right; color: #ccc; border-right: 1px solid #ccc; vertical-align: top; padding-right: 5px !important; padding-left: 10px !important; }");
+            sb.AppendLine("        .prose table.hljs-ln td.hljs-ln-code { padding-left: 10px !important; }");
             sb.AppendLine("        ");
             sb.AppendLine("        /* Custom Highlight Style */");
             sb.AppendLine("        .line-highlight { background-color: rgba(255, 255, 0, 0.15); display: block; width: 100%; }");
