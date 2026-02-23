@@ -1,4 +1,6 @@
 using System.CommandLine;
+using System.CommandLine.Invocation;
+using System.Threading;
 using System.Threading.Tasks;
 using Neko.Builder;
 using Neko.Server;
@@ -37,8 +39,12 @@ namespace Neko
             watchCommand.AddOption(watchInputOption);
             watchCommand.AddOption(watchOutputOption);
 
-            watchCommand.SetHandler(async (string input, string? output) =>
+            watchCommand.SetHandler(async (context) =>
             {
+                var input = context.ParseResult.GetValueForOption(watchInputOption) ?? ".";
+                var output = context.ParseResult.GetValueForOption(watchOutputOption);
+                var token = context.GetCancellationToken();
+
                 Console.WriteLine($"Watching {input}...");
 
                 // Initial build
@@ -50,7 +56,7 @@ namespace Neko
 
                 // Start Server in background
                 var server = new DevServer(outputDir, input);
-                var serverTask = server.StartAsync();
+                var serverTask = server.StartAsync(token);
 
                 // Watch file changes
                 using var watcher = new FileSystemWatcher(input);
@@ -95,8 +101,15 @@ namespace Neko
                 watcher.EnableRaisingEvents = true;
 
                 Console.WriteLine("Press Ctrl+C to exit.");
-                await serverTask; // Wait for server (which runs until cancelled)
-            }, watchInputOption, watchOutputOption);
+                try
+                {
+                    await serverTask; // Wait for server (which runs until cancelled)
+                }
+                catch (OperationCanceledException)
+                {
+                    Console.WriteLine("Shutdown requested.");
+                }
+            });
 
             rootCommand.AddCommand(buildCommand);
             rootCommand.AddCommand(watchCommand);
