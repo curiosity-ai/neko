@@ -7,10 +7,12 @@ namespace Neko.Builder
     public class HtmlGenerator
     {
         private readonly NekoConfig _config;
+        private readonly string _headIncludes;
 
-        public HtmlGenerator(NekoConfig config)
+        public HtmlGenerator(NekoConfig config, string headIncludes = null)
         {
             _config = config;
+            _headIncludes = headIncludes;
         }
 
         public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null, List<LinkConfig> sidebarLinks = null)
@@ -189,6 +191,11 @@ namespace Neko.Builder
             sb.AppendLine("            document.documentElement.classList.remove('dark');");
             sb.AppendLine("        }");
             sb.AppendLine("    </script>");
+
+            if (!string.IsNullOrEmpty(_headIncludes))
+            {
+                sb.AppendLine(_headIncludes);
+            }
 
             sb.AppendLine("</head>");
             sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
