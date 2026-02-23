@@ -40,7 +40,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit. Voluptatibus quia, nul
 
 Cards can be arranged in a responsive grid using the `card-grid` container. The `grid` variant is optimized for this layout, featuring a clean design with a centered image area.
 
-::: card-grid
+:::: card-grid
 ::: card {variant="grid" image="../assets/neko-logo.png" title="Breadcrumb" link="#"}
 The Breadcrumb component is used to display a navigational trail, indicating the user's current page within a hierarchical structure.
 :::
@@ -50,10 +50,10 @@ DetailsList is a robust component for displaying an information-rich collection 
 ::: card {variant="grid" image="../assets/neko-logo.png" title="Grid" link="#"}
 The Grid component provides a flexible layout container that arranges its child components into a grid structure.
 :::
-:::
+::::
 
 ```markdown
-::: card-grid
+:::: card-grid
 ::: card {variant="grid" image="../assets/neko-logo.png" title="Breadcrumb" link="#"}
 The Breadcrumb component is used to display a navigational trail, indicating the user's current page within a hierarchical structure.
 :::
@@ -63,7 +63,7 @@ DetailsList is a robust component for displaying an information-rich collection 
 ::: card {variant="grid" image="../assets/neko-logo.png" title="Grid" link="#"}
 The Grid component provides a flexible layout container that arranges its child components into a grid structure.
 :::
-:::
+::::
 ```
 
 ## Properties

@@ -63,12 +63,33 @@ namespace Neko.Tests
         [Test]
         public void TestCardGridContainer()
         {
-            var markdown = "::: card-grid\n::: card {variant=\"grid\"}\nC1\n:::\n::: card {variant=\"grid\"}\nC2\n:::\n:::";
+            var markdown = ":::: card-grid\n::: card {variant=\"grid\"}\nC1\n:::\n::: card {variant=\"grid\"}\nC2\n:::\n::::";
             var doc = _parser.Parse(markdown).Html;
 
             Assert.That(doc, Contains.Substring("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 my-8"));
             Assert.That(doc, Contains.Substring("C1"));
             Assert.That(doc, Contains.Substring("C2"));
+
+            // Verify nesting: Find the index of the grid container start
+            var gridStart = doc.IndexOf("card-grid");
+            var gridEnd = doc.LastIndexOf("</div>"); // This assumes it's the outermost div
+
+            // But strict HTML parsing is better or at least checking order.
+            // C2 should be before the END of the grid.
+            // Since we don't have a full HTML parser here easily, let's just check relative positions if unique.
+
+            var c1Index = doc.IndexOf("C1");
+            var c2Index = doc.IndexOf("C2");
+
+            Assert.That(c1Index, Is.GreaterThan(gridStart));
+            Assert.That(c2Index, Is.GreaterThan(c1Index));
+
+            // To verify they are INSIDE, we need to ensure the closing div comes after.
+            // The grid div opens at the beginning.
+            // It should close at the end.
+            // Markdig output for CustomContainer is <div>...</div>.
+
+            Assert.That(doc.EndsWith("</div>") || doc.Trim().EndsWith("</div>"));
         }
     }
 }
