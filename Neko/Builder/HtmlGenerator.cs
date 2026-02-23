@@ -660,15 +660,17 @@ namespace Neko.Builder
                 sb.AppendLine("                                    automaticLayout: true,");
                 sb.AppendLine("                                    minimap: { enabled: false },");
                 sb.AppendLine("                                    wordWrap: 'on',");
+                sb.AppendLine("                                    pasteAs: { enabled: false, },");
                 sb.AppendLine("                                    fontSize: 14");
                 sb.AppendLine("                                });");
                 sb.AppendLine("");
+
+
+
                 sb.AppendLine("                                // Image Paste Handler");
-                sb.AppendLine("                                editor.onDidPaste((e) => {");
-                sb.AppendLine("                                    if (!e.clipboardEvent) return;");
-                sb.AppendLine("                                    const event = e.clipboardEvent;");
-                sb.AppendLine("                                    const items = (event.clipboardData || event.originalEvent?.clipboardData)?.items;");
-                sb.AppendLine("                                    if (!items) return;");
+                sb.AppendLine("                    editor.getContainerDomNode().addEventListener('paste', (event) => {");
+                sb.AppendLine("                                    if (!editor || !editor.hasTextFocus()) return;");
+                sb.AppendLine("                                    const items = (event.clipboardData || event.originalEvent.clipboardData).items;");
                 sb.AppendLine("                                    for (const item of items) {");
                 sb.AppendLine("                                        if (item.kind === 'file' && item.type.startsWith('image/')) {");
                 sb.AppendLine("                                            event.preventDefault();");
@@ -702,12 +704,53 @@ namespace Neko.Builder
                 sb.AppendLine("                                        }");
                 sb.AppendLine("                                    }");
                 sb.AppendLine("                                });");
+
+                //Disabled the following code as image data is not available as part of clipboardEvent for now (see https://github.com/microsoft/monaco-editor/issues/4030)
+                //sb.AppendLine("                                editor.onDidPaste((e) => {");
+                //sb.AppendLine("                                    if (!e.clipboardEvent) return;");
+                //sb.AppendLine("                                    const event = e.clipboardEvent;");
+                //sb.AppendLine("                                    const items = (event.clipboardData || event.originalEvent?.clipboardData)?.items;");
+                //sb.AppendLine("                                    if (!items) return;");
+                //sb.AppendLine("                                    for (const item of items) {");
+                //sb.AppendLine("                                        if (item.kind === 'file' && item.type.startsWith('image/')) {");
+                //sb.AppendLine("                                            event.preventDefault();");
+                //sb.AppendLine("                                            const file = item.getAsFile();");
+                //sb.AppendLine("                                            const path = window.location.pathname;");
+                //sb.AppendLine("                                            const formData = new FormData();");
+                //sb.AppendLine("                                            formData.append('file', file);");
+                //sb.AppendLine("                                            formData.append('path', path);");
+                //sb.AppendLine("                                            fetch('/api/neko/upload-image', {");
+                //sb.AppendLine("                                                method: 'POST',");
+                //sb.AppendLine("                                                body: formData");
+                //sb.AppendLine("                                            })");
+                //sb.AppendLine("                                            .then(res => {");
+                //sb.AppendLine("                                                if (!res.ok) throw new Error('Upload failed');");
+                //sb.AppendLine("                                                return res.json();");
+                //sb.AppendLine("                                            })");
+                //sb.AppendLine("                                            .then(data => {");
+                //sb.AppendLine("                                                const imageUrl = data.url;");
+                //sb.AppendLine("                                                const markdownImage = `![Image](${imageUrl})`;");
+                //sb.AppendLine("                                                const position = editor.getPosition();");
+                //sb.AppendLine("                                                editor.executeEdits('paste-image', [{");
+                //sb.AppendLine("                                                    range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),");
+                //sb.AppendLine("                                                    text: markdownImage,");
+                //sb.AppendLine("                                                    forceMoveMarkers: true");
+                //sb.AppendLine("                                                }]);");
+                //sb.AppendLine("                                            })");
+                //sb.AppendLine("                                            .catch(err => {");
+                //sb.AppendLine("                                                console.error('Image upload failed', err);");
+                //sb.AppendLine("                                                alert('Failed to upload image: ' + err.message);");
+                //sb.AppendLine("                                            });");
+                //sb.AppendLine("                                        }");
+                //sb.AppendLine("                                    }");
+                //sb.AppendLine("                                });");
                 sb.AppendLine("                            }");
                 sb.AppendLine("                        });");
                 sb.AppendLine("                    });");
                 sb.AppendLine("                })");
                 sb.AppendLine("                .catch(err => console.error('Failed to load content', err));");
                 sb.AppendLine("        }");
+
                 sb.AppendLine("");
                 sb.AppendLine("        function nekoCancelEdit() {");
                 sb.AppendLine("            modal.classList.add('hidden');");
