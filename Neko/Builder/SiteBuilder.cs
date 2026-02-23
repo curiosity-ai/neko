@@ -11,14 +11,16 @@ namespace Neko.Builder
     {
         private readonly string _inputDirectory;
         private readonly string? _outputDirectoryOverride;
+        private readonly bool _isWatchMode;
         private NekoConfig _config;
 
         public string OutputDirectory { get; private set; }
 
-        public SiteBuilder(string inputDirectory, string? outputDirectory = null)
+        public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false)
         {
             _inputDirectory = Path.GetFullPath(inputDirectory);
             _outputDirectoryOverride = outputDirectory;
+            _isWatchMode = isWatchMode;
         }
 
         public async Task BuildAsync()
@@ -91,7 +93,7 @@ namespace Neko.Builder
                 }
             }
 
-            var generator = new HtmlGenerator(_config, headIncludes);
+            var generator = new HtmlGenerator(_config, _isWatchMode, headIncludes);
             var searchIndexer = new SearchIndexGenerator();
 
             // 4. Process Files

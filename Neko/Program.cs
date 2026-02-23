@@ -42,14 +42,14 @@ namespace Neko
                 Console.WriteLine($"Watching {input}...");
 
                 // Initial build
-                var builder = new SiteBuilder(input, output);
+                var builder = new SiteBuilder(input, output, true);
                 await builder.BuildAsync();
 
                 // Get the output directory from the builder
                 var outputDir = builder.OutputDirectory;
 
                 // Start Server in background
-                var server = new DevServer(outputDir);
+                var server = new DevServer(outputDir, input);
                 var serverTask = server.StartAsync();
 
                 // Watch file changes
@@ -76,8 +76,10 @@ namespace Neko
                         // Or just call BuildAsync again.
                         // Ideally config reload should be handled inside BuildAsync if needed, or we recreate builder.
                         // Let's recreate builder to be safe if config changed.
-                        builder = new SiteBuilder(input, output);
+                        builder = new SiteBuilder(input, output, true);
                         await builder.BuildAsync();
+
+                        await server.NotifyChange();
                     }
                     catch (Exception ex)
                     {
