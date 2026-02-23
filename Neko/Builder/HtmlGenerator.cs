@@ -426,7 +426,28 @@ namespace Neko.Builder
                 if (match.Success)
                 {
                     // Inject button after the content of the header, but inside the tag
-                    htmlContent = regex.Replace(htmlContent, $"$1$2{editButtonHtml}$3", 1);
+                    htmlContent = regex.Replace(htmlContent, m => {
+                        var openTag = m.Groups[1].Value;
+                        var content = m.Groups[2].Value;
+                        var closeTag = m.Groups[3].Value;
+
+                        // Add classes to openTag
+                        if (openTag.Contains("class=\""))
+                        {
+                            openTag = openTag.Replace("class=\"", "class=\"flex justify-between ");
+                        }
+                        else if (openTag.Contains("class='"))
+                        {
+                            openTag = openTag.Replace("class='", "class='flex justify-between ");
+                        }
+                        else
+                        {
+                            // Insert class before the closing >
+                            openTag = openTag.Substring(0, openTag.Length - 1) + " class=\"flex justify-between\">";
+                        }
+
+                        return $"{openTag}{content}{editButtonHtml}{closeTag}";
+                    }, 1);
                 }
                 else
                 {
