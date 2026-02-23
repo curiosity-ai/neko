@@ -561,8 +561,6 @@ namespace Neko.Builder
             // Watch Mode UI
             if (_isWatchMode)
             {
-                sb.AppendLine("    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js\"></script>");
-
                 // Editor Modal
                 sb.AppendLine("    <div id=\"neko-editor-modal\" class=\"fixed inset-0 z-50 hidden\">");
                 sb.AppendLine("        <div class=\"absolute inset-0 bg-black/50 backdrop-blur-sm\"></div>");
@@ -605,27 +603,43 @@ namespace Neko.Builder
                 sb.AppendLine("        const modal = document.getElementById('neko-editor-modal');");
                 sb.AppendLine("        const container = document.getElementById('neko-editor-container');");
                 sb.AppendLine("");
+                sb.AppendLine("        function loadMonaco(callback) {");
+                sb.AppendLine("            if (window.nekoMonacoLoaded) {");
+                sb.AppendLine("                callback();");
+                sb.AppendLine("                return;");
+                sb.AppendLine("            }");
+                sb.AppendLine("            const script = document.createElement('script');");
+                sb.AppendLine("            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js';");
+                sb.AppendLine("            script.onload = () => {");
+                sb.AppendLine("                window.nekoMonacoLoaded = true;");
+                sb.AppendLine("                callback();");
+                sb.AppendLine("            };");
+                sb.AppendLine("            document.body.appendChild(script);");
+                sb.AppendLine("        }");
+                sb.AppendLine("");
                 sb.AppendLine("        function nekoOpenEditor() {");
                 sb.AppendLine("            const path = window.location.pathname;");
                 sb.AppendLine("            fetch('/api/neko/content?path=' + encodeURIComponent(path))");
                 sb.AppendLine("                .then(res => res.text())");
                 sb.AppendLine("                .then(markdown => {");
                 sb.AppendLine("                    modal.classList.remove('hidden');");
-                sb.AppendLine("                    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});");
-                sb.AppendLine("                    require(['vs/editor/editor.main'], function() {");
-                sb.AppendLine("                        if (editor) {");
-                sb.AppendLine("                            editor.setValue(markdown);");
-                sb.AppendLine("                        } else {");
-                sb.AppendLine("                            editor = monaco.editor.create(container, {");
-                sb.AppendLine("                                value: markdown,");
-                sb.AppendLine("                                language: 'markdown',");
-                sb.AppendLine("                                theme: document.documentElement.classList.contains('dark') ? 'vs-dark' : 'vs',");
-                sb.AppendLine("                                automaticLayout: true,");
-                sb.AppendLine("                                minimap: { enabled: false },");
-                sb.AppendLine("                                wordWrap: 'on',");
-                sb.AppendLine("                                fontSize: 14");
-                sb.AppendLine("                            });");
-                sb.AppendLine("                        }");
+                sb.AppendLine("                    loadMonaco(() => {");
+                sb.AppendLine("                        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});");
+                sb.AppendLine("                        require(['vs/editor/editor.main'], function() {");
+                sb.AppendLine("                            if (editor) {");
+                sb.AppendLine("                                editor.setValue(markdown);");
+                sb.AppendLine("                            } else {");
+                sb.AppendLine("                                editor = monaco.editor.create(container, {");
+                sb.AppendLine("                                    value: markdown,");
+                sb.AppendLine("                                    language: 'markdown',");
+                sb.AppendLine("                                    theme: document.documentElement.classList.contains('dark') ? 'vs-dark' : 'vs',");
+                sb.AppendLine("                                    automaticLayout: true,");
+                sb.AppendLine("                                    minimap: { enabled: false },");
+                sb.AppendLine("                                    wordWrap: 'on',");
+                sb.AppendLine("                                    fontSize: 14");
+                sb.AppendLine("                                });");
+                sb.AppendLine("                            }");
+                sb.AppendLine("                        });");
                 sb.AppendLine("                    });");
                 sb.AppendLine("                })");
                 sb.AppendLine("                .catch(err => console.error('Failed to load content', err));");
