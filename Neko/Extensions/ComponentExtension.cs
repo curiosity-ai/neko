@@ -608,7 +608,27 @@ namespace Neko.Extensions
         private void RenderRef(HtmlRenderer renderer, ComponentInline obj)
         {
             var text = obj.GetAttribute("text");
-            var link = obj.GetAttribute("link", "#");
+            var link = obj.GetAttribute("link");
+
+            if (string.IsNullOrEmpty(link) && obj.Arguments.Count > 0)
+            {
+                link = obj.Arguments[0];
+            }
+
+            if (string.IsNullOrEmpty(text) && obj.Arguments.Count > 1)
+            {
+                text = string.Join(" ", obj.Arguments.GetRange(1, obj.Arguments.Count - 1));
+            }
+
+            if (string.IsNullOrEmpty(text))
+            {
+                text = link;
+            }
+
+            if (string.IsNullOrEmpty(link))
+            {
+                link = "#";
+            }
 
             renderer.Write($"<a href=\"{link}\" class=\"inline-flex items-center text-blue-600 dark:text-blue-400 hover:underline no-underline\">");
             renderer.Write($"<i class=\"fi fi-rr-link-alt mr-1\"></i>");

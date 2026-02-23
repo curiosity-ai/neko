@@ -69,6 +69,26 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void TestRefPositional()
+        {
+            var markdown = "[!ref /docs/page]";
+            var doc = _parser.Parse(markdown);
+
+            Assert.That(doc.Html, Contains.Substring("href=\"/docs/page\""));
+            Assert.That(doc.Html, Contains.Substring("</i>/docs/page</a>"));
+        }
+
+        [Test]
+        public void TestRefPositionalMultiWord()
+        {
+            var markdown = "[!ref /docs/page Page Title]";
+            var doc = _parser.Parse(markdown);
+
+            Assert.That(doc.Html, Contains.Substring("href=\"/docs/page\""));
+            Assert.That(doc.Html, Contains.Substring("</i>Page Title</a>"));
+        }
+
+        [Test]
         public void TestYouTube()
         {
             var markdown = "[!youtube id=\"xyz123\"]";
