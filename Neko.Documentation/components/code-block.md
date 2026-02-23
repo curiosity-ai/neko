@@ -296,3 +296,9 @@ console.log("Hello, world!");
 ```py
 print('Hello, world!')
 +++
+
+---
+
+## Copy Button
+
+All code blocks automatically include a copy button in the top-right corner. When a title is present, the button is integrated into the title bar.
