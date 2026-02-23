@@ -221,11 +221,523 @@ namespace Neko.Extensions
                 case "hero":
                     RenderHero(renderer, obj);
                     break;
+                case "feature-grid":
+                    RenderFeatureGrid(renderer, obj);
+                    break;
+                case "cta-panel":
+                    RenderCtaPanel(renderer, obj);
+                    break;
+                case "bento-grid":
+                    RenderBentoGrid(renderer, obj);
+                    break;
+                case "pricing-tiers":
+                    RenderPricingTiers(renderer, obj);
+                    break;
+                case "header-stats":
+                    RenderHeaderStats(renderer, obj);
+                    break;
+                case "newsletter-side":
+                    RenderNewsletterSide(renderer, obj);
+                    break;
+                case "stats-simple":
+                    RenderStatsSimple(renderer, obj);
+                    break;
+                case "hero-simple":
+                    RenderHeroSimple(renderer, obj);
+                    break;
+                case "blog-column":
+                    RenderBlogColumn(renderer, obj);
+                    break;
+                case "content-sticky":
+                    RenderContentSticky(renderer, obj);
+                    break;
+                case "logo-cloud":
+                    RenderLogoCloud(renderer, obj);
+                    break;
                 default:
                     // Fallback or ignore
                     renderer.Write($"<span class=\"text-red-500\">Unknown component: {obj.Name}</span>");
                     break;
             }
+        }
+
+        private void RenderFeatureGrid(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var title = obj.GetAttribute("title");
+            var subtitle = obj.GetAttribute("subtitle");
+
+            renderer.Write("<div class=\"bg-white dark:bg-gray-900 py-24 sm:py-32 not-prose\">");
+            renderer.Write("<div class=\"mx-auto max-w-7xl px-6 lg:px-8\">");
+            renderer.Write("<div class=\"mx-auto max-w-2xl lg:text-center\">");
+
+            if (!string.IsNullOrEmpty(title))
+            {
+                renderer.Write("<h2 class=\"text-base font-semibold leading-7 text-indigo-600 dark:text-indigo-400\">Deploy faster</h2>"); // Hardcoded generic label or omit?
+                renderer.Write("<p class=\"mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl\">");
+                renderer.WriteEscape(title);
+                renderer.Write("</p>");
+            }
+
+            if (!string.IsNullOrEmpty(subtitle))
+            {
+                renderer.Write("<p class=\"mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300\">");
+                renderer.WriteEscape(subtitle);
+                renderer.Write("</p>");
+            }
+            renderer.Write("</div>");
+
+            renderer.Write("<div class=\"mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl\">");
+            renderer.Write("<dl class=\"grid max-w-xl grid-cols-1 gap-x-8 gap-y-10 lg:max-w-none lg:grid-cols-2 lg:gap-y-16\">");
+
+            for (int i = 0; i < obj.Arguments.Count; i += 3)
+            {
+                if (i + 2 >= obj.Arguments.Count) break;
+                var icon = obj.Arguments[i];
+                var featTitle = obj.Arguments[i + 1];
+                var featDesc = obj.Arguments[i + 2];
+
+                renderer.Write("<div class=\"relative pl-16\">");
+                renderer.Write("<dt class=\"text-base font-semibold leading-7 text-gray-900 dark:text-white\">");
+                renderer.Write("<div class=\"absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600\">");
+
+                if (icon.StartsWith(":"))
+                {
+                     RenderInline(renderer, icon);
+                }
+                else
+                {
+                     renderer.Write($"<i class=\"fi fi-rr-{icon} text-white text-xl\"></i>");
+                }
+
+                renderer.Write("</div>");
+                renderer.WriteEscape(featTitle);
+                renderer.Write("</dt>");
+                renderer.Write("<dd class=\"mt-2 text-base leading-7 text-gray-600 dark:text-gray-300\">");
+                renderer.WriteEscape(featDesc);
+                renderer.Write("</dd>");
+                renderer.Write("</div>");
+            }
+
+            renderer.Write("</dl></div></div></div>");
+        }
+
+        private void RenderCtaPanel(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var title = obj.GetAttribute("title");
+            var desc = obj.GetAttribute("desc");
+            var cta1 = obj.GetAttribute("cta1");
+            var link1 = obj.GetAttribute("link1", "#");
+            var cta2 = obj.GetAttribute("cta2");
+            var link2 = obj.GetAttribute("link2", "#");
+            var image = obj.GetAttribute("image");
+            var align = obj.GetAttribute("align", "right"); // image alignment
+
+            renderer.Write("<div class=\"bg-white dark:bg-gray-900 not-prose\">");
+            renderer.Write("<div class=\"mx-auto max-w-7xl py-24 sm:px-6 sm:py-32 lg:px-8\">");
+            renderer.Write("<div class=\"relative isolate overflow-hidden bg-gray-900 px-6 pt-16 shadow-2xl sm:rounded-3xl sm:px-16 md:pt-24 lg:flex lg:gap-x-20 lg:px-24 lg:pt-0\">");
+
+            // Text Content
+            renderer.Write("<div class=\"mx-auto max-w-md text-center lg:mx-0 lg:flex-auto lg:py-32 lg:text-left\">");
+            renderer.Write("<h2 class=\"text-3xl font-bold tracking-tight text-white sm:text-4xl\">");
+            renderer.WriteEscape(title);
+            renderer.Write("</h2>");
+            renderer.Write("<p class=\"mt-6 text-lg leading-8 text-gray-300\">");
+            renderer.WriteEscape(desc);
+            renderer.Write("</p>");
+
+            renderer.Write("<div class=\"mt-10 flex items-center justify-center gap-x-6 lg:justify-start\">");
+            if (!string.IsNullOrEmpty(cta1))
+            {
+                renderer.Write($"<a href=\"{link1}\" class=\"rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white no-underline\">{cta1}</a>");
+            }
+            if (!string.IsNullOrEmpty(cta2))
+            {
+                renderer.Write($"<a href=\"{link2}\" class=\"text-sm font-semibold leading-6 text-white no-underline\">{cta2} <span aria-hidden=\"true\">→</span></a>");
+            }
+            renderer.Write("</div></div>");
+
+            // Image
+            if (!string.IsNullOrEmpty(image))
+            {
+                renderer.Write("<div class=\"relative mt-16 h-80 lg:mt-8\">");
+                renderer.Write($"<img class=\"absolute left-0 top-0 w-[57rem] max-w-none rounded-md bg-white/5 ring-1 ring-white/10\" src=\"{image}\" alt=\"App screenshot\" width=\"1824\" height=\"1080\">");
+                renderer.Write("</div>");
+            }
+
+            renderer.Write("</div></div></div>");
+        }
+
+        private void RenderBentoGrid(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var title = obj.GetAttribute("title");
+            var subtitle = obj.GetAttribute("subtitle");
+
+            renderer.Write("<div class=\"bg-gray-50 dark:bg-gray-900 py-24 sm:py-32 not-prose\">");
+            renderer.Write("<div class=\"mx-auto max-w-2xl px-6 lg:max-w-7xl lg:px-8\">");
+
+            if (!string.IsNullOrEmpty(title))
+            {
+                renderer.Write("<h2 class=\"text-center text-base font-semibold leading-7 text-indigo-600 dark:text-indigo-400\">Deploy faster</h2>");
+                renderer.Write("<p class=\"mx-auto mt-2 max-w-lg text-center text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl\">");
+                renderer.WriteEscape(title);
+                renderer.Write("</p>");
+            }
+             if (!string.IsNullOrEmpty(subtitle))
+            {
+                 renderer.Write("<div class=\"mt-10 grid gap-4 sm:mt-16 lg:grid-cols-3 lg:grid-rows-2\">");
+            }
+            else
+            {
+                 renderer.Write("<div class=\"mt-10 grid gap-4 sm:mt-16 lg:grid-cols-3 lg:grid-rows-2\">");
+            }
+
+            // Expecting 3 items usually for this specific layout, but loop handling generic
+            // Layout:
+            // Item 0: span-2 col?
+            // Let's implement a specific bento layout:
+            // 1. Large (span 2 cols)
+            // 2. Tall (span 2 rows, col 3) ?
+            // Or the Tailwind UI "Three column bento grid" usually has:
+            // Top left (small), Top Middle (small), Top Right (small) - No that's grid.
+            // Bento usually: 1 big, 2 small stacked.
+            // Let's iterate and apply classes based on index.
+
+            for (int i = 0; i < obj.Arguments.Count; i+=3)
+            {
+                 if (i + 2 >= obj.Arguments.Count) break;
+                 var itemTitle = obj.Arguments[i];
+                 var itemDesc = obj.Arguments[i+1];
+                 var itemImg = obj.Arguments[i+2];
+
+                 var className = "relative lg:col-span-1";
+                 if (i == 0) className = "relative lg:col-span-2"; // First item wide
+                 if (i == 3) className = "relative lg:col-span-2"; // Fourth item wide (if 6 items)
+
+                 // Tailwind UI Bento often:
+                 // 1. (col-span-2)
+                 // 2. (col-span-1)
+                 // 3. (col-span-1)
+                 // 4. (col-span-2)
+
+                 renderer.Write($"<div class=\"{className}\">");
+                 renderer.Write("<div class=\"absolute inset-px rounded-lg bg-white dark:bg-gray-800 max-lg:rounded-t-[2rem] lg:rounded-tl-[2rem]\"></div>");
+                 renderer.Write("<div class=\"relative flex h-full flex-col overflow-hidden rounded-[calc(theme(borderRadius.lg)+1px)] max-lg:rounded-t-[calc(2rem+1px)] lg:rounded-tl-[calc(2rem+1px)]\">");
+                 renderer.Write($"<img class=\"h-80 object-cover object-left\" src=\"{itemImg}\" alt=\"\">");
+                 renderer.Write("<div class=\"p-10 pt-4\">");
+                 renderer.Write($"<p class=\"mt-2 text-lg font-medium tracking-tight text-gray-900 dark:text-white\">{itemTitle}</p>");
+                 renderer.Write($"<p class=\"mt-2 max-w-lg text-sm/6 text-gray-600 dark:text-gray-400\">{itemDesc}</p>");
+                 renderer.Write("</div></div><div class=\"pointer-events-none absolute inset-px rounded-lg shadow ring-1 ring-black/5 dark:ring-white/10 max-lg:rounded-t-[2rem] lg:rounded-tl-[2rem]\"></div></div>");
+            }
+
+            renderer.Write("</div></div></div>");
+        }
+
+        private void RenderPricingTiers(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var title = obj.GetAttribute("title");
+            var subtitle = obj.GetAttribute("subtitle");
+            var highlight = obj.GetAttribute("highlight");
+
+            renderer.Write("<div class=\"bg-white dark:bg-gray-900 py-24 sm:py-32 not-prose\">");
+            renderer.Write("<div class=\"mx-auto max-w-7xl px-6 lg:px-8\">");
+            renderer.Write("<div class=\"mx-auto max-w-4xl text-center\">");
+            renderer.Write("<h2 class=\"text-base font-semibold leading-7 text-indigo-600 dark:text-indigo-400\">Pricing</h2>");
+            renderer.Write($"<p class=\"mt-2 text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-5xl\">{title}</p>");
+            renderer.Write("</div>");
+            renderer.Write($"<p class=\"mx-auto mt-6 max-w-2xl text-center text-lg leading-8 text-gray-600 dark:text-gray-300\">{subtitle}</p>");
+
+            renderer.Write("<div class=\"isolate mx-auto mt-16 grid max-w-md grid-cols-1 gap-y-8 sm:mt-20 lg:mx-0 lg:max-w-none lg:grid-cols-2\">");
+
+            int index = 0;
+            for (int i = 0; i < obj.Arguments.Count; i += 4)
+            {
+                if (i + 3 >= obj.Arguments.Count) break;
+                index++;
+                var planName = obj.Arguments[i];
+                var price = obj.Arguments[i + 1];
+                var planDesc = obj.Arguments[i + 2];
+                var features = obj.Arguments[i + 3].Split(',');
+
+                var isHighlight = highlight == index.ToString();
+                var ringClass = isHighlight ? "ring-2 ring-indigo-600" : "ring-1 ring-gray-200 dark:ring-white/10";
+                var buttonClass = isHighlight
+                    ? "bg-indigo-600 text-white shadow-sm hover:bg-indigo-500"
+                    : "text-indigo-600 ring-1 ring-inset ring-indigo-200 hover:ring-indigo-300 dark:text-indigo-400 dark:ring-white/10 dark:hover:ring-white/20";
+
+                renderer.Write($"<div class=\"flex flex-col justify-between rounded-3xl bg-white dark:bg-gray-800 p-8 {ringClass} xl:p-10\">");
+                renderer.Write("<div>");
+                renderer.Write("<div class=\"flex items-center justify-between gap-x-4\">");
+                renderer.Write($"<h3 class=\"text-lg font-semibold leading-8 text-gray-900 dark:text-white\">{planName}</h3>");
+                if (isHighlight)
+                {
+                    renderer.Write("<p class=\"rounded-full bg-indigo-600/10 px-2.5 py-1 text-xs font-semibold leading-5 text-indigo-600 dark:text-indigo-400\">Most popular</p>");
+                }
+                renderer.Write("</div>");
+                renderer.Write("<p class=\"mt-4 text-sm leading-6 text-gray-600 dark:text-gray-300\">");
+                renderer.WriteEscape(planDesc);
+                renderer.Write("</p>");
+                renderer.Write("<p class=\"mt-6 flex items-baseline gap-x-1\">");
+                renderer.Write($"<span class=\"text-4xl font-bold tracking-tight text-gray-900 dark:text-white\">{price}</span>");
+                renderer.Write("<span class=\"text-sm font-semibold leading-6 text-gray-600 dark:text-gray-300\">/month</span>");
+                renderer.Write("</p>");
+
+                renderer.Write("<ul role=\"list\" class=\"mt-8 space-y-3 text-sm leading-6 text-gray-600 dark:text-gray-300\">");
+                foreach (var feature in features)
+                {
+                    renderer.Write("<li class=\"flex gap-x-3\">");
+                    renderer.Write("<svg class=\"h-6 w-5 flex-none text-indigo-600 dark:text-indigo-400\" viewBox=\"0 0 20 20\" fill=\"currentColor\" aria-hidden=\"true\"><path fill-rule=\"evenodd\" d=\"M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z\" clip-rule=\"evenodd\" /></svg>");
+                    renderer.WriteEscape(feature.Trim());
+                    renderer.Write("</li>");
+                }
+                renderer.Write("</ul>");
+                renderer.Write("</div>");
+                renderer.Write($"<a href=\"#\" aria-describedby=\"tier-{index}\" class=\"mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 no-underline {buttonClass}\">Buy plan</a>");
+                renderer.Write("</div>");
+            }
+            renderer.Write("</div></div></div>");
+        }
+
+        private void RenderHeaderStats(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var title = obj.GetAttribute("title");
+            var subtitle = obj.GetAttribute("subtitle");
+
+            renderer.Write("<div class=\"bg-gray-900 py-24 sm:py-32 not-prose\">");
+            renderer.Write("<div class=\"mx-auto max-w-7xl px-6 lg:px-8\">");
+            renderer.Write("<div class=\"mx-auto max-w-2xl lg:mx-0\">");
+            renderer.Write("<h2 class=\"text-4xl font-bold tracking-tight text-white sm:text-6xl\">");
+            renderer.WriteEscape(title);
+            renderer.Write("</h2>");
+            renderer.Write("<p class=\"mt-6 text-lg leading-8 text-gray-300\">");
+            renderer.WriteEscape(subtitle);
+            renderer.Write("</p>");
+            renderer.Write("</div>");
+
+            renderer.Write("<div class=\"mx-auto mt-10 max-w-2xl lg:mx-0 lg:max-w-none\">");
+            renderer.Write("<dl class=\"mt-16 grid grid-cols-1 gap-8 sm:mt-20 sm:grid-cols-2 lg:grid-cols-4\">");
+
+            for (int i = 0; i < obj.Arguments.Count; i += 2)
+            {
+                if (i + 1 >= obj.Arguments.Count) break;
+                var label = obj.Arguments[i];
+                var value = obj.Arguments[i + 1];
+
+                renderer.Write("<div class=\"flex flex-col-reverse\">");
+                renderer.Write($"<dt class=\"text-base leading-7 text-gray-300\">{label}</dt>");
+                renderer.Write($"<dd class=\"text-2xl font-bold leading-9 tracking-tight text-white\">{value}</dd>");
+                renderer.Write("</div>");
+            }
+
+            renderer.Write("</dl></div></div></div>");
+        }
+
+        private void RenderNewsletterSide(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var title = obj.GetAttribute("title");
+            var desc = obj.GetAttribute("desc");
+            var cta = obj.GetAttribute("cta", "Subscribe");
+            var placeholder = obj.GetAttribute("placeholder", "Enter your email");
+
+            renderer.Write("<div class=\"bg-white dark:bg-gray-900 py-16 sm:py-24 not-prose\">");
+            renderer.Write("<div class=\"mx-auto max-w-7xl sm:px-6 lg:px-8\">");
+            renderer.Write("<div class=\"relative isolate overflow-hidden bg-gray-900 px-6 py-24 shadow-2xl sm:rounded-3xl sm:px-24 xl:py-32\">");
+
+            renderer.Write("<h2 class=\"mx-auto max-w-2xl text-center text-3xl font-bold tracking-tight text-white sm:text-4xl\">");
+            renderer.WriteEscape(title);
+            renderer.Write("</h2>");
+
+            renderer.Write("<p class=\"mx-auto mt-2 max-w-xl text-center text-lg leading-8 text-gray-300\">");
+            renderer.WriteEscape(desc);
+            renderer.Write("</p>");
+
+            renderer.Write("<form class=\"mx-auto mt-10 flex max-w-md gap-x-4\">");
+            renderer.Write("<label for=\"email-address\" class=\"sr-only\">Email address</label>");
+            renderer.Write($"<input id=\"email-address\" name=\"email\" type=\"email\" autocomplete=\"email\" required class=\"min-w-0 flex-auto rounded-md border-0 bg-white/5 px-3.5 py-2 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6\" placeholder=\"{placeholder}\">");
+            renderer.Write($"<button type=\"submit\" class=\"flex-none rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500\">{cta}</button>");
+            renderer.Write("</form>");
+
+            // Optional: Render details if arguments present?
+            if (obj.Arguments.Count > 0)
+            {
+                renderer.Write("<div class=\"mt-10 grid grid-cols-1 gap-x-8 gap-y-6 text-base font-semibold leading-7 text-white sm:grid-cols-2 md:flex lg:gap-x-10 justify-center\">");
+                foreach(var arg in obj.Arguments)
+                {
+                    renderer.Write($"<a href=\"#\">{arg} <span aria-hidden=\"true\">&rarr;</span></a>");
+                }
+                renderer.Write("</div>");
+            }
+
+            renderer.Write("<svg viewBox=\"0 0 1024 1024\" class=\"absolute left-1/2 top-1/2 -z-10 h-[64rem] w-[64rem] -translate-x-1/2\" aria-hidden=\"true\"><circle cx=\"512\" cy=\"512\" r=\"512\" fill=\"url(#gradient)\" fill-opacity=\"0.7\" /><defs><radialGradient id=\"gradient\" cx=\"0\" cy=\"0\" r=\"1\" gradientUnits=\"userSpaceOnUse\" gradientTransform=\"translate(512 512) rotate(90) scale(512)\"><stop stop-color=\"#7775D6\" /><stop offset=\"1\" stop-color=\"#E935C1\" stop-opacity=\"0\" /></radialGradient></defs></svg>");
+
+            renderer.Write("</div></div></div>");
+        }
+
+        private void RenderStatsSimple(HtmlRenderer renderer, ComponentInline obj)
+        {
+            renderer.Write("<div class=\"bg-white dark:bg-gray-900 py-24 sm:py-32 not-prose\">");
+            renderer.Write("<div class=\"mx-auto max-w-7xl px-6 lg:px-8\">");
+            renderer.Write("<dl class=\"grid grid-cols-1 gap-x-8 gap-y-16 text-center lg:grid-cols-3\">");
+
+            for (int i = 0; i < obj.Arguments.Count; i += 2)
+            {
+                if (i + 1 >= obj.Arguments.Count) break;
+                var label = obj.Arguments[i];
+                var value = obj.Arguments[i + 1];
+
+                renderer.Write("<div class=\"mx-auto flex max-w-xs flex-col gap-y-4\">");
+                renderer.Write($"<dt class=\"text-base leading-7 text-gray-600 dark:text-gray-300\">{label}</dt>");
+                renderer.Write($"<dd class=\"order-first text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-5xl\">{value}</dd>");
+                renderer.Write("</div>");
+            }
+
+            renderer.Write("</dl></div></div>");
+        }
+
+        private void RenderHeroSimple(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var title = obj.GetAttribute("title");
+            var subtitle = obj.GetAttribute("subtitle");
+            var cta1Text = obj.GetAttribute("cta1-text");
+            var cta1Link = obj.GetAttribute("cta1-link", "#");
+            var cta2Text = obj.GetAttribute("cta2-text");
+            var cta2Link = obj.GetAttribute("cta2-link", "#");
+
+            renderer.Write("<div class=\"bg-white dark:bg-gray-900 not-prose\">");
+            renderer.Write("<div class=\"px-6 py-24 sm:px-6 sm:py-32 lg:px-8\">");
+            renderer.Write("<div class=\"mx-auto max-w-2xl text-center\">");
+
+            renderer.Write("<h2 class=\"text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl\">");
+            renderer.WriteEscape(title);
+            renderer.Write("</h2>");
+
+            renderer.Write("<p class=\"mx-auto mt-6 max-w-xl text-lg leading-8 text-gray-600 dark:text-gray-300\">");
+            renderer.WriteEscape(subtitle);
+            renderer.Write("</p>");
+
+            renderer.Write("<div class=\"mt-10 flex items-center justify-center gap-x-6\">");
+            if (!string.IsNullOrEmpty(cta1Text))
+            {
+                renderer.Write($"<a href=\"{cta1Link}\" class=\"rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 no-underline\">{cta1Text}</a>");
+            }
+            if (!string.IsNullOrEmpty(cta2Text))
+            {
+                renderer.Write($"<a href=\"{cta2Link}\" class=\"text-sm font-semibold leading-6 text-gray-900 dark:text-white no-underline\">{cta2Text} <span aria-hidden=\"true\">→</span></a>");
+            }
+            renderer.Write("</div></div></div></div>");
+        }
+
+        private void RenderBlogColumn(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var title = obj.GetAttribute("title");
+            var subtitle = obj.GetAttribute("subtitle");
+
+            renderer.Write("<div class=\"bg-white dark:bg-gray-900 py-24 sm:py-32 not-prose\">");
+            renderer.Write("<div class=\"mx-auto max-w-7xl px-6 lg:px-8\">");
+            renderer.Write("<div class=\"mx-auto max-w-2xl text-center\">");
+            renderer.Write("<h2 class=\"text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl\">");
+            renderer.WriteEscape(title);
+            renderer.Write("</h2>");
+            renderer.Write("<p class=\"mt-2 text-lg leading-8 text-gray-600 dark:text-gray-300\">");
+            renderer.WriteEscape(subtitle);
+            renderer.Write("</p>");
+            renderer.Write("</div>");
+
+            renderer.Write("<div class=\"mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-20 lg:mx-0 lg:max-w-none lg:grid-cols-3\">");
+
+            for (int i = 0; i < obj.Arguments.Count; i += 5)
+            {
+                if (i + 4 >= obj.Arguments.Count) break;
+                var postTitle = obj.Arguments[i];
+                var postDesc = obj.Arguments[i + 1];
+                var author = obj.Arguments[i + 2];
+                var date = obj.Arguments[i + 3];
+                var img = obj.Arguments[i + 4];
+
+                renderer.Write("<article class=\"flex flex-col items-start justify-between\">");
+                renderer.Write("<div class=\"relative w-full\">");
+                renderer.Write($"<img src=\"{img}\" alt=\"\" class=\"aspect-[16/9] w-full rounded-2xl bg-gray-100 object-cover sm:aspect-[2/1] lg:aspect-[3/2]\">");
+                renderer.Write("<div class=\"absolute inset-0 rounded-2xl ring-1 ring-inset ring-gray-900/10\"></div>");
+                renderer.Write("</div>");
+                renderer.Write("<div class=\"max-w-xl\">");
+                renderer.Write("<div class=\"mt-8 flex items-center gap-x-4 text-xs\">");
+                renderer.Write($"<time datetime=\"{date}\" class=\"text-gray-500 dark:text-gray-400\">{date}</time>");
+                renderer.Write("<a href=\"#\" class=\"relative z-10 rounded-full bg-gray-50 px-3 py-1.5 font-medium text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700\">Marketing</a>");
+                renderer.Write("</div>");
+                renderer.Write("<div class=\"group relative\">");
+                renderer.Write("<h3 class=\"mt-3 text-lg font-semibold leading-6 text-gray-900 dark:text-white group-hover:text-gray-600 dark:group-hover:text-gray-300\">");
+                renderer.Write($"<a href=\"#\"><span class=\"absolute inset-0\"></span>{postTitle}</a>");
+                renderer.Write("</h3>");
+                renderer.Write($"<p class=\"mt-5 line-clamp-3 text-sm leading-6 text-gray-600 dark:text-gray-300\">{postDesc}</p>");
+                renderer.Write("</div>");
+                renderer.Write("<div class=\"relative mt-8 flex items-center gap-x-4\">");
+                renderer.Write("<img src=\"https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80\" alt=\"\" class=\"h-10 w-10 rounded-full bg-gray-100\">");
+                renderer.Write($"<div class=\"text-sm leading-6\"><p class=\"font-semibold text-gray-900 dark:text-white\"><a href=\"#\"><span class=\"absolute inset-0\"></span>{author}</a></p><p class=\"text-gray-600 dark:text-gray-400\">Co-Founder / CTO</p></div>");
+                renderer.Write("</div></div></article>");
+            }
+
+            renderer.Write("</div></div></div>");
+        }
+
+        private void RenderContentSticky(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var title = obj.GetAttribute("title");
+            var image = obj.GetAttribute("image");
+
+            renderer.Write("<div class=\"bg-white dark:bg-gray-900 py-24 sm:py-32 not-prose\">");
+            renderer.Write("<div class=\"mx-auto max-w-7xl px-6 lg:px-8\">");
+            renderer.Write("<div class=\"mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 sm:gap-y-20 lg:mx-0 lg:max-w-none lg:grid-cols-2\">");
+
+            renderer.Write("<div class=\"lg:pr-8 lg:pt-4\">");
+            renderer.Write("<div class=\"lg:max-w-lg\">");
+            renderer.Write("<h2 class=\"text-base font-semibold leading-7 text-indigo-600 dark:text-indigo-400\">Deploy faster</h2>");
+            renderer.Write("<p class=\"mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl\">");
+            renderer.WriteEscape(title);
+            renderer.Write("</p>");
+
+            renderer.Write("<div class=\"mt-6 space-y-6 text-lg leading-8 text-gray-600 dark:text-gray-300\">");
+            foreach(var arg in obj.Arguments)
+            {
+                renderer.Write($"<p>{arg}</p>");
+            }
+            renderer.Write("</div>"); // End text stack
+
+            renderer.Write("</div></div>"); // End left col
+
+            // Right col sticky image
+            renderer.Write("<div class=\"flex items-start justify-end lg:order-last\">"); // Actually Tailwind UI often puts image on right. Sticky requires relative positioning usually.
+            // Sticky logic:
+            renderer.Write($"<img src=\"{image}\" alt=\"Product screenshot\" class=\"w-[48rem] max-w-none rounded-xl shadow-xl ring-1 ring-gray-400/10 sm:w-[57rem] md:-ml-4 lg:-ml-0\" width=\"2432\" height=\"1442\">");
+            renderer.Write("</div>");
+
+            renderer.Write("</div></div></div>");
+        }
+
+        private void RenderLogoCloud(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var heading = obj.GetAttribute("heading");
+
+            renderer.Write("<div class=\"bg-white dark:bg-gray-900 py-24 sm:py-32 not-prose\">");
+            renderer.Write("<div class=\"mx-auto max-w-7xl px-6 lg:px-8\">");
+
+            if (!string.IsNullOrEmpty(heading))
+            {
+                renderer.Write("<h2 class=\"text-center text-lg font-semibold leading-8 text-gray-900 dark:text-white\">");
+                renderer.WriteEscape(heading);
+                renderer.Write("</h2>");
+            }
+
+            renderer.Write("<div class=\"mx-auto mt-10 grid max-w-lg grid-cols-4 items-center gap-x-8 gap-y-10 sm:max-w-xl sm:grid-cols-6 sm:gap-x-10 lg:mx-0 lg:max-w-none lg:grid-cols-5\">");
+
+            for (int i = 0; i < obj.Arguments.Count; i += 2)
+            {
+                if (i + 1 >= obj.Arguments.Count) break;
+                var src = obj.Arguments[i];
+                var alt = obj.Arguments[i + 1];
+
+                renderer.Write($"<img class=\"col-span-2 max-h-12 w-full object-contain lg:col-span-1\" src=\"{src}\" alt=\"{alt}\" width=\"158\" height=\"48\">");
+            }
+
+            renderer.Write("</div></div></div>");
         }
 
         private void RenderHero(HtmlRenderer renderer, ComponentInline obj)
