@@ -70,10 +70,75 @@ namespace Neko.Extensions
             {
                 RenderGridCard(renderer, obj, image, title, link, seeMore, tags);
             }
+            else if (variant == "link")
+            {
+                var linkText = GetAttribute(attributes, "link-text");
+                var theme = GetAttribute(attributes, "theme");
+                var arrow = GetAttribute(attributes, "arrow") == "true";
+                RenderLinkCard(renderer, obj, title, link, linkText, theme, arrow);
+            }
             else
             {
                 RenderStackedCard(renderer, obj, image, title, link, seeMore, tags);
             }
+        }
+
+        private void RenderLinkCard(HtmlRenderer renderer, CustomContainer obj, string? title, string? link, string? linkText, string? theme, bool arrow)
+        {
+            var isDark = theme == "dark";
+            var baseClasses = "flex flex-col h-full p-6 rounded-lg transition-all duration-300 hover:-translate-y-1";
+
+            if (isDark)
+            {
+                baseClasses += " bg-gray-900 text-white shadow-md";
+            }
+            else
+            {
+                baseClasses += " bg-white border border-gray-200 shadow-sm hover:shadow-md dark:bg-gray-800 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600";
+            }
+
+            var attrs = obj.GetAttributes();
+            if (attrs.Classes != null)
+            {
+                var extraClasses = string.Join(" ", attrs.Classes.Where(c => c != "card"));
+                if (!string.IsNullOrEmpty(extraClasses)) baseClasses += " " + extraClasses;
+            }
+
+            renderer.Write($"<div class=\"{baseClasses}\">");
+
+            if (!string.IsNullOrEmpty(title))
+            {
+                var titleClass = isDark ? "text-white" : "text-gray-900 dark:text-white";
+                renderer.Write($"<h3 class=\"mb-2 text-xl font-bold tracking-tight {titleClass}\">");
+                renderer.Write(WebUtility.HtmlEncode(title));
+                renderer.Write("</h3>");
+            }
+
+            var textClass = isDark ? "text-gray-300" : "text-gray-600 dark:text-gray-300";
+            renderer.Write($"<div class=\"flex-1 mb-8 {textClass} text-sm leading-relaxed\">");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
+
+            if (!string.IsNullOrEmpty(linkText) || !string.IsNullOrEmpty(link))
+            {
+                var displayText = !string.IsNullOrEmpty(linkText) ? linkText : "View docs";
+                var url = !string.IsNullOrEmpty(link) ? link : "#";
+
+                var linkClass = isDark
+                    ? "text-white hover:text-gray-200"
+                    : "text-blue-600 hover:underline dark:text-blue-400";
+
+                renderer.Write($"<a href=\"{WebUtility.HtmlEncode(url)}\" class=\"mt-auto inline-flex items-center font-medium text-sm {linkClass}\">");
+                renderer.Write(WebUtility.HtmlEncode(displayText));
+
+                if (arrow)
+                {
+                    renderer.Write(" <span class=\"ml-1\">&rarr;</span>");
+                }
+                renderer.Write("</a>");
+            }
+
+            renderer.Write("</div>");
         }
 
         private string? GetAttribute(HtmlAttributes attributes, string key)
@@ -90,7 +155,7 @@ namespace Neko.Extensions
 
         private void RenderGridCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags)
         {
-            var classes = "flex flex-col h-full rounded-lg border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800 overflow-hidden";
+            var classes = "flex flex-col h-full rounded-lg border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 dark:hover:border-gray-600";
             var attrs = obj.GetAttributes();
             if (attrs.Classes != null)
             {
@@ -124,7 +189,7 @@ namespace Neko.Extensions
 
             if (!string.IsNullOrEmpty(title))
             {
-                renderer.Write("<h3 class=\"mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white\">");
+                renderer.Write("<h3 class=\"text-xl mt-1 mb-2 font-bold tracking-tight text-gray-900 dark:text-white\">");
                 if (!string.IsNullOrEmpty(link))
                 {
                     var encodedLink = WebUtility.HtmlEncode(link);
@@ -135,7 +200,7 @@ namespace Neko.Extensions
                 renderer.Write("</h3>");
             }
 
-            renderer.Write("<div class=\"mb-4 flex-1 text-gray-700 dark:text-gray-400\">");
+            renderer.Write("<div class=\"flex-1 text-gray-700 dark:text-gray-400\">");
             renderer.WriteChildren(obj);
             renderer.Write("</div>");
 
@@ -169,7 +234,7 @@ namespace Neko.Extensions
 
         private void RenderStackedCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags)
         {
-            var classes = "max-w-sm rounded overflow-hidden shadow-lg bg-white dark:bg-gray-800 my-4 border border-gray-200 dark:border-gray-700";
+            var classes = "max-w-sm rounded overflow-hidden shadow-lg bg-white dark:bg-gray-800 my-4 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 dark:hover:border-gray-600";
             var attrs = obj.GetAttributes();
             if (attrs.Classes != null)
             {
@@ -188,14 +253,14 @@ namespace Neko.Extensions
                     var encodedLink = WebUtility.HtmlEncode(link);
                     renderer.Write($"<a href=\"{encodedLink}\">");
                 }
-                renderer.Write($"<img class=\"w-full object-cover\" src=\"{encodedImage}\" alt=\"{encodedTitle}\">");
+                renderer.Write($"<img class=\"mt-0 mb-0 w-full object-cover\" src=\"{encodedImage}\" alt=\"{encodedTitle}\">");
                 if (!string.IsNullOrEmpty(link)) renderer.Write("</a>");
             }
 
             renderer.Write("<div class=\"px-6 py-4\">");
             if (!string.IsNullOrEmpty(title))
             {
-                renderer.Write("<div class=\"font-bold text-xl mb-2 text-gray-900 dark:text-white\">");
+                renderer.Write("<div class=\"font-bold text-xl mt-1 mb-2 text-gray-900 dark:text-white\">");
                 if (!string.IsNullOrEmpty(link))
                 {
                     var encodedLink = WebUtility.HtmlEncode(link);
@@ -234,7 +299,7 @@ namespace Neko.Extensions
 
         private void RenderHorizontalCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags)
         {
-             var classes = "max-w-sm w-full lg:max-w-full lg:flex my-4 shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800";
+             var classes = "max-w-sm w-full lg:max-w-full lg:flex my-4 shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 dark:hover:border-gray-600";
              var attrs = obj.GetAttributes();
              if (attrs.Classes != null)
              {

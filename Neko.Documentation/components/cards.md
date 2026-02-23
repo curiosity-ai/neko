@@ -66,6 +66,42 @@ The Grid component provides a flexible layout container that arranges its child 
 ::::
 ```
 
+## Link Card
+
+The link card variant is designed for navigation and reference links. It features a clean, text-centric layout with an optional call-to-action link at the bottom.
+
+:::: card-grid
+::: card {variant="link" title="Elastic APIs" link="#" link-text="View docs"}
+Browse the API docs for Elasticsearch, Kibana, Elastic Cloud, and more.
+:::
+::: card {variant="link" title="Elasticsearch clients" link="#" link-text="View docs"}
+Browse the Elasticsearch client libraries for Java, .Net, Python, and more.
+:::
+::: card {variant="link" theme="dark" title="Release notes" link="#" link-text="View release notes" arrow="true"}
+Explore the latest features and changes in Elastic.
+:::
+::: card {variant="link" theme="dark" title="Extend and contribute" link="#" link-text="View extend and contribute docs" arrow="true"}
+Learn how to contribute to Elastic products and extend capabilities.
+:::
+::::
+
+```markdown
+:::: card-grid
+::: card {variant="link" title="Elastic APIs" link="#" link-text="View docs"}
+Browse the API docs for Elasticsearch, Kibana, Elastic Cloud, and more.
+:::
+::: card {variant="link" title="Elasticsearch clients" link="#" link-text="View docs"}
+Browse the Elasticsearch client libraries for Java, .Net, Python, and more.
+:::
+::: card {variant="link" theme="dark" title="Release notes" link="#" link-text="View release notes" arrow="true"}
+Explore the latest features and changes in Elastic.
+:::
+::: card {variant="link" theme="dark" title="Extend and contribute" link="#" link-text="View extend and contribute docs" arrow="true"}
+Learn how to contribute to Elastic products and extend capabilities.
+:::
+::::
+```
+
 ## Properties
 
 | Property | Description |
@@ -76,4 +112,7 @@ The Grid component provides a flexible layout container that arranges its child 
 | `link` | URL to link the image and title to. |
 | `see-more` | URL for a secondary "See more" link at the bottom. |
 | `tags` | Comma-separated list of tags to display at the bottom. |
-| `variant` | Layout variant: `stacked` (default) or `horizontal`. |
+| `variant` | Layout variant: `stacked` (default), `horizontal`, `grid`, or `link`. |
+| `link-text` | The text for the bottom link action (used with `variant="link"`). |
+| `theme` | Set to `dark` for a dark background variant (used with `variant="link"`). |
+| `arrow` | Set to `true` to display an arrow icon next to the link (used with `variant="link"`). |

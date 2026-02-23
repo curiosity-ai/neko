@@ -1,4 +1,6 @@
 using System.CommandLine;
+using System.CommandLine.Invocation;
+using System.Threading;
 using System.Threading.Tasks;
 using Neko.Builder;
 using Neko.Server;
@@ -17,7 +19,7 @@ namespace Neko
             // Build Command
             var buildCommand = new Command("build", "Build the documentation");
 
-            var inputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
+            var inputOption  = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var outputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
 
             buildCommand.AddOption(inputOption);
@@ -31,14 +33,32 @@ namespace Neko
 
             // Watch Command
             var watchCommand = new Command("watch", "Watch for changes and rebuild");
+            var portOption   = new Option<int?>(new[] { "--port", "-p" }, "Port to use (default: 5000)");
             var watchInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var watchOutputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
 
             watchCommand.AddOption(watchInputOption);
+            watchCommand.AddOption(portOption);
             watchCommand.AddOption(watchOutputOption);
 
-            watchCommand.SetHandler(async (string input, string? output) =>
+            watchCommand.SetHandler(async (context) =>
             {
+                var input = context.ParseResult.GetValueForOption(watchInputOption) ?? ".";
+                var output = context.ParseResult.GetValueForOption(watchOutputOption);
+                var port = context.ParseResult.GetValueForOption(portOption) ?? 5000;
+                var token = context.GetCancellationToken();
+
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+
+                // Extra safety: Hook Console.CancelKeyPress manually
+
+                Console.CancelKeyPress += (sender, e) =>
+                {
+                    e.Cancel = true; // Prevent immediate termination
+                    Console.WriteLine("Ctrl+C detected, shutting down...");
+                    cts.Cancel();
+                };
+
                 Console.WriteLine($"Watching {input}...");
 
                 // Initial build
@@ -49,8 +69,8 @@ namespace Neko
                 var outputDir = builder.OutputDirectory;
 
                 // Start Server in background
-                var server = new DevServer(outputDir, input);
-                var serverTask = server.StartAsync();
+                var server = new DevServer(outputDir, input, port);
+                var serverTask = server.StartAsync(cts.Token);
 
                 // Watch file changes
                 using var watcher = new FileSystemWatcher(input);
@@ -95,8 +115,16 @@ namespace Neko
                 watcher.EnableRaisingEvents = true;
 
                 Console.WriteLine("Press Ctrl+C to exit.");
-                await serverTask; // Wait for server (which runs until cancelled)
-            }, watchInputOption, watchOutputOption);
+
+                try
+                {
+                    await serverTask; // Wait for server (which runs until cancelled)
+                }
+                catch (OperationCanceledException)
+                {
+                    Console.WriteLine("Shutdown complete.");
+                }
+            });
 
             rootCommand.AddCommand(buildCommand);
             rootCommand.AddCommand(watchCommand);
