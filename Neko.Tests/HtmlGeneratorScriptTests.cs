@@ -73,12 +73,12 @@ namespace Neko.Tests
             var html = generator.Generate(doc);
 
             // Verify paste handler is present
-            Assert.That(html, Contains.Substring("editor.onDidPaste("));
+            Assert.That(html, Contains.Substring("editor.getContainerDomNode().addEventListener('paste',"));
 
             // Verify it is inside nekoOpenEditor -> loadMonaco -> require
             var openEditorIndex = html.IndexOf("function nekoOpenEditor()");
             var createEditorIndex = html.IndexOf("editor = monaco.editor.create");
-            var pasteHandlerIndex = html.IndexOf("editor.onDidPaste(");
+            var pasteHandlerIndex = html.IndexOf("editor.getContainerDomNode().addEventListener('paste',");
 
             Assert.That(openEditorIndex, Is.GreaterThan(-1), "nekoOpenEditor should be present");
             Assert.That(createEditorIndex, Is.GreaterThan(openEditorIndex), "monaco.editor.create should be inside nekoOpenEditor");

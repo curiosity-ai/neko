@@ -56,7 +56,7 @@ namespace Neko.Tests
             // Currently it is mt-6. So we expect this test to fail if we assert mt-10.
 
             // Checking for Section 2 specifically as the first one has first:mt-0
-            Assert.That(html, Contains.Substring("<li class=\"mt-10 mb-2 first:mt-0 px-2\">"));
+            Assert.That(html, Contains.Substring("<li class=\"first:mt-0 px-2\" style=\"margin-top:1.2rem;margin-bottom:0.5rem;\">"));
             Assert.That(html, Contains.Substring("<span class=\"text-xs font-bold text-gray-500 uppercase tracking-wider\">Section 2</span>"));
         }
     }
