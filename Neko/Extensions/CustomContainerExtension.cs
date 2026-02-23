@@ -253,7 +253,7 @@ namespace Neko.Extensions
                     var encodedLink = WebUtility.HtmlEncode(link);
                     renderer.Write($"<a href=\"{encodedLink}\">");
                 }
-                renderer.Write($"<img class=\"w-full object-cover\" src=\"{encodedImage}\" alt=\"{encodedTitle}\">");
+                renderer.Write($"<img class=\"mt-0 mb-0 w-full object-cover\" src=\"{encodedImage}\" alt=\"{encodedTitle}\">");
                 if (!string.IsNullOrEmpty(link)) renderer.Write("</a>");
             }
 
