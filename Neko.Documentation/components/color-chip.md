@@ -6,78 +6,72 @@ nav:
 ---
 # Color Chip
 
-Neko automatically detects hex color codes written in inline code and displays them with a visual color preview chip.
+Neko includes a `color-chip` component to display color previews alongside their hex codes or names.
 
-When you write a valid hex color code using backticks, Neko renders the color value alongside a small circular preview of that color.
+## Usage
+
+Use the `[!color-chip]` syntax to render a color preview. The component accepts the color as a positional argument or a named attribute.
+
+### Basic Example
 
 ||| Demo
-The primary color is `#5495f1` and the background is `#ffffff`.
+[!color-chip #5495f1]
+[!color-chip #28a745]
+[!color-chip #ffc107]
+[!color-chip #dc3545]
 ||| Source
 ```md
-The primary color is `#5495f1` and the background is `#ffffff`.
+[!color-chip #5495f1]
+[!color-chip #28a745]
+[!color-chip #ffc107]
+[!color-chip #dc3545]
 ```
 |||
 
-Color chips work anywhere inline code is supported, including paragraph text, headings, tables, lists, [Callouts](callout.md), and more.
+### Custom Text
 
----
-
-## Supported formats
-
-Color chips support standard hex color formats:
+You can customize the displayed text using the `text` attribute.
 
 ||| Demo
-Six-digit:\
-`#ff0000` `#00ff00` `#0000ff`
-
-Three-digit:\
-`#f00` `#0f0` `#00f`
-
-Uppercase:\
-`#FF5733` `#C70039` `#900C3F`
-
-Lowercase:\
-`#daa520` `#2e8b57` `#4682b4`
+[!color-chip #5495f1 text="Primary Blue"]
+[!color-chip #28a745 text="Success Green"]
 ||| Source
 ```md
-Six-digit: `#ff0000` `#00ff00` `#0000ff`
-
-Three-digit: `#f00` `#0f0` `#00f`
-
-Uppercase: `#FF5733` `#C70039` `#900C3F`
-
-Lowercase: `#daa520` `#2e8b57` `#4682b4`
+[!color-chip #5495f1 text="Primary Blue"]
+[!color-chip #28a745 text="Success Green"]
 ```
 |||
 
-### Valid hex colors
+### Named Attributes
 
-A valid hex color code must:
-- Start with a `#` character
-- Be followed by exactly 3 or 6 hexadecimal digits (0-9, A-F, a-f)
-- Be wrapped in backticks for inline code
+You can also specify the color using the `color` attribute.
 
-## Usage in tables
+||| Demo
+[!color-chip color="#6610f2" text="Indigo"]
+||| Source
+```md
+[!color-chip color="#6610f2" text="Indigo"]
+```
+|||
 
-Color chips work great in tables for documenting color palettes:
+## Usage in Tables
+
+Color chips work great in tables for documenting color palettes.
 
 ||| Demo
 | Color Name | Hex Code | Usage |
 | --- | --- | --- |
-| Primary | `#5495f1` | Main brand color |
-| Success | `#28a745` | Success states |
-| Warning | `#ffc107` | Warning messages |
-| Danger | `#dc3545` | Error states |
+| Primary | [!color-chip #5495f1] | Main brand color |
+| Success | [!color-chip #28a745] | Success states |
+| Warning | [!color-chip #ffc107] | Warning messages |
+| Danger | [!color-chip #dc3545] | Error states |
 ||| Source
 ```md
 | Color Name | Hex Code | Usage |
 | --- | --- | --- |
-| Primary | `#5495f1` | Main brand color |
-| Success | `#28a745` | Success states |
-| Warning | `#ffc107` | Warning messages |
-| Danger | `#dc3545` | Error states |
+| Primary | [!color-chip #5495f1] | Main brand color |
+| Success | [!color-chip #28a745] | Success states |
+| Warning | [!color-chip #ffc107] | Warning messages |
+| Danger | [!color-chip #dc3545] | Error states |
 ```
 |||
-
-Only valid hex color codes trigger the color chip preview. Invalid formats like `#gggggg` or `#12` will render as regular inline code.
-
