@@ -290,3 +290,4 @@ __pycache__/
 .DS_Store
 .taildocs/
 .neko/
+temp_output/

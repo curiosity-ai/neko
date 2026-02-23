@@ -144,10 +144,10 @@ Emoji `:shortcodes:` can be used for the icon. Please see [Mojee](https://mojeei
 Any image file can be used as the `icon`.
 
 ```md
-[!button icon="../static/neko-icon.svg"](button.md)
+[!button icon="../assets/neko-logo-small.png"](button.md)
 ```
 
-[!button icon="../static/neko-icon.svg"]
+[!button icon="../assets/neko-logo-small.png"]
 
 ### SVG image
 

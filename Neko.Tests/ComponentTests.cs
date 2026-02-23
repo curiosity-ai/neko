@@ -146,5 +146,48 @@ namespace Neko.Tests
             Assert.That(doc.Html, Contains.Substring("href=\"/start\""));
             Assert.That(doc.Html, Contains.Substring("bg-gray-900"));
         }
+
+        [Test]
+        public void TestBentoGrid()
+        {
+            // Create a bento grid with 4 items to test the alternating span logic
+            // Item 0: span 2
+            // Item 1: span 1
+            // Item 2: span 1
+            // Item 3: span 2
+            var markdown = "[!bento-grid title=\"Bento\" subtitle=\"Grid\" \"Item1\" \"Desc1\" \"Img1\" \"Item2\" \"Desc2\" \"Img2\" \"Item3\" \"Desc3\" \"Img3\" \"Item4\" \"Desc4\" \"Img4\"]";
+            var doc = _parser.Parse(markdown);
+
+            // Verify title and subtitle
+            Assert.That(doc.Html, Contains.Substring("Bento"));
+            Assert.That(doc.Html, Contains.Substring("Grid"));
+
+            // Verify items
+            Assert.That(doc.Html, Contains.Substring("Item1"));
+            Assert.That(doc.Html, Contains.Substring("Item2"));
+            Assert.That(doc.Html, Contains.Substring("Item3"));
+            Assert.That(doc.Html, Contains.Substring("Item4"));
+
+            // We can't easily assert order without regex or splitting, but we can check if col-span-2 appears at least twice (for Item 1 and Item 4)
+            // and col-span-1 appears (implicitly or explicitly).
+            // My implementation writes "relative lg:col-span-2" or "relative lg:col-span-1".
+
+            // Count occurrences of col-span-2
+            var span2Count = System.Text.RegularExpressions.Regex.Matches(doc.Html, "lg:col-span-2").Count;
+            Assert.That(span2Count, Is.EqualTo(2), "Should have 2 items spanning 2 columns");
+
+            var span1Count = System.Text.RegularExpressions.Regex.Matches(doc.Html, "lg:col-span-1").Count;
+            Assert.That(span1Count, Is.EqualTo(2), "Should have 2 items spanning 1 column");
+        }
+
+        [Test]
+        public void TestContentSticky()
+        {
+            var markdown = "[!content-sticky title=\"Sticky\" image=\"img.png\" \"Para1\"]";
+            var doc = _parser.Parse(markdown);
+
+            Assert.That(doc.Html, Contains.Substring("Sticky"));
+            Assert.That(doc.Html, Contains.Substring("sticky top-8"));
+        }
     }
 }

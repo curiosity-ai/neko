@@ -9,11 +9,13 @@ namespace Neko.Builder
     {
         private readonly NekoConfig _config;
         private readonly bool _isWatchMode;
-
-        public HtmlGenerator(NekoConfig config, bool isWatchMode = false)
+        private readonly string _headIncludes;
+      
+        public HtmlGenerator(NekoConfig config, bool isWatchMode = false, string headIncludes = null)
         {
             _config = config;
             _isWatchMode = isWatchMode;
+          _headIncludes = headIncludes;
         }
 
         public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null, List<LinkConfig> sidebarLinks = null)
@@ -157,6 +159,10 @@ namespace Neko.Builder
             sb.AppendLine("        .prose table.hljs-ln td.hljs-ln-numbers { user-select: none; text-align: right; color: #ccc; border-right: 1px solid #ccc; vertical-align: top; padding-right: 5px !important; padding-left: 10px !important; }");
             sb.AppendLine("        .prose table.hljs-ln td.hljs-ln-code { padding-left: 10px !important; }");
             sb.AppendLine("        ");
+            sb.AppendLine("        /* Hide Line Numbers when disabled but table is present (for highlighting) */");
+            sb.AppendLine("        .hide-line-numbers .hljs-ln-numbers { display: none !important; }");
+            sb.AppendLine("        .hide-line-numbers .hljs-ln-code { padding-left: 5px !important; }");
+            sb.AppendLine("        ");
             sb.AppendLine("        /* Custom Highlight Style */");
             sb.AppendLine("        .line-highlight { background-color: rgba(255, 255, 0, 0.15); display: block; width: 100%; }");
             sb.AppendLine("        .dark .line-highlight { background-color: rgba(255, 255, 0, 0.15); }");
@@ -192,6 +198,11 @@ namespace Neko.Builder
             sb.AppendLine("            document.documentElement.classList.remove('dark');");
             sb.AppendLine("        }");
             sb.AppendLine("    </script>");
+
+            if (!string.IsNullOrEmpty(_headIncludes))
+            {
+                sb.AppendLine(_headIncludes);
+            }
 
             sb.AppendLine("</head>");
             sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
@@ -267,7 +278,7 @@ namespace Neko.Builder
                         sb.AppendLine($"                    <span>{link.Text}</span>");
                         sb.AppendLine($"                    <i class=\"fi fi-rr-angle-small-down transition-transform group-hover:rotate-180\"></i>");
                         sb.AppendLine($"                </button>");
-                        sb.AppendLine($"                <div class=\"absolute -left-8 top-full mt-3 w-screen max-w-md overflow-hidden rounded-3xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-900/5 dark:ring-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-out z-50\">");
+                        sb.AppendLine($"                <div class=\"absolute -left-8 top-full mt-3 w-screen max-w-md overflow-hidden rounded-3xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-900/5 dark:ring-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-out z-50 delay-200 group-hover:delay-0\">");
                         sb.AppendLine($"                    <div class=\"p-4\">");
                         foreach (var item in link.Items)
                         {
@@ -936,10 +947,19 @@ namespace Neko.Builder
             sb.AppendLine("                const language = Array.from(block.classList).find(c => c.startsWith('language-'))?.replace('language-', '');");
             sb.AppendLine("                const configLineNumbers = window.nekoConfig?.snippets?.lineNumbers || [];");
             sb.AppendLine("                const globalEnabled = language && configLineNumbers.includes(language);");
-            sb.AppendLine("                const localEnabled = block.classList.contains('line-numbers');");
-            sb.AppendLine("                const localDisabled = block.classList.contains('no-line-numbers');");
+            sb.AppendLine("                const localEnabled = block.classList.contains('line-numbers') || block.parentElement.classList.contains('line-numbers');");
+            sb.AppendLine("                const localDisabled = block.classList.contains('no-line-numbers') || block.parentElement.classList.contains('no-line-numbers');");
+            sb.AppendLine("                const hasHighlight = block.parentElement.getAttribute('data-highlight') || block.getAttribute('data-highlight');");
             sb.AppendLine("                ");
-            sb.AppendLine("                if ((globalEnabled || localEnabled) && !localDisabled) {");
+            sb.AppendLine("                // We need the table if line numbers are enabled OR if highlighting is requested (as highlighting depends on the table)");
+            sb.AppendLine("                const needsTable = (globalEnabled || localEnabled || hasHighlight) && !(localDisabled && !hasHighlight);");
+            sb.AppendLine("                ");
+            sb.AppendLine("                if (needsTable) {");
+            sb.AppendLine("                    // Hide numbers if explicitly disabled, or if not enabled (but table exists for highlight)");
+            sb.AppendLine("                    const hideNumbers = localDisabled || (!globalEnabled && !localEnabled);");
+            sb.AppendLine("                    if (hideNumbers) {");
+            sb.AppendLine("                        block.parentElement.classList.add('hide-line-numbers');");
+            sb.AppendLine("                    }");
             sb.AppendLine("                    hljs.lineNumbersBlock(block, { singleLine: true });");
             sb.AppendLine("                }");
             sb.AppendLine("            });");
@@ -960,9 +980,11 @@ namespace Neko.Builder
 
             // Line Highlighting
             sb.AppendLine("        window.addEventListener('load', function() {");
-            sb.AppendLine("            document.querySelectorAll('pre code[data-highlight]').forEach(block => {");
-            sb.AppendLine("                const highlightRange = block.getAttribute('data-highlight');");
+            sb.AppendLine("            document.querySelectorAll('pre').forEach(pre => {");
+            sb.AppendLine("                const highlightRange = pre.getAttribute('data-highlight') || pre.querySelector('code')?.getAttribute('data-highlight');");
             sb.AppendLine("                if (!highlightRange) return;");
+            sb.AppendLine("                const block = pre.querySelector('code');");
+            sb.AppendLine("                if (!block) return;");
             sb.AppendLine("                const linesToHighlight = new Set();");
             sb.AppendLine("                highlightRange.split(',').forEach(part => {");
             sb.AppendLine("                    if (part.includes('-')) {");
