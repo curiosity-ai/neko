@@ -264,7 +264,7 @@ namespace Neko.Builder
                         sb.AppendLine($"                    <span>{link.Text}</span>");
                         sb.AppendLine($"                    <i class=\"fi fi-rr-angle-small-down transition-transform group-hover:rotate-180\"></i>");
                         sb.AppendLine($"                </button>");
-                        sb.AppendLine($"                <div class=\"absolute -left-8 top-full mt-3 w-screen max-w-md overflow-hidden rounded-3xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-900/5 dark:ring-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-out z-50\">");
+                        sb.AppendLine($"                <div class=\"absolute -left-8 top-full mt-3 w-screen max-w-md overflow-hidden rounded-3xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-900/5 dark:ring-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-out z-50 delay-200 group-hover:delay-0\">");
                         sb.AppendLine($"                    <div class=\"p-4\">");
                         foreach (var item in link.Items)
                         {
