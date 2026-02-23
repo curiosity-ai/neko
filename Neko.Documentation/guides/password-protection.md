@@ -37,3 +37,9 @@ This content is encrypted and can only be seen with the password.
 1.  **Prompt**: Visitors will see a clean, centered password form.
 2.  **Unlock**: Upon entering the correct password, the content is instantly decrypted and displayed without a page reload.
 3.  **Persistence**: The password is temporarily saved in the browser's local storage so the user doesn't have to re-enter it if they refresh the page during the same session.
+
+## Live Demo
+
+Try it out yourself! Visit the [password protected sample page](/samples/password-protected.md).
+
+The password is: `letmein`
