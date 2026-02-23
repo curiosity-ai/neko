@@ -2,6 +2,7 @@ using Neko.Configuration;
 using System.Text;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.Linq;
 
 namespace Neko.Builder
 {
@@ -54,8 +55,19 @@ namespace Neko.Builder
 
         public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null, List<LinkConfig> sidebarLinks = null)
         {
-            var title = !string.IsNullOrEmpty(document.FrontMatter.Title)
-                ? $"{_config.Branding.Title} - {document.FrontMatter.Title}"
+            var pageTitle = document.FrontMatter.Title;
+            if (string.IsNullOrEmpty(pageTitle) && document.Toc != null)
+            {
+                var h1 = document.Toc.FirstOrDefault(t => t.Level == 1);
+                if (h1 != null)
+                {
+                    // Strip HTML tags from the title
+                    pageTitle = Regex.Replace(h1.Title, "<.*?>", string.Empty);
+                }
+            }
+
+            var title = !string.IsNullOrEmpty(pageTitle)
+                ? $"{_config.Branding.Title} - {pageTitle}"
                 : _config.Branding.Title;
 
             var description = !string.IsNullOrEmpty(document.FrontMatter.Description)
