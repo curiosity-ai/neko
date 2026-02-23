@@ -71,6 +71,11 @@ namespace Neko.Builder
             sb.AppendLine("    <script src=\"https://cdn.tailwindcss.com?plugins=typography\"></script>");
             sb.AppendLine("    <script>tailwind.config = { darkMode: 'class' }</script>");
 
+            // Neko Config
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+            var snippetsJson = _config.Snippets != null ? System.Text.Json.JsonSerializer.Serialize(_config.Snippets, jsonOptions) : "{}";
+            sb.AppendLine($"    <script>window.nekoConfig = {{ snippets: {snippetsJson} }};</script>");
+
             // Inter Font
             sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
             sb.AppendLine("    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>");
@@ -733,7 +738,19 @@ namespace Neko.Builder
             // Init Highlight.js
             sb.AppendLine("        document.addEventListener('DOMContentLoaded', (event) => {");
             sb.AppendLine("            hljs.highlightAll();");
-            sb.AppendLine("            hljs.initLineNumbersOnLoad({ singleLine: true });");
+            sb.AppendLine("            ");
+            sb.AppendLine("            // Init Line Numbers");
+            sb.AppendLine("            document.querySelectorAll('code.hljs').forEach(block => {");
+            sb.AppendLine("                const language = Array.from(block.classList).find(c => c.startsWith('language-'))?.replace('language-', '');");
+            sb.AppendLine("                const configLineNumbers = window.nekoConfig?.snippets?.lineNumbers || [];");
+            sb.AppendLine("                const globalEnabled = language && configLineNumbers.includes(language);");
+            sb.AppendLine("                const localEnabled = block.classList.contains('line-numbers');");
+            sb.AppendLine("                const localDisabled = block.classList.contains('no-line-numbers');");
+            sb.AppendLine("                ");
+            sb.AppendLine("                if ((globalEnabled || localEnabled) && !localDisabled) {");
+            sb.AppendLine("                    hljs.lineNumbersBlock(block, { singleLine: true });");
+            sb.AppendLine("                }");
+            sb.AppendLine("            });");
             sb.AppendLine("");
             sb.AppendLine("            // Anchor Links");
             sb.AppendLine("            document.querySelectorAll('h2, h3, h4, h5, h6').forEach(heading => {");

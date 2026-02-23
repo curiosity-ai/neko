@@ -29,6 +29,15 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "banner")]
         public BannerConfig Banner { get; set; } = new BannerConfig();
+
+        [YamlMember(Alias = "snippets")]
+        public SnippetsConfig Snippets { get; set; } = new SnippetsConfig();
+    }
+
+    public class SnippetsConfig
+    {
+        [YamlMember(Alias = "lineNumbers")]
+        public List<string> LineNumbers { get; set; } = new List<string>();
     }
 
     public class BannerConfig
