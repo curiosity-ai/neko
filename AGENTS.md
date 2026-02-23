@@ -35,3 +35,6 @@ This repository contains the source code for `Neko`, a CLI tool for generating s
 
 ## Testing
 - ALWAYS use the Neko project targeting an output folder in the temp directory.
+
+## Important Notes
+- **NEVER push temporary files** (e.g., logs, test outputs, screenshots, or generated site artifacts) to the repository. Always clean them up before submitting changes.

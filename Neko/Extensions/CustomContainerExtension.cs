@@ -86,7 +86,7 @@ namespace Neko.Extensions
         private void RenderLinkCard(HtmlRenderer renderer, CustomContainer obj, string? title, string? link, string? linkText, string? theme, bool arrow)
         {
             var isDark = theme == "dark";
-            var baseClasses = "flex flex-col h-full p-6 rounded-lg transition-all duration-300 hover:-translate-y-1";
+            var baseClasses = "flex flex-col h-full p-6 rounded-lg transition-shadow";
 
             if (isDark)
             {
@@ -94,7 +94,7 @@ namespace Neko.Extensions
             }
             else
             {
-                baseClasses += " bg-white border border-gray-200 shadow-sm hover:shadow-md dark:bg-gray-800 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600";
+                baseClasses += " bg-white border border-gray-200 shadow-sm hover:shadow-md dark:bg-gray-800 dark:border-gray-700";
             }
 
             var attrs = obj.GetAttributes();
@@ -155,7 +155,7 @@ namespace Neko.Extensions
 
         private void RenderGridCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags)
         {
-            var classes = "flex flex-col h-full rounded-lg border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 dark:hover:border-gray-600";
+            var classes = "flex flex-col h-full rounded-lg border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800 overflow-hidden";
             var attrs = obj.GetAttributes();
             if (attrs.Classes != null)
             {
@@ -234,7 +234,7 @@ namespace Neko.Extensions
 
         private void RenderStackedCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags)
         {
-            var classes = "max-w-sm rounded overflow-hidden shadow-lg bg-white dark:bg-gray-800 my-4 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 dark:hover:border-gray-600";
+            var classes = "max-w-sm rounded overflow-hidden shadow-lg bg-white dark:bg-gray-800 my-4 border border-gray-200 dark:border-gray-700";
             var attrs = obj.GetAttributes();
             if (attrs.Classes != null)
             {
@@ -299,7 +299,7 @@ namespace Neko.Extensions
 
         private void RenderHorizontalCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags)
         {
-             var classes = "max-w-sm w-full lg:max-w-full lg:flex my-4 shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 dark:hover:border-gray-600";
+             var classes = "max-w-sm w-full lg:max-w-full lg:flex my-4 shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800";
              var attrs = obj.GetAttributes();
              if (attrs.Classes != null)
              {
