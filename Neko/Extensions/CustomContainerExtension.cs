@@ -189,7 +189,7 @@ namespace Neko.Extensions
 
             if (!string.IsNullOrEmpty(title))
             {
-                renderer.Write("<h3 class=\"mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white\">");
+                renderer.Write("<h3 class=\"text-xl mt-1 mb-2 font-bold tracking-tight text-gray-900 dark:text-white\">");
                 if (!string.IsNullOrEmpty(link))
                 {
                     var encodedLink = WebUtility.HtmlEncode(link);
@@ -200,7 +200,7 @@ namespace Neko.Extensions
                 renderer.Write("</h3>");
             }
 
-            renderer.Write("<div class=\"mb-4 flex-1 text-gray-700 dark:text-gray-400\">");
+            renderer.Write("<div class=\"flex-1 text-gray-700 dark:text-gray-400\">");
             renderer.WriteChildren(obj);
             renderer.Write("</div>");
 
@@ -260,7 +260,7 @@ namespace Neko.Extensions
             renderer.Write("<div class=\"px-6 py-4\">");
             if (!string.IsNullOrEmpty(title))
             {
-                renderer.Write("<div class=\"font-bold text-xl mb-2 text-gray-900 dark:text-white\">");
+                renderer.Write("<div class=\"font-bold text-xl mt-1 mb-2 text-gray-900 dark:text-white\">");
                 if (!string.IsNullOrEmpty(link))
                 {
                     var encodedLink = WebUtility.HtmlEncode(link);

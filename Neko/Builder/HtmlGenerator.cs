@@ -1157,7 +1157,7 @@ namespace Neko.Builder
                     if (level == 0)
                     {
                         // Render as a flat header
-                        sb.AppendLine($"                    <li class=\"mt-10 mb-2 first:mt-0 px-2\">");
+                        sb.AppendLine($"                    <li class=\"first:mt-0 px-2\" style=\"margin-top:1.2rem;margin-bottom:0.5rem;\">");
                         sb.AppendLine($"                        <span class=\"text-xs font-bold text-gray-500 uppercase tracking-wider\">{link.Text}</span>");
                         sb.AppendLine($"                    </li>");
 
