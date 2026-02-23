@@ -28,6 +28,27 @@ links:
   - text: GitHub
     link: https://github.com/theolivenbaum/taildocs
     icon: github
+  - text: Features
+    items:
+      - text: Components
+        link: /components/index
+        description: Explore the rich set of built-in components
+        icon: cube
+      - text: Configuration
+        link: /configuration/index
+        description: Learn how to customize your Neko site
+        icon: settings
+      - text: Themes
+        link: /guides/themes
+        description: Style your documentation with ease
+        icon: palette
+    footerItems:
+      - text: Get Started
+        link: /guides/getting-started
+        icon: rocket
+      - text: View on GitHub
+        link: https://github.com/theolivenbaum/taildocs
+        icon: github
 
 banner:
   text: "Welcome to Neko! Check out our new banner feature."

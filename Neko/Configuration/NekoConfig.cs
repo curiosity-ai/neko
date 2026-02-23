@@ -105,8 +105,14 @@ namespace Neko.Configuration
         [YamlMember(Alias = "target")]
         public string Target { get; set; }
 
+        [YamlMember(Alias = "description")]
+        public string Description { get; set; }
+
         [YamlMember(Alias = "items")]
         public List<LinkConfig> Items { get; set; } = new List<LinkConfig>();
+
+        [YamlMember(Alias = "footerItems")]
+        public List<LinkConfig> FooterItems { get; set; } = new List<LinkConfig>();
     }
 
     public class MetaConfig

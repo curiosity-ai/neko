@@ -252,9 +252,76 @@ namespace Neko.Builder
             {
                 foreach (var link in _config.Links)
                 {
-                     var href = link.Link ?? "#";
-                     var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"fi fi-rr-{link.Icon} mr-1\"></i>";
-                     sb.AppendLine($"            <a href=\"{href}\" class=\"hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center\">{iconHtml}{link.Text}</a>");
+                    if (link.Items != null && link.Items.Count > 0)
+                    {
+                        // Flyout Menu
+                        sb.AppendLine($"            <div class=\"relative group z-50\">");
+                        sb.AppendLine($"                <button class=\"flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors focus:outline-none\">");
+                        if (!string.IsNullOrEmpty(link.Icon))
+                        {
+                            sb.AppendLine($"                    <i class=\"fi fi-rr-{link.Icon}\"></i>");
+                        }
+                        sb.AppendLine($"                    <span>{link.Text}</span>");
+                        sb.AppendLine($"                    <i class=\"fi fi-rr-angle-small-down transition-transform group-hover:rotate-180\"></i>");
+                        sb.AppendLine($"                </button>");
+                        sb.AppendLine($"                <div class=\"absolute -left-8 top-full mt-3 w-screen max-w-md overflow-hidden rounded-3xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-900/5 dark:ring-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-out z-50\">");
+                        sb.AppendLine($"                    <div class=\"p-4\">");
+                        foreach (var item in link.Items)
+                        {
+                            var itemHref = item.Link ?? "#";
+                            var itemTarget = !string.IsNullOrEmpty(item.Target) ? $" target=\"{item.Target}\"" : "";
+                            sb.AppendLine($"                        <div class=\"group relative flex items-center gap-x-6 rounded-lg p-4 text-sm leading-6 hover:bg-gray-50 dark:hover:bg-gray-700/50\">");
+                            sb.AppendLine($"                            <div class=\"flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700 group-hover:bg-white dark:group-hover:bg-gray-600\">");
+                            if (!string.IsNullOrEmpty(item.Icon))
+                            {
+                                sb.AppendLine($"                                <i class=\"fi fi-rr-{item.Icon} text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400\"></i>");
+                            }
+                            else
+                            {
+                                sb.AppendLine($"                                <i class=\"fi fi-rr-arrow-small-right text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400\"></i>");
+                            }
+                            sb.AppendLine($"                            </div>");
+                            sb.AppendLine($"                            <div class=\"flex-auto\">");
+                            sb.AppendLine($"                                <a href=\"{itemHref}\"{itemTarget} class=\"block font-semibold text-gray-900 dark:text-gray-100\">");
+                            sb.AppendLine($"                                    {item.Text}");
+                            sb.AppendLine($"                                    <span class=\"absolute inset-0\"></span>");
+                            sb.AppendLine($"                                </a>");
+                            if (!string.IsNullOrEmpty(item.Description))
+                            {
+                                sb.AppendLine($"                                <p class=\"mt-1 text-gray-600 dark:text-gray-400\">{item.Description}</p>");
+                            }
+                            sb.AppendLine($"                            </div>");
+                            sb.AppendLine($"                        </div>");
+                        }
+                        sb.AppendLine($"                    </div>");
+
+                        if (link.FooterItems != null && link.FooterItems.Count > 0)
+                        {
+                             sb.AppendLine($"                    <div class=\"grid grid-cols-2 divide-x divide-gray-900/5 dark:divide-gray-700 bg-gray-50 dark:bg-gray-700/50\">");
+                             foreach (var footerItem in link.FooterItems)
+                             {
+                                 var footerHref = footerItem.Link ?? "#";
+                                 var footerTarget = !string.IsNullOrEmpty(footerItem.Target) ? $" target=\"{footerItem.Target}\"" : "";
+                                 sb.AppendLine($"                        <a href=\"{footerHref}\"{footerTarget} class=\"flex items-center justify-center gap-x-2.5 p-3 text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700\">");
+                                 if (!string.IsNullOrEmpty(footerItem.Icon))
+                                 {
+                                     sb.AppendLine($"                            <i class=\"fi fi-rr-{footerItem.Icon} text-gray-400 dark:text-gray-500\"></i>");
+                                 }
+                                 sb.AppendLine($"                            {footerItem.Text}");
+                                 sb.AppendLine($"                        </a>");
+                             }
+                             sb.AppendLine($"                    </div>");
+                        }
+                        sb.AppendLine($"                </div>");
+                        sb.AppendLine($"            </div>");
+                    }
+                    else
+                    {
+                         var href = link.Link ?? "#";
+                         var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"fi fi-rr-{link.Icon} mr-1\"></i>";
+                         var target = !string.IsNullOrEmpty(link.Target) ? $" target=\"{link.Target}\"" : "";
+                         sb.AppendLine($"            <a href=\"{href}\"{target} class=\"hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center\">{iconHtml}{link.Text}</a>");
+                    }
                 }
             }
             sb.AppendLine("        </div>");
