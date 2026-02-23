@@ -13,265 +13,69 @@ namespace Neko.Builder
             _config = config;
         }
 
+        public string Generate404(NotFoundConfig notFoundConfig)
+        {
+            var title = $"{notFoundConfig.Title} - {_config.Branding.Title}";
+            var description = notFoundConfig.Description;
+
+            var sb = new StringBuilder();
+            sb.AppendLine("<!DOCTYPE html>");
+            sb.AppendLine("<html lang=\"en\" class=\"scroll-smooth\">");
+
+            RenderHead(sb, title, description);
+
+            sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
+
+            RenderNavbar(sb);
+
+            sb.AppendLine("    <div class=\"flex flex-1 overflow-hidden\">");
+            sb.AppendLine("        <div class=\"flex-1 flex overflow-hidden\">");
+            sb.AppendLine("            <main class=\"flex-1 overflow-y-auto p-8 scroll-smooth\" id=\"main-scroll\">");
+
+            // Center Content
+            sb.AppendLine("                <div class=\"flex min-h-[calc(100vh-16rem)] flex-col items-center justify-center py-12 text-center\">"); // Adjusted min-h to account for header/footer roughly
+
+            sb.AppendLine($"                    <p class=\"text-base font-semibold text-blue-600 dark:text-blue-400\">{notFoundConfig.Title}</p>");
+            sb.AppendLine($"                    <h1 class=\"mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-5xl\">{notFoundConfig.Message}</h1>");
+            sb.AppendLine($"                    <p class=\"mt-6 text-base leading-7 text-gray-600 dark:text-gray-400\">{notFoundConfig.Description}</p>");
+            sb.AppendLine("                    <div class=\"mt-10 flex items-center justify-center gap-x-6\">");
+            sb.AppendLine($"                        <a href=\"{notFoundConfig.Link}\" class=\"rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600\">{notFoundConfig.LinkText}</a>");
+            sb.AppendLine("                    </div>");
+            sb.AppendLine("                </div>");
+
+            RenderFooter(sb);
+
+            sb.AppendLine("            </main>");
+            sb.AppendLine("        </div>");
+            sb.AppendLine("    </div>");
+
+            RenderScripts(sb);
+
+            sb.AppendLine("</body>");
+            sb.AppendLine("</html>");
+
+            return sb.ToString();
+        }
+
         public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null, List<LinkConfig> sidebarLinks = null)
         {
             var title = !string.IsNullOrEmpty(document.FrontMatter.Title)
                 ? $"{document.FrontMatter.Title} - {_config.Branding.Title}"
                 : _config.Branding.Title;
 
-            var darkTheme = _config.Theme.Highlight.Dark;
-            var lightTheme = _config.Theme.Highlight.Light;
-
-            var sb = new StringBuilder();
-            sb.AppendLine("<!DOCTYPE html>");
-            sb.AppendLine("<html lang=\"en\" class=\"scroll-smooth\">");
-            sb.AppendLine("<head>");
-            sb.AppendLine("    <meta charset=\"UTF-8\">");
-            sb.AppendLine("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
-            sb.AppendLine($"    <title>{title}</title>");
-
-            if (!string.IsNullOrEmpty(_config.Branding.Favicon))
-            {
-                sb.AppendLine($"    <link rel=\"icon\" href=\"{_config.Branding.Favicon}\">");
-            }
-
             var description = !string.IsNullOrEmpty(document.FrontMatter.Description)
                 ? document.FrontMatter.Description
                 : _config.Meta.Description;
 
-            if (!string.IsNullOrEmpty(description))
-            {
-                sb.AppendLine($"    <meta name=\"description\" content=\"{description}\">");
-                sb.AppendLine($"    <meta property=\"og:description\" content=\"{description}\">");
-                sb.AppendLine($"    <meta name=\"twitter:description\" content=\"{description}\">");
-            }
+            var sb = new StringBuilder();
+            sb.AppendLine("<!DOCTYPE html>");
+            sb.AppendLine("<html lang=\"en\" class=\"scroll-smooth\">");
 
-            if (!string.IsNullOrEmpty(_config.Meta.Keywords)) sb.AppendLine($"    <meta name=\"keywords\" content=\"{_config.Meta.Keywords}\">");
-            if (!string.IsNullOrEmpty(_config.Meta.Author)) sb.AppendLine($"    <meta name=\"author\" content=\"{_config.Meta.Author}\">");
+            RenderHead(sb, title, description);
 
-            var pageTitle = !string.IsNullOrEmpty(document.FrontMatter.Title) ? $"{document.FrontMatter.Title} - {_config.Branding.Title}" : _config.Branding.Title;
-            sb.AppendLine($"    <meta property=\"og:title\" content=\"{pageTitle}\">");
-            sb.AppendLine($"    <meta name=\"twitter:title\" content=\"{pageTitle}\">");
-
-            if (!string.IsNullOrEmpty(_config.Meta.Type)) sb.AppendLine($"    <meta property=\"og:type\" content=\"{_config.Meta.Type}\">");
-            if (!string.IsNullOrEmpty(_config.Meta.Url)) sb.AppendLine($"    <meta property=\"og:url\" content=\"{_config.Meta.Url}\">");
-            if (!string.IsNullOrEmpty(_config.Meta.Image))
-            {
-                sb.AppendLine($"    <meta property=\"og:image\" content=\"{_config.Meta.Image}\">");
-                sb.AppendLine($"    <meta name=\"twitter:image\" content=\"{_config.Meta.Image}\">");
-            }
-
-            if (!string.IsNullOrEmpty(_config.Meta.TwitterCard)) sb.AppendLine($"    <meta name=\"twitter:card\" content=\"{_config.Meta.TwitterCard}\">");
-            if (!string.IsNullOrEmpty(_config.Meta.TwitterSite)) sb.AppendLine($"    <meta name=\"twitter:site\" content=\"{_config.Meta.TwitterSite}\">");
-            if (!string.IsNullOrEmpty(_config.Meta.TwitterCreator)) sb.AppendLine($"    <meta name=\"twitter:creator\" content=\"{_config.Meta.TwitterCreator}\">");
-
-            // Tailwind CSS
-            // Use CDN to ensure plugins (like typography) are available.
-            // The local resource might be missing the typography plugin.
-            sb.AppendLine("    <script src=\"https://cdn.tailwindcss.com?plugins=typography\"></script>");
-            sb.AppendLine("    <script>tailwind.config = { darkMode: 'class' }</script>");
-
-            // Neko Config
-            var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
-            var snippetsJson = _config.Snippets != null ? System.Text.Json.JsonSerializer.Serialize(_config.Snippets, jsonOptions) : "{}";
-            sb.AppendLine($"    <script>window.nekoConfig = {{ snippets: {snippetsJson} }};</script>");
-
-            // Inter Font
-            sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
-            sb.AppendLine("    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>");
-
-            // Flaticon UIcons
-            sb.AppendLine("    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>");
-
-            // Emoji CSS
-            sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/emoji.css\">");
-
-            // KaTeX (Math)
-            sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css\">");
-            sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js\"></script>");
-            sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js\"></script>");
-            sb.AppendLine("    <script>document.addEventListener(\"DOMContentLoaded\", function() { renderMathInElement(document.body); });</script>");
-
-            // Mermaid (Diagrams)
-            sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>");
-            sb.AppendLine("    <script>");
-            sb.AppendLine("        mermaid.initialize({ startOnLoad: false });");
-            sb.AppendLine("        ");
-            sb.AppendLine("        async function renderMermaid() {");
-            sb.AppendLine("            const elements = document.querySelectorAll('.mermaid');");
-            sb.AppendLine("            if (!elements.length) return;");
-            sb.AppendLine("            ");
-            sb.AppendLine("            for (const el of elements) {");
-            sb.AppendLine("                if (el.getAttribute('data-processed')) continue;");
-            sb.AppendLine("                el.setAttribute('data-processed', 'true');");
-            sb.AppendLine("                ");
-            sb.AppendLine("                const source = el.textContent;");
-            sb.AppendLine("                const idBase = 'mermaid-' + Math.random().toString(36).substr(2, 9);");
-            sb.AppendLine("                const idLight = idBase + '-light';");
-            sb.AppendLine("                const idDark = idBase + '-dark';");
-            sb.AppendLine("                ");
-            sb.AppendLine("                // Render Light");
-            sb.AppendLine("                const sourceLight = `%%{init: {'theme':'default'}}%%\\n${source}`;");
-            sb.AppendLine("                // Render Dark");
-            sb.AppendLine("                const sourceDark = `%%{init: {'theme':'dark'}}%%\\n${source}`;");
-            sb.AppendLine("                ");
-            sb.AppendLine("                try {");
-            sb.AppendLine("                    const rLight = await mermaid.render(idLight, sourceLight);");
-            sb.AppendLine("                    const rDark = await mermaid.render(idDark, sourceDark);");
-            sb.AppendLine("                    ");
-            sb.AppendLine("                    el.innerHTML = `");
-            sb.AppendLine("                        <div class=\"dark:hidden\">${rLight.svg}</div>");
-            sb.AppendLine("                        <div class=\"hidden dark:block\">${rDark.svg}</div>");
-            sb.AppendLine("                    `;");
-            sb.AppendLine("                    ");
-            sb.AppendLine("                    if (rLight.bindFunctions) rLight.bindFunctions(el.querySelector('.dark\\\\:hidden'));");
-            sb.AppendLine("                    if (rDark.bindFunctions) rDark.bindFunctions(el.querySelector('.dark\\\\:block'));");
-            sb.AppendLine("                } catch (e) {");
-            sb.AppendLine("                    console.error('Mermaid rendering failed:', e);");
-            sb.AppendLine("                    el.innerHTML = `<div class=\"text-red-500\">Error rendering diagram</div>`;");
-            sb.AppendLine("                }");
-            sb.AppendLine("            }");
-            sb.AppendLine("        }");
-            sb.AppendLine("        ");
-            sb.AppendLine("        document.addEventListener('DOMContentLoaded', renderMermaid);");
-            sb.AppendLine("    </script>");
-
-            // Force Graph
-            sb.AppendLine("    <script src=\"/assets/force-graph.min.js\"></script>");
-
-            // Search Assets
-            sb.AppendLine("    <script src=\"/assets/minisearch.min.js\"></script>");
-            sb.AppendLine("    <script defer src=\"/assets/search.js\"></script>");
-
-            // Highlight.js
-            sb.AppendLine($"    <link id=\"highlight-theme\" rel=\"stylesheet\" href=\"/assets/highlight/{darkTheme}.min.css\">");
-            sb.AppendLine("    <script src=\"/assets/highlight/highlight.min.js\"></script>");
-            sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js\"></script>");
-            sb.AppendLine("    <style>");
-            sb.AppendLine("        /* Highlight.js Line Numbers CSS */");
-            sb.AppendLine("        .hljs-ln td { padding-left: 10px; }");
-            sb.AppendLine("        .hljs-ln-numbers { user-select: none; text-align: right; color: #ccc; border-right: 1px solid #ccc; vertical-align: top; padding-right: 5px; }");
-            sb.AppendLine("        .hljs-ln-code { padding-left: 10px; }");
-            sb.AppendLine("        ");
-            sb.AppendLine("        /* Custom Highlight Style */");
-            sb.AppendLine("        .line-highlight { background-color: rgba(255, 255, 0, 0.15); display: block; width: 100%; }");
-            sb.AppendLine("        .dark .line-highlight { background-color: rgba(255, 255, 0, 0.15); }");
-            sb.AppendLine("        ");
-            sb.AppendLine("        /* Fix Table layout for code blocks with line numbers */");
-            sb.AppendLine("        .hljs-ln { width: 100%; border-collapse: collapse; }");
-            sb.AppendLine("");
-            sb.AppendLine("        /* Custom Scrollbars */");
-            sb.AppendLine("        /* Sidebar */");
-            sb.AppendLine("        #sidebar::-webkit-scrollbar { width: 6px; height: 6px; background-color: transparent; }");
-            sb.AppendLine("        #sidebar::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 3px; }");
-            sb.AppendLine("        #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); }");
-            sb.AppendLine("        .dark #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }");
-            sb.AppendLine("");
-            sb.AppendLine("        /* TOC */");
-            sb.AppendLine("        #toc-sidebar::-webkit-scrollbar { display: none; }");
-            sb.AppendLine("        #toc-sidebar { -ms-overflow-style: none; scrollbar-width: none; }");
-            sb.AppendLine("");
-            sb.AppendLine("        /* Main Content */");
-            sb.AppendLine("        #main-scroll::-webkit-scrollbar { width: 8px; height: 8px; background-color: transparent; }");
-            sb.AppendLine("        #main-scroll::-webkit-scrollbar-track { background-color: transparent; }");
-            sb.AppendLine("        #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(209, 213, 219, 0.5); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }");
-            sb.AppendLine("        .dark #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }");
-            sb.AppendLine("        #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(156, 163, 175, 0.8); }");
-            sb.AppendLine("        .dark #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(107, 114, 128, 0.8); }");
-            sb.AppendLine("    </style>");
-
-            // Dark Mode Init
-            sb.AppendLine("    <script>");
-            sb.AppendLine("        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {");
-            sb.AppendLine("            document.documentElement.classList.add('dark');");
-            sb.AppendLine("        } else {");
-            sb.AppendLine("            document.documentElement.classList.remove('dark');");
-            sb.AppendLine("        }");
-            sb.AppendLine("    </script>");
-
-            sb.AppendLine("</head>");
             sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
 
-            // Banner
-            if (_config.Banner != null && _config.Banner.Visible && !string.IsNullOrEmpty(_config.Banner.Text))
-            {
-                var banner = _config.Banner;
-                var bannerId = banner.Id ?? "neko-banner";
-                var bg = !string.IsNullOrEmpty(banner.Background) ? banner.Background : "bg-indigo-600";
-                var color = !string.IsNullOrEmpty(banner.Color) ? banner.Color : "text-white";
-
-                sb.AppendLine($"    <div id=\"{bannerId}\" class=\"{bg} {color} relative isolate flex items-center gap-x-6 overflow-hidden px-6 py-2.5 sm:px-3.5 sm:before:flex-1 hidden z-50\">");
-                sb.AppendLine("        <div class=\"flex flex-wrap items-center gap-x-4 gap-y-2\">");
-                sb.AppendLine($"            <p class=\"text-sm leading-6\">{banner.Text}</p>");
-                if (!string.IsNullOrEmpty(banner.Link))
-                {
-                    var linkText = !string.IsNullOrEmpty(banner.LinkText) ? banner.LinkText : "Read more";
-                    sb.AppendLine($"            <a href=\"{banner.Link}\" class=\"flex-none rounded-full bg-gray-900 px-3.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900\">{linkText} <span aria-hidden=\"true\">&rarr;</span></a>");
-                }
-                sb.AppendLine("        </div>");
-                if (banner.Dismissible)
-                {
-                    sb.AppendLine("        <div class=\"flex flex-1 justify-end\">");
-                    sb.AppendLine($"            <button type=\"button\" class=\"-m-3 p-3 focus-visible:outline-offset-[-4px]\" onclick=\"dismissBanner('{bannerId}')\">");
-                    sb.AppendLine("                <span class=\"sr-only\">Dismiss</span>");
-                    sb.AppendLine("                <i class=\"fi fi-rr-cross-small text-xl\"></i>");
-                    sb.AppendLine("            </button>");
-                    sb.AppendLine("        </div>");
-                }
-                sb.AppendLine("    </div>");
-            }
-
-            // Navbar
-            sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10\">");
-            sb.AppendLine("        <div class=\"flex items-center gap-4\">");
-            sb.AppendLine("            <button id=\"mobile-menu-btn\" class=\"md:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none\">");
-            sb.AppendLine("                <i class=\"fi fi-rr-menu-burger text-xl\"></i>");
-            sb.AppendLine("            </button>");
-            if (!string.IsNullOrEmpty(_config.Branding.Logo))
-            {
-                sb.AppendLine($"            <img src=\"{_config.Branding.Logo}\" class=\"h-8 w-auto dark:hidden\">");
-                if (!string.IsNullOrEmpty(_config.Branding.LogoDark))
-                {
-                    sb.AppendLine($"            <img src=\"{_config.Branding.LogoDark}\" class=\"h-8 w-auto hidden dark:block\">");
-                }
-                else
-                {
-                    sb.AppendLine($"            <img src=\"{_config.Branding.Logo}\" class=\"h-8 w-auto hidden dark:block\">");
-                }
-            }
-            else if (!string.IsNullOrEmpty(_config.Branding.Icon))
-            {
-                sb.AppendLine($"            <i class=\"{_config.Branding.Icon} text-2xl text-blue-600 dark:text-blue-400\"></i>");
-            }
-            sb.AppendLine($"            <a href=\"/index\" class=\"font-bold text-xl hover:text-blue-600 transition-colors\">{_config.Branding.Title}</a>");
-            sb.AppendLine("        </div>");
-
-            sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300\">");
-            if (_config.Links != null)
-            {
-                foreach (var link in _config.Links)
-                {
-                     var href = link.Link ?? "#";
-                     var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"fi fi-rr-{link.Icon} mr-1\"></i>";
-                     sb.AppendLine($"            <a href=\"{href}\" class=\"hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center\">{iconHtml}{link.Text}</a>");
-                }
-            }
-            sb.AppendLine("        </div>");
-
-            sb.AppendLine("        <div class=\"flex items-center gap-4\">");
-            sb.AppendLine("            <button onclick=\"openSearch()\" class=\"flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-blue-500 w-64 justify-between\">");
-            sb.AppendLine("                <div class=\"flex items-center gap-2\">");
-            sb.AppendLine("                    <i class=\"fi fi-rr-search text-sm\"></i>");
-            sb.AppendLine("                    <span class=\"text-sm font-medium\">Search</span>");
-            sb.AppendLine("                </div>");
-            sb.AppendLine("                <kbd class=\"hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400\">⌘K</kbd>");
-            sb.AppendLine("            </button>");
-            sb.AppendLine("            <button id=\"theme-toggle\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-blue-500\">");
-            sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
-            sb.AppendLine("                <i class=\"fi fi-rr-sun hidden dark:block text-lg\"></i>");
-            sb.AppendLine("            </button>");
-            sb.AppendLine("        </div>");
-            sb.AppendLine("    </header>");
+            RenderNavbar(sb);
 
             sb.AppendLine("    <div class=\"flex flex-1 overflow-hidden\">");
 
@@ -411,23 +215,7 @@ namespace Neko.Builder
                 sb.AppendLine("                    </div>");
             }
 
-            // Footer
-            sb.AppendLine("                    <footer class=\"mt-12 py-6 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400 flex flex-col md:flex-row justify-between items-center not-prose\">");
-            sb.AppendLine($"                        <div>&copy; {System.DateTime.Now.Year} {_config.Branding.Title}. All rights reserved.</div>");
-
-            if (!string.IsNullOrEmpty(_config.Branding.Repository))
-            {
-                 sb.AppendLine($"                        <div class=\"mt-2 md:mt-0\">");
-                 sb.AppendLine($"                            <a href=\"{_config.Branding.Repository}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1\">");
-                 sb.AppendLine("                                <i class=\"fi fi-rr-edit\"></i> Edit on GitHub");
-                 sb.AppendLine("                            </a>");
-                 sb.AppendLine("                        </div>");
-            }
-            else
-            {
-                 sb.AppendLine("                        <div class=\"mt-2 md:mt-0\">Powered by Neko</div>");
-            }
-            sb.AppendLine("                    </footer>");
+            RenderFooter(sb);
 
             sb.AppendLine("                </div>");
             sb.AppendLine("            </main>");
@@ -454,7 +242,250 @@ namespace Neko.Builder
             sb.AppendLine("        </div>");
             sb.AppendLine("    </div>");
 
-            // Scripts
+            RenderScripts(sb);
+
+            sb.AppendLine("</body>");
+            sb.AppendLine("</html>");
+
+            return sb.ToString();
+        }
+
+        private void RenderHead(StringBuilder sb, string title, string description)
+        {
+            var darkTheme = _config.Theme.Highlight.Dark;
+            var lightTheme = _config.Theme.Highlight.Light;
+
+            sb.AppendLine("<head>");
+            sb.AppendLine("    <meta charset=\"UTF-8\">");
+            sb.AppendLine("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+            sb.AppendLine($"    <title>{title}</title>");
+
+            if (!string.IsNullOrEmpty(_config.Branding.Favicon))
+            {
+                sb.AppendLine($"    <link rel=\"icon\" href=\"{_config.Branding.Favicon}\">");
+            }
+
+            if (!string.IsNullOrEmpty(description))
+            {
+                sb.AppendLine($"    <meta name=\"description\" content=\"{description}\">");
+                sb.AppendLine($"    <meta property=\"og:description\" content=\"{description}\">");
+                sb.AppendLine($"    <meta name=\"twitter:description\" content=\"{description}\">");
+            }
+
+            if (!string.IsNullOrEmpty(_config.Meta.Keywords)) sb.AppendLine($"    <meta name=\"keywords\" content=\"{_config.Meta.Keywords}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.Author)) sb.AppendLine($"    <meta name=\"author\" content=\"{_config.Meta.Author}\">");
+
+            sb.AppendLine($"    <meta property=\"og:title\" content=\"{title}\">");
+            sb.AppendLine($"    <meta name=\"twitter:title\" content=\"{title}\">");
+
+            if (!string.IsNullOrEmpty(_config.Meta.Type)) sb.AppendLine($"    <meta property=\"og:type\" content=\"{_config.Meta.Type}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.Url)) sb.AppendLine($"    <meta property=\"og:url\" content=\"{_config.Meta.Url}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.Image))
+            {
+                sb.AppendLine($"    <meta property=\"og:image\" content=\"{_config.Meta.Image}\">");
+                sb.AppendLine($"    <meta name=\"twitter:image\" content=\"{_config.Meta.Image}\">");
+            }
+
+            if (!string.IsNullOrEmpty(_config.Meta.TwitterCard)) sb.AppendLine($"    <meta name=\"twitter:card\" content=\"{_config.Meta.TwitterCard}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.TwitterSite)) sb.AppendLine($"    <meta name=\"twitter:site\" content=\"{_config.Meta.TwitterSite}\">");
+            if (!string.IsNullOrEmpty(_config.Meta.TwitterCreator)) sb.AppendLine($"    <meta name=\"twitter:creator\" content=\"{_config.Meta.TwitterCreator}\">");
+
+            // Tailwind CSS
+            sb.AppendLine("    <script src=\"https://cdn.tailwindcss.com?plugins=typography\"></script>");
+            sb.AppendLine("    <script>tailwind.config = { darkMode: 'class' }</script>");
+
+            // Neko Config
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+            var snippetsJson = _config.Snippets != null ? System.Text.Json.JsonSerializer.Serialize(_config.Snippets, jsonOptions) : "{}";
+            sb.AppendLine($"    <script>window.nekoConfig = {{ snippets: {snippetsJson} }};</script>");
+
+            // Assets
+            sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
+            sb.AppendLine("    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>");
+            sb.AppendLine("    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>");
+            sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/emoji.css\">");
+            sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css\">");
+            sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js\"></script>");
+            sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js\"></script>");
+            sb.AppendLine("    <script>document.addEventListener(\"DOMContentLoaded\", function() { renderMathInElement(document.body); });</script>");
+
+            // Mermaid
+            sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>");
+            sb.AppendLine("    <script>");
+            sb.AppendLine("        mermaid.initialize({ startOnLoad: false });");
+            sb.AppendLine("        async function renderMermaid() {");
+            sb.AppendLine("            const elements = document.querySelectorAll('.mermaid');");
+            sb.AppendLine("            if (!elements.length) return;");
+            sb.AppendLine("            for (const el of elements) {");
+            sb.AppendLine("                if (el.getAttribute('data-processed')) continue;");
+            sb.AppendLine("                el.setAttribute('data-processed', 'true');");
+            sb.AppendLine("                const source = el.textContent;");
+            sb.AppendLine("                const idBase = 'mermaid-' + Math.random().toString(36).substr(2, 9);");
+            sb.AppendLine("                const idLight = idBase + '-light';");
+            sb.AppendLine("                const idDark = idBase + '-dark';");
+            sb.AppendLine("                const sourceLight = `%%{init: {'theme':'default'}}%%\\n${source}`;");
+            sb.AppendLine("                const sourceDark = `%%{init: {'theme':'dark'}}%%\\n${source}`;");
+            sb.AppendLine("                try {");
+            sb.AppendLine("                    const rLight = await mermaid.render(idLight, sourceLight);");
+            sb.AppendLine("                    const rDark = await mermaid.render(idDark, sourceDark);");
+            sb.AppendLine("                    el.innerHTML = `<div class=\"dark:hidden\">${rLight.svg}</div><div class=\"hidden dark:block\">${rDark.svg}</div>`;");
+            sb.AppendLine("                    if (rLight.bindFunctions) rLight.bindFunctions(el.querySelector('.dark\\\\:hidden'));");
+            sb.AppendLine("                    if (rDark.bindFunctions) rDark.bindFunctions(el.querySelector('.dark\\\\:block'));");
+            sb.AppendLine("                } catch (e) {");
+            sb.AppendLine("                    console.error('Mermaid rendering failed:', e);");
+            sb.AppendLine("                    el.innerHTML = `<div class=\"text-red-500\">Error rendering diagram</div>`;");
+            sb.AppendLine("                }");
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine("        document.addEventListener('DOMContentLoaded', renderMermaid);");
+            sb.AppendLine("    </script>");
+
+            sb.AppendLine("    <script src=\"/assets/force-graph.min.js\"></script>");
+            sb.AppendLine("    <script src=\"/assets/minisearch.min.js\"></script>");
+            sb.AppendLine("    <script defer src=\"/assets/search.js\"></script>");
+
+            sb.AppendLine($"    <link id=\"highlight-theme\" rel=\"stylesheet\" href=\"/assets/highlight/{darkTheme}.min.css\">");
+            sb.AppendLine("    <script src=\"/assets/highlight/highlight.min.js\"></script>");
+            sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js\"></script>");
+            sb.AppendLine("    <style>");
+            sb.AppendLine("        .hljs-ln td { padding-left: 10px; }");
+            sb.AppendLine("        .hljs-ln-numbers { user-select: none; text-align: right; color: #ccc; border-right: 1px solid #ccc; vertical-align: top; padding-right: 5px; }");
+            sb.AppendLine("        .hljs-ln-code { padding-left: 10px; }");
+            sb.AppendLine("        .line-highlight { background-color: rgba(255, 255, 0, 0.15); display: block; width: 100%; }");
+            sb.AppendLine("        .dark .line-highlight { background-color: rgba(255, 255, 0, 0.15); }");
+            sb.AppendLine("        .hljs-ln { width: 100%; border-collapse: collapse; }");
+            sb.AppendLine("        #sidebar::-webkit-scrollbar { width: 6px; height: 6px; background-color: transparent; }");
+            sb.AppendLine("        #sidebar::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 3px; }");
+            sb.AppendLine("        #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); }");
+            sb.AppendLine("        .dark #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }");
+            sb.AppendLine("        #toc-sidebar::-webkit-scrollbar { display: none; }");
+            sb.AppendLine("        #toc-sidebar { -ms-overflow-style: none; scrollbar-width: none; }");
+            sb.AppendLine("        #main-scroll::-webkit-scrollbar { width: 8px; height: 8px; background-color: transparent; }");
+            sb.AppendLine("        #main-scroll::-webkit-scrollbar-track { background-color: transparent; }");
+            sb.AppendLine("        #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(209, 213, 219, 0.5); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }");
+            sb.AppendLine("        .dark #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }");
+            sb.AppendLine("        #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(156, 163, 175, 0.8); }");
+            sb.AppendLine("        .dark #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(107, 114, 128, 0.8); }");
+            sb.AppendLine("    </style>");
+
+            sb.AppendLine("    <script>");
+            sb.AppendLine("        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {");
+            sb.AppendLine("            document.documentElement.classList.add('dark');");
+            sb.AppendLine("        } else {");
+            sb.AppendLine("            document.documentElement.classList.remove('dark');");
+            sb.AppendLine("        }");
+            sb.AppendLine("    </script>");
+            sb.AppendLine("</head>");
+        }
+
+        private void RenderNavbar(StringBuilder sb)
+        {
+            // Banner
+            if (_config.Banner != null && _config.Banner.Visible && !string.IsNullOrEmpty(_config.Banner.Text))
+            {
+                var banner = _config.Banner;
+                var bannerId = banner.Id ?? "neko-banner";
+                var bg = !string.IsNullOrEmpty(banner.Background) ? banner.Background : "bg-indigo-600";
+                var color = !string.IsNullOrEmpty(banner.Color) ? banner.Color : "text-white";
+
+                sb.AppendLine($"    <div id=\"{bannerId}\" class=\"{bg} {color} relative isolate flex items-center gap-x-6 overflow-hidden px-6 py-2.5 sm:px-3.5 sm:before:flex-1 hidden z-50\">");
+                sb.AppendLine("        <div class=\"flex flex-wrap items-center gap-x-4 gap-y-2\">");
+                sb.AppendLine($"            <p class=\"text-sm leading-6\">{banner.Text}</p>");
+                if (!string.IsNullOrEmpty(banner.Link))
+                {
+                    var linkText = !string.IsNullOrEmpty(banner.LinkText) ? banner.LinkText : "Read more";
+                    sb.AppendLine($"            <a href=\"{banner.Link}\" class=\"flex-none rounded-full bg-gray-900 px-3.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900\">{linkText} <span aria-hidden=\"true\">&rarr;</span></a>");
+                }
+                sb.AppendLine("        </div>");
+                if (banner.Dismissible)
+                {
+                    sb.AppendLine("        <div class=\"flex flex-1 justify-end\">");
+                    sb.AppendLine($"            <button type=\"button\" class=\"-m-3 p-3 focus-visible:outline-offset-[-4px]\" onclick=\"dismissBanner('{bannerId}')\">");
+                    sb.AppendLine("                <span class=\"sr-only\">Dismiss</span>");
+                    sb.AppendLine("                <i class=\"fi fi-rr-cross-small text-xl\"></i>");
+                    sb.AppendLine("            </button>");
+                    sb.AppendLine("        </div>");
+                }
+                sb.AppendLine("    </div>");
+            }
+
+            sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10\">");
+            sb.AppendLine("        <div class=\"flex items-center gap-4\">");
+            sb.AppendLine("            <button id=\"mobile-menu-btn\" class=\"md:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none\">");
+            sb.AppendLine("                <i class=\"fi fi-rr-menu-burger text-xl\"></i>");
+            sb.AppendLine("            </button>");
+            if (!string.IsNullOrEmpty(_config.Branding.Logo))
+            {
+                sb.AppendLine($"            <img src=\"{_config.Branding.Logo}\" class=\"h-8 w-auto dark:hidden\">");
+                if (!string.IsNullOrEmpty(_config.Branding.LogoDark))
+                {
+                    sb.AppendLine($"            <img src=\"{_config.Branding.LogoDark}\" class=\"h-8 w-auto hidden dark:block\">");
+                }
+                else
+                {
+                    sb.AppendLine($"            <img src=\"{_config.Branding.Logo}\" class=\"h-8 w-auto hidden dark:block\">");
+                }
+            }
+            else if (!string.IsNullOrEmpty(_config.Branding.Icon))
+            {
+                sb.AppendLine($"            <i class=\"{_config.Branding.Icon} text-2xl text-blue-600 dark:text-blue-400\"></i>");
+            }
+            sb.AppendLine($"            <a href=\"/index\" class=\"font-bold text-xl hover:text-blue-600 transition-colors\">{_config.Branding.Title}</a>");
+            sb.AppendLine("        </div>");
+
+            sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300\">");
+            if (_config.Links != null)
+            {
+                foreach (var link in _config.Links)
+                {
+                     var href = link.Link ?? "#";
+                     var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"fi fi-rr-{link.Icon} mr-1\"></i>";
+                     sb.AppendLine($"            <a href=\"{href}\" class=\"hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center\">{iconHtml}{link.Text}</a>");
+                }
+            }
+            sb.AppendLine("        </div>");
+
+            sb.AppendLine("        <div class=\"flex items-center gap-4\">");
+            sb.AppendLine("            <button onclick=\"openSearch()\" class=\"flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-blue-500 w-64 justify-between\">");
+            sb.AppendLine("                <div class=\"flex items-center gap-2\">");
+            sb.AppendLine("                    <i class=\"fi fi-rr-search text-sm\"></i>");
+            sb.AppendLine("                    <span class=\"text-sm font-medium\">Search</span>");
+            sb.AppendLine("                </div>");
+            sb.AppendLine("                <kbd class=\"hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400\">⌘K</kbd>");
+            sb.AppendLine("            </button>");
+            sb.AppendLine("            <button id=\"theme-toggle\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-blue-500\">");
+            sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
+            sb.AppendLine("                <i class=\"fi fi-rr-sun hidden dark:block text-lg\"></i>");
+            sb.AppendLine("            </button>");
+            sb.AppendLine("        </div>");
+            sb.AppendLine("    </header>");
+        }
+
+        private void RenderFooter(StringBuilder sb)
+        {
+            sb.AppendLine("                    <footer class=\"mt-12 py-6 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400 flex flex-col md:flex-row justify-between items-center not-prose\">");
+            sb.AppendLine($"                        <div>&copy; {System.DateTime.Now.Year} {_config.Branding.Title}. All rights reserved.</div>");
+
+            if (!string.IsNullOrEmpty(_config.Branding.Repository))
+            {
+                 sb.AppendLine($"                        <div class=\"mt-2 md:mt-0\">");
+                 sb.AppendLine($"                            <a href=\"{_config.Branding.Repository}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1\">");
+                 sb.AppendLine("                                <i class=\"fi fi-rr-edit\"></i> Edit on GitHub");
+                 sb.AppendLine("                            </a>");
+                 sb.AppendLine("                        </div>");
+            }
+            else
+            {
+                 sb.AppendLine("                        <div class=\"mt-2 md:mt-0\">Powered by Neko</div>");
+            }
+            sb.AppendLine("                    </footer>");
+        }
+
+        private void RenderScripts(StringBuilder sb)
+        {
+            var darkTheme = _config.Theme.Highlight.Dark;
+            var lightTheme = _config.Theme.Highlight.Light;
+
             sb.AppendLine("    <script>");
 
             // Banner
@@ -556,7 +587,6 @@ namespace Neko.Builder
             sb.AppendLine("        }");
 
             // TOC Highlighting
-            // Active Link Highlighting
             sb.AppendLine("        document.addEventListener('DOMContentLoaded', () => {");
             sb.AppendLine("            let currentPath = window.location.pathname;");
             sb.AppendLine("            if (currentPath.endsWith('.html')) currentPath = currentPath.substring(0, currentPath.length - 5);");
@@ -577,7 +607,6 @@ namespace Neko.Builder
             sb.AppendLine("                }");
             sb.AppendLine("            });");
             sb.AppendLine("        });");
-
             sb.AppendLine("        const tocLinks = document.querySelectorAll('.toc-link');");
             sb.AppendLine("        const sections = [];");
             sb.AppendLine("        tocLinks.forEach(link => {");
@@ -585,51 +614,36 @@ namespace Neko.Builder
             sb.AppendLine("            const section = document.getElementById(id);");
             sb.AppendLine("            if (section) sections.push(section);");
             sb.AppendLine("        });");
-            sb.AppendLine("");
             sb.AppendLine("        const visibleSections = new Set();");
             sb.AppendLine("        const highlightLine = document.getElementById('toc-highlight');");
             sb.AppendLine("        const tocList = document.getElementById('toc-list');");
-            sb.AppendLine("");
             sb.AppendLine("        function updateTocHighlight() {");
             sb.AppendLine("            if (!highlightLine || !tocList) return;");
-            sb.AppendLine("");
-            sb.AppendLine("            // Clear all highlights");
             sb.AppendLine("            document.querySelectorAll('.toc-link').forEach(link => {");
             sb.AppendLine("                link.classList.remove('text-blue-600', 'dark:text-blue-400', 'font-medium');");
             sb.AppendLine("            });");
-            sb.AppendLine("");
             sb.AppendLine("            let activeLinks = Array.from(document.querySelectorAll('.toc-link')).filter(link => ");
             sb.AppendLine("                visibleSections.has(link.getAttribute('data-id'))");
             sb.AppendLine("            );");
-            sb.AppendLine("");
             sb.AppendLine("            if (activeLinks.length === 0) {");
-            sb.AppendLine("                // Fallback to last passed section");
             sb.AppendLine("                const passedSections = sections.filter(section => {");
             sb.AppendLine("                    const rect = section.getBoundingClientRect();");
             sb.AppendLine("                    return rect.top < 100;");
             sb.AppendLine("                });");
-            sb.AppendLine("                ");
             sb.AppendLine("                if (passedSections.length > 0) {");
             sb.AppendLine("                    const lastPassedSection = passedSections[passedSections.length - 1];");
             sb.AppendLine("                    const id = lastPassedSection.id;");
             sb.AppendLine("                    const link = document.querySelector(`.toc-link[data-id=\"${id}\"]`);");
-            sb.AppendLine("                    if (link) {");
-            sb.AppendLine("                        activeLinks = [link];");
-            sb.AppendLine("                    }");
+            sb.AppendLine("                    if (link) activeLinks = [link];");
             sb.AppendLine("                }");
             sb.AppendLine("            }");
-            sb.AppendLine("");
             sb.AppendLine("            if (activeLinks.length === 0) {");
             sb.AppendLine("                highlightLine.style.opacity = '0';");
             sb.AppendLine("                return;");
             sb.AppendLine("            }");
-            sb.AppendLine("");
-            sb.AppendLine("            // Apply highlight");
             sb.AppendLine("            activeLinks.forEach(link => {");
             sb.AppendLine("                link.classList.add('text-blue-600', 'dark:text-blue-400', 'font-medium');");
             sb.AppendLine("            });");
-            sb.AppendLine("");
-            sb.AppendLine("            // Scroll TOC to active link");
             sb.AppendLine("            const activeLink = activeLinks[0];");
             sb.AppendLine("            const tocSidebar = document.getElementById('toc-sidebar');");
             sb.AppendLine("            if (activeLink && tocSidebar) {");
@@ -639,30 +653,22 @@ namespace Neko.Builder
             sb.AppendLine("                     activeLink.scrollIntoView({ block: 'center', behavior: 'smooth' });");
             sb.AppendLine("                }");
             sb.AppendLine("            }");
-            sb.AppendLine("");
             sb.AppendLine("            const firstLink = activeLinks[0];");
             sb.AppendLine("            const lastLink = activeLinks[activeLinks.length - 1];");
-            sb.AppendLine("            ");
             sb.AppendLine("            const listRect = tocList.getBoundingClientRect();");
             sb.AppendLine("            const firstRect = firstLink.getBoundingClientRect();");
             sb.AppendLine("            const lastRect = lastLink.getBoundingClientRect();");
-            sb.AppendLine("");
             sb.AppendLine("            const top = firstRect.top - listRect.top;");
             sb.AppendLine("            const height = lastRect.bottom - firstRect.top;");
-            sb.AppendLine("");
             sb.AppendLine("            highlightLine.style.top = `${top}px`;");
             sb.AppendLine("            highlightLine.style.height = `${height}px`;");
             sb.AppendLine("            highlightLine.style.opacity = '1';");
             sb.AppendLine("        }");
-            sb.AppendLine("");
             sb.AppendLine("        const observer = new IntersectionObserver((entries) => {");
             sb.AppendLine("            entries.forEach(entry => {");
             sb.AppendLine("                const id = entry.target.id;");
-            sb.AppendLine("                if (entry.isIntersecting) {");
-            sb.AppendLine("                    visibleSections.add(id);");
-            sb.AppendLine("                } else {");
-            sb.AppendLine("                    visibleSections.delete(id);");
-            sb.AppendLine("                }");
+            sb.AppendLine("                if (entry.isIntersecting) visibleSections.add(id);");
+            sb.AppendLine("                else visibleSections.delete(id);");
             sb.AppendLine("            });");
             sb.AppendLine("            requestAnimationFrame(updateTocHighlight);");
             sb.AppendLine("        }, {");
@@ -677,7 +683,6 @@ namespace Neko.Builder
             sb.AppendLine("        const highlightLink = document.getElementById('highlight-theme');");
             sb.AppendLine($"        const darkHref = '/assets/highlight/{darkTheme}.min.css';");
             sb.AppendLine($"        const lightHref = '/assets/highlight/{lightTheme}.min.css';");
-            sb.AppendLine("");
             sb.AppendLine("        function setTheme(isDark) {");
             sb.AppendLine("            if (isDark) {");
             sb.AppendLine("                document.documentElement.classList.add('dark');");
@@ -690,11 +695,9 @@ namespace Neko.Builder
             sb.AppendLine("            }");
             sb.AppendLine("            if (typeof renderMermaid === 'function') renderMermaid();");
             sb.AppendLine("        }");
-            sb.AppendLine("");
             sb.AppendLine("        themeToggleBtn.addEventListener('click', () => {");
             sb.AppendLine("            setTheme(!document.documentElement.classList.contains('dark'));");
             sb.AppendLine("        });");
-            sb.AppendLine("");
             sb.AppendLine("        if (document.documentElement.classList.contains('dark')) {");
             sb.AppendLine("            highlightLink.href = darkHref;");
             sb.AppendLine("        } else {");
@@ -738,21 +741,16 @@ namespace Neko.Builder
             // Init Highlight.js
             sb.AppendLine("        document.addEventListener('DOMContentLoaded', (event) => {");
             sb.AppendLine("            hljs.highlightAll();");
-            sb.AppendLine("            ");
-            sb.AppendLine("            // Init Line Numbers");
             sb.AppendLine("            document.querySelectorAll('code.hljs').forEach(block => {");
             sb.AppendLine("                const language = Array.from(block.classList).find(c => c.startsWith('language-'))?.replace('language-', '');");
             sb.AppendLine("                const configLineNumbers = window.nekoConfig?.snippets?.lineNumbers || [];");
             sb.AppendLine("                const globalEnabled = language && configLineNumbers.includes(language);");
             sb.AppendLine("                const localEnabled = block.classList.contains('line-numbers');");
             sb.AppendLine("                const localDisabled = block.classList.contains('no-line-numbers');");
-            sb.AppendLine("                ");
             sb.AppendLine("                if ((globalEnabled || localEnabled) && !localDisabled) {");
             sb.AppendLine("                    hljs.lineNumbersBlock(block, { singleLine: true });");
             sb.AppendLine("                }");
             sb.AppendLine("            });");
-            sb.AppendLine("");
-            sb.AppendLine("            // Anchor Links");
             sb.AppendLine("            document.querySelectorAll('h2, h3, h4, h5, h6').forEach(heading => {");
             sb.AppendLine("                if (heading.id) {");
             sb.AppendLine("                    heading.classList.add('group', 'relative');");
@@ -792,12 +790,8 @@ namespace Neko.Builder
             sb.AppendLine("                }");
             sb.AppendLine("            });");
             sb.AppendLine("        });");
+
             sb.AppendLine("    </script>");
-
-            sb.AppendLine("</body>");
-            sb.AppendLine("</html>");
-
-            return sb.ToString();
         }
 
         private void RenderSidebarItems(StringBuilder sb, List<LinkConfig> links, int level)

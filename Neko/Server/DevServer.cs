@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -63,6 +64,22 @@ namespace Neko.Server
                     EnableDirectoryBrowsing = false
                 });
             }
+
+            // Handle 404
+            app.Run(async context =>
+            {
+                context.Response.StatusCode = 404;
+                var notFoundPath = Path.Combine(_rootPath, "404.html");
+                if (File.Exists(notFoundPath))
+                {
+                    context.Response.ContentType = "text/html";
+                    await context.Response.SendFileAsync(notFoundPath);
+                }
+                else
+                {
+                    await context.Response.WriteAsync("404 - Page Not Found");
+                }
+            });
 
             System.Console.WriteLine($"Server started at http://localhost:{_port}");
 

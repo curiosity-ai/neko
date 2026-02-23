@@ -29,7 +29,7 @@ namespace Neko.Builder
             var configPath = Path.Combine(_inputDirectory, "neko.yml");
             try
             {
-                _config = ConfigParser.Parse(configPath);
+                _config = ConfigParser.Parse<NekoConfig>(configPath);
             }
             catch (Exception ex)
             {
@@ -228,6 +228,31 @@ namespace Neko.Builder
             }
 
             await searchIndexer.WriteIndexAsync(OutputDirectory);
+
+            // Generate 404
+            var notFoundConfigPath = Path.Combine(_inputDirectory, "404.yml");
+            NotFoundConfig notFoundConfig;
+            if (File.Exists(notFoundConfigPath))
+            {
+                try
+                {
+                    notFoundConfig = ConfigParser.Parse<NotFoundConfig>(notFoundConfigPath);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warning: Error parsing 404.yml: {ex.Message}. Using default.");
+                    notFoundConfig = new NotFoundConfig();
+                }
+            }
+            else
+            {
+                notFoundConfig = new NotFoundConfig();
+            }
+
+            var notFoundHtml = generator.Generate404(notFoundConfig);
+            var notFoundPath = Path.Combine(OutputDirectory, "404.html");
+            await File.WriteAllTextAsync(notFoundPath, notFoundHtml);
+            Console.WriteLine("Generated 404.html");
 
             // Copy Assets
             await CopyAssetsAsync(OutputDirectory);

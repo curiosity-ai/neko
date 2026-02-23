@@ -7,11 +7,11 @@ namespace Neko.Configuration
 {
     public static class ConfigParser
     {
-        public static NekoConfig Parse(string configPath)
+        public static T Parse<T>(string configPath) where T : new()
         {
             if (!File.Exists(configPath))
             {
-                return new NekoConfig(); // Return default if no config file
+                return new T(); // Return default if no config file
             }
 
             var yaml = File.ReadAllText(configPath);
@@ -20,7 +20,7 @@ namespace Neko.Configuration
                 .IgnoreUnmatchedProperties()
                 .Build();
 
-            return deserializer.Deserialize<NekoConfig>(yaml);
+            return deserializer.Deserialize<T>(yaml);
         }
     }
 }

@@ -9,7 +9,7 @@ namespace Neko.Tests
         [Test]
         public void TestParseDefaultConfig()
         {
-            var config = ConfigParser.Parse("nonexistent.yml");
+            var config = ConfigParser.Parse<NekoConfig>("nonexistent.yml");
             Assert.That(config.Input, Is.EqualTo("."));
             Assert.That(config.Output, Is.EqualTo(".neko"));
         }
@@ -32,7 +32,7 @@ links:
 
             try
             {
-                var config = ConfigParser.Parse(tempFile);
+                var config = ConfigParser.Parse<NekoConfig>(tempFile);
                 Assert.That(config.Input, Is.EqualTo("./docs"));
                 Assert.That(config.Output, Is.EqualTo("./public"));
                 Assert.That(config.Url, Is.EqualTo("example.com"));
