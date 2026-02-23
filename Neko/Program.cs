@@ -19,7 +19,7 @@ namespace Neko
             // Build Command
             var buildCommand = new Command("build", "Build the documentation");
 
-            var inputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
+            var inputOption  = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var outputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
 
             buildCommand.AddOption(inputOption);
@@ -33,16 +33,19 @@ namespace Neko
 
             // Watch Command
             var watchCommand = new Command("watch", "Watch for changes and rebuild");
+            var portOption   = new Option<int?>(new[] { "--port", "-p" }, "Port to use (default: 5000)");
             var watchInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var watchOutputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
 
             watchCommand.AddOption(watchInputOption);
+            watchCommand.AddOption(portOption);
             watchCommand.AddOption(watchOutputOption);
 
             watchCommand.SetHandler(async (context) =>
             {
                 var input = context.ParseResult.GetValueForOption(watchInputOption) ?? ".";
                 var output = context.ParseResult.GetValueForOption(watchOutputOption);
+                var port = context.ParseResult.GetValueForOption(portOption) ?? 5000;
                 var token = context.GetCancellationToken();
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -66,7 +69,7 @@ namespace Neko
                 var outputDir = builder.OutputDirectory;
 
                 // Start Server in background
-                var server = new DevServer(outputDir, input);
+                var server = new DevServer(outputDir, input, port);
                 var serverTask = server.StartAsync(cts.Token);
 
                 // Watch file changes
