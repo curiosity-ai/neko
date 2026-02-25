@@ -52,7 +52,7 @@ namespace Neko.Builder
             return sb.ToString();
         }
 
-        public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null, List<LinkConfig> sidebarLinks = null)
+        public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null, List<LinkConfig> sidebarLinks = null, List<(ParsedDocument Doc, string Url)> blogPosts = null, List<(ParsedDocument Doc, string Url)> changelogEntries = null, string currentUrl = null)
         {
             var title = !string.IsNullOrEmpty(document.FrontMatter.Title)
                 ? $"{_config.Branding.Title} - {document.FrontMatter.Title}"
@@ -283,12 +283,61 @@ namespace Neko.Builder
                 sb.AppendLine("                    </nav>");
             }
 
+            // Blog Post Header
+            if (currentUrl != null && currentUrl.StartsWith("/blog/") && !currentUrl.EndsWith("/index"))
+            {
+                // Render Header
+                sb.AppendLine("<div class=\"mb-8 not-prose\">");
+                if (!string.IsNullOrEmpty(document.FrontMatter.Cover))
+                {
+                    sb.AppendLine($"<div class=\"aspect-video w-full rounded-lg overflow-hidden mb-6 bg-gray-100 dark:bg-gray-900\">");
+                    sb.AppendLine($"    <img src=\"{document.FrontMatter.Cover}\" class=\"w-full h-full object-cover\">");
+                    sb.AppendLine($"</div>");
+                }
+
+                sb.AppendLine($"<h1 class=\"text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4\">{document.FrontMatter.Title}</h1>");
+
+                sb.AppendLine("<div class=\"flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400\">");
+                if (!string.IsNullOrEmpty(document.FrontMatter.Author))
+                {
+                     sb.AppendLine("<div class=\"flex items-center gap-2\">");
+                     if (!string.IsNullOrEmpty(document.FrontMatter.AuthorImage)) {
+                        sb.AppendLine($"<img src=\"{document.FrontMatter.AuthorImage}\" class=\"w-8 h-8 rounded-full bg-gray-100\">");
+                     }
+                     sb.AppendLine($"<span class=\"font-medium text-gray-900 dark:text-gray-100\">{document.FrontMatter.Author}</span>");
+                     sb.AppendLine("</div>");
+                }
+                if (!string.IsNullOrEmpty(document.FrontMatter.Date))
+                {
+                    if (!string.IsNullOrEmpty(document.FrontMatter.Author)) sb.AppendLine($"<span>•</span>");
+                    sb.AppendLine($"<time>{document.FrontMatter.Date}</time>");
+                }
+                sb.AppendLine("</div>");
+                sb.AppendLine("</div>");
+            }
+
             // Link Cleanup Logic
             var htmlContent = document.Html;
             if (!string.IsNullOrEmpty(htmlContent))
             {
                  // Strip extension, preserve relative/absolute nature
                  htmlContent = System.Text.RegularExpressions.Regex.Replace(htmlContent, "href=\"((?!http:|https:|ftp:|mailto:|#|/)[^\"]+)\\.(md|html)\"", "href=\"$1\"");
+            }
+
+            // Inject Blog Index
+            if (currentUrl != null && (currentUrl == "/blog/index" || document.FrontMatter.Layout == "blog"))
+            {
+                var sbBlog = new StringBuilder();
+                RenderBlogIndex(sbBlog, blogPosts);
+                htmlContent += sbBlog.ToString();
+            }
+
+            // Inject Changelog Index
+            if (currentUrl != null && (currentUrl == "/changelog/index" || document.FrontMatter.Layout == "changelog"))
+            {
+                 var sbChangelog = new StringBuilder();
+                 RenderChangelogIndex(sbChangelog, changelogEntries);
+                 htmlContent += sbChangelog.ToString();
             }
 
             // Watch Mode Button Injection
@@ -1255,6 +1304,106 @@ namespace Neko.Builder
                     sb.AppendLine($"                    <li><a href=\"{href}\" class=\"block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300\">{iconHtml} {link.Text}</a></li>");
                 }
             }
+        }
+
+        private void RenderBlogIndex(StringBuilder sb, List<(ParsedDocument Doc, string Url)> posts)
+        {
+            if (posts == null || posts.Count == 0) return;
+
+            sb.AppendLine("<div class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 not-prose\">");
+
+            foreach (var post in posts)
+            {
+                var title = post.Doc.FrontMatter.Title;
+                var desc = post.Doc.FrontMatter.Description;
+                var date = post.Doc.FrontMatter.Date;
+                var author = post.Doc.FrontMatter.Author;
+                var cover = post.Doc.FrontMatter.Cover;
+                var url = post.Url;
+
+                sb.AppendLine($"<a href=\"{url}\" class=\"group flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-700 transition-all overflow-hidden hover:-translate-y-1 duration-300\">");
+
+                if (!string.IsNullOrEmpty(cover))
+                {
+                    sb.AppendLine($"    <div class=\"aspect-video w-full overflow-hidden bg-gray-100 dark:bg-gray-900\">");
+                    sb.AppendLine($"        <img src=\"{cover}\" alt=\"{title}\" class=\"w-full h-full object-cover transition-transform duration-500 group-hover:scale-105\">");
+                    sb.AppendLine($"    </div>");
+                }
+
+                sb.AppendLine($"    <div class=\"flex flex-col flex-1 p-6\">");
+
+                if (!string.IsNullOrEmpty(date))
+                {
+                    sb.AppendLine($"        <div class=\"text-xs text-gray-500 dark:text-gray-400 mb-2\">{date}</div>");
+                }
+
+                sb.AppendLine($"        <h3 class=\"text-lg font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors\">{title}</h3>");
+
+                if (!string.IsNullOrEmpty(desc))
+                {
+                    sb.AppendLine($"        <p class=\"text-sm text-gray-600 dark:text-gray-400 flex-1 line-clamp-3\">{desc}</p>");
+                }
+
+                if (!string.IsNullOrEmpty(author))
+                {
+                    sb.AppendLine($"        <div class=\"mt-4 flex items-center gap-2 text-xs font-medium text-gray-900 dark:text-gray-100\">");
+                    if (!string.IsNullOrEmpty(post.Doc.FrontMatter.AuthorImage)) {
+                        sb.AppendLine($"            <img src=\"{post.Doc.FrontMatter.AuthorImage}\" class=\"w-6 h-6 rounded-full bg-gray-100\">");
+                    }
+                    sb.AppendLine($"            <span>{author}</span>");
+                    sb.AppendLine($"        </div>");
+                }
+
+                sb.AppendLine($"    </div>");
+                sb.AppendLine($"</a>");
+            }
+
+            sb.AppendLine("</div>");
+        }
+
+        private void RenderChangelogIndex(StringBuilder sb, List<(ParsedDocument Doc, string Url)> entries)
+        {
+            if (entries == null || entries.Count == 0) return;
+
+            sb.AppendLine("<div class=\"space-y-12 mt-8 not-prose relative\">");
+
+            // Timeline line
+            sb.AppendLine("<div class=\"absolute left-4 top-2 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700 md:left-[8.5rem]\"></div>");
+
+            foreach (var entry in entries)
+            {
+                var title = entry.Doc.FrontMatter.Title;
+                var date = entry.Doc.FrontMatter.Date;
+                var html = entry.Doc.Html;
+
+                sb.AppendLine("<div class=\"relative flex flex-col md:flex-row gap-8\">");
+
+                // Left Column (Version & Date)
+                sb.AppendLine("    <div class=\"flex md:w-32 flex-col items-start md:items-end md:text-right shrink-0 relative\">");
+
+                // Dot
+                sb.AppendLine("        <div class=\"absolute left-4 md:left-full md:-ml-[5px] w-2.5 h-2.5 rounded-full ring-4 ring-white dark:ring-gray-900 bg-blue-600 top-2 z-10 -translate-x-1/2 md:translate-x-1/2\"></div>");
+
+                sb.AppendLine($"        <div class=\"pl-10 md:pl-0\">");
+                sb.AppendLine($"            <h2 class=\"text-lg font-bold text-gray-900 dark:text-gray-100 leading-6\">{title}</h2>");
+                if (!string.IsNullOrEmpty(date))
+                {
+                    sb.AppendLine($"            <time class=\"text-xs text-gray-500 dark:text-gray-400\">{date}</time>");
+                }
+                sb.AppendLine($"        </div>");
+                sb.AppendLine("    </div>");
+
+                // Right Column (Content)
+                sb.AppendLine("    <div class=\"flex-1 pl-10 md:pl-0 pb-8\">");
+                sb.AppendLine("        <div class=\"prose dark:prose-invert max-w-none prose-sm prose-headings:font-semibold prose-a:text-blue-600\">");
+                sb.AppendLine(html);
+                sb.AppendLine("        </div>");
+                sb.AppendLine("    </div>");
+
+                sb.AppendLine("</div>");
+            }
+
+            sb.AppendLine("</div>");
         }
     }
 }
