@@ -1,21 +1,64 @@
 ---
-title: "Neko Update #1"
-description: "This is update number 1 for Neko."
+title: "Getting Started with Neko Alerts"
+description: "Learn how to draw attention to critical information using Neko's powerful Alert system and GitHub-style callouts."
 author: "Neko Team"
-date: "2023-10-11"
+date: "2023-10-15"
 authorImage: "https://github.com/github.png"
-cover: "https://picsum.photos/seed/1/800/400"
+cover: "https://picsum.photos/seed/alerts/800/400"
 layout: post
 ---
 
-# Update #1
+# Getting Started with Neko Alerts
 
-This is a blog post about Neko feature number 1.
+When writing documentation, sometimes you need to make sure your readers don't miss important information. Neko provides a robust **Alert** system to highlight content effectively.
 
-## Features
+## Standard Alerts
 
-- Feature A
-- Feature B
-- Feature C
+Neko supports standard alerts using the `!!!` syntax. You can specify the type of alert to change its appearance.
 
-Enjoy!
+### Syntax
+
+```markdown
+!!! note
+This is a standard note alert.
+!!!
+
+!!! warning
+This is a warning! Be careful.
+!!!
+
+!!! success "Great Job!"
+You successfully configured Neko.
+!!!
+```
+
+### Supported Types
+
+- `note` (Blue)
+- `tip` (Green)
+- `warning` (Yellow)
+- `danger` (Red)
+- `success` (Green)
+
+## GitHub-Style Alerts
+
+If you are coming from GitHub, you might prefer the blockquote syntax for alerts. Neko supports these out of the box!
+
+```markdown
+> [!NOTE]
+> This is a note using GitHub syntax.
+
+> [!TIP]
+> Here's a helpful tip for you.
+
+> [!IMPORTANT]
+> Do not skip this step!
+
+> [!WARNING]
+> Proceed with caution.
+
+> [!CAUTION]
+> This action cannot be undone.
+```
+
+Using alerts consistently helps guide your users through your documentation and prevents them from missing critical steps. Happy documenting!
