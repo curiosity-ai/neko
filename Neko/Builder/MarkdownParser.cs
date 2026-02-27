@@ -48,6 +48,21 @@ namespace Neko.Builder
 
         [YamlMember(Alias = "password")]
         public string Password { get; set; }
+
+        [YamlMember(Alias = "author")]
+        public string Author { get; set; }
+
+        [YamlMember(Alias = "authorImage")]
+        public string AuthorImage { get; set; }
+
+        [YamlMember(Alias = "date")]
+        public string Date { get; set; }
+
+        [YamlMember(Alias = "cover")]
+        public string Cover { get; set; }
+
+        [YamlMember(Alias = "layout")]
+        public string Layout { get; set; }
     }
 
     public class MarkdownParser

@@ -189,6 +189,27 @@ namespace Neko.Builder
                 }
             }
 
+            // Identify Blog Posts & Changelog
+            var blogPosts = parsedDocs
+                .Where(p => p.RelativePath.Replace("\\", "/").StartsWith("blog/") && !p.RelativePath.EndsWith("index.md"))
+                .Select(p => {
+                    var url = "/" + p.RelativePath.Replace("\\", "/");
+                    if (url.EndsWith(".md")) url = url.Substring(0, url.Length - 3);
+                    return (p.Doc, url);
+                })
+                .OrderByDescending(p => p.Doc.FrontMatter.Date ?? "")
+                .ToList();
+
+            var changelogEntries = parsedDocs
+                .Where(p => p.RelativePath.Replace("\\", "/").StartsWith("changelog/") && !p.RelativePath.EndsWith("index.md"))
+                .Select(p => {
+                    var url = "/" + p.RelativePath.Replace("\\", "/");
+                    if (url.EndsWith(".md")) url = url.Substring(0, url.Length - 3);
+                    return (p.Doc, url);
+                })
+                .OrderByDescending(p => p.Doc.FrontMatter.Date ?? "")
+                .ToList();
+
             // Pass 3: Generate HTML
             foreach (var item in parsedDocs)
             {
@@ -228,7 +249,7 @@ namespace Neko.Builder
                     }
                 }
 
-                var html = generator.Generate(item.Doc, backlinks, navContext, sidebarLinks);
+                var html = generator.Generate(item.Doc, backlinks, navContext, sidebarLinks, blogPosts, changelogEntries, relativeUrl);
 
                 var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html");
                 var outputPath = Path.Combine(OutputDirectory, htmlFileName);
