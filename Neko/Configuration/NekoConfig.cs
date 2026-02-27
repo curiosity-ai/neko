@@ -32,6 +32,18 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "snippets")]
         public SnippetsConfig Snippets { get; set; } = new SnippetsConfig();
+
+        [YamlMember(Alias = "layout")]
+        public LayoutConfig Layout { get; set; } = new LayoutConfig();
+    }
+
+    public class LayoutConfig
+    {
+        [YamlMember(Alias = "sidebar")]
+        public bool Sidebar { get; set; } = true;
+
+        [YamlMember(Alias = "toc")]
+        public bool Toc { get; set; } = true;
     }
 
     public class SnippetsConfig
