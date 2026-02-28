@@ -29,7 +29,7 @@ namespace Neko.Tests
             var markdown = "[!badge variant=\"primary\" text=\"Primary\"]";
             var doc = _parser.Parse(markdown);
 
-            Assert.That(doc.Html, Contains.Substring("bg-blue-100"));
+            Assert.That(doc.Html, Contains.Substring("bg-primary-100"));
         }
 
         [Test]

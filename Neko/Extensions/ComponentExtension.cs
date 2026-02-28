@@ -877,14 +877,14 @@ namespace Neko.Extensions
             var target = obj.GetAttribute("target");
 
             // 1. Variant Styles
-            var bgClass = "bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-500"; // default primary
+            var bgClass = "bg-primary-600 hover:bg-primary-700 text-white dark:bg-primary-600 dark:hover:bg-primary-500"; // default primary
             switch (variant.ToLower())
             {
                 case "base":
                     bgClass = "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600";
                     break;
                 case "primary":
-                    bgClass = "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500";
+                    bgClass = "bg-primary-600 text-white hover:bg-primary-700 dark:bg-primary-600 dark:hover:bg-primary-500";
                     break;
                 case "secondary":
                     bgClass = "bg-gray-600 text-white hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500";
@@ -914,7 +914,7 @@ namespace Neko.Extensions
                     bgClass = "bg-white text-black hover:bg-gray-100 dark:bg-black dark:text-white dark:hover:bg-gray-900 border border-gray-300 dark:border-gray-700";
                     break;
                 case "outline":
-                    bgClass = "bg-transparent border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-900/20";
+                    bgClass = "bg-transparent border border-primary-600 text-primary-600 hover:bg-primary-50 dark:border-primary-400 dark:text-primary-400 dark:hover:bg-primary-900/20";
                     break;
             }
 
@@ -948,7 +948,7 @@ namespace Neko.Extensions
                 targetAttr = $" target=\"{target}\"";
             }
 
-            renderer.Write($"<a href=\"{link}\"{targetAttr} class=\"inline-flex items-center border border-transparent font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-2 no-underline {bgClass} {roundedClass} {sizeClass}\">");
+            renderer.Write($"<a href=\"{link}\"{targetAttr} class=\"inline-flex items-center border border-transparent font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 mr-2 no-underline {bgClass} {roundedClass} {sizeClass}\">");
 
             if (!string.IsNullOrEmpty(icon))
             {
@@ -1088,7 +1088,7 @@ namespace Neko.Extensions
             var icon = obj.GetAttribute("icon");
 
             renderer.Write($"<a href=\"{link}\" class=\"inline-flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors no-underline group my-2\" download>");
-            renderer.Write($"<div class=\"p-2 bg-blue-50 dark:bg-blue-900 rounded-md mr-4 group-hover:bg-blue-100 dark:group-hover:bg-blue-800 transition-colors flex items-center justify-center w-11 h-11\">");
+            renderer.Write($"<div class=\"p-2 bg-primary-50 dark:bg-primary-900 rounded-md mr-4 group-hover:bg-primary-100 dark:group-hover:bg-primary-800 transition-colors flex items-center justify-center w-11 h-11\">");
 
             if (!string.IsNullOrEmpty(icon))
             {
@@ -1106,12 +1106,12 @@ namespace Neko.Extensions
                 }
                 else
                 {
-                    renderer.Write($"<i class=\"fi fi-rr-{icon} text-blue-600 dark:text-blue-400 text-xl\"></i>");
+                    renderer.Write($"<i class=\"fi fi-rr-{icon} text-primary-600 dark:text-primary-400 text-xl\"></i>");
                 }
             }
             else
             {
-                renderer.Write($"<i class=\"fi fi-rr-document text-blue-600 dark:text-blue-400 text-xl\"></i>");
+                renderer.Write($"<i class=\"fi fi-rr-document text-primary-600 dark:text-primary-400 text-xl\"></i>");
             }
 
             renderer.Write("</div>");
@@ -1159,7 +1159,7 @@ namespace Neko.Extensions
                 link = "#";
             }
 
-            renderer.Write($"<a href=\"{link}\" class=\"inline-flex items-center text-blue-600 dark:text-blue-400 hover:underline no-underline\">");
+            renderer.Write($"<a href=\"{link}\" class=\"inline-flex items-center text-primary-600 dark:text-primary-400 hover:underline no-underline\">");
             renderer.Write($"<i class=\"fi fi-rr-link-alt mr-1\"></i>");
             renderer.Write(text);
             renderer.Write("</a>");

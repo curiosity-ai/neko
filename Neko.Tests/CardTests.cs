@@ -104,7 +104,7 @@ namespace Neko.Tests
             Assert.That(docLight, Contains.Substring("Light Card"));
             Assert.That(docLight, Contains.Substring("Content Light"));
             Assert.That(docLight, Contains.Substring("View docs"));
-            Assert.That(docLight, Contains.Substring("text-blue-600"));
+            Assert.That(docLight, Contains.Substring("text-primary-600"));
             Assert.That(docLight, Does.Not.Contain("&rarr;"));
 
             // Test Dark Variant with Arrow

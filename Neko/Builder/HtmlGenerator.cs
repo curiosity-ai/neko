@@ -125,9 +125,9 @@ namespace Neko.Builder
             }
             else if (!string.IsNullOrEmpty(_config.Branding.Icon))
             {
-                sb.AppendLine($"            <i class=\"{_config.Branding.Icon} text-2xl text-blue-600 dark:text-blue-400\"></i>");
+                sb.AppendLine($"            <i class=\"{_config.Branding.Icon} text-2xl text-primary-600 dark:text-primary-400\"></i>");
             }
-            sb.AppendLine($"            <a href=\"/index\" class=\"font-bold text-xl hover:text-blue-600 transition-colors\">{_config.Branding.Title}</a>");
+            sb.AppendLine($"            <a href=\"/index\" class=\"font-bold text-xl hover:text-primary-600 transition-colors\">{_config.Branding.Title}</a>");
             sb.AppendLine("        </div>");
 
             sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300\">");
@@ -139,7 +139,7 @@ namespace Neko.Builder
                     {
                         // Flyout Menu
                         sb.AppendLine($"            <div class=\"relative group z-50\">");
-                        sb.AppendLine($"                <button class=\"flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors focus:outline-none\">");
+                        sb.AppendLine($"                <button class=\"flex items-center gap-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors focus:outline-none\">");
                         if (!string.IsNullOrEmpty(link.Icon))
                         {
                             sb.AppendLine($"                    <i class=\"fi fi-rr-{link.Icon}\"></i>");
@@ -157,11 +157,11 @@ namespace Neko.Builder
                             sb.AppendLine($"                            <div class=\"flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700 group-hover:bg-white dark:group-hover:bg-gray-600\">");
                             if (!string.IsNullOrEmpty(item.Icon))
                             {
-                                sb.AppendLine($"                                <i class=\"fi fi-rr-{item.Icon} text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400\"></i>");
+                                sb.AppendLine($"                                <i class=\"fi fi-rr-{item.Icon} text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400\"></i>");
                             }
                             else
                             {
-                                sb.AppendLine($"                                <i class=\"fi fi-rr-arrow-small-right text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400\"></i>");
+                                sb.AppendLine($"                                <i class=\"fi fi-rr-arrow-small-right text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400\"></i>");
                             }
                             sb.AppendLine($"                            </div>");
                             sb.AppendLine($"                            <div class=\"flex-auto\">");
@@ -203,14 +203,14 @@ namespace Neko.Builder
                          var href = link.Link ?? "#";
                          var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"fi fi-rr-{link.Icon} mr-1\"></i>";
                          var target = !string.IsNullOrEmpty(link.Target) ? $" target=\"{link.Target}\"" : "";
-                         sb.AppendLine($"            <a href=\"{href}\"{target} class=\"hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center\">{iconHtml}{link.Text}</a>");
+                         sb.AppendLine($"            <a href=\"{href}\"{target} class=\"hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center\">{iconHtml}{link.Text}</a>");
                     }
                 }
             }
             sb.AppendLine("        </div>");
 
             sb.AppendLine("        <div class=\"flex items-center gap-4 hidden md:flex\">");
-            sb.AppendLine("            <button onclick=\"openSearch()\" class=\"flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-blue-500 w-64 justify-between\">");
+            sb.AppendLine("            <button onclick=\"openSearch()\" class=\"flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-primary-500 w-64 justify-between\">");
             sb.AppendLine("                <div class=\"flex items-center gap-2\">");
             sb.AppendLine("                    <i class=\"fi fi-rr-search text-sm\"></i>");
             sb.AppendLine("                    <span class=\"text-sm font-medium\">Search</span>");
@@ -218,7 +218,7 @@ namespace Neko.Builder
             sb.AppendLine("                <kbd class=\"hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400\">⌘K</kbd>");
             sb.AppendLine("            </button>");
             sb.AppendLine("            <div class=\"relative\">");
-            sb.AppendLine("                <button id=\"history-btn\" onclick=\"toggleHistory()\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-blue-500\">");
+            sb.AppendLine("                <button id=\"history-btn\" onclick=\"toggleHistory()\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
             sb.AppendLine("                    <i class=\"fi fi-rr-clock text-lg\"></i>");
             sb.AppendLine("                </button>");
             sb.AppendLine("                <div id=\"history-popup\" class=\"absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden border border-gray-200 dark:border-gray-700\">");
@@ -229,7 +229,7 @@ namespace Neko.Builder
             sb.AppendLine("                    </ul>");
             sb.AppendLine("                </div>");
             sb.AppendLine("            </div>");
-            sb.AppendLine("            <button id=\"theme-toggle\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-blue-500\">");
+            sb.AppendLine("            <button id=\"theme-toggle\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
             sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
             sb.AppendLine("                <i class=\"fi fi-rr-sun hidden dark:block text-lg\"></i>");
             sb.AppendLine("            </button>");
@@ -248,7 +248,7 @@ namespace Neko.Builder
                 sb.AppendLine("                    <div class=\"absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none\">");
                 sb.AppendLine("                        <i class=\"fi fi-rr-filter text-gray-400\"></i>");
                 sb.AppendLine("                    </div>");
-                sb.AppendLine("                    <input type=\"text\" id=\"sidebar-filter\" placeholder=\"Filter...\" class=\"w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm\">");
+                sb.AppendLine("                    <input type=\"text\" id=\"sidebar-filter\" placeholder=\"Filter...\" class=\"w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm\">");
                 sb.AppendLine("                </div>");
                 sb.AppendLine("                <ul class=\"space-y-1\" id=\"sidebar-list\">");
 
@@ -396,16 +396,16 @@ namespace Neko.Builder
                 sb.AppendLine($"<div id=\"content-container\">");
                 sb.AppendLine($"    <div id=\"password-form-container\" class=\"flex flex-col items-center justify-center py-20 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700\">");
                 sb.AppendLine($"        <div class=\"p-8 bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 max-w-md w-full text-center\">");
-                sb.AppendLine($"            <div class=\"w-12 h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4\">");
+                sb.AppendLine($"            <div class=\"w-12 h-12 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-full flex items-center justify-center mx-auto mb-4\">");
                 sb.AppendLine($"                <i class=\"fi fi-rr-lock text-xl\"></i>");
                 sb.AppendLine($"            </div>");
                 sb.AppendLine($"            <h2 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 mb-2\">Password Protected</h2>");
                 sb.AppendLine($"            <p class=\"text-sm text-gray-500 dark:text-gray-400 mb-6\">This page is password protected. Please enter the password to view the content.</p>");
                 sb.AppendLine($"            <div class=\"space-y-4\">");
                 sb.AppendLine($"                <div>");
-                sb.AppendLine($"                    <input type=\"password\" id=\"password-input\" class=\"w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100\" placeholder=\"Enter password...\" autofocus>");
+                sb.AppendLine($"                    <input type=\"password\" id=\"password-input\" class=\"w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-gray-100\" placeholder=\"Enter password...\" autofocus>");
                 sb.AppendLine($"                </div>");
-                sb.AppendLine($"                <button id=\"password-submit\" class=\"w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900\">Unlock</button>");
+                sb.AppendLine($"                <button id=\"password-submit\" class=\"w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900\">Unlock</button>");
                 sb.AppendLine($"                <p id=\"password-error\" class=\"hidden text-sm text-red-600 dark:text-red-400\">Incorrect password. Please try again.</p>");
                 sb.AppendLine($"            </div>");
                 sb.AppendLine($"        </div>");
@@ -434,8 +434,8 @@ namespace Neko.Builder
                 // Prev
                 if (navContext.Prev != null)
                 {
-                    sb.AppendLine($"                        <a href=\"{navContext.Prev.Url}\" class=\"flex flex-col p-4 rounded border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group\">");
-                    sb.AppendLine("                            <span class=\"text-xs text-gray-500 dark:text-gray-400 mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400\">Previous</span>");
+                    sb.AppendLine($"                        <a href=\"{navContext.Prev.Url}\" class=\"flex flex-col p-4 rounded border border-gray-200 dark:border-gray-700 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all group\">");
+                    sb.AppendLine("                            <span class=\"text-xs text-gray-500 dark:text-gray-400 mb-1 group-hover:text-primary-600 dark:group-hover:text-primary-400\">Previous</span>");
                     sb.AppendLine($"                            <span class=\"font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2\"><i class=\"fi fi-rr-arrow-small-left transition-transform group-hover:-translate-x-1\"></i> {navContext.Prev.Title}</span>");
                     sb.AppendLine("                        </a>");
                 }
@@ -447,8 +447,8 @@ namespace Neko.Builder
                 // Next
                 if (navContext.Next != null)
                 {
-                    sb.AppendLine($"                        <a href=\"{navContext.Next.Url}\" class=\"flex flex-col items-end p-4 rounded border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group text-right\">");
-                    sb.AppendLine("                            <span class=\"text-xs text-gray-500 dark:text-gray-400 mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400\">Next</span>");
+                    sb.AppendLine($"                        <a href=\"{navContext.Next.Url}\" class=\"flex flex-col items-end p-4 rounded border border-gray-200 dark:border-gray-700 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all group text-right\">");
+                    sb.AppendLine("                            <span class=\"text-xs text-gray-500 dark:text-gray-400 mb-1 group-hover:text-primary-600 dark:group-hover:text-primary-400\">Next</span>");
                     sb.AppendLine($"                            <span class=\"font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2\">{navContext.Next.Title} <i class=\"fi fi-rr-arrow-small-right transition-transform group-hover:translate-x-1\"></i></span>");
                     sb.AppendLine("                        </a>");
                 }
@@ -463,7 +463,7 @@ namespace Neko.Builder
                 sb.AppendLine("                        <ul class=\"space-y-2\">");
                 foreach (var link in backlinks)
                 {
-                    sb.AppendLine($"                            <li><a href=\"{link.Url}\" class=\"text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2\"><i class=\"fi fi-rr-arrow-small-right\"></i> {link.Title}</a></li>");
+                    sb.AppendLine($"                            <li><a href=\"{link.Url}\" class=\"text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-2\"><i class=\"fi fi-rr-arrow-small-right\"></i> {link.Title}</a></li>");
                 }
                 sb.AppendLine("                        </ul>");
                 sb.AppendLine("                    </div>");
@@ -476,7 +476,7 @@ namespace Neko.Builder
             if (!string.IsNullOrEmpty(_config.Branding.Repository))
             {
                  sb.AppendLine($"                        <div class=\"mt-2 md:mt-0\">");
-                 sb.AppendLine($"                            <a href=\"{_config.Branding.Repository}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1\">");
+                 sb.AppendLine($"                            <a href=\"{_config.Branding.Repository}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1\">");
                  sb.AppendLine("                                <i class=\"fi fi-rr-edit\"></i> Edit on GitHub");
                  sb.AppendLine("                            </a>");
                  sb.AppendLine("                        </div>");
@@ -497,12 +497,12 @@ namespace Neko.Builder
                 sb.AppendLine("                <div class=\"sticky top-0\">");
                 sb.AppendLine("                    <h5 class=\"text-xs font-semibold mb-4 text-gray-900 dark:text-gray-100 uppercase tracking-wider\">On this page</h5>");
                 sb.AppendLine("                    <ul class=\"space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800 relative\" id=\"toc-list\">");
-                sb.AppendLine("                        <div id=\"toc-highlight\" class=\"absolute left-0 border-l-2 border-blue-600 dark:border-blue-400 transition-all duration-200 ease-in-out -ml-px\" style=\"top: 0; height: 0; opacity: 0;\"></div>");
+                sb.AppendLine("                        <div id=\"toc-highlight\" class=\"absolute left-0 border-l-2 border-primary-600 dark:border-primary-400 transition-all duration-200 ease-in-out -ml-px\" style=\"top: 0; height: 0; opacity: 0;\"></div>");
                 foreach (var item in document.Toc)
                 {
                     if (item.Level < 2) continue;
                     var padding = item.Level == 2 ? "pl-4" : "pl-8";
-                    sb.AppendLine($"                        <li><a href=\"#{item.Id}\" class=\"block {padding} hover:text-blue-600 dark:hover:text-blue-400 transition-colors toc-link\" data-id=\"{item.Id}\">{item.Title}</a></li>");
+                    sb.AppendLine($"                        <li><a href=\"#{item.Id}\" class=\"block {padding} hover:text-primary-600 dark:hover:text-primary-400 transition-colors toc-link\" data-id=\"{item.Id}\">{item.Title}</a></li>");
                 }
                 sb.AppendLine("                    </ul>");
                 sb.AppendLine("                </div>");
@@ -524,7 +524,7 @@ namespace Neko.Builder
                 sb.AppendLine("                    <h3 class=\"text-lg font-semibold text-gray-900 dark:text-gray-100\">Edit Content</h3>");
                 sb.AppendLine("                    <div class=\"flex items-center gap-2\">");
                 sb.AppendLine("                        <button onclick=\"nekoCancelEdit()\" class=\"px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors\">Cancel</button>");
-                sb.AppendLine("                        <button onclick=\"nekoSaveContent()\" class=\"px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors\">Save</button>");
+                sb.AppendLine("                        <button onclick=\"nekoSaveContent()\" class=\"px-3 py-1.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md transition-colors\">Save</button>");
                 sb.AppendLine("                    </div>");
                 sb.AppendLine("                </div>");
                 sb.AppendLine("                <div id=\"neko-editor-container\" class=\"flex-1 overflow-hidden\"></div>");
@@ -821,7 +821,7 @@ namespace Neko.Builder
             sb.AppendLine("            sidebarLinks.forEach(link => {");
             sb.AppendLine("                const href = link.getAttribute('href');");
             sb.AppendLine("                if (href === currentPath || (href !== '/' && currentPath.startsWith(href) && (href.endsWith('/') || currentPath.charAt(href.length) === '/'))) {");
-            sb.AppendLine("                    link.classList.add('bg-blue-50', 'dark:bg-blue-900', 'text-blue-700', 'dark:text-blue-300', 'font-medium');");
+            sb.AppendLine("                    link.classList.add('bg-primary-50', 'dark:bg-primary-900', 'text-primary-700', 'dark:text-primary-300', 'font-medium');");
             sb.AppendLine("                    link.classList.remove('text-gray-700', 'dark:text-gray-200');");
             sb.AppendLine("                    // Open parent details");
             sb.AppendLine("                    let parent = link.parentElement;");
@@ -852,7 +852,7 @@ namespace Neko.Builder
             sb.AppendLine("");
             sb.AppendLine("            // Clear all highlights");
             sb.AppendLine("            document.querySelectorAll('.toc-link').forEach(link => {");
-            sb.AppendLine("                link.classList.remove('text-blue-600', 'dark:text-blue-400', 'font-medium');");
+            sb.AppendLine("                link.classList.remove('text-primary-600', 'dark:text-primary-400', 'font-medium');");
             sb.AppendLine("            });");
             sb.AppendLine("");
             sb.AppendLine("            let activeLinks = Array.from(document.querySelectorAll('.toc-link')).filter(link => ");
@@ -883,7 +883,7 @@ namespace Neko.Builder
             sb.AppendLine("");
             sb.AppendLine("            // Apply highlight");
             sb.AppendLine("            activeLinks.forEach(link => {");
-            sb.AppendLine("                link.classList.add('text-blue-600', 'dark:text-blue-400', 'font-medium');");
+            sb.AppendLine("                link.classList.add('text-primary-600', 'dark:text-primary-400', 'font-medium');");
             sb.AppendLine("            });");
             sb.AppendLine("");
             sb.AppendLine("            // Scroll TOC to active link");
@@ -964,12 +964,12 @@ namespace Neko.Builder
             sb.AppendLine("            contents.forEach(c => c.classList.add('hidden'));");
             sb.AppendLine("            var buttons = evt.currentTarget.parentElement.children;");
             sb.AppendLine("            for (var i = 0; i < buttons.length; i++) {");
-            sb.AppendLine("                buttons[i].classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'font-medium');");
+            sb.AppendLine("                buttons[i].classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400', 'font-medium');");
             sb.AppendLine("                buttons[i].classList.add('border-transparent', 'hover:text-gray-700', 'text-gray-500');");
             sb.AppendLine("            }");
             sb.AppendLine("            document.getElementById(tabId).classList.remove('hidden');");
             sb.AppendLine("            evt.currentTarget.classList.remove('border-transparent', 'hover:text-gray-700', 'text-gray-500');");
-            sb.AppendLine("            evt.currentTarget.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'font-medium');");
+            sb.AppendLine("            evt.currentTarget.classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400', 'font-medium');");
             sb.AppendLine("        }");
 
             // Copy Code Script
@@ -1024,7 +1024,7 @@ namespace Neko.Builder
             sb.AppendLine("                    heading.classList.add('group', 'relative');");
             sb.AppendLine("                    const link = document.createElement('a');");
             sb.AppendLine("                    link.href = '#' + heading.id;");
-            sb.AppendLine("                    link.className = 'absolute -left-6 top-0 bottom-0 flex items-center justify-center text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 no-underline';");
+            sb.AppendLine("                    link.className = 'absolute -left-6 top-0 bottom-0 flex items-center justify-center text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 no-underline';");
             sb.AppendLine("                    link.innerHTML = '<i class=\"fi fi-rr-hashtag\"></i>';");
             sb.AppendLine("                    link.setAttribute('aria-label', 'Anchor');");
             sb.AppendLine("                    heading.prepend(link);");
@@ -1112,7 +1112,17 @@ namespace Neko.Builder
             // Use CDN to ensure plugins (like typography) are available.
             // The local resource might be missing the typography plugin.
             sb.AppendLine("    <script src=\"https://cdn.tailwindcss.com?plugins=typography\"></script>");
-            sb.AppendLine("    <script>tailwind.config = { darkMode: 'class' }</script>");
+
+            var primaryTheme = new Dictionary<string, string>(ThemeDefinitions.GetTheme(_config.Theme.Name));
+            if (_config.Theme.Colors != null && _config.Theme.Colors.Count > 0)
+            {
+                foreach (var kvp in _config.Theme.Colors)
+                {
+                    primaryTheme[kvp.Key] = kvp.Value;
+                }
+            }
+            var themeJson = System.Text.Json.JsonSerializer.Serialize(primaryTheme);
+            sb.AppendLine($"    <script>tailwind.config = {{ darkMode: 'class', theme: {{ extend: {{ colors: {{ primary: {themeJson} }} }} }} }}</script>");
 
             // Neko Config
             var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
@@ -1343,7 +1353,7 @@ namespace Neko.Builder
                     sb.AppendLine($"        <div class=\"text-xs text-gray-500 dark:text-gray-400 mb-2\">{date}</div>");
                 }
 
-                sb.AppendLine($"        <h3 class=\"text-lg font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors\">{title}</h3>");
+                sb.AppendLine($"        <h3 class=\"text-lg font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors\">{title}</h3>");
 
                 if (!string.IsNullOrEmpty(desc))
                 {
@@ -1388,7 +1398,7 @@ namespace Neko.Builder
                 sb.AppendLine("    <div class=\"flex md:w-32 flex-col items-start md:items-end md:text-right shrink-0 relative\">");
 
                 // Dot
-                sb.AppendLine("        <div class=\"absolute left-4 md:left-full md:-ml-[5px] w-2.5 h-2.5 rounded-full ring-4 ring-white dark:ring-gray-900 bg-blue-600 top-2 z-10 -translate-x-1/2 md:translate-x-1/2\"></div>");
+                sb.AppendLine("        <div class=\"absolute left-4 md:left-full md:-ml-[5px] w-2.5 h-2.5 rounded-full ring-4 ring-white dark:ring-gray-900 bg-primary-600 top-2 z-10 -translate-x-1/2 md:translate-x-1/2\"></div>");
 
                 sb.AppendLine($"        <div class=\"pl-10 md:pl-0\">");
                 sb.AppendLine($"            <h2 class=\"text-lg font-bold text-gray-900 dark:text-gray-100 leading-6\">{title}</h2>");
@@ -1401,7 +1411,7 @@ namespace Neko.Builder
 
                 // Right Column (Content)
                 sb.AppendLine("    <div class=\"flex-1 pl-10 md:pl-0 pb-8\">");
-                sb.AppendLine("        <div class=\"prose dark:prose-invert max-w-none prose-sm prose-headings:font-semibold prose-a:text-blue-600\">");
+                sb.AppendLine("        <div class=\"prose dark:prose-invert max-w-none prose-sm prose-headings:font-semibold prose-a:text-primary-600\">");
                 sb.AppendLine(html);
                 sb.AppendLine("        </div>");
                 sb.AppendLine("    </div>");

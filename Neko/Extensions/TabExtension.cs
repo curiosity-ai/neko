@@ -222,7 +222,7 @@ namespace Neko.Extensions
             foreach (var item in tabs)
             {
                 var tab = item.Tab;
-                var activeClass = index == 0 ? "border-blue-500 text-blue-600 dark:text-blue-400 font-medium" : "border-transparent hover:text-gray-700 dark:hover:text-gray-300 text-gray-500 dark:text-gray-400";
+                var activeClass = index == 0 ? "border-primary-500 text-primary-600 dark:text-primary-400 font-medium" : "border-transparent hover:text-gray-700 dark:hover:text-gray-300 text-gray-500 dark:text-gray-400";
                 renderer.Write($"<button class=\"px-4 py-2 border-b-2 focus:outline-none whitespace-nowrap {activeClass}\" onclick=\"openTab(event, '{groupId}', 'tab-{groupId}-{index}')\">");
                 if (!string.IsNullOrEmpty(tab.Title))
                 {

@@ -126,7 +126,7 @@ namespace Neko.Extensions
 
                 var linkClass = isDark
                     ? "text-white hover:text-gray-200"
-                    : "text-blue-600 hover:underline dark:text-blue-400";
+                    : "text-primary-600 hover:underline dark:text-primary-400";
 
                 renderer.Write($"<a href=\"{WebUtility.HtmlEncode(url)}\" class=\"mt-auto inline-flex items-center font-medium text-sm {linkClass}\">");
                 renderer.Write(WebUtility.HtmlEncode(displayText));
@@ -222,7 +222,7 @@ namespace Neko.Extensions
                 if (!string.IsNullOrEmpty(seeMore))
                 {
                     var encodedSeeMore = WebUtility.HtmlEncode(seeMore);
-                    renderer.Write($"<a href=\"{encodedSeeMore}\" class=\"inline-flex items-center text-sm font-medium text-blue-600 hover:underline dark:text-blue-500\">See more &rarr;</a>");
+                    renderer.Write($"<a href=\"{encodedSeeMore}\" class=\"inline-flex items-center text-sm font-medium text-primary-600 hover:underline dark:text-primary-500\">See more &rarr;</a>");
                 }
 
                 renderer.Write("</div>");
@@ -278,7 +278,7 @@ namespace Neko.Extensions
             if (!string.IsNullOrEmpty(seeMore))
             {
                 var encodedSeeMore = WebUtility.HtmlEncode(seeMore);
-                renderer.Write($"<div class=\"mt-4\"><a href=\"{encodedSeeMore}\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">See more &rarr;</a></div>");
+                renderer.Write($"<div class=\"mt-4\"><a href=\"{encodedSeeMore}\" class=\"text-primary-600 dark:text-primary-400 hover:underline\">See more &rarr;</a></div>");
             }
 
             renderer.Write("</div>");
@@ -349,7 +349,7 @@ namespace Neko.Extensions
                      foreach (var tag in tags.Split(new[] { ',' }, System.StringSplitOptions.RemoveEmptyEntries))
                      {
                          var t = WebUtility.HtmlEncode(tag.Trim());
-                         renderer.Write($"<span class=\"text-xs font-semibold inline-block py-1 px-2 uppercase rounded text-blue-600 bg-blue-200 dark:text-blue-400 dark:bg-blue-900 last:mr-0 mr-1\">{t}</span>");
+                         renderer.Write($"<span class=\"text-xs font-semibold inline-block py-1 px-2 uppercase rounded text-primary-600 bg-primary-200 dark:text-primary-400 dark:bg-primary-900 last:mr-0 mr-1\">{t}</span>");
                      }
                      renderer.Write("</div>");
                  }
@@ -357,7 +357,7 @@ namespace Neko.Extensions
                  if (!string.IsNullOrEmpty(seeMore))
                  {
                      var encodedSeeMore = WebUtility.HtmlEncode(seeMore);
-                     renderer.Write($"<div class=\"text-sm\"><a href=\"{encodedSeeMore}\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">See more</a></div>");
+                     renderer.Write($"<div class=\"text-sm\"><a href=\"{encodedSeeMore}\" class=\"text-primary-600 dark:text-primary-400 hover:underline\">See more</a></div>");
                  }
 
                  renderer.Write("</div>");

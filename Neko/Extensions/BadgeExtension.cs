@@ -222,7 +222,7 @@ namespace Neko.Extensions
             {
                 case "primary":
                 case "blue":
-                    bgClass = "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+                    bgClass = "bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-300";
                     break;
                 case "success":
                 case "green":

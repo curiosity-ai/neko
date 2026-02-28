@@ -20,7 +20,7 @@ namespace Neko.Tests
             var doc = _parser.Parse(markdown);
 
             Assert.That(doc.Html, Contains.Substring("This is an alert."));
-            Assert.That(doc.Html, Contains.Substring("border-blue-500")); // Primary/Info default
+            Assert.That(doc.Html, Contains.Substring("border-primary-500")); // Primary/Info default
         }
 
         [Test]
