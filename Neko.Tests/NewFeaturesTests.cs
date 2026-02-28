@@ -69,7 +69,7 @@ namespace Neko.Tests
             var html = _generator.Generate(doc);
 
             // Should contain the icon class
-            Assert.That(html, Contains.Substring("<i class=\"fi fi-rr-star text-2xl text-blue-600 dark:text-blue-400\"></i>"));
+            Assert.That(html, Contains.Substring("<i class=\"fi fi-rr-star text-2xl text-primary-600 dark:text-primary-400\"></i>"));
         }
 
         [Test]

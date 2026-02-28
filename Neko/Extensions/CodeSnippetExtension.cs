@@ -121,7 +121,7 @@ namespace Neko.Extensions
             // Header
             renderer.Write("<div class=\"bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between\">");
             renderer.Write($"<span class=\"font-mono text-sm text-gray-700 dark:text-gray-300 flex items-center\"><i class=\"fi fi-rr-file-code mr-2\"></i>{title}</span>");
-            renderer.Write($"<a href=\"{sourceLink}\" class=\"text-xs text-blue-600 dark:text-blue-400 hover:underline\">View Source</a>");
+            renderer.Write($"<a href=\"{sourceLink}\" class=\"text-xs text-primary-600 dark:text-primary-400 hover:underline\">View Source</a>");
             renderer.Write("</div>");
 
             // Content

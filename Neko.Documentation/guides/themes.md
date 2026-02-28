@@ -7,169 +7,77 @@ tags: [guide]
 ---
 # Themes
 
-Neko's [`theme`](/configuration/project.md#theme) system allows you to customize the visual appearance of your website by overriding [[theme variables]]. With themes, you can adjust colors, spacing, typography, and other design elements to match your brand or project preferences.
+Neko's [`theme`](/configuration/project.md#theme) system allows you to customize the visual appearance of your website easily by configuring primary colors used by components such as buttons, badges, navigation links, and more. With themes, you can adjust the look and feel to match your brand or project preferences for both light and dark modes.
 
 ## Quick Start
 
-The quickest way to customize your site's appearance is by adding a `theme` configuration to your `neko.yml` file and setting a custom [`base-color`](/configuration/theme-variables.md#base-variables) theme variable.
+The quickest way to customize your site's appearance is by adding a `theme` configuration to your `neko.yml` file and setting a predefined `name`.
 
 ```yml
 theme:
-  base:
-    base-color: "#8839ef"
+  name: violet
 ```
 
-## Configuration Structure
+## Built-in Themes
 
-The theme configuration supports two main sections:
+Neko comes with several predefined color palettes based on Tailwind CSS colors. You can select any of the following themes by specifying its `name`:
 
-### `base` theme
+- `blue` (Default)
+- `violet`
+- `emerald`
+- `rose`
+- `amber`
+- `sky`
+- `fuchsia`
 
-The [`base`](/configuration/project.md#theme) theme controls the light mode appearance and serves as the foundation for your project's visual style:
+## Custom Color Palettes
 
-```yaml
-theme:
-  base:
-    base-color: "#8839ef"
-    base-bg: "#eff1f5"
-    base-link-weight: 500
-    image-rounded: 0.75rem
-```
+If you want fine-grained control or need to match a specific brand color, you can override the individual color shades used by the theme. Neko uses a 50 to 950 scale (like Tailwind CSS) for its primary colors.
 
-### `dark` theme
-
-The [`dark`](/configuration/project.md#theme-dark) theme specifically targets dark mode appearance. When the website is switched to dark mode, the dark theme variables override the [[#base-theme]] variables. The following demonstrates how to configure the `dark` theme variables:
-
-```yaml
-theme:
-  dark:
-    base-color: "#ca9ee6"
-    base-bg: "#303446"
-```
-
-## Examples
-
-### Brand Color Customization
-
-To match your brand colors:
+To define a custom palette, use the `colors` dictionary under `theme`:
 
 ```yml
 theme:
-  base:
-    base-color: "#ff6b35"  # Orange brand color
+  colors:
+    "50": "#f0fdfa"
+    "100": "#ccfbf1"
+    "200": "#99f6e4"
+    "300": "#5eead4"
+    "400": "#2dd4bf"
+    "500": "#14b8a6"
+    "600": "#0d9488"
+    "700": "#0f766e"
+    "800": "#115e59"
+    "900": "#134e4a"
+    "950": "#042f2e"
 ```
 
-### Typography Adjustments
-
-To better match your project style and user-experience requirements:
-
-```yml
-theme:
-  base:
-    base-link-weight: 500            # Slightly bolder links
-    nav-item-text-active-weight: 700 # Bold active navigation
-    heading-text: "#1a202c"          # Darker headings
-```
-
-### Dark Mode Optimization
-
-To adjust the dark mode:
-
-```yml
-theme:
-  dark:
-    base-bg: "#0a0e1a"              # Very dark blue background
-    sidebar-left-bg: "#1a1f2e"      # Slightly lighter sidebar
-    base-text: "#e2e8f0"            # Light grey text
-    heading-text: "#ffffff"         # Pure white headings
-    base-border: "#2d3748"          # Subtle borders
-```
-
-### Component Styling
-
-To customize component colors and other elements:
-
-```yml
-theme:
-  base:
-    # Rounded images
-    image-rounded: 0.75rem
-
-    # Custom variant colors
-    primary: "#8caaee" # Blue
-    success: "#a6d189" # Green
-    danger: "#e78284"  # Red
-    warning: "#e5c890" # Yellow
-```
-
-## Best Practices
-
-When customizing your Neko [theme](/configuration/project.md#theme), it’s best to start with small changes and gradually build up. Here are some guidelines to help you maintain a clean, accessible, and consistent design.
-
-### 1. Start with the `base-color`
-
-Begin by tweaking a few brand colors before diving into full theme customization. This keeps things manageable and easier to approve before moving on to further theme refinements.
-
-```yml
-theme:
-  base:
-    base-color: "#8839ef" #your-brand-color
-```
-
-### 2. Prioritize readability and contrast
-
-Contrast between text and background is important for readability and accessibility. Avoid color combinations that are too similar and do not provide enough contrast.
-
-```yml
-theme:
-  base:
-    base-text: "#4c4f69"     # A strong neutral text color
-    base-bg: "#ffffff"       # Clean light background
-```
-
-!!!tip
-Use online contrast checkers to validate your color palette against WCAG standards.
+!!!note
+You can partially override colors. If you specify a `name` like `blue` but also provide a `colors` dictionary, your custom shades will overwrite only the specific keys you provide, while the rest of the shades will fall back to the selected base theme.
 !!!
 
-### 3. Check light and dark modes
+## Dark Mode
 
-If you are customizing both the `base` and `dark` themes, be sure to test your changes in each mode. A color that works well in light mode might look washed out or harsh in dark mode, and require further refinement.
+Neko handles dark mode automatically. It uses the darker shades of your configured primary color (typically 400, 300, etc.) for interactive elements and highlights when dark mode is active. This ensures that your site remains accessible and visually appealing regardless of the user's system preferences.
 
-```yml
-theme:
-  base:
-    base-color: "#8839ef"
-  dark:
-    base-color: "#ca9ee6"
-```
+## Syntax Highlighting
 
-### 4. Use Semantic variables where possible
-
-Instead of hardcoding colors everywhere, use the built-in semantic [[theme variables]]. It keeps your theme consistent and easier to maintain.
+You can also customize the code block syntax highlighting themes for light and dark modes via the `highlight` settings:
 
 ```yml
 theme:
-  base:
-    nav-item-text-active: "var(--base-500)"  # Uses a consistent brand tone
+  highlight:
+    light: tokyo-night-light
+    dark: tokyo-night-dark
 ```
-
-Following these practices helps ensure your site looks good, stays accessible, and is easy to maintain as it grows.
 
 ## Troubleshooting
 
 ### Theme Not Applied
 
-- [x] Check that the syntax is correct in your `neko.yml` file
-- [x] Verify [theme variable](/configuration/theme-variables.md) names match exactly
+- [x] Check that the syntax is correct in your `neko.yml` file.
+- [x] Ensure your `colors` keys are correctly quoted as strings (e.g., `"50"` rather than `50`).
 
-### Dark Mode Issues
+### Colors Look Wrong in Dark Mode
 
-- [x] Remember that `dark` theme variables only apply in dark mode
-- [x] Test with the theme switcher on your website
-- [x] Some variables may need both `base` and `dark` configured to provide proper contrast
-
-### Variable Names
-
-- [x] All variable names use `kebab-case` (hyphens, not underscores)
-- [x] Variables are case-sensitive
-- [x] Don't include the `--` prefix in your configuration
+- [x] If using custom colors, ensure your palette has appropriate contrast. Tailwind CSS color generators (like UI Colors) are great tools to generate a well-balanced 50-950 scale.

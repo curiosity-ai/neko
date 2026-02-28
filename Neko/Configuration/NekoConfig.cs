@@ -162,6 +162,12 @@ namespace Neko.Configuration
 
     public class ThemeConfig
     {
+        [YamlMember(Alias = "name")]
+        public string Name { get; set; } = "blue";
+
+        [YamlMember(Alias = "colors")]
+        public Dictionary<string, string> Colors { get; set; } = new Dictionary<string, string>();
+
         [YamlMember(Alias = "base")]
         public Dictionary<string, string> Base { get; set; } = new Dictionary<string, string>();
 

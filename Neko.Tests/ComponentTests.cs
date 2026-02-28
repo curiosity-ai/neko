@@ -20,7 +20,7 @@ namespace Neko.Tests
             var doc = _parser.Parse(markdown);
 
             Assert.That(doc.Html, Contains.Substring("<a href=\"/url\""));
-            Assert.That(doc.Html, Contains.Substring("bg-blue-600")); // primary variant
+            Assert.That(doc.Html, Contains.Substring("bg-primary-600")); // primary variant
             Assert.That(doc.Html, Contains.Substring("Click Me"));
             Assert.That(doc.Html, Contains.Substring("fi fi-rr-home"));
         }

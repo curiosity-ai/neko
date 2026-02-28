@@ -157,21 +157,21 @@ namespace Neko.Extensions
 
             // Map variant to colors
             string borderClass = "border-l-4";
-            string bgClass = "bg-blue-50 dark:bg-blue-900/20";
-            string borderColor = "border-blue-500";
+            string bgClass = "bg-primary-50 dark:bg-primary-900/20";
+            string borderColor = "border-primary-500";
             string icon = "info";
-            string titleColor = "text-blue-800 dark:text-blue-200";
-            string iconColor = "text-blue-500";
+            string titleColor = "text-primary-800 dark:text-primary-200";
+            string iconColor = "text-primary-500";
 
             switch (variant)
             {
                 case "primary":
                 case "info":
                 case "note":
-                    bgClass = "bg-blue-50 dark:bg-blue-900/20";
-                    borderColor = "border-blue-500";
-                    titleColor = "text-blue-800 dark:text-blue-200";
-                    iconColor = "text-blue-500";
+                    bgClass = "bg-primary-50 dark:bg-primary-900/20";
+                    borderColor = "border-primary-500";
+                    titleColor = "text-primary-800 dark:text-primary-200";
+                    iconColor = "text-primary-500";
                     icon = "info";
                     break;
                 case "success":
