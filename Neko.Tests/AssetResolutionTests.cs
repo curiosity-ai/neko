@@ -51,9 +51,9 @@ namespace Neko.Tests
             var markdown = "![](image.png)";
             var doc = _parser.Parse(markdown, filePath, _tempDir);
 
-            // Should resolve to assets/image.png
+            // Should resolve to /assets/image.png
             // Path.GetRelativePath uses platform separator. Replace to / for HTML check
-            Assert.That(doc.Html.Replace("\\", "/"), Contains.Substring("src=\"assets/image.png\""));
+            Assert.That(doc.Html.Replace("\\", "/"), Contains.Substring("src=\"/assets/image.png\""));
         }
 
         [Test]
@@ -77,8 +77,8 @@ namespace Neko.Tests
             var markdown = "![](image.png)";
             var doc = _parser.Parse(markdown, filePath, _tempDir);
 
-            // Should resolve to ../assets/image.png
-            Assert.That(doc.Html.Replace("\\", "/"), Contains.Substring("src=\"../assets/image.png\""));
+            // Should resolve to /assets/image.png
+            Assert.That(doc.Html.Replace("\\", "/"), Contains.Substring("src=\"/assets/image.png\""));
         }
     }
 }

@@ -191,8 +191,8 @@ namespace Neko.Builder
 
                         if (foundPath != null)
                         {
-                            // Calculate relative path from currentDir to foundPath
-                            var relativePath = Path.GetRelativePath(currentDir, foundPath).Replace("\\", "/");
+                            // Calculate relative path from rootDir to foundPath
+                            var relativePath = "/" + Path.GetRelativePath(rootDir, foundPath).Replace("\\", "/");
                             link.Url = relativePath;
                         }
                     }
