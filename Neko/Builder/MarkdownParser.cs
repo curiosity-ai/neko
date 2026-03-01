@@ -34,6 +34,9 @@ namespace Neko.Builder
         [YamlMember(Alias = "title")]
         public string Title { get; set; }
 
+        [YamlMember(Alias = "label")]
+        public string Label { get; set; }
+
         [YamlMember(Alias = "icon")]
         public string Icon { get; set; }
 
