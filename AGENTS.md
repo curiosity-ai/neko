@@ -17,13 +17,12 @@ This repository contains the source code for `Neko`, a CLI tool for generating s
     -   Update `Neko.Documentation` with examples of supported features.
     -   **All components and features of Neko should have an equivalent documentation page in the documentation project.**
     -   Maintain `TODO.md` and `WIP.md`.
-4.  **No References**: Do not mention the name of the tool we are emulating (starts with R) in the user-facing output or documentation.
-5.  **Assets**:
+4.  **Assets**:
     -   Use embedded resources for CSS, JS, and Fonts.
     -   Do not use Node.js or NPM at runtime.
     -   Use vanilla JavaScript. No frameworks like React/Vue/Angular.
     -   **Icons**: Use Flaticon UIcons (Regular Rounded) as the official icon set. Octicons are no longer supported.
-6.  **Architecture**:
+5.  **Architecture**:
     -   The CLI should support a `watch` command that serves the site on localhost and auto-reloads on file changes.
     -   Use `System.CommandLine` for argument parsing.
     -   Use `Markdig` for Markdown parsing.
