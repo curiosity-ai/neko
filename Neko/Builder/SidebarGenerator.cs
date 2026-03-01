@@ -75,7 +75,12 @@ namespace Neko.Builder
                 var markdown = File.ReadAllText(file);
                 var doc = _parser.Parse(markdown);
 
-                string title = doc.FrontMatter.Title;
+                string title = doc.FrontMatter.Label;
+
+                if (string.IsNullOrEmpty(title))
+                {
+                    title = doc.FrontMatter.Title;
+                }
 
                 if (string.IsNullOrEmpty(title))
                 {
