@@ -1,0 +1,15 @@
+[submodule "reference/flaticon-uicons"]
+	path = reference/flaticon-uicons
+	url = https://github.com/freepik-company/flaticon-uicons
+[submodule "reference/tailwindcss"]
+	path = reference/tailwindcss
+	url = https://github.com/tailwindlabs/tailwindcss
+[submodule "reference/inter"]
+	path = reference/inter
+	url = https://github.com/rsms/inter
+[submodule "reference/minisearch"]
+	path = reference/minisearch
+	url = https://github.com/lucaong/minisearch
+[submodule "reference/markdig"]
+	path = reference/markdig
+	url = https://github.com/xoofx/markdig
