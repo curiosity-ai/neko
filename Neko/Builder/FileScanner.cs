@@ -7,6 +7,13 @@ namespace Neko.Builder
 {
     public class FileScanner
     {
+        private static readonly HashSet<string> ExcludedRootFiles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "agents.md", "agent.md", "wip.md", "todo.md", "to-do.md",
+            "readme.md", "ai.md", "instructions.md", "prompt.md",
+            "rules.md", "context.md", ".cursorrules", ".windsurfrules"
+        };
+
         private readonly string _inputDirectory;
         private readonly string _outputDirectory;
 
@@ -68,15 +75,7 @@ namespace Neko.Builder
             // Exclude common AI agent files and placeholders ONLY in the root folder
             if (parts.Length == 1)
             {
-                var fileNameLower = parts[0].ToLowerInvariant();
-                var excludedRootFiles = new[]
-                {
-                    "agents.md", "agent.md", "wip.md", "todo.md", "to-do.md",
-                    "readme.md", "ai.md", "instructions.md", "prompt.md",
-                    "rules.md", "context.md", ".cursorrules", ".windsurfrules"
-                };
-
-                if (excludedRootFiles.Contains(fileNameLower))
+                if (ExcludedRootFiles.Contains(parts[0]))
                 {
                     return true;
                 }
