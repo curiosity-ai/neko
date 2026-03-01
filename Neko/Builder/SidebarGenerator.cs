@@ -23,12 +23,12 @@ namespace Neko.Builder
     public class SidebarGenerator
     {
         private readonly string _inputDirectory;
-        private readonly MarkdownParser _parser;
+        private readonly Dictionary<string, ParsedDocument> _parsedDocs;
 
-        public SidebarGenerator(string inputDirectory)
+        public SidebarGenerator(string inputDirectory, List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)> parsedDocs)
         {
             _inputDirectory = inputDirectory;
-            _parser = new MarkdownParser();
+            _parsedDocs = parsedDocs.ToDictionary(x => Path.GetFullPath(x.FilePath), x => x.Doc, StringComparer.OrdinalIgnoreCase);
         }
 
         public List<LinkConfig> Generate()
@@ -68,12 +68,12 @@ namespace Neko.Builder
             var files = Directory.GetFiles(directory, "*.md");
             foreach (var file in files)
             {
+                var fullPath = Path.GetFullPath(file);
+                if (!_parsedDocs.TryGetValue(fullPath, out var doc)) continue;
+
                 var fileName = Path.GetFileName(file);
                 // Skip hidden files
                 if (fileName.StartsWith(".")) continue;
-
-                var markdown = File.ReadAllText(file);
-                var doc = _parser.Parse(markdown);
 
                 string title = doc.FrontMatter.Title;
 
