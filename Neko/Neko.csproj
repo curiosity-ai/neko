@@ -8,9 +8,9 @@
     <IsPackable>true</IsPackable>
     <PackAsTool>true</PackAsTool>
     <PackageId>Neko</PackageId>
-    <Authors>Curiosity GmbH</Authors>
-    <Company>Curiosity GmbH</Company>
-    <Copyright>Copyright Curiosity GmbH</Copyright>
+    <Authors>Rafael Oliveira</Authors>
+    <Company></Company>
+    <Copyright>Copyright 2026 Rafael Oliveira</Copyright>
     <RepositoryUrl>https://github.com/theolivenbaum/neko</RepositoryUrl>
     <PackageIcon>neko-logo-small.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
