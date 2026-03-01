@@ -481,7 +481,7 @@ namespace Neko.Builder
                  sb.AppendLine("                            </a>");
                  sb.AppendLine("                        </div>");
             }
-            else
+            else if (_config.PoweredByNeko)
             {
                  sb.AppendLine("                        <div class=\"mt-2 md:mt-0\">Powered by Neko</div>");
             }
