@@ -27,8 +27,37 @@ namespace Neko
 
             buildCommand.SetHandler(async (string input, string? output) =>
             {
-                var builder = new SiteBuilder(input, output);
-                await builder.BuildAsync();
+                var inputFullPath = Path.GetFullPath(input);
+                var configFiles = Directory.Exists(inputFullPath)
+                    ? Directory.GetFiles(inputFullPath, "neko.yml", SearchOption.AllDirectories)
+                    : Array.Empty<string>();
+
+                var isMultiRepo = configFiles.Length > 1 || (configFiles.Length == 1 && Path.GetDirectoryName(configFiles[0]) != inputFullPath);
+
+                if (isMultiRepo)
+                {
+                    Console.WriteLine($"Building in Multi-Repo Mode...");
+                    foreach (var configFile in configFiles)
+                    {
+                        var subDir = Path.GetDirectoryName(configFile);
+                        if (subDir == null) continue;
+
+                        var subDirRelative = Path.GetRelativePath(inputFullPath, subDir).Replace("\\", "/");
+                        var isRoot = subDir == inputFullPath;
+                        var routePrefix = isRoot ? "" : "/" + subDirRelative;
+                        var siteOutput = output != null
+                            ? (isRoot ? output : Path.Combine(output, subDirRelative))
+                            : Path.Combine(subDir, ".neko");
+
+                        var builder = new SiteBuilder(subDir, siteOutput, false, isRoot ? null : routePrefix);
+                        await builder.BuildAsync();
+                    }
+                }
+                else
+                {
+                    var builder = new SiteBuilder(input, output);
+                    await builder.BuildAsync();
+                }
             }, inputOption, outputOption);
 
             // Watch Command
@@ -36,19 +65,16 @@ namespace Neko
             var portOption   = new Option<int?>(new[] { "--port", "-p" }, "Port to use (default: 5000)");
             var watchInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var watchOutputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
-            var multiRepoOption = new Option<bool>(new[] { "--multi-repo" }, () => false, "Enable multi-repo watch mode (serves subdirectories containing neko.yml)");
 
             watchCommand.AddOption(watchInputOption);
             watchCommand.AddOption(portOption);
             watchCommand.AddOption(watchOutputOption);
-            watchCommand.AddOption(multiRepoOption);
 
             watchCommand.SetHandler(async (context) =>
             {
                 var input = context.ParseResult.GetValueForOption(watchInputOption) ?? ".";
                 var output = context.ParseResult.GetValueForOption(watchOutputOption);
                 var port = context.ParseResult.GetValueForOption(portOption) ?? 5000;
-                var multiRepo = context.ParseResult.GetValueForOption(multiRepoOption);
                 var token = context.GetCancellationToken();
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -62,47 +88,57 @@ namespace Neko
                     cts.Cancel();
                 };
 
-                Console.WriteLine($"Watching {input}{(multiRepo ? " (Multi-Repo Mode)" : "")}...");
+                var inputFullPath = Path.GetFullPath(input);
+                var configFiles = Directory.Exists(inputFullPath)
+                    ? Directory.GetFiles(inputFullPath, "neko.yml", SearchOption.AllDirectories)
+                    : Array.Empty<string>();
+
+                var isMultiRepo = configFiles.Length > 1 || (configFiles.Length == 1 && Path.GetDirectoryName(configFiles[0]) != inputFullPath);
+
+                Console.WriteLine($"Watching {input}{(isMultiRepo ? " (Multi-Repo Mode)" : "")}...");
 
                 var sites = new System.Collections.Generic.List<Neko.Server.SiteInfo>();
                 var builders = new System.Collections.Generic.Dictionary<string, SiteBuilder>();
 
-                if (multiRepo)
+                if (isMultiRepo)
                 {
-                    var inputFullPath = Path.GetFullPath(input);
                     if (Directory.Exists(inputFullPath))
                     {
-                        foreach (var subDir in Directory.GetDirectories(inputFullPath))
+                        foreach (var configFile in configFiles)
                         {
-                            if (File.Exists(Path.Combine(subDir, "neko.yml")))
+                            var subDir = Path.GetDirectoryName(configFile);
+                            if (subDir == null) continue;
+
+                            var subDirRelative = Path.GetRelativePath(inputFullPath, subDir).Replace("\\", "/");
+                            var isRoot = subDir == inputFullPath;
+                            var routePrefix = isRoot ? "" : "/" + subDirRelative;
+                            var siteOutput = output != null
+                                ? (isRoot ? output : Path.Combine(output, subDirRelative))
+                                : Path.Combine(subDir, ".neko");
+
+                            var builder = new SiteBuilder(subDir, siteOutput, true, isRoot ? null : routePrefix);
+                            await builder.BuildAsync();
+
+                            var siteInfo = new Neko.Server.SiteInfo
                             {
-                                var subDirName = Path.GetFileName(subDir);
-                                var siteOutput = output != null ? Path.Combine(output, subDirName) : Path.Combine(subDir, ".neko");
+                                RoutePrefix = routePrefix,
+                                InputPath = subDir,
+                                OutputPath = builder.OutputDirectory
+                            };
 
-                                var builder = new SiteBuilder(subDir, siteOutput, true);
-                                await builder.BuildAsync();
-
-                                var siteInfo = new Neko.Server.SiteInfo
-                                {
-                                    RoutePrefix = "/" + subDirName,
-                                    InputPath = subDir,
-                                    OutputPath = builder.OutputDirectory
-                                };
-
-                                sites.Add(siteInfo);
-                                builders[subDir] = builder;
-                            }
+                            sites.Add(siteInfo);
+                            builders[subDir] = builder;
                         }
                     }
 
                     if (sites.Count == 0)
                     {
-                        Console.WriteLine("Warning: Multi-repo mode enabled but no subdirectories with neko.yml found.");
+                        Console.WriteLine("Warning: Multi-repo mode detected but no directories with neko.yml found.");
                     }
                 }
                 else
                 {
-                    var builder = new SiteBuilder(input, output, true);
+                    var builder = new SiteBuilder(input, output, true, null);
                     await builder.BuildAsync();
 
                     sites.Add(new Neko.Server.SiteInfo
