@@ -38,6 +38,7 @@ This is a test.");
 !!!
 AlertContent
 !!!
+[!command-example install=""test-install"" quickstart=""test-quickstart""]
 ");
         }
 
@@ -73,6 +74,8 @@ AlertContent
             var componentsContent = await File.ReadAllTextAsync(componentsPath);
             Assert.That(componentsContent, Contains.Substring("BadgeText"));
             Assert.That(componentsContent, Contains.Substring("AlertContent"));
+            Assert.That(componentsContent, Contains.Substring("test-install"));
+            Assert.That(componentsContent, Contains.Substring("test-quickstart"));
         }
     }
 }
