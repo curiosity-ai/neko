@@ -33,3 +33,12 @@ Watch for changes and serve locally:
 ```bash
 neko watch
 ```
+
+## Multi-Repo Mode
+
+Neko automatically supports building and watching multiple documentation projects from a single repository. If Neko detects multiple `neko.yml` files in subdirectories, it automatically enables multi-repo mode.
+
+In this mode:
+- Each nested `neko.yml` creates a dedicated route (e.g., `./api-docs/neko.yml` gets mapped to `localhost:5000/api-docs/`).
+- The root `index.md` and `neko.yml` are also respected and serve as your central landing page.
+- Sub-projects will automatically inherit essential configuration settings (such as the Theme, Branding, and Snippets configuration) from parent `neko.yml` files, letting you maintain consistency effortlessly while still allowing granular overrides where needed.

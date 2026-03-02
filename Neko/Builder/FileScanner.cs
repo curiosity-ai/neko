@@ -16,11 +16,13 @@ namespace Neko.Builder
 
         private readonly string _inputDirectory;
         private readonly string _outputDirectory;
+        private readonly HashSet<string>? _excludedSubDirectories;
 
-        public FileScanner(string inputDirectory, string outputDirectory)
+        public FileScanner(string inputDirectory, string outputDirectory, HashSet<string>? excludedSubDirectories = null)
         {
             _inputDirectory = Path.GetFullPath(inputDirectory);
             _outputDirectory = Path.GetFullPath(outputDirectory);
+            _excludedSubDirectories = excludedSubDirectories;
 
             // Ensure output directory ends with separator for safer check
             if (!_outputDirectory.EndsWith(Path.DirectorySeparatorChar.ToString()))
@@ -45,6 +47,20 @@ namespace Neko.Builder
                 if (file.StartsWith(_outputDirectory, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
+                }
+
+                if (_excludedSubDirectories != null)
+                {
+                    var isExcluded = false;
+                    foreach(var excludedDir in _excludedSubDirectories)
+                    {
+                        if (file.StartsWith(excludedDir, StringComparison.OrdinalIgnoreCase))
+                        {
+                            isExcluded = true;
+                            break;
+                        }
+                    }
+                    if (isExcluded) continue;
                 }
 
                 // Exclude .git and other hidden folders/files

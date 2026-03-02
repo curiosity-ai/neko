@@ -12,15 +12,17 @@ namespace Neko.Builder
         private readonly string _inputDirectory;
         private readonly string? _outputDirectoryOverride;
         private readonly bool _isWatchMode;
+        private readonly string? _routePrefix;
         private NekoConfig _config;
 
         public string OutputDirectory { get; private set; }
 
-        public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false)
+        public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false, string? routePrefix = null)
         {
             _inputDirectory = Path.GetFullPath(inputDirectory);
             _outputDirectoryOverride = outputDirectory;
             _isWatchMode = isWatchMode;
+            _routePrefix = routePrefix;
         }
 
         public async Task BuildAsync()
@@ -32,6 +34,31 @@ namespace Neko.Builder
             try
             {
                 _config = ConfigParser.Parse(configPath);
+
+                // If we are a sub-project (indicated by having a routePrefix), attempt to inherit from root config
+                if (!string.IsNullOrEmpty(_routePrefix))
+                {
+                    // Find root directory by walking up until we find the highest neko.yml, or simply use the project root if known.
+                    // Wait, _routePrefix tells us we're a subproject.
+                    // Let's look for a root neko.yml in the parent directories up to the closest parent without a neko.yml.
+                    // Or simpler: walk up the directory tree until we find the root config.
+                    string currentDir = Path.GetDirectoryName(_inputDirectory);
+                    while (currentDir != null)
+                    {
+                        var parentConfigPath = Path.Combine(currentDir, "neko.yml");
+                        if (File.Exists(parentConfigPath))
+                        {
+                            try
+                            {
+                                var parentConfig = ConfigParser.Parse(parentConfigPath);
+                                _config.MergeWith(parentConfig);
+                            }
+                            catch { }
+                            break; // only merge with nearest parent config
+                        }
+                        currentDir = Path.GetDirectoryName(currentDir);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -72,8 +99,26 @@ namespace Neko.Builder
             }
             Directory.CreateDirectory(OutputDirectory);
 
+            var excludedDirs = new HashSet<string>();
+            if (Directory.Exists(_inputDirectory))
+            {
+                var allConfigs = Directory.GetFiles(_inputDirectory, "neko.yml", SearchOption.AllDirectories);
+                // Exclude any subdirectory that contains its own neko.yml (so it's handled as a separate project)
+                foreach (var cfg in allConfigs)
+                {
+                    var dir = Path.GetDirectoryName(cfg);
+                    if (dir != null && Path.GetFullPath(dir) != Path.GetFullPath(_inputDirectory))
+                    {
+                        var dirPath = Path.GetFullPath(dir);
+                        if (!dirPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                            dirPath += Path.DirectorySeparatorChar;
+                        excludedDirs.Add(dirPath);
+                    }
+                }
+            }
+
             // 2. Scan Files
-            var scanner = new FileScanner(_inputDirectory, OutputDirectory);
+            var scanner = new FileScanner(_inputDirectory, OutputDirectory, excludedDirs.Count > 0 ? excludedDirs : null);
             var files = scanner.Scan();
 
             // 3. Prepare Pipeline
@@ -110,7 +155,7 @@ namespace Neko.Builder
             }
 
             // Generate Sidebar
-            var sidebarGenerator = new SidebarGenerator(_inputDirectory, parsedDocs);
+            var sidebarGenerator = new SidebarGenerator(_inputDirectory, parsedDocs, excludedDirs.Count > 0 ? excludedDirs : null, _routePrefix);
             var sidebarLinks = sidebarGenerator.Generate();
 
             // Auto-generate Navigation if empty
@@ -142,6 +187,11 @@ namespace Neko.Builder
                 // Source URL for the backlink (relative to root, no extension)
                 var sourceUrl = "/" + sourceRelativePath.Replace("\\", "/");
                 if (sourceUrl.EndsWith(".md")) sourceUrl = sourceUrl.Substring(0, sourceUrl.Length - 3);
+
+                if (!string.IsNullOrEmpty(_routePrefix))
+                {
+                    sourceUrl = _routePrefix + sourceUrl;
+                }
 
                 foreach (var link in item.Doc.OutgoingLinks)
                 {
@@ -195,6 +245,7 @@ namespace Neko.Builder
                 .Select(p => {
                     var url = "/" + p.RelativePath.Replace("\\", "/");
                     if (url.EndsWith(".md")) url = url.Substring(0, url.Length - 3);
+                    if (!string.IsNullOrEmpty(_routePrefix)) url = _routePrefix + url;
                     return (p.Doc, url);
                 })
                 .OrderByDescending(p => p.Doc.FrontMatter.Date ?? "")
@@ -205,6 +256,7 @@ namespace Neko.Builder
                 .Select(p => {
                     var url = "/" + p.RelativePath.Replace("\\", "/");
                     if (url.EndsWith(".md")) url = url.Substring(0, url.Length - 3);
+                    if (!string.IsNullOrEmpty(_routePrefix)) url = _routePrefix + url;
                     return (p.Doc, url);
                 })
                 .OrderByDescending(p => p.Doc.FrontMatter.Date ?? "")
@@ -226,6 +278,11 @@ namespace Neko.Builder
                 var relativeUrl = "/" + item.RelativePath.Replace("\\", "/");
                 if (relativeUrl.EndsWith(".md")) relativeUrl = relativeUrl.Substring(0, relativeUrl.Length - 3);
                 if (relativeUrl.EndsWith(".html")) relativeUrl = relativeUrl.Substring(0, relativeUrl.Length - 5);
+
+                if (!string.IsNullOrEmpty(_routePrefix))
+                {
+                    relativeUrl = _routePrefix + relativeUrl;
+                }
 
                 var navContext = new NavigationContext();
 
@@ -314,6 +371,10 @@ namespace Neko.Builder
                 {
                     // Find doc
                     var relativeUrl = link.Link;
+                    if (!string.IsNullOrEmpty(_routePrefix) && relativeUrl.StartsWith(_routePrefix + "/"))
+                    {
+                        relativeUrl = relativeUrl.Substring(_routePrefix.Length);
+                    }
                     if (relativeUrl.StartsWith("/")) relativeUrl = relativeUrl.Substring(1);
                     if (relativeUrl.EndsWith(".html")) relativeUrl = relativeUrl.Substring(0, relativeUrl.Length - 5);
                     if (relativeUrl.EndsWith(".md")) relativeUrl = relativeUrl.Substring(0, relativeUrl.Length - 3);
@@ -362,6 +423,12 @@ namespace Neko.Builder
                     }
                     if (url.EndsWith(".md")) url = url.Substring(0, url.Length - 3);
                     if (url.EndsWith(".html")) url = url.Substring(0, url.Length - 5);
+
+                    if (!string.IsNullOrEmpty(_routePrefix) && !url.Contains("://"))
+                    {
+                        if (url.StartsWith("/")) url = _routePrefix + url;
+                        else url = _routePrefix + "/" + url;
+                    }
 
                     map.Add((url, link.Text, new List<NavigationItem>(breadcrumbs))); // Add parent breadcrumbs to this item
                 }
