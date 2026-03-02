@@ -16,6 +16,9 @@ namespace Neko.Builder
         [YamlMember(Alias = "label")]
         public string Label { get; set; }
 
+        [YamlMember(Alias = "icon")]
+        public string Icon { get; set; }
+
         [YamlMember(Alias = "expanded")]
         public bool Expanded { get; set; } = false;
     }
@@ -57,7 +60,8 @@ namespace Neko.Builder
                     var linkConfig = new LinkConfig
                     {
                         Text = title,
-                        Items = subItems
+                        Items = subItems,
+                        Icon = folderConfig.Icon
                     };
 
                     items.Add((linkConfig, folderConfig.Order ?? int.MaxValue, title));
