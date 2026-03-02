@@ -33,7 +33,11 @@ namespace Neko.Tests
             var filePath = Path.Combine(_testDir, "components.md");
             File.WriteAllText(filePath, "---\r\nlabel: \"UI Components\"\r\ntitle: \"Title\"\r\nicon: stack\r\norder: 50\r\n---\r\n## Components\r\nSome text.");
 
-            var generator = new SidebarGenerator(_testDir);
+            var parsedDocs = new System.Collections.Generic.List<(string FilePath, string RelativePath, Neko.Builder.ParsedDocument Doc, string Markdown)>();
+            var parser = new Neko.Builder.MarkdownParser();
+            var doc = parser.Parse(System.IO.File.ReadAllText(filePath), filePath);
+            parsedDocs.Add((filePath, "components.md", doc, System.IO.File.ReadAllText(filePath)));
+            var generator = new SidebarGenerator(_testDir, parsedDocs);
 
             // Act
             var links = generator.Generate();
@@ -50,7 +54,11 @@ namespace Neko.Tests
             var filePath = Path.Combine(_testDir, "components.md");
             File.WriteAllText(filePath, "---\r\ntitle: \"Title Components\"\r\nicon: stack\r\norder: 50\r\n---\r\n## Components\r\nSome text.");
 
-            var generator = new SidebarGenerator(_testDir);
+            var parsedDocs = new System.Collections.Generic.List<(string FilePath, string RelativePath, Neko.Builder.ParsedDocument Doc, string Markdown)>();
+            var parser = new Neko.Builder.MarkdownParser();
+            var doc = parser.Parse(System.IO.File.ReadAllText(filePath), filePath);
+            parsedDocs.Add((filePath, "components.md", doc, System.IO.File.ReadAllText(filePath)));
+            var generator = new SidebarGenerator(_testDir, parsedDocs);
 
             // Act
             var links = generator.Generate();

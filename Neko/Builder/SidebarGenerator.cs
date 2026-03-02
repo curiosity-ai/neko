@@ -61,7 +61,8 @@ namespace Neko.Builder
                     {
                         Text = title,
                         Items = subItems,
-                        Icon = folderConfig.Icon
+                        Icon = folderConfig.Icon,
+                        FolderPath = subDir
                     };
 
                     items.Add((linkConfig, folderConfig.Order ?? int.MaxValue, title));
