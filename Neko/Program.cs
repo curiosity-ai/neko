@@ -36,16 +36,19 @@ namespace Neko
             var portOption   = new Option<int?>(new[] { "--port", "-p" }, "Port to use (default: 5000)");
             var watchInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var watchOutputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
+            var multiRepoOption = new Option<bool>(new[] { "--multi-repo" }, () => false, "Enable multi-repo watch mode (serves subdirectories containing neko.yml)");
 
             watchCommand.AddOption(watchInputOption);
             watchCommand.AddOption(portOption);
             watchCommand.AddOption(watchOutputOption);
+            watchCommand.AddOption(multiRepoOption);
 
             watchCommand.SetHandler(async (context) =>
             {
                 var input = context.ParseResult.GetValueForOption(watchInputOption) ?? ".";
                 var output = context.ParseResult.GetValueForOption(watchOutputOption);
                 var port = context.ParseResult.GetValueForOption(portOption) ?? 5000;
+                var multiRepo = context.ParseResult.GetValueForOption(multiRepoOption);
                 var token = context.GetCancellationToken();
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -59,70 +62,121 @@ namespace Neko
                     cts.Cancel();
                 };
 
-                Console.WriteLine($"Watching {input}...");
+                Console.WriteLine($"Watching {input}{(multiRepo ? " (Multi-Repo Mode)" : "")}...");
 
-                // Initial build
-                var builder = new SiteBuilder(input, output, true);
-                await builder.BuildAsync();
+                var sites = new System.Collections.Generic.List<Neko.Server.SiteInfo>();
+                var builders = new System.Collections.Generic.Dictionary<string, SiteBuilder>();
 
-                // Get the output directory from the builder
-                var outputDir = builder.OutputDirectory;
+                if (multiRepo)
+                {
+                    var inputFullPath = Path.GetFullPath(input);
+                    if (Directory.Exists(inputFullPath))
+                    {
+                        foreach (var subDir in Directory.GetDirectories(inputFullPath))
+                        {
+                            if (File.Exists(Path.Combine(subDir, "neko.yml")))
+                            {
+                                var subDirName = Path.GetFileName(subDir);
+                                var siteOutput = output != null ? Path.Combine(output, subDirName) : Path.Combine(subDir, ".neko");
+
+                                var builder = new SiteBuilder(subDir, siteOutput, true);
+                                await builder.BuildAsync();
+
+                                var siteInfo = new Neko.Server.SiteInfo
+                                {
+                                    RoutePrefix = "/" + subDirName,
+                                    InputPath = subDir,
+                                    OutputPath = builder.OutputDirectory
+                                };
+
+                                sites.Add(siteInfo);
+                                builders[subDir] = builder;
+                            }
+                        }
+                    }
+
+                    if (sites.Count == 0)
+                    {
+                        Console.WriteLine("Warning: Multi-repo mode enabled but no subdirectories with neko.yml found.");
+                    }
+                }
+                else
+                {
+                    var builder = new SiteBuilder(input, output, true);
+                    await builder.BuildAsync();
+
+                    sites.Add(new Neko.Server.SiteInfo
+                    {
+                        RoutePrefix = "",
+                        InputPath = input,
+                        OutputPath = builder.OutputDirectory
+                    });
+                    builders[Path.GetFullPath(input)] = builder;
+                }
 
                 // Start Server in background
-                var server = new DevServer(outputDir, input, port);
+                var server = new DevServer(sites, port);
                 var serverTask = server.StartAsync(cts.Token);
 
                 // Watch file changes
-                using var watcher = new FileSystemWatcher(input);
-                watcher.IncludeSubdirectories = true;
-                watcher.Filters.Add("*.md");
-                watcher.Filters.Add("neko.yml");
-
-                // Debounce logic
+                var watchers = new System.Collections.Generic.List<FileSystemWatcher>();
                 DateTime lastBuild = DateTime.MinValue;
 
-                FileSystemEventHandler onChanged = async (sender, e) =>
+                foreach (var site in sites)
                 {
-                    // Ignore changes in output dir
-                    if (e.FullPath.Contains(Path.GetFullPath(outputDir))) return;
+                    var watcher = new FileSystemWatcher(site.InputPath);
+                    watcher.IncludeSubdirectories = true;
+                    watcher.Filters.Add("*.md");
+                    watcher.Filters.Add("neko.yml");
 
-                    if ((DateTime.Now - lastBuild).TotalMilliseconds < 500) return;
-                    lastBuild = DateTime.Now;
-
-                    Console.WriteLine($"Change detected: {e.Name}. Rebuilding...");
-                    try
+                    FileSystemEventHandler onChanged = async (sender, e) =>
                     {
-                        // Re-instantiate builder to reload config?
-                        // Or just call BuildAsync again.
-                        // Ideally config reload should be handled inside BuildAsync if needed, or we recreate builder.
-                        // Let's recreate builder to be safe if config changed.
-                        builder = new SiteBuilder(input, output, true);
-                        await builder.BuildAsync();
+                        var fullOutput = Path.GetFullPath(site.OutputPath);
+                        if (e.FullPath.Contains(fullOutput)) return;
 
-                        await server.NotifyChange();
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Build failed: {ex.Message}");
-                    }
-                };
+                        if ((DateTime.Now - lastBuild).TotalMilliseconds < 500) return;
+                        lastBuild = DateTime.Now;
 
-                watcher.Changed += onChanged;
-                watcher.Created += onChanged;
-                watcher.Deleted += onChanged;
-                watcher.Renamed += new RenamedEventHandler(onChanged);
+                        Console.WriteLine($"Change detected in {site.RoutePrefix}: {e.Name}. Rebuilding...");
+                        try
+                        {
+                            var b = new SiteBuilder(site.InputPath, site.OutputPath, true);
+                            await b.BuildAsync();
+                            builders[site.InputPath] = b;
 
-                watcher.EnableRaisingEvents = true;
+                            await server.NotifyChange();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Build failed: {ex.Message}");
+                        }
+                    };
+
+                    watcher.Changed += onChanged;
+                    watcher.Created += onChanged;
+                    watcher.Deleted += onChanged;
+                    watcher.Renamed += new RenamedEventHandler(onChanged);
+                    watcher.EnableRaisingEvents = true;
+
+                    watchers.Add(watcher);
+                }
 
                 Console.WriteLine("Press Ctrl+C to exit.");
 
                 try
                 {
-                    await serverTask; // Wait for server (which runs until cancelled)
+                    await serverTask;
                 }
                 catch (OperationCanceledException)
                 {
                     Console.WriteLine("Shutdown complete.");
+                }
+                finally
+                {
+                    foreach (var w in watchers)
+                    {
+                        w.Dispose();
+                    }
                 }
             });
 
