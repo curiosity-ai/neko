@@ -103,6 +103,16 @@ namespace Neko.Builder
             }
 
             // Navbar
+            string relativePrefix = "";
+            if (!string.IsNullOrEmpty(currentUrl))
+            {
+                var segments = currentUrl.TrimStart('/').Split('/');
+                if (segments.Length > 1)
+                {
+                    relativePrefix = string.Join("", System.Linq.Enumerable.Repeat("../", segments.Length - 1));
+                }
+            }
+
             sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10\">");
             sb.AppendLine("        <div class=\"flex items-center gap-4\">");
             if (_config.Layout.Sidebar)
@@ -113,14 +123,16 @@ namespace Neko.Builder
             }
             if (!string.IsNullOrEmpty(_config.Branding.Logo))
             {
-                sb.AppendLine($"            <img src=\"{_config.Branding.Logo}\" class=\"h-8 w-auto dark:hidden\">");
+                string logoUrl = _config.Branding.Logo.StartsWith("/") || _config.Branding.Logo.Contains("://") ? _config.Branding.Logo : relativePrefix + _config.Branding.Logo;
+                sb.AppendLine($"            <img src=\"{logoUrl}\" class=\"h-8 w-auto dark:hidden\">");
                 if (!string.IsNullOrEmpty(_config.Branding.LogoDark))
                 {
-                    sb.AppendLine($"            <img src=\"{_config.Branding.LogoDark}\" class=\"h-8 w-auto hidden dark:block\">");
+                    string logoDarkUrl = _config.Branding.LogoDark.StartsWith("/") || _config.Branding.LogoDark.Contains("://") ? _config.Branding.LogoDark : relativePrefix + _config.Branding.LogoDark;
+                    sb.AppendLine($"            <img src=\"{logoDarkUrl}\" class=\"h-8 w-auto hidden dark:block\">");
                 }
                 else
                 {
-                    sb.AppendLine($"            <img src=\"{_config.Branding.Logo}\" class=\"h-8 w-auto hidden dark:block\">");
+                    sb.AppendLine($"            <img src=\"{logoUrl}\" class=\"h-8 w-auto hidden dark:block\">");
                 }
             }
             else if (!string.IsNullOrEmpty(_config.Branding.Icon))
