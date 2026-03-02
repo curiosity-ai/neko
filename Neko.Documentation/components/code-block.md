@@ -78,6 +78,46 @@ If a code language is used, separate the `title` from the `lang` by one space. T
 
 ---
 
+## Chrome Styles
+
+You can customize the top window-chrome of your code blocks to mimic standard operating system window styles.
+
+To use a chrome modifier, add the `chrome="..."` attribute to the first line after the reference language. Neko supports `mac` and `windows`.
+
+### macOS Chrome
+
+The `chrome="mac"` modifier adds the standard three-dot window control buttons to the left of your title.
+
++++ :icon-code-simple: Source
+~~~
+```js chrome="mac" main.js
+const msg = "Set a macOS style chrome";
+```
+~~~
++++ :icon-play: Demo
+```js chrome="mac" main.js
+const msg = "Set a macOS style chrome";
+```
++++
+
+### Windows Chrome
+
+The `chrome="windows"` modifier adds standard Windows control buttons (minimize, maximize, close) to the right.
+
++++ :icon-code-simple: Source
+~~~
+```js chrome="windows" main.js
+const msg = "Set a Windows style chrome";
+```
+~~~
++++ :icon-play: Demo
+```js chrome="windows" main.js
+const msg = "Set a Windows style chrome";
+```
++++
+
+---
+
 ## Line highlighting
 
 Highlight a specific line or range of lines in a code block component using the line highlighting syntax.

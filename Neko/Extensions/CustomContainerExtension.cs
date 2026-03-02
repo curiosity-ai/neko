@@ -26,6 +26,12 @@ namespace Neko.Extensions
                 return;
             }
 
+            if (type == "example")
+            {
+                RenderExample(renderer, obj);
+                return;
+            }
+
             // Apply styles based on container type
             // Note: UseAddClass helper from Markdig handles appending to existing classes.
             if (type == "panel")
@@ -81,6 +87,37 @@ namespace Neko.Extensions
             {
                 RenderStackedCard(renderer, obj, image, title, link, seeMore, tags);
             }
+        }
+
+        private void RenderExample(HtmlRenderer renderer, CustomContainer obj)
+        {
+            // The "example" component encompasses a markdown section for the left side
+            // and a code section for the right side.
+            renderer.Write("<div class=\"grid grid-cols-1 lg:grid-cols-2 gap-8 items-start my-12\">");
+
+            // Left side: Non-code blocks
+            renderer.Write("<div class=\"prose dark:prose-invert max-w-none\">");
+            foreach (var block in obj)
+            {
+                if (!(block is Markdig.Syntax.FencedCodeBlock))
+                {
+                    renderer.Render(block);
+                }
+            }
+            renderer.Write("</div>");
+
+            // Right side: Code blocks
+            renderer.Write("<div class=\"sticky top-8\">");
+            foreach (var block in obj)
+            {
+                if (block is Markdig.Syntax.FencedCodeBlock)
+                {
+                    renderer.Render(block);
+                }
+            }
+            renderer.Write("</div>");
+
+            renderer.Write("</div>");
         }
 
         private void RenderLinkCard(HtmlRenderer renderer, CustomContainer obj, string? title, string? link, string? linkText, string? theme, bool arrow)
