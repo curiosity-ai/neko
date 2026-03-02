@@ -34,6 +34,9 @@ namespace Neko.Builder
         [YamlMember(Alias = "title")]
         public string Title { get; set; }
 
+        [YamlMember(Alias = "label")]
+        public string Label { get; set; }
+
         [YamlMember(Alias = "icon")]
         public string Icon { get; set; }
 
@@ -191,8 +194,8 @@ namespace Neko.Builder
 
                         if (foundPath != null)
                         {
-                            // Calculate relative path from currentDir to foundPath
-                            var relativePath = Path.GetRelativePath(currentDir, foundPath).Replace("\\", "/");
+                            // Calculate relative path from rootDir to foundPath
+                            var relativePath = "/" + Path.GetRelativePath(rootDir, foundPath).Replace("\\", "/");
                             link.Url = relativePath;
                         }
                     }

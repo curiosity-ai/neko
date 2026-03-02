@@ -103,6 +103,15 @@ namespace Neko.Extensions
             var args = fencedBlock.Arguments ?? "";
             string title = null;
             string highlight = null;
+            string chrome = null;
+
+            // Extract chrome modifier
+            var chromeMatch = Regex.Match(args, "chrome=\"([^\"]+)\"");
+            if (chromeMatch.Success)
+            {
+                chrome = chromeMatch.Groups[1].Value.ToLower();
+                args = args.Replace(chromeMatch.Value, "").Trim();
+            }
 
             // 1. Handle Line Numbers Flags
             bool enableLineNumbers = false;
@@ -158,28 +167,70 @@ namespace Neko.Extensions
             }
 
             // Wrapper
-            renderer.Write("<div class=\"relative group my-6 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700\">");
+            // Using a darker style matching the image reference.
+            renderer.Write("<div class=\"relative group my-6 bg-gray-50 dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden\">");
 
-            // Header (if title exists)
-            if (!string.IsNullOrEmpty(title))
+            // Header (always render if chrome is set or title exists)
+            if (!string.IsNullOrEmpty(title) || !string.IsNullOrEmpty(chrome))
             {
-                renderer.Write("<div class=\"flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-md\">");
-                renderer.Write($"<span class=\"font-mono text-sm text-gray-700 dark:text-gray-300\">{title}</span>");
+                renderer.Write("<div class=\"flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-gray-100/50 dark:bg-transparent\">");
 
-                // Copy Button in Header
-                renderer.Write("<button class=\"copy-btn p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700\" title=\"Copy to clipboard\">");
-                renderer.Write("<i class=\"fi fi-rr-copy\"></i>");
-                renderer.Write("</button>");
+                if (chrome == "mac")
+                {
+                    renderer.Write("<div class=\"flex items-center gap-1.5\">");
+                    renderer.Write("<div class=\"w-3 h-3 rounded-full bg-[#ff5f56]\"></div>");
+                    renderer.Write("<div class=\"w-3 h-3 rounded-full bg-[#ffbd2e]\"></div>");
+                    renderer.Write("<div class=\"w-3 h-3 rounded-full bg-[#27c93f]\"></div>");
+                    if (!string.IsNullOrEmpty(title))
+                    {
+                        renderer.Write($"<span class=\"ml-3 font-mono text-sm text-gray-500 dark:text-gray-400\">{title}</span>");
+                    }
+                    renderer.Write("</div>");
+
+                    // Copy Button in Header
+                    renderer.Write("<button class=\"copy-btn p-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors rounded hover:bg-gray-200 dark:hover:bg-white/10\" title=\"Copy to clipboard\">");
+                    renderer.Write("<i class=\"fi fi-rr-copy\"></i>");
+                    renderer.Write("</button>");
+                }
+                else if (chrome == "windows")
+                {
+                    renderer.Write("<div>");
+                    if (!string.IsNullOrEmpty(title))
+                    {
+                        renderer.Write($"<span class=\"font-mono text-sm text-gray-500 dark:text-gray-400\">{title}</span>");
+                    }
+                    renderer.Write("</div>");
+
+                    renderer.Write("<div class=\"flex items-center gap-4 text-gray-400 dark:text-gray-500\">");
+                    renderer.Write("<button class=\"copy-btn hover:text-gray-600 dark:hover:text-gray-300 transition-colors\" title=\"Copy to clipboard\"><i class=\"fi fi-rr-copy\"></i></button>");
+                    renderer.Write("<i class=\"fi fi-rr-minus text-xs\"></i>");
+                    renderer.Write("<i class=\"fi fi-rr-square text-xs\"></i>");
+                    renderer.Write("<i class=\"fi fi-rr-cross-small\"></i>");
+                    renderer.Write("</div>");
+                }
+                else
+                {
+                    // Default chrome (single blue dot like image, or just title)
+                    renderer.Write("<div class=\"flex items-center gap-2\">");
+                    renderer.Write("<div class=\"w-2 h-2 rounded-full bg-blue-500\"></div>");
+                    if (!string.IsNullOrEmpty(title))
+                    {
+                        renderer.Write($"<span class=\"font-mono text-sm text-gray-500 dark:text-gray-400\">{title}</span>");
+                    }
+                    renderer.Write("</div>");
+
+                    // Copy Button in Header
+                    renderer.Write("<button class=\"copy-btn p-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors rounded hover:bg-gray-200 dark:hover:bg-white/10\" title=\"Copy to clipboard\">");
+                    renderer.Write("<i class=\"fi fi-rr-copy\"></i>");
+                    renderer.Write("</button>");
+                }
 
                 renderer.Write("</div>");
-
-                // Adjust code block styles to not have rounded top if header exists
-                // We'll wrap the code in a div with proper padding
             }
             else
             {
                 // Copy Button Overlay (no header)
-                renderer.Write("<button class=\"copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-gray-700 shadow-sm\" title=\"Copy to clipboard\">");
+                renderer.Write("<button class=\"copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-white/10 shadow-sm z-10\" title=\"Copy to clipboard\">");
                 renderer.Write("<i class=\"fi fi-rr-copy\"></i>");
                 renderer.Write("</button>");
             }

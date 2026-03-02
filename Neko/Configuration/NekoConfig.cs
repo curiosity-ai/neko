@@ -35,6 +35,9 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "layout")]
         public LayoutConfig Layout { get; set; } = new LayoutConfig();
+
+        [YamlMember(Alias = "poweredByNeko")]
+        public bool PoweredByNeko { get; set; } = true;
     }
 
     public class LayoutConfig

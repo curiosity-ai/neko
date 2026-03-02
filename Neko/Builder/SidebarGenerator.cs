@@ -75,7 +75,15 @@ namespace Neko.Builder
                 // Skip hidden files
                 if (fileName.StartsWith(".")) continue;
 
-                string title = doc.FrontMatter.Title;
+                var markdown = File.ReadAllText(file);
+                var doc = _parser.Parse(markdown);
+
+                string title = doc.FrontMatter.Label;
+
+                if (string.IsNullOrEmpty(title))
+                {
+                    title = doc.FrontMatter.Title;
+                }
 
                 if (string.IsNullOrEmpty(title))
                 {
