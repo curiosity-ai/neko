@@ -31,9 +31,17 @@ namespace Neko.Tests
         {
             // Arrange
             var filePath = Path.Combine(_testDir, "components.md");
-            File.WriteAllText(filePath, "---\r\nlabel: \"UI Components\"\r\ntitle: \"Title\"\r\nicon: stack\r\norder: 50\r\n---\r\n## Components\r\nSome text.");
+            var markdown = "---\r\nlabel: \"UI Components\"\r\ntitle: \"Title\"\r\nicon: stack\r\norder: 50\r\n---\r\n## Components\r\nSome text.";
+            File.WriteAllText(filePath, markdown);
 
-            var generator = new SidebarGenerator(_testDir);
+            var parser = new MarkdownParser();
+            var doc = parser.Parse(markdown, filePath, _testDir);
+            var parsedDocs = new System.Collections.Generic.List<(string, string, Neko.Builder.ParsedDocument, string)>
+            {
+                (filePath, "components.md", doc, markdown)
+            };
+
+            var generator = new SidebarGenerator(_testDir, parsedDocs);
 
             // Act
             var links = generator.Generate();
@@ -48,9 +56,17 @@ namespace Neko.Tests
         {
             // Arrange
             var filePath = Path.Combine(_testDir, "components.md");
-            File.WriteAllText(filePath, "---\r\ntitle: \"Title Components\"\r\nicon: stack\r\norder: 50\r\n---\r\n## Components\r\nSome text.");
+            var markdown = "---\r\ntitle: \"Title Components\"\r\nicon: stack\r\norder: 50\r\n---\r\n## Components\r\nSome text.";
+            File.WriteAllText(filePath, markdown);
 
-            var generator = new SidebarGenerator(_testDir);
+            var parser = new MarkdownParser();
+            var doc = parser.Parse(markdown, filePath, _testDir);
+            var parsedDocs = new System.Collections.Generic.List<(string, string, Neko.Builder.ParsedDocument, string)>
+            {
+                (filePath, "components.md", doc, markdown)
+            };
+
+            var generator = new SidebarGenerator(_testDir, parsedDocs);
 
             // Act
             var links = generator.Generate();

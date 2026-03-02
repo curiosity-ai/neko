@@ -38,6 +38,47 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "poweredByNeko")]
         public bool PoweredByNeko { get; set; } = true;
+
+        public void MergeWith(NekoConfig parent)
+        {
+            if (parent == null) return;
+
+            // Inherit Branding properties if not set
+            if (string.IsNullOrEmpty(Branding.Title)) Branding.Title = parent.Branding.Title;
+            if (string.IsNullOrEmpty(Branding.Label)) Branding.Label = parent.Branding.Label;
+            if (string.IsNullOrEmpty(Branding.Logo)) Branding.Logo = parent.Branding.Logo;
+            if (string.IsNullOrEmpty(Branding.LogoDark)) Branding.LogoDark = parent.Branding.LogoDark;
+            if (string.IsNullOrEmpty(Branding.Icon)) Branding.Icon = parent.Branding.Icon;
+            if (string.IsNullOrEmpty(Branding.Favicon)) Branding.Favicon = parent.Branding.Favicon;
+            if (string.IsNullOrEmpty(Branding.Repository)) Branding.Repository = parent.Branding.Repository;
+
+            // Inherit Theme settings
+            if (Theme.Name == "blue" && parent.Theme.Name != "blue") Theme.Name = parent.Theme.Name;
+
+            foreach (var kvp in parent.Theme.Colors)
+            {
+                if (!Theme.Colors.ContainsKey(kvp.Key)) Theme.Colors[kvp.Key] = kvp.Value;
+            }
+            foreach (var kvp in parent.Theme.Base)
+            {
+                if (!Theme.Base.ContainsKey(kvp.Key)) Theme.Base[kvp.Key] = kvp.Value;
+            }
+            foreach (var kvp in parent.Theme.Dark)
+            {
+                if (!Theme.Dark.ContainsKey(kvp.Key)) Theme.Dark[kvp.Key] = kvp.Value;
+            }
+
+            if (Theme.Highlight.Light == "tokyo-night-light" && parent.Theme.Highlight.Light != "tokyo-night-light")
+                Theme.Highlight.Light = parent.Theme.Highlight.Light;
+            if (Theme.Highlight.Dark == "tokyo-night-dark" && parent.Theme.Highlight.Dark != "tokyo-night-dark")
+                Theme.Highlight.Dark = parent.Theme.Highlight.Dark;
+
+            // Inherit Snippets settings
+            if (Snippets.LineNumbers.Count == 0 && parent.Snippets.LineNumbers.Count > 0)
+            {
+                Snippets.LineNumbers = new List<string>(parent.Snippets.LineNumbers);
+            }
+        }
     }
 
     public class LayoutConfig

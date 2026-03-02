@@ -24,11 +24,15 @@ namespace Neko.Builder
     {
         private readonly string _inputDirectory;
         private readonly Dictionary<string, ParsedDocument> _parsedDocs;
+        private readonly HashSet<string>? _excludedSubDirectories;
+        private readonly string? _routePrefix;
 
-        public SidebarGenerator(string inputDirectory, List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)> parsedDocs)
+        public SidebarGenerator(string inputDirectory, List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)> parsedDocs, HashSet<string>? excludedSubDirectories = null, string? routePrefix = null)
         {
             _inputDirectory = inputDirectory;
             _parsedDocs = parsedDocs.ToDictionary(x => Path.GetFullPath(x.FilePath), x => x.Doc, StringComparer.OrdinalIgnoreCase);
+            _excludedSubDirectories = excludedSubDirectories;
+            _routePrefix = routePrefix;
         }
 
         public List<LinkConfig> Generate()
@@ -47,6 +51,15 @@ namespace Neko.Builder
                 var dirName = Path.GetFileName(subDir);
                 // Skip hidden folders and output folder
                 if (dirName.StartsWith(".") || dirName.StartsWith("_") || dirName == "bin" || dirName == "obj") continue;
+
+                var fullSubDir = Path.GetFullPath(subDir);
+                if (!fullSubDir.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                    fullSubDir += Path.DirectorySeparatorChar;
+
+                if (_excludedSubDirectories != null && _excludedSubDirectories.Any(e => fullSubDir.StartsWith(e, StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
 
                 var folderConfig = GetFolderConfig(subDir);
                 var subItems = GenerateRecursive(subDir);
@@ -114,6 +127,12 @@ namespace Neko.Builder
                 var relativePath = Path.GetRelativePath(_inputDirectory, file).Replace("\\", "/");
                 // remove extension
                 if (relativePath.EndsWith(".md")) relativePath = relativePath.Substring(0, relativePath.Length - 3);
+
+                if (!string.IsNullOrEmpty(_routePrefix))
+                {
+                    if (relativePath.StartsWith("/")) relativePath = _routePrefix + relativePath;
+                    else relativePath = _routePrefix + "/" + relativePath;
+                }
 
                 var linkConfig = new LinkConfig
                 {
