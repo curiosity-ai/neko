@@ -1,4 +1,0 @@
-Watching test_multi (Multi-Repo Mode)...
-Warning: Multi-repo mode enabled but no subdirectories with neko.yml found.
-Server started at http://localhost:5000
-Press Ctrl+C to exit.
