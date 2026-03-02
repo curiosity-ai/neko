@@ -351,6 +351,32 @@ namespace Neko.Builder
             // Copy Assets
             await CopyAssetsAsync(OutputDirectory);
 
+            // Generate CNAME if applicable
+            var customCnamePath = Path.Combine(_inputDirectory, "CNAME");
+            if (!File.Exists(customCnamePath) && _config.Cname?.ToLower() != "false")
+            {
+                string cnameValue = _config.Cname?.ToLower() == "true" || string.IsNullOrEmpty(_config.Cname)
+                    ? _config.Url
+                    : _config.Cname;
+
+                if (!string.IsNullOrEmpty(cnameValue))
+                {
+                    // Clean URL to get just the domain
+                    var domain = cnameValue.Replace("http://", "").Replace("https://", "");
+                    int slashIndex = domain.IndexOf('/');
+                    if (slashIndex >= 0)
+                    {
+                        domain = domain.Substring(0, slashIndex);
+                    }
+                    domain = domain.Trim();
+
+                    if (!string.IsNullOrEmpty(domain) && domain != "localhost")
+                    {
+                        await File.WriteAllTextAsync(Path.Combine(OutputDirectory, "CNAME"), domain);
+                    }
+                }
+            }
+
             Console.WriteLine($"Build complete. Output in {OutputDirectory}");
         }
 
