@@ -4,14 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page not found</title>
+    <link rel="icon" href="/assets/favicon.ico">
     <meta name="description" content="Sorry, we couldn’t find the page you’re looking for.">
     <meta property="og:description" content="Sorry, we couldn’t find the page you’re looking for.">
     <meta name="twitter:description" content="Sorry, we couldn’t find the page you’re looking for.">
+    <meta name="keywords" content="static site generator, csharp, dotnet, documentation, markdown">
+    <meta name="author" content="Neko Team">
     <meta property="og:title" content="Page not found">
     <meta name="twitter:title" content="Page not found">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/assets/neko-logo.png">
+    <meta name="twitter:image" content="/assets/neko-logo.png">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neko">
+    <meta name="twitter:creator" content="@neko">
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-    <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: {"50":"#eff6ff","100":"#dbeafe","200":"#bfdbfe","300":"#93c5fd","400":"#60a5fa","500":"#3b82f6","600":"#2563eb","700":"#1d4ed8","800":"#1e40af","900":"#1e3a8a","950":"#172554"} } } } }</script>
-    <script>window.nekoConfig = { snippets: {"lineNumbers":[]}, branding: {"title":"Neko","label":null,"logo":null,"logoDark":null,"icon":null,"favicon":null,"repository":null} };</script>
+    <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: {"50":"#f5f3ff","100":"#ede9fe","200":"#ddd6fe","300":"#c4b5fd","400":"#a78bfa","500":"#8b5cf6","600":"#7c3aed","700":"#6d28d9","800":"#5b21b6","900":"#4c1d95","950":"#2e1065"} } } } }</script>
+    <script>window.nekoConfig = { snippets: {"lineNumbers":[]}, branding: {"title":"Neko","label":null,"logo":"/assets/neko-logo.png","logoDark":null,"icon":null,"favicon":"/assets/favicon.ico","repository":"https://github.com/theolivenbaum/taildocs"} };</script>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>
     <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>
@@ -113,6 +122,10 @@
             document.documentElement.classList.remove('dark');
         }
     </script>
+<script>
+    console.log("Neko is purring,\nCode flows like a gentle stream,\nSoft paws build the web.");
+</script>
+
 </head>
 <body class="h-full">
   <main class="grid min-h-full place-items-center bg-white dark:bg-gray-900 px-6 py-24 sm:py-32 lg:px-8">
@@ -122,6 +135,7 @@
       <p class="mt-6 text-base leading-7 text-gray-600 dark:text-gray-400">Sorry, we couldn’t find the page you’re looking for.</p>
       <div class="mt-10 flex items-center justify-center gap-x-6">
         <a href="/" class="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Go back home</a>
+        <a href="https://github.com/v0-dev/neko/issues" class="text-sm font-semibold text-gray-900 dark:text-gray-100">Contact support <span aria-hidden="true">&rarr;</span></a>
       </div>
     </div>
   </main>

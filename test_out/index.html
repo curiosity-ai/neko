@@ -3,12 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neko</title>
-    <meta property="og:title" content="Neko">
-    <meta name="twitter:title" content="Neko">
+    <title>Neko - Introduction</title>
+    <link rel="icon" href="/assets/favicon.ico">
+    <meta name="description" content="A modern, lightweight static site generator.">
+    <meta property="og:description" content="A modern, lightweight static site generator.">
+    <meta name="twitter:description" content="A modern, lightweight static site generator.">
+    <meta name="keywords" content="static site generator, csharp, dotnet, documentation, markdown">
+    <meta name="author" content="Neko Team">
+    <meta property="og:title" content="Neko - Introduction">
+    <meta name="twitter:title" content="Neko - Introduction">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/assets/neko-logo.png">
+    <meta name="twitter:image" content="/assets/neko-logo.png">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neko">
+    <meta name="twitter:creator" content="@neko">
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-    <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: {"50":"#eff6ff","100":"#dbeafe","200":"#bfdbfe","300":"#93c5fd","400":"#60a5fa","500":"#3b82f6","600":"#2563eb","700":"#1d4ed8","800":"#1e40af","900":"#1e3a8a","950":"#172554"} } } } }</script>
-    <script>window.nekoConfig = { snippets: {"lineNumbers":[]}, branding: {"title":"Neko","label":null,"logo":null,"logoDark":null,"icon":null,"favicon":null,"repository":null} };</script>
+    <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: {"50":"#f5f3ff","100":"#ede9fe","200":"#ddd6fe","300":"#c4b5fd","400":"#a78bfa","500":"#8b5cf6","600":"#7c3aed","700":"#6d28d9","800":"#5b21b6","900":"#4c1d95","950":"#2e1065"} } } } }</script>
+    <script>window.nekoConfig = { snippets: {"lineNumbers":[]}, branding: {"title":"Neko","label":null,"logo":"/assets/neko-logo.png","logoDark":null,"icon":null,"favicon":"/assets/favicon.ico","repository":"https://github.com/theolivenbaum/taildocs"} };</script>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>
     <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>
@@ -110,17 +122,93 @@
             document.documentElement.classList.remove('dark');
         }
     </script>
+<script>
+    console.log("Neko is purring,\nCode flows like a gentle stream,\nSoft paws build the web.");
+</script>
+
 </head>
 <body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden">
+    <div id="neko-banner-v1" class="bg-indigo-600 text-white relative isolate flex items-center gap-x-6 overflow-hidden px-6 py-2.5 sm:px-3.5 sm:before:flex-1 hidden z-50">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <p class="text-sm leading-6">Welcome to Neko! Check out our new banner feature.</p>
+            <a href="/components/banner" class="flex-none rounded-full bg-gray-900 px-3.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">Learn more <span aria-hidden="true">&rarr;</span></a>
+        </div>
+        <div class="flex flex-1 justify-end">
+            <button type="button" class="-m-3 p-3 focus-visible:outline-offset-[-4px]" onclick="dismissBanner('neko-banner-v1')">
+                <span class="sr-only">Dismiss</span>
+                <i class="fi fi-rr-cross-small text-xl"></i>
+            </button>
+        </div>
+    </div>
     <header class="h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10">
         <div class="flex items-center gap-4">
             <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none">
                 <i class="fi fi-rr-menu-burger text-xl"></i>
             </button>
+            <img src="/assets/neko-logo.png" class="h-8 w-auto dark:hidden">
+            <img src="/assets/neko-logo.png" class="h-8 w-auto hidden dark:block">
             <a href="/index" class="font-bold text-xl hover:text-primary-600 transition-colors">Neko</a>
         </div>
         <div class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300">
-            <a href="index" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center">index</a>
+            <a href="/" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center"><i class="fi fi-rr-house-chimney mr-1"></i>Home</a>
+            <a href="guides/getting-started" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center"><i class="fi fi-rr-book mr-1"></i>Guides</a>
+            <a href="https://github.com/theolivenbaum/taildocs" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center"><i class="fi fi-rr-github mr-1"></i>GitHub</a>
+            <div class="relative group z-50">
+                <button class="flex items-center gap-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors focus:outline-none">
+                    <span>Features</span>
+                    <i class="fi fi-rr-angle-small-down transition-transform group-hover:rotate-180"></i>
+                </button>
+                <div class="absolute -left-8 top-full mt-3 w-screen max-w-md overflow-hidden rounded-3xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-900/5 dark:ring-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-out z-50 delay-200 group-hover:delay-0">
+                    <div class="p-4">
+                        <div class="group relative flex items-center gap-x-6 rounded-lg p-4 text-sm leading-6 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <div class="flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700 group-hover:bg-white dark:group-hover:bg-gray-600">
+                                <i class="fi fi-rr-cube text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400"></i>
+                            </div>
+                            <div class="flex-auto">
+                                <a href="/components/index" class="block font-semibold text-gray-900 dark:text-gray-100">
+                                    Components
+                                    <span class="absolute inset-0"></span>
+                                </a>
+                                <p class="mt-1 text-gray-600 dark:text-gray-400">Explore the rich set of built-in components</p>
+                            </div>
+                        </div>
+                        <div class="group relative flex items-center gap-x-6 rounded-lg p-4 text-sm leading-6 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <div class="flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700 group-hover:bg-white dark:group-hover:bg-gray-600">
+                                <i class="fi fi-rr-settings text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400"></i>
+                            </div>
+                            <div class="flex-auto">
+                                <a href="/configuration/index" class="block font-semibold text-gray-900 dark:text-gray-100">
+                                    Configuration
+                                    <span class="absolute inset-0"></span>
+                                </a>
+                                <p class="mt-1 text-gray-600 dark:text-gray-400">Learn how to customize your Neko site</p>
+                            </div>
+                        </div>
+                        <div class="group relative flex items-center gap-x-6 rounded-lg p-4 text-sm leading-6 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <div class="flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700 group-hover:bg-white dark:group-hover:bg-gray-600">
+                                <i class="fi fi-rr-palette text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400"></i>
+                            </div>
+                            <div class="flex-auto">
+                                <a href="/guides/themes" class="block font-semibold text-gray-900 dark:text-gray-100">
+                                    Themes
+                                    <span class="absolute inset-0"></span>
+                                </a>
+                                <p class="mt-1 text-gray-600 dark:text-gray-400">Style your documentation with ease</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 divide-x divide-gray-900/5 dark:divide-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                        <a href="/guides/getting-started" class="flex items-center justify-center gap-x-2.5 p-3 text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="fi fi-rr-rocket text-gray-400 dark:text-gray-500"></i>
+                            Get Started
+                        </a>
+                        <a href="https://github.com/theolivenbaum/taildocs" class="flex items-center justify-center gap-x-2.5 p-3 text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="fi fi-rr-github text-gray-400 dark:text-gray-500"></i>
+                            View on GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="flex items-center gap-4 hidden md:flex">
             <button onclick="openSearch()" class="flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-primary-500 w-64 justify-between">
@@ -160,23 +248,214 @@
                 </div>
                 <ul class="space-y-1" id="sidebar-list">
                     <li><a href="/index" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Home</a></li>
+                    <li class="first:mt-0 px-2" style="margin-top:1.2rem;margin-bottom:0.5rem;">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Guides</span>
+                    </li>
+                    <li><a href="/guides/getting-started" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-rocket"></i> Getting Started</a></li>
+                    <li><a href="/guides/installation" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-cloud-download"></i> Installation</a></li>
+                    <li><a href="/guides/cli" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-terminal"></i> Neko CLI</a></li>
+                    <li><a href="/guides/formatting" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-note"></i> Markdown (RFM)</a></li>
+                    <li><a href="/guides/themes" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-paint-brush"></i> Themes</a></li>
+                    <li><a href="/guides/github-actions" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-code-compare"></i> GitHub Actions</a></li>
+                    <li><a href="/guides/password-protection" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-lock"></i> Password Protection</a></li>
+                    <li class="first:mt-0 px-2" style="margin-top:1.2rem;margin-bottom:0.5rem;">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Configuration</span>
+                    </li>
+                    <li><a href="/configuration/page" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-file"></i> Page</a></li>
+                    <li><a href="/configuration/folder" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-folder"></i> Folder</a></li>
+                    <li><a href="/configuration/reserved_words" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-info"></i> Reserved words</a></li>
+                    <li class="space-y-1">
+                        <details class="group" open>
+                            <summary class="flex items-center justify-between py-1 px-2 text-[13px] whitespace-nowrap font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none">
+                                <span class="flex items-center gap-2"><i class="fi fi-rr-star"></i> Core</span>
+                                <div class="flex items-center"><i class="fi fi-rr-angle-small-down transition-transform group-open:rotate-180"></i></div>
+                            </summary>
+                            <ul class="pl-0 space-y-1 mt-1 border-l border-gray-200 dark:border-gray-700 ml-3">
+                    <li><a href="/configuration/core/project" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-package"></i> Project</a></li>
+                    <li><a href="/configuration/core/theme-variables" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-palette"></i> Theme variables</a></li>
+                    <li><a href="/configuration/core/includes" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-file-code"></i> Includes</a></li>
+                            </ul>
+                        </details>
+                    </li>
+                    <li class="first:mt-0 px-2" style="margin-top:1.2rem;margin-bottom:0.5rem;">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Components</span>
+                    </li>
+                    <li><a href="/components/components" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-cubes"></i> Components</a></li>
+                    <li><a href="/components/backlinks" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-refresh"></i> Backlinks</a></li>
+                    <li><a href="/components/steps" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-list-check"></i> Steps</a></li>
+                    <li><a href="/components/alert" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-exclamation"></i> Alert Component</a></li>
+                    <li><a href="/components/badge" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-id-badge"></i> Badge</a></li>
+                    <li><a href="/components/banner" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-megaphone"></i> Banner</a></li>
+                    <li><a href="/components/button" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-play"></i> Button</a></li>
+                    <li><a href="/components/callout" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-info"></i> Callout</a></li>
+                    <li><a href="/components/cards" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-layout-fluid"></i> Cards</a></li>
+                    <li><a href="/components/code-block" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-square-code"></i> Code Block</a></li>
+                    <li><a href="/components/code-snippet" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-code-simple"></i> Code Snippet</a></li>
+                    <li><a href="/components/color-chip" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-paint-brush"></i> Color Chip</a></li>
+                    <li><a href="/components/column" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-columns-3"></i> Column</a></li>
+                    <li><a href="/components/command-example" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Command Example Component</a></li>
+                    <li><a href="/components/comments" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-comment"></i> Comments</a></li>
+                    <li><a href="/components/container" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-box-open"></i> Container</a></li>
+                    <li><a href="/components/embed" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-share"></i> Embed</a></li>
+                    <li><a href="/components/emoji" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-smile"></i> Emojis</a></li>
+                    <li><a href="/components/example" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-browser"></i> Example</a></li>
+                    <li><a href="/components/file" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-file"></i> File Component</a></li>
+                    <li><a href="/components/file-download" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-download"></i> File Download</a></li>
+                    <li><a href="/components/force-graph" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-diagram-project"></i> Force Graph</a></li>
+                    <li class="space-y-1">
+                        <details class="group" open>
+                            <summary class="flex items-center justify-between py-1 px-2 text-[13px] whitespace-nowrap font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none">
+                                <span class="flex items-center gap-2"><i class="fi fi-rr-circle opacity-0"></i> Headers</span>
+                                <div class="flex items-center"><i class="fi fi-rr-angle-small-down transition-transform group-open:rotate-180"></i></div>
+                            </summary>
+                            <ul class="pl-0 space-y-1 mt-1 border-l border-gray-200 dark:border-gray-700 ml-3">
+                    <li><a href="/components/headers/bento-grid" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-layout"></i> Bento Grid</a></li>
+                    <li><a href="/components/headers/blog-column" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-newspaper"></i> Blog Column</a></li>
+                    <li><a href="/components/headers/content-sticky" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-sticky-note"></i> Content Sticky</a></li>
+                    <li><a href="/components/headers/cta-panel" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-bolt"></i> CTA Panel</a></li>
+                    <li><a href="/components/headers/feature-grid" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-layout-grid"></i> Feature Grid</a></li>
+                    <li><a href="/components/headers/header-stats" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-stats"></i> Header Stats</a></li>
+                    <li><a href="/components/headers/hero" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-star"></i> Hero</a></li>
+                    <li><a href="/components/headers/hero-simple" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-star"></i> Hero Simple</a></li>
+                    <li><a href="/components/headers/logo-cloud" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-grid"></i> Logo Cloud</a></li>
+                    <li><a href="/components/headers/newsletter-side" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-mail"></i> Newsletter Side</a></li>
+                    <li><a href="/components/headers/pricing-tiers" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-tag"></i> Pricing Tiers</a></li>
+                    <li><a href="/components/headers/stats-simple" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-chart-bar"></i> Stats Simple</a></li>
+                            </ul>
+                        </details>
+                    </li>
+                    <li><a href="/components/icon" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-smile"></i> Icon</a></li>
+                    <li><a href="/components/image" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-picture"></i> Image</a></li>
+                    <li><a href="/components/image-alignment" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-picture"></i> Image alignment demo</a></li>
+                    <li><a href="/components/list" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-list"></i> List</a></li>
+                    <li><a href="/components/math" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-calculator"></i> Math Component</a></li>
+                    <li><a href="/components/math-formulas" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-plus"></i> Math Formulas</a></li>
+                    <li><a href="/components/mermaid" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-diagram-project"></i> Mermaid</a></li>
+                    <li><a href="/components/panel" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-table-rows"></i> Panel</a></li>
+                    <li><a href="/components/reference-link" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-link"></i> Reference Link</a></li>
+                    <li><a href="/components/tab" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-browser"></i> Tab</a></li>
+                    <li><a href="/components/table" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-table"></i> Table</a></li>
+                    <li><a href="/components/youtube" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-video-camera"></i> YouTube</a></li>
+                    <li><a href="/faq" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-question"></i> FAQ</a></li>
+                    <li><a href="/changelog" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-memo"></i> Changelog</a></li>
+                    <li class="first:mt-0 px-2" style="margin-top:1.2rem;margin-bottom:0.5rem;">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Blog</span>
+                    </li>
+                    <li><a href="/blog/post-5" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Advanced Code Blocks and Highlighting</a></li>
+                    <li><a href="/blog/index" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Blog</a></li>
+                    <li><a href="/blog/post-9" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Embedding Video Content with YouTube</a></li>
+                    <li><a href="/blog/post-7" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Enhancing UI with Badges, Buttons, and Cards</a></li>
+                    <li><a href="/blog/post-4" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Enhancing Visuals with Icons and Emojis</a></li>
+                    <li><a href="/blog/post-1" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Getting Started with Neko Alerts</a></li>
+                    <li><a href="/blog/post-6" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Mathematical Formulas and Diagrams</a></li>
+                    <li><a href="/blog/post-10" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Organizing Complex Info with Panels</a></li>
+                    <li><a href="/blog/post-2" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Organizing Content with Tabs</a></li>
+                    <li><a href="/blog/post-3" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Responsive Layouts with Columns</a></li>
+                    <li><a href="/blog/post-8" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Reuse Content with Includes</a></li>
+                    <li class="first:mt-0 px-2" style="margin-top:1.2rem;margin-bottom:0.5rem;">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Changelog</span>
+                    </li>
+                    <li><a href="/changelog/index" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Changelog</a></li>
+                    <li><a href="/changelog/v1.0.1" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> v1.0.1</a></li>
+                    <li><a href="/changelog/v1.0.2" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> v1.0.2</a></li>
+                    <li><a href="/changelog/v1.0.3" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> v1.0.3</a></li>
+                    <li><a href="/changelog/v1.0.4" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> v1.0.4</a></li>
+                    <li><a href="/changelog/v1.0.5" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> v1.0.5</a></li>
+                    <li class="first:mt-0 px-2" style="margin-top:1.2rem;margin-bottom:0.5rem;">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Samples</span>
+                    </li>
+                    <li><a href="/samples/password-protected" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Password Protected</a></li>
                 </ul>
             </nav>
         </aside>
         <div class="flex-1 flex overflow-hidden">
             <main class="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth" id="main-scroll">
                 <div class="max-w-4xl mx-auto prose dark:prose-invert">
-<p><div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-8 not-prose"><div class="flex flex-col"><div class="text-xs tracking-widest text-gray-500 dark:text-gray-400 font-mono uppercase mb-3 text-center md:text-left md:ml-4">INSTALL</div><div class="group relative flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#111111] px-4 py-4 md:px-6 md:py-5 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-200"><code class="text-sm md:text-base text-gray-800 dark:text-gray-200 font-mono bg-transparent border-0 p-0">npm install -g mlld</code><button class="copy-button text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors ml-4 focus:outline-none" onclick="const btn = this; navigator.clipboard.writeText('npm install -g mlld'); btn.innerHTML = '<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;20&quot; height=&quot;20&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><polyline points=&quot;20 6 9 17 4 12&quot;></polyline></svg>'; setTimeout(() => btn.innerHTML = '<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;20&quot; height=&quot;20&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><rect x=&quot;9&quot; y=&quot;9&quot; width=&quot;13&quot; height=&quot;13&quot; rx=&quot;2&quot; ry=&quot;2&quot;></rect><path d=&quot;M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1&quot;></path></svg>', 2000);" title="Copy to clipboard"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button></div></div><div class="flex flex-col"><div class="text-xs tracking-widest text-gray-500 dark:text-gray-400 font-mono uppercase mb-3 text-center md:text-left md:ml-4">GIVE YOUR LLM</div><div class="group relative flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#111111] px-4 py-4 md:px-6 md:py-5 hover:border-primary-500 hover:ring-1 hover:ring-primary-500 dark:hover:border-primary-500 transition-all duration-200"><code class="text-sm md:text-base text-gray-800 dark:text-gray-200 font-mono bg-transparent border-0 p-0">mlld quickstart</code><button class="copy-button text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors ml-4 focus:outline-none" onclick="const btn = this; navigator.clipboard.writeText('mlld quickstart'); btn.innerHTML = '<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;20&quot; height=&quot;20&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><polyline points=&quot;20 6 9 17 4 12&quot;></polyline></svg>'; setTimeout(() => btn.innerHTML = '<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;20&quot; height=&quot;20&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><rect x=&quot;9&quot; y=&quot;9&quot; width=&quot;13&quot; height=&quot;13&quot; rx=&quot;2&quot; ry=&quot;2&quot;></rect><path d=&quot;M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1&quot;></path></svg>', 2000);" title="Copy to clipboard"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button></div></div></div></p>
+<h1 id="welcome-to-neko-the-modern.net-static-site-generator">Welcome to Neko: The Modern .NET Static Site Generator</h1>
+<img src="assets/neko-logo.png" class="mx-auto block" alt="Neko Logo" />
+<p>Neko is a modern, high-performance static site generator built on .NET 10. Designed for developers who value simplicity and speed, Neko effortlessly transforms your Markdown files into a stunning, responsive documentation site using the power of Tailwind CSS. Whether you're documenting an API, a library, or a full-scale product, Neko provides the tools you need to create a professional experience.</p>
+<p><em>Markdown flows to web,</em>
+<em>Simple code, stunning design,</em>
+<em>Neko builds it fast.</em></p>
+<h2 id="key-features">Key Features</h2>
+<ul>
+<li><strong>Markdown First</strong>: Write your documentation in standard Markdown. Neko handles the rest.</li>
+<li><strong>Rich Components</strong>: Enhance your docs with built-in components like <a href="components/alert">Alerts</a>, <a href="components/badge">Badges</a>, <a href="components/tab">Tabs</a>, and more.</li>
+<li><strong>Syntax Highlighting</strong>: Beautiful code blocks with syntax highlighting and copy functionality.</li>
+<li><strong>Diagrams &amp; Math</strong>: Integrated support for <a href="components/mermaid">Mermaid diagrams</a> and <a href="components/math">KaTeX math</a> formulas.</li>
+<li><strong>Responsive Design</strong>: Mobile-friendly layout powered by Tailwind CSS.</li>
+<li><strong>Dark Mode</strong>: Built-in support for light and dark themes.</li>
+<li><strong>Fast &amp; Lightweight</strong>: Generates static HTML files that can be hosted anywhere.</li>
+</ul>
+<h2 id="getting-started">Getting Started</h2>
+<p>To get started with Neko, simply create a <code>neko.yml</code> configuration file and structure your Markdown files.</p>
+<h3 id="directory-structure">Directory Structure</h3>
+<div class="relative group my-6 bg-gray-50 dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-white/10 shadow-sm z-10" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-plaintext !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">my-docs/
+├── neko.yml
+├── index.md
+└── components/
+    ├── alert.md
+    └── button.md
+</code></pre>
+</div><h3 id="configuration">Configuration</h3>
+<p>The <code>neko.yml</code> file allows you to customize your site's branding and navigation.</p>
+<div class="relative group my-6 bg-gray-50 dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-white/10 shadow-sm z-10" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-yaml !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">branding:
+  title: My Documentation
+
+links:
+  - text: Home
+    link: /
+  - text: Components
+    items:
+      - text: Alert
+        link: components/alert
+</code></pre>
+</div><h2 id="contributing">Contributing</h2>
+<p>Neko is open-source. We welcome contributions to help make it even better.</p>
+<hr />
+<p><em>Generated with Neko</em></p>
 
                     <footer class="mt-12 py-6 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400 flex flex-col md:flex-row justify-between items-center not-prose">
                         <div>&copy; 2026 Neko. All rights reserved.</div>
-                        <div class="mt-2 md:mt-0">Powered by Neko</div>
+                        <div class="mt-2 md:mt-0">
+                            <a href="https://github.com/theolivenbaum/taildocs" target="_blank" rel="noopener noreferrer" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1">
+                                <i class="fi fi-rr-edit"></i> Edit on GitHub
+                            </a>
+                        </div>
                     </footer>
                 </div>
             </main>
+            <aside id="toc-sidebar" class="w-64 hidden xl:block shrink-0 overflow-y-auto border-l border-gray-200 dark:border-gray-800 p-6">
+                <div class="sticky top-0">
+                    <h5 class="text-xs font-semibold mb-4 text-gray-900 dark:text-gray-100 uppercase tracking-wider">On this page</h5>
+                    <ul class="space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800 relative" id="toc-list">
+                        <div id="toc-highlight" class="absolute left-0 border-l-2 border-primary-600 dark:border-primary-400 transition-all duration-200 ease-in-out -ml-px" style="top: 0; height: 0; opacity: 0;"></div>
+                        <li><a href="#key-features" class="block pl-4 hover:text-primary-600 dark:hover:text-primary-400 transition-colors toc-link" data-id="key-features">Key Features</a></li>
+                        <li><a href="#getting-started" class="block pl-4 hover:text-primary-600 dark:hover:text-primary-400 transition-colors toc-link" data-id="getting-started">Getting Started</a></li>
+                        <li><a href="#directory-structure" class="block pl-8 hover:text-primary-600 dark:hover:text-primary-400 transition-colors toc-link" data-id="directory-structure">Directory Structure</a></li>
+                        <li><a href="#configuration" class="block pl-8 hover:text-primary-600 dark:hover:text-primary-400 transition-colors toc-link" data-id="configuration">Configuration</a></li>
+                        <li><a href="#contributing" class="block pl-4 hover:text-primary-600 dark:hover:text-primary-400 transition-colors toc-link" data-id="contributing">Contributing</a></li>
+                    </ul>
+                </div>
+            </aside>
         </div>
     </div>
     <script>
+        const bannerId = 'neko-banner-v1';
+        function dismissBanner(id) {
+            const banner = document.getElementById(id);
+            if (banner) {
+                banner.classList.add('hidden');
+                localStorage.setItem('banner-dismissed-' + id, 'true');
+            }
+        }
+
+        if (localStorage.getItem('banner-dismissed-' + bannerId) !== 'true') {
+            const banner = document.getElementById(bannerId);
+            if (banner) banner.classList.remove('hidden');
+        }
         const mobileMenuBtn = document.getElementById('mobile-menu-btn');
         const sidebar = document.getElementById('sidebar');
         const sidebarOverlay = document.getElementById('sidebar-overlay');

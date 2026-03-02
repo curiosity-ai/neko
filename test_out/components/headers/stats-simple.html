@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neko - Stats Simple</title>
+    <link rel="icon" href="/assets/favicon.ico">
+    <meta name="description" content="A simple statistics display.">
+    <meta property="og:description" content="A simple statistics display.">
+    <meta name="twitter:description" content="A simple statistics display.">
+    <meta name="keywords" content="static site generator, csharp, dotnet, documentation, markdown">
+    <meta name="author" content="Neko Team">
+    <meta property="og:title" content="Neko - Stats Simple">
+    <meta name="twitter:title" content="Neko - Stats Simple">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/assets/neko-logo.png">
+    <meta name="twitter:image" content="/assets/neko-logo.png">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@neko">
+    <meta name="twitter:creator" content="@neko">
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: {"50":"#f5f3ff","100":"#ede9fe","200":"#ddd6fe","300":"#c4b5fd","400":"#a78bfa","500":"#8b5cf6","600":"#7c3aed","700":"#6d28d9","800":"#5b21b6","900":"#4c1d95","950":"#2e1065"} } } } }</script>
+    <script>window.nekoConfig = { snippets: {"lineNumbers":[]}, branding: {"title":"Neko","label":null,"logo":"/assets/neko-logo.png","logoDark":null,"icon":null,"favicon":"/assets/favicon.ico","repository":"https://github.com/theolivenbaum/taildocs"} };</script>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>
+    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>
+    <link rel="stylesheet" href="/assets/emoji.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <script>document.addEventListener("DOMContentLoaded", function() { renderMathInElement(document.body); });</script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: false });
+
+        async function renderMermaid() {
+            const elements = document.querySelectorAll('.mermaid');
+            if (!elements.length) return;
+
+            for (const el of elements) {
+                if (el.getAttribute('data-processed')) continue;
+                el.setAttribute('data-processed', 'true');
+
+                const source = el.textContent;
+                const idBase = 'mermaid-' + Math.random().toString(36).substr(2, 9);
+                const idLight = idBase + '-light';
+                const idDark = idBase + '-dark';
+
+                // Render Light
+                const sourceLight = `%%{init: {'theme':'default'}}%%\n${source}`;
+                // Render Dark
+                const sourceDark = `%%{init: {'theme':'dark'}}%%\n${source}`;
+
+                try {
+                    const rLight = await mermaid.render(idLight, sourceLight);
+                    const rDark = await mermaid.render(idDark, sourceDark);
+
+                    el.innerHTML = `
+                        <div class="dark:hidden">${rLight.svg}</div>
+                        <div class="hidden dark:block">${rDark.svg}</div>
+                    `;
+
+                    if (rLight.bindFunctions) rLight.bindFunctions(el.querySelector('.dark\\:hidden'));
+                    if (rDark.bindFunctions) rDark.bindFunctions(el.querySelector('.dark\\:block'));
+                } catch (e) {
+                    console.error('Mermaid rendering failed:', e);
+                    el.innerHTML = `<div class="text-red-500">Error rendering diagram</div>`;
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', renderMermaid);
+    </script>
+    <script src="/assets/force-graph.min.js"></script>
+    <script src="/assets/minisearch.min.js"></script>
+    <script defer src="/assets/search.js"></script>
+    <script defer src="/assets/history.js"></script>
+    <link id="highlight-theme" rel="stylesheet" href="/assets/highlight/tokyo-night-dark.min.css">
+    <script src="/assets/highlight/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js"></script>
+    <style>
+        /* Highlight.js Line Numbers CSS */
+        .prose table.hljs-ln tr { border: none !important; }
+        .prose table.hljs-ln td { padding: 0 !important; }
+        .prose table.hljs-ln td.hljs-ln-numbers { user-select: none; text-align: right; color: #ccc; border-right: 1px solid #ccc; vertical-align: top; padding-right: 5px !important; padding-left: 10px !important; }
+        .prose table.hljs-ln td.hljs-ln-code { padding-left: 10px !important; }
+
+        /* Hide Line Numbers when disabled but table is present (for highlighting) */
+        .hide-line-numbers .hljs-ln-numbers { display: none !important; }
+        .hide-line-numbers .hljs-ln-code { padding-left: 5px !important; }
+
+        /* Custom Highlight Style */
+        .line-highlight { background-color: rgba(255, 255, 0, 0.15); display: block; width: 100%; }
+        .dark .line-highlight { background-color: rgba(255, 255, 0, 0.15); }
+
+        /* Fix Table layout for code blocks with line numbers */
+        .hljs-ln { width: 100%; border-collapse: collapse; }
+
+        /* Custom Scrollbars */
+        /* Sidebar */
+        #sidebar::-webkit-scrollbar { width: 6px; height: 6px; background-color: transparent; }
+        #sidebar::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 3px; }
+        #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); }
+        .dark #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }
+
+        /* TOC */
+        #toc-sidebar::-webkit-scrollbar { display: none; }
+        #toc-sidebar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Main Content */
+        #main-scroll::-webkit-scrollbar { width: 8px; height: 8px; background-color: transparent; }
+        #main-scroll::-webkit-scrollbar-track { background-color: transparent; }
+        #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(209, 213, 219, 0.5); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+        .dark #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }
+        #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(156, 163, 175, 0.8); }
+        .dark #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(107, 114, 128, 0.8); }
+    </style>
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+<script>
+    console.log("Neko is purring,\nCode flows like a gentle stream,\nSoft paws build the web.");
+</script>
+
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden">
+    <div id="neko-banner-v1" class="bg-indigo-600 text-white relative isolate flex items-center gap-x-6 overflow-hidden px-6 py-2.5 sm:px-3.5 sm:before:flex-1 hidden z-50">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <p class="text-sm leading-6">Welcome to Neko! Check out our new banner feature.</p>
+            <a href="/components/banner" class="flex-none rounded-full bg-gray-900 px-3.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">Learn more <span aria-hidden="true">&rarr;</span></a>
+        </div>
+        <div class="flex flex-1 justify-end">
+            <button type="button" class="-m-3 p-3 focus-visible:outline-offset-[-4px]" onclick="dismissBanner('neko-banner-v1')">
+                <span class="sr-only">Dismiss</span>
+                <i class="fi fi-rr-cross-small text-xl"></i>
+            </button>
+        </div>
+    </div>
+    <header class="h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10">
+        <div class="flex items-center gap-4">
+            <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none">
+                <i class="fi fi-rr-menu-burger text-xl"></i>
+            </button>
+            <img src="/assets/neko-logo.png" class="h-8 w-auto dark:hidden">
+            <img src="/assets/neko-logo.png" class="h-8 w-auto hidden dark:block">
+            <a href="/index" class="font-bold text-xl hover:text-primary-600 transition-colors">Neko</a>
+        </div>
+        <div class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300">
+            <a href="/" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center"><i class="fi fi-rr-house-chimney mr-1"></i>Home</a>
+            <a href="guides/getting-started" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center"><i class="fi fi-rr-book mr-1"></i>Guides</a>
+            <a href="https://github.com/theolivenbaum/taildocs" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center"><i class="fi fi-rr-github mr-1"></i>GitHub</a>
+            <div class="relative group z-50">
+                <button class="flex items-center gap-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors focus:outline-none">
+                    <span>Features</span>
+                    <i class="fi fi-rr-angle-small-down transition-transform group-hover:rotate-180"></i>
+                </button>
+                <div class="absolute -left-8 top-full mt-3 w-screen max-w-md overflow-hidden rounded-3xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-900/5 dark:ring-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-out z-50 delay-200 group-hover:delay-0">
+                    <div class="p-4">
+                        <div class="group relative flex items-center gap-x-6 rounded-lg p-4 text-sm leading-6 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <div class="flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700 group-hover:bg-white dark:group-hover:bg-gray-600">
+                                <i class="fi fi-rr-cube text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400"></i>
+                            </div>
+                            <div class="flex-auto">
+                                <a href="/components/index" class="block font-semibold text-gray-900 dark:text-gray-100">
+                                    Components
+                                    <span class="absolute inset-0"></span>
+                                </a>
+                                <p class="mt-1 text-gray-600 dark:text-gray-400">Explore the rich set of built-in components</p>
+                            </div>
+                        </div>
+                        <div class="group relative flex items-center gap-x-6 rounded-lg p-4 text-sm leading-6 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <div class="flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700 group-hover:bg-white dark:group-hover:bg-gray-600">
+                                <i class="fi fi-rr-settings text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400"></i>
+                            </div>
+                            <div class="flex-auto">
+                                <a href="/configuration/index" class="block font-semibold text-gray-900 dark:text-gray-100">
+                                    Configuration
+                                    <span class="absolute inset-0"></span>
+                                </a>
+                                <p class="mt-1 text-gray-600 dark:text-gray-400">Learn how to customize your Neko site</p>
+                            </div>
+                        </div>
+                        <div class="group relative flex items-center gap-x-6 rounded-lg p-4 text-sm leading-6 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <div class="flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700 group-hover:bg-white dark:group-hover:bg-gray-600">
+                                <i class="fi fi-rr-palette text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400"></i>
+                            </div>
+                            <div class="flex-auto">
+                                <a href="/guides/themes" class="block font-semibold text-gray-900 dark:text-gray-100">
+                                    Themes
+                                    <span class="absolute inset-0"></span>
+                                </a>
+                                <p class="mt-1 text-gray-600 dark:text-gray-400">Style your documentation with ease</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 divide-x divide-gray-900/5 dark:divide-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                        <a href="/guides/getting-started" class="flex items-center justify-center gap-x-2.5 p-3 text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="fi fi-rr-rocket text-gray-400 dark:text-gray-500"></i>
+                            Get Started
+                        </a>
+                        <a href="https://github.com/theolivenbaum/taildocs" class="flex items-center justify-center gap-x-2.5 p-3 text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="fi fi-rr-github text-gray-400 dark:text-gray-500"></i>
+                            View on GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 hidden md:flex">
+            <button onclick="openSearch()" class="flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-primary-500 w-64 justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fi fi-rr-search text-sm"></i>
+                    <span class="text-sm font-medium">Search</span>
+                </div>
+                <kbd class="hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400">⌘K</kbd>
+            </button>
+            <div class="relative">
+                <button id="history-btn" onclick="toggleHistory()" class="flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500">
+                    <i class="fi fi-rr-clock text-lg"></i>
+                </button>
+                <div id="history-popup" class="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden border border-gray-200 dark:border-gray-700">
+                    <div class="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Recent Pages</h3>
+                    </div>
+                    <ul id="history-list" class="max-h-64 overflow-y-auto">
+                    </ul>
+                </div>
+            </div>
+            <button id="theme-toggle" class="flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500">
+                <i class="fi fi-rr-moon dark:hidden text-lg"></i>
+                <i class="fi fi-rr-sun hidden dark:block text-lg"></i>
+            </button>
+        </div>
+    </header>
+    <div class="flex flex-1 overflow-hidden">
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden glassmorphism"></div>
+        <aside id="sidebar" class="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex flex-col shrink-0 fixed md:static inset-y-0 left-0 z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out h-full">
+            <nav class="p-4 flex-1">
+                <div class="mb-6 relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fi fi-rr-filter text-gray-400"></i>
+                    </div>
+                    <input type="text" id="sidebar-filter" placeholder="Filter..." class="w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm">
+                </div>
+                <ul class="space-y-1" id="sidebar-list">
+                    <li><a href="/index" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Home</a></li>
+                    <li class="first:mt-0 px-2" style="margin-top:1.2rem;margin-bottom:0.5rem;">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Guides</span>
+                    </li>
+                    <li><a href="/guides/getting-started" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-rocket"></i> Getting Started</a></li>
+                    <li><a href="/guides/installation" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-cloud-download"></i> Installation</a></li>
+                    <li><a href="/guides/cli" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-terminal"></i> Neko CLI</a></li>
+                    <li><a href="/guides/formatting" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-note"></i> Markdown (RFM)</a></li>
+                    <li><a href="/guides/themes" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-paint-brush"></i> Themes</a></li>
+                    <li><a href="/guides/github-actions" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-code-compare"></i> GitHub Actions</a></li>
+                    <li><a href="/guides/password-protection" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-lock"></i> Password Protection</a></li>
+                    <li class="first:mt-0 px-2" style="margin-top:1.2rem;margin-bottom:0.5rem;">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Configuration</span>
+                    </li>
+                    <li><a href="/configuration/page" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-file"></i> Page</a></li>
+                    <li><a href="/configuration/folder" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-folder"></i> Folder</a></li>
+                    <li><a href="/configuration/reserved_words" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-info"></i> Reserved words</a></li>
+                    <li class="space-y-1">
+                        <details class="group" open>
+                            <summary class="flex items-center justify-between py-1 px-2 text-[13px] whitespace-nowrap font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none">
+                                <span class="flex items-center gap-2"><i class="fi fi-rr-star"></i> Core</span>
+                                <div class="flex items-center"><i class="fi fi-rr-angle-small-down transition-transform group-open:rotate-180"></i></div>
+                            </summary>
+                            <ul class="pl-0 space-y-1 mt-1 border-l border-gray-200 dark:border-gray-700 ml-3">
+                    <li><a href="/configuration/core/project" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-package"></i> Project</a></li>
+                    <li><a href="/configuration/core/theme-variables" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-palette"></i> Theme variables</a></li>
+                    <li><a href="/configuration/core/includes" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-file-code"></i> Includes</a></li>
+                            </ul>
+                        </details>
+                    </li>
+                    <li class="first:mt-0 px-2" style="margin-top:1.2rem;margin-bottom:0.5rem;">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Components</span>
+                    </li>
+                    <li><a href="/components/components" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-cubes"></i> Components</a></li>
+                    <li><a href="/components/backlinks" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-refresh"></i> Backlinks</a></li>
+                    <li><a href="/components/steps" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-list-check"></i> Steps</a></li>
+                    <li><a href="/components/alert" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-exclamation"></i> Alert Component</a></li>
+                    <li><a href="/components/badge" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-id-badge"></i> Badge</a></li>
+                    <li><a href="/components/banner" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-megaphone"></i> Banner</a></li>
+                    <li><a href="/components/button" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-play"></i> Button</a></li>
+                    <li><a href="/components/callout" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-info"></i> Callout</a></li>
+                    <li><a href="/components/cards" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-layout-fluid"></i> Cards</a></li>
+                    <li><a href="/components/code-block" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-square-code"></i> Code Block</a></li>
+                    <li><a href="/components/code-snippet" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-code-simple"></i> Code Snippet</a></li>
+                    <li><a href="/components/color-chip" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-paint-brush"></i> Color Chip</a></li>
+                    <li><a href="/components/column" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-columns-3"></i> Column</a></li>
+                    <li><a href="/components/command-example" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Command Example Component</a></li>
+                    <li><a href="/components/comments" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-comment"></i> Comments</a></li>
+                    <li><a href="/components/container" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-box-open"></i> Container</a></li>
+                    <li><a href="/components/embed" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-share"></i> Embed</a></li>
+                    <li><a href="/components/emoji" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-smile"></i> Emojis</a></li>
+                    <li><a href="/components/example" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-browser"></i> Example</a></li>
+                    <li><a href="/components/file" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-file"></i> File Component</a></li>
+                    <li><a href="/components/file-download" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-download"></i> File Download</a></li>
+                    <li><a href="/components/force-graph" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-diagram-project"></i> Force Graph</a></li>
+                    <li class="space-y-1">
+                        <details class="group" open>
+                            <summary class="flex items-center justify-between py-1 px-2 text-[13px] whitespace-nowrap font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none">
+                                <span class="flex items-center gap-2"><i class="fi fi-rr-circle opacity-0"></i> Headers</span>
+                                <div class="flex items-center"><i class="fi fi-rr-angle-small-down transition-transform group-open:rotate-180"></i></div>
+                            </summary>
+                            <ul class="pl-0 space-y-1 mt-1 border-l border-gray-200 dark:border-gray-700 ml-3">
+                    <li><a href="/components/headers/bento-grid" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-layout"></i> Bento Grid</a></li>
+                    <li><a href="/components/headers/blog-column" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-newspaper"></i> Blog Column</a></li>
+                    <li><a href="/components/headers/content-sticky" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-sticky-note"></i> Content Sticky</a></li>
+                    <li><a href="/components/headers/cta-panel" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-bolt"></i> CTA Panel</a></li>
+                    <li><a href="/components/headers/feature-grid" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-layout-grid"></i> Feature Grid</a></li>
+                    <li><a href="/components/headers/header-stats" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-stats"></i> Header Stats</a></li>
+                    <li><a href="/components/headers/hero" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-star"></i> Hero</a></li>
+                    <li><a href="/components/headers/hero-simple" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-star"></i> Hero Simple</a></li>
+                    <li><a href="/components/headers/logo-cloud" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-grid"></i> Logo Cloud</a></li>
+                    <li><a href="/components/headers/newsletter-side" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-mail"></i> Newsletter Side</a></li>
+                    <li><a href="/components/headers/pricing-tiers" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-tag"></i> Pricing Tiers</a></li>
+                    <li><a href="/components/headers/stats-simple" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-chart-bar"></i> Stats Simple</a></li>
+                            </ul>
+                        </details>
+                    </li>
+                    <li><a href="/components/icon" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-smile"></i> Icon</a></li>
+                    <li><a href="/components/image" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-picture"></i> Image</a></li>
+                    <li><a href="/components/image-alignment" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-picture"></i> Image alignment demo</a></li>
+                    <li><a href="/components/list" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-list"></i> List</a></li>
+                    <li><a href="/components/math" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-calculator"></i> Math Component</a></li>
+                    <li><a href="/components/math-formulas" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-plus"></i> Math Formulas</a></li>
+                    <li><a href="/components/mermaid" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-diagram-project"></i> Mermaid</a></li>
+                    <li><a href="/components/panel" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-table-rows"></i> Panel</a></li>
+                    <li><a href="/components/reference-link" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-link"></i> Reference Link</a></li>
+                    <li><a href="/components/tab" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-browser"></i> Tab</a></li>
+                    <li><a href="/components/table" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-table"></i> Table</a></li>
+                    <li><a href="/components/youtube" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-video-camera"></i> YouTube</a></li>
+                    <li><a href="/faq" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-question"></i> FAQ</a></li>
+                    <li><a href="/changelog" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-memo"></i> Changelog</a></li>
+                    <li class="first:mt-0 px-2" style="margin-top:1.2rem;margin-bottom:0.5rem;">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Blog</span>
+                    </li>
+                    <li><a href="/blog/post-5" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Advanced Code Blocks and Highlighting</a></li>
+                    <li><a href="/blog/index" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Blog</a></li>
+                    <li><a href="/blog/post-9" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Embedding Video Content with YouTube</a></li>
+                    <li><a href="/blog/post-7" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Enhancing UI with Badges, Buttons, and Cards</a></li>
+                    <li><a href="/blog/post-4" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Enhancing Visuals with Icons and Emojis</a></li>
+                    <li><a href="/blog/post-1" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Getting Started with Neko Alerts</a></li>
+                    <li><a href="/blog/post-6" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Mathematical Formulas and Diagrams</a></li>
+                    <li><a href="/blog/post-10" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Organizing Complex Info with Panels</a></li>
+                    <li><a href="/blog/post-2" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Organizing Content with Tabs</a></li>
+                    <li><a href="/blog/post-3" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Responsive Layouts with Columns</a></li>
+                    <li><a href="/blog/post-8" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Reuse Content with Includes</a></li>
+                    <li class="first:mt-0 px-2" style="margin-top:1.2rem;margin-bottom:0.5rem;">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Changelog</span>
+                    </li>
+                    <li><a href="/changelog/index" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Changelog</a></li>
+                    <li><a href="/changelog/v1.0.1" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> v1.0.1</a></li>
+                    <li><a href="/changelog/v1.0.2" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> v1.0.2</a></li>
+                    <li><a href="/changelog/v1.0.3" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> v1.0.3</a></li>
+                    <li><a href="/changelog/v1.0.4" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> v1.0.4</a></li>
+                    <li><a href="/changelog/v1.0.5" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> v1.0.5</a></li>
+                    <li class="first:mt-0 px-2" style="margin-top:1.2rem;margin-bottom:0.5rem;">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Samples</span>
+                    </li>
+                    <li><a href="/samples/password-protected" class="block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300"><i class="fi fi-rr-circle opacity-0"></i> Password Protected</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <div class="flex-1 flex overflow-hidden">
+            <main class="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth" id="main-scroll">
+                <div class="max-w-4xl mx-auto prose dark:prose-invert">
+<h1 id="stats-simple">Stats Simple</h1>
+<p>The <code>stats-simple</code> component displays simple key-value statistics.</p>
+<h2 id="usage">Usage</h2>
+<div class="relative group my-6 bg-gray-50 dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden"><button class="copy-btn absolute top-2 right-2 p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 dark:border-white/10 shadow-sm z-10" title="Copy to clipboard"><i class="fi fi-rr-copy"></i></button>
+<pre><code class="language-markdown !my-0 !rounded-none !bg-transparent !border-0 overflow-x-auto p-4 font-mono text-sm">[!stats-simple
+    &quot;Total Subscribers&quot; &quot;71,897&quot;
+    &quot;Avg. Open Rate&quot; &quot;58.16%&quot;
+    &quot;Avg. Click Rate&quot; &quot;24.57%&quot;
+]
+</code></pre>
+</div>
+<p><strong>Preview:</strong></p>
+<p><div class="bg-white dark:bg-gray-900 py-24 sm:py-32 not-prose"><div class="mx-auto max-w-7xl px-6 lg:px-8"><dl class="grid grid-cols-1 gap-x-8 gap-y-16 text-center lg:grid-cols-3"><div class="mx-auto flex max-w-xs flex-col gap-y-4"><dt class="text-base leading-7 text-gray-600 dark:text-gray-300">Total Subscribers</dt><dd class="order-first text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-5xl">71,897</dd></div><div class="mx-auto flex max-w-xs flex-col gap-y-4"><dt class="text-base leading-7 text-gray-600 dark:text-gray-300">Avg. Open Rate</dt><dd class="order-first text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-5xl">58.16%</dd></div><div class="mx-auto flex max-w-xs flex-col gap-y-4"><dt class="text-base leading-7 text-gray-600 dark:text-gray-300">Avg. Click Rate</dt><dd class="order-first text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-5xl">24.57%</dd></div></dl></div></div></p>
+<h2 id="attributes">Attributes</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Attribute</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Positional Arguments</td>
+<td style="text-align: left;">Groups of 2: Label, Value.</td>
+</tr>
+</tbody>
+</table>
+
+                    <footer class="mt-12 py-6 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400 flex flex-col md:flex-row justify-between items-center not-prose">
+                        <div>&copy; 2026 Neko. All rights reserved.</div>
+                        <div class="mt-2 md:mt-0">
+                            <a href="https://github.com/theolivenbaum/taildocs" target="_blank" rel="noopener noreferrer" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1">
+                                <i class="fi fi-rr-edit"></i> Edit on GitHub
+                            </a>
+                        </div>
+                    </footer>
+                </div>
+            </main>
+            <aside id="toc-sidebar" class="w-64 hidden xl:block shrink-0 overflow-y-auto border-l border-gray-200 dark:border-gray-800 p-6">
+                <div class="sticky top-0">
+                    <h5 class="text-xs font-semibold mb-4 text-gray-900 dark:text-gray-100 uppercase tracking-wider">On this page</h5>
+                    <ul class="space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800 relative" id="toc-list">
+                        <div id="toc-highlight" class="absolute left-0 border-l-2 border-primary-600 dark:border-primary-400 transition-all duration-200 ease-in-out -ml-px" style="top: 0; height: 0; opacity: 0;"></div>
+                        <li><a href="#usage" class="block pl-4 hover:text-primary-600 dark:hover:text-primary-400 transition-colors toc-link" data-id="usage">Usage</a></li>
+                        <li><a href="#attributes" class="block pl-4 hover:text-primary-600 dark:hover:text-primary-400 transition-colors toc-link" data-id="attributes">Attributes</a></li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
+    </div>
+    <script>
+        const bannerId = 'neko-banner-v1';
+        function dismissBanner(id) {
+            const banner = document.getElementById(id);
+            if (banner) {
+                banner.classList.add('hidden');
+                localStorage.setItem('banner-dismissed-' + id, 'true');
+            }
+        }
+
+        if (localStorage.getItem('banner-dismissed-' + bannerId) !== 'true') {
+            const banner = document.getElementById(bannerId);
+            if (banner) banner.classList.remove('hidden');
+        }
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+        function toggleMobileMenu() {
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            if (isClosed) {
+                sidebar.classList.remove('-translate-x-full');
+                sidebarOverlay.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+            sidebarOverlay.addEventListener('click', toggleMobileMenu);
+        }
+        if (sidebar) {
+            const scrollKey = 'neko-sidebar-scroll';
+            const timeKey = 'neko-sidebar-scroll-time';
+            const savedScroll = localStorage.getItem(scrollKey);
+            const savedTime = localStorage.getItem(timeKey);
+            if (savedScroll && savedTime) {
+                const now = new Date().getTime();
+                if (now - parseInt(savedTime) < 60000) {
+                    sidebar.scrollTop = parseInt(savedScroll);
+                }
+            }
+            let timeout;
+            sidebar.addEventListener('scroll', () => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    localStorage.setItem(scrollKey, sidebar.scrollTop);
+                    localStorage.setItem(timeKey, new Date().getTime());
+                }, 100);
+            });
+        }
+        const sidebarFilter = document.getElementById('sidebar-filter');
+        const sidebarList = document.getElementById('sidebar-list');
+        if (sidebarFilter && sidebarList) {
+            sidebarFilter.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                // Expand all details when searching
+                const details = sidebarList.querySelectorAll('details');
+                if (term) details.forEach(d => d.open = true);
+
+                const items = sidebarList.querySelectorAll('li, summary');
+                items.forEach(item => {
+                    // Avoid filtering the container li of nested lists, just filter leaf nodes or summary text
+                    if (item.tagName === 'LI' && item.querySelector('details')) return;
+
+                    const text = item.textContent.toLowerCase();
+                    if (text.includes(term)) {
+                        item.classList.remove('hidden');
+                        // Make sure parent is visible
+                        let parent = item.parentElement;
+                        while(parent && parent !== sidebarList) {
+                            parent.classList.remove('hidden');
+                            if (parent.tagName === 'DETAILS') parent.open = true;
+                            parent = parent.parentElement;
+                        }
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+            });
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            let currentPath = window.location.pathname;
+            if (currentPath.endsWith('.html')) currentPath = currentPath.substring(0, currentPath.length - 5);
+            const sidebarLinks = document.querySelectorAll('#sidebar-list a');
+            sidebarLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href === currentPath || (href !== '/' && currentPath.startsWith(href) && (href.endsWith('/') || currentPath.charAt(href.length) === '/'))) {
+                    link.classList.add('bg-primary-50', 'dark:bg-primary-900', 'text-primary-700', 'dark:text-primary-300', 'font-medium');
+                    link.classList.remove('text-gray-700', 'dark:text-gray-200');
+                    // Open parent details
+                    let parent = link.parentElement;
+                    while (parent && parent.id !== 'sidebar-list') {
+                        if (parent.tagName === 'DETAILS') {
+                            parent.open = true;
+                        }
+                        parent = parent.parentElement;
+                    }
+                }
+            });
+        });
+        const tocLinks = document.querySelectorAll('.toc-link');
+        const sections = [];
+        tocLinks.forEach(link => {
+            const id = link.getAttribute('data-id');
+            const section = document.getElementById(id);
+            if (section) sections.push(section);
+        });
+
+        const visibleSections = new Set();
+        const highlightLine = document.getElementById('toc-highlight');
+        const tocList = document.getElementById('toc-list');
+
+        function updateTocHighlight() {
+            if (!highlightLine || !tocList) return;
+
+            // Clear all highlights
+            document.querySelectorAll('.toc-link').forEach(link => {
+                link.classList.remove('text-primary-600', 'dark:text-primary-400', 'font-medium');
+            });
+
+            let activeLinks = Array.from(document.querySelectorAll('.toc-link')).filter(link =>
+                visibleSections.has(link.getAttribute('data-id'))
+            );
+
+            if (activeLinks.length === 0) {
+                // Fallback to last passed section
+                const passedSections = sections.filter(section => {
+                    const rect = section.getBoundingClientRect();
+                    return rect.top < 100;
+                });
+
+                if (passedSections.length > 0) {
+                    const lastPassedSection = passedSections[passedSections.length - 1];
+                    const id = lastPassedSection.id;
+                    const link = document.querySelector(`.toc-link[data-id="${id}"]`);
+                    if (link) {
+                        activeLinks = [link];
+                    }
+                }
+            }
+
+            if (activeLinks.length === 0) {
+                highlightLine.style.opacity = '0';
+                return;
+            }
+
+            // Apply highlight
+            activeLinks.forEach(link => {
+                link.classList.add('text-primary-600', 'dark:text-primary-400', 'font-medium');
+            });
+
+            // Scroll TOC to active link
+            const activeLink = activeLinks[0];
+            const tocSidebar = document.getElementById('toc-sidebar');
+            if (activeLink && tocSidebar) {
+                const linkRect = activeLink.getBoundingClientRect();
+                const sidebarRect = tocSidebar.getBoundingClientRect();
+                if (linkRect.top < sidebarRect.top || linkRect.bottom > sidebarRect.bottom) {
+                     activeLink.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
+            }
+
+            const firstLink = activeLinks[0];
+            const lastLink = activeLinks[activeLinks.length - 1];
+
+            const listRect = tocList.getBoundingClientRect();
+            const firstRect = firstLink.getBoundingClientRect();
+            const lastRect = lastLink.getBoundingClientRect();
+
+            const top = firstRect.top - listRect.top;
+            const height = lastRect.bottom - firstRect.top;
+
+            highlightLine.style.top = `${top}px`;
+            highlightLine.style.height = `${height}px`;
+            highlightLine.style.opacity = '1';
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const id = entry.target.id;
+                if (entry.isIntersecting) {
+                    visibleSections.add(id);
+                } else {
+                    visibleSections.delete(id);
+                }
+            });
+            requestAnimationFrame(updateTocHighlight);
+        }, {
+            root: document.getElementById('main-scroll'),
+            rootMargin: '0px 0px 0px 0px',
+            threshold: 0
+        });
+        sections.forEach(section => observer.observe(section));
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const highlightLink = document.getElementById('highlight-theme');
+        const darkHref = '/assets/highlight/tokyo-night-dark.min.css';
+        const lightHref = '/assets/highlight/tokyo-night-light.min.css';
+
+        function setTheme(isDark) {
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                highlightLink.href = darkHref;
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                highlightLink.href = lightHref;
+            }
+            if (typeof renderMermaid === 'function') renderMermaid();
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            setTheme(!document.documentElement.classList.contains('dark'));
+        });
+
+        if (document.documentElement.classList.contains('dark')) {
+            highlightLink.href = darkHref;
+        } else {
+            highlightLink.href = lightHref;
+        }
+        function openTab(evt, group, tabId) {
+            var contents = document.querySelectorAll(`[id^='tab-${group}-']`);
+            contents.forEach(c => c.classList.add('hidden'));
+            var buttons = evt.currentTarget.parentElement.children;
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400', 'font-medium');
+                buttons[i].classList.add('border-transparent', 'hover:text-gray-700', 'text-gray-500');
+            }
+            document.getElementById(tabId).classList.remove('hidden');
+            evt.currentTarget.classList.remove('border-transparent', 'hover:text-gray-700', 'text-gray-500');
+            evt.currentTarget.classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400', 'font-medium');
+        }
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.copy-btn');
+            if (!btn) return;
+            const group = btn.closest('.group');
+            const codeEl = group.querySelector('code');
+            let text = "";
+            if (codeEl.querySelector('.hljs-ln')) {
+                codeEl.querySelectorAll('.hljs-ln-code').forEach(td => text += td.innerText + "\n");
+            } else {
+                text = codeEl.innerText;
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = btn.querySelector('i');
+                const originalClass = icon.className;
+                icon.className = 'fi fi-rr-check';
+                setTimeout(() => icon.className = originalClass, 2000);
+            });
+        });
+        document.addEventListener('DOMContentLoaded', (event) => {
+            hljs.highlightAll();
+
+            // Init Line Numbers
+            document.querySelectorAll('code.hljs').forEach(block => {
+                const language = Array.from(block.classList).find(c => c.startsWith('language-'))?.replace('language-', '');
+                const configLineNumbers = window.nekoConfig?.snippets?.lineNumbers || [];
+                const globalEnabled = language && configLineNumbers.includes(language);
+                const localEnabled = block.classList.contains('line-numbers') || block.parentElement.classList.contains('line-numbers');
+                const localDisabled = block.classList.contains('no-line-numbers') || block.parentElement.classList.contains('no-line-numbers');
+                const hasHighlight = block.parentElement.getAttribute('data-highlight') || block.getAttribute('data-highlight');
+
+                // We need the table if line numbers are enabled OR if highlighting is requested (as highlighting depends on the table)
+                const needsTable = (globalEnabled || localEnabled || hasHighlight) && !(localDisabled && !hasHighlight);
+
+                if (needsTable) {
+                    // Hide numbers if explicitly disabled, or if not enabled (but table exists for highlight)
+                    const hideNumbers = localDisabled || (!globalEnabled && !localEnabled);
+                    if (hideNumbers) {
+                        block.parentElement.classList.add('hide-line-numbers');
+                    }
+                    hljs.lineNumbersBlock(block, { singleLine: true });
+                }
+            });
+
+            // Anchor Links
+            document.querySelectorAll('h2, h3, h4, h5, h6').forEach(heading => {
+                if (heading.id) {
+                    heading.classList.add('group', 'relative');
+                    const link = document.createElement('a');
+                    link.href = '#' + heading.id;
+                    link.className = 'absolute -left-6 top-0 bottom-0 flex items-center justify-center text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 no-underline';
+                    link.innerHTML = '<i class="fi fi-rr-hashtag"></i>';
+                    link.setAttribute('aria-label', 'Anchor');
+                    heading.prepend(link);
+                }
+            });
+        });
+        window.addEventListener('load', function() {
+            document.querySelectorAll('pre').forEach(pre => {
+                const highlightRange = pre.getAttribute('data-highlight') || pre.querySelector('code')?.getAttribute('data-highlight');
+                if (!highlightRange) return;
+                const block = pre.querySelector('code');
+                if (!block) return;
+                const linesToHighlight = new Set();
+                highlightRange.split(',').forEach(part => {
+                    if (part.includes('-')) {
+                        const [start, end] = part.split('-').map(Number);
+                        for (let i = start; i <= end; i++) linesToHighlight.add(i);
+                    } else {
+                        linesToHighlight.add(Number(part));
+                    }
+                });
+                const table = block.querySelector('.hljs-ln');
+                if (table) {
+                    const rows = table.querySelectorAll('tr');
+                    rows.forEach((row, index) => {
+                        if (linesToHighlight.has(index + 1)) {
+                            row.classList.add('bg-yellow-100', 'dark:bg-yellow-900', 'bg-opacity-20', 'dark:bg-opacity-20');
+                            row.querySelectorAll('td').forEach(td => td.style.backgroundColor = 'inherit');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
