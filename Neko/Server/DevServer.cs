@@ -18,17 +18,22 @@ using System.Security.Cryptography;
 
 namespace Neko.Server
 {
+    public class SiteInfo
+    {
+        public string RoutePrefix { get; set; }
+        public string InputPath { get; set; }
+        public string OutputPath { get; set; }
+    }
+
     public class DevServer
     {
-        private readonly string _rootPath;
-        private readonly string _inputPath;
+        private readonly List<SiteInfo> _sites;
         private readonly int _port;
         private readonly ConcurrentDictionary<string, WebSocket> _sockets = new ConcurrentDictionary<string, WebSocket>();
 
-        public DevServer(string rootPath, string inputPath, int port = 5000)
+        public DevServer(List<SiteInfo> sites, int port = 5000)
         {
-            _rootPath = Path.GetFullPath(rootPath);
-            _inputPath = Path.GetFullPath(inputPath);
+            _sites = sites;
             _port = port;
         }
 
@@ -109,11 +114,11 @@ namespace Neko.Server
             app.MapGet("/api/neko/content", async (string path) => {
                 if (string.IsNullOrEmpty(path)) return Results.BadRequest("Path is required");
 
-                var mdPath = ResolveMarkdownPath(path);
+                var (mdPath, siteInfo) = ResolveMarkdownPath(path);
                 if (mdPath == null) return Results.NotFound($"File not found: {path}");
 
                 // Prevent directory traversal outside input path
-                if (!Path.GetFullPath(mdPath).StartsWith(_inputPath))
+                if (!Path.GetFullPath(mdPath).StartsWith(Path.GetFullPath(siteInfo.InputPath)))
                 {
                     return Results.BadRequest("Invalid path");
                 }
@@ -128,10 +133,10 @@ namespace Neko.Server
                     var body = await request.ReadFromJsonAsync<ContentUpdate>();
                     if (body == null || string.IsNullOrEmpty(body.Path)) return Results.BadRequest("Invalid body");
 
-                    var mdPath = ResolveMarkdownPath(body.Path);
+                    var (mdPath, siteInfo) = ResolveMarkdownPath(body.Path);
                     if (mdPath == null) return Results.NotFound($"File not found to update: {body.Path}");
 
-                    if (!Path.GetFullPath(mdPath).StartsWith(_inputPath))
+                    if (!Path.GetFullPath(mdPath).StartsWith(Path.GetFullPath(siteInfo.InputPath)))
                     {
                         return Results.BadRequest("Invalid path");
                     }
@@ -155,11 +160,11 @@ namespace Neko.Server
                 if (file == null || file.Length == 0) return Results.BadRequest("No file uploaded");
                 if (string.IsNullOrEmpty(path)) return Results.BadRequest("Path is required");
 
-                var mdPath = ResolveMarkdownPath(path);
+                var (mdPath, siteInfo) = ResolveMarkdownPath(path);
                 // If the markdown file doesn't exist yet (new page?), we might want to allow it, but for now strict check.
                 if (mdPath == null) return Results.NotFound($"Markdown file not found for path: {path}");
 
-                if (!Path.GetFullPath(mdPath).StartsWith(_inputPath))
+                if (!Path.GetFullPath(mdPath).StartsWith(Path.GetFullPath(siteInfo.InputPath)))
                 {
                     return Results.BadRequest("Invalid path");
                 }
@@ -194,57 +199,77 @@ namespace Neko.Server
                 return Results.Ok(new { url = $"assets/{safeName}" });
             });
 
-            if (Directory.Exists(_rootPath))
-            {
-                // Rewriter for extensionless URLs
-                var rewriteOptions = new RewriteOptions()
-                    .Add(context => {
-                        var request = context.HttpContext.Request;
-                        var path = request.Path.Value;
-                        if (string.IsNullOrEmpty(path) || path == "/") return;
+            // Rewriter for extensionless URLs for all sites
+            var rewriteOptions = new RewriteOptions()
+                .Add(context => {
+                    var request = context.HttpContext.Request;
+                    var path = request.Path.Value;
+                    if (string.IsNullOrEmpty(path) || path == "/") return;
 
-                        // If api or websocket, skip
-                        if (path.StartsWith("/api/") || path == "/neko-live") return;
+                    // If api or websocket, skip
+                    if (path.StartsWith("/api/") || path == "/neko-live") return;
 
-                        // If path has extension, skip
-                        if (Path.HasExtension(path)) return;
+                    // If path has extension, skip
+                    if (Path.HasExtension(path)) return;
 
-                        // Check if .html file exists
-                        var relativePath = path.TrimStart('/');
-                        var filePath = Path.Combine(_rootPath, relativePath + ".html");
-
-                        if (File.Exists(filePath))
-                        {
-                            request.Path = path + ".html";
-                            context.Result = RuleResult.SkipRemainingRules;
-                        }
-                    });
-                app.UseRewriter(rewriteOptions);
-
-                // Serve static files from the output directory
-                app.UseFileServer(new FileServerOptions
-                {
-                    FileProvider = new PhysicalFileProvider(_rootPath),
-                    RequestPath = "",
-                    EnableDirectoryBrowsing = false
-                });
-
-                // 404 Handler
-                app.Use(async (context, next) =>
-                {
-                    await next();
-
-                    if (context.Response.StatusCode == 404 && !context.Response.HasStarted)
+                    foreach (var site in _sites)
                     {
-                        var notFoundPath = Path.Combine(_rootPath, "404.html");
+                        var prefix = string.IsNullOrEmpty(site.RoutePrefix) ? "/" : site.RoutePrefix;
+                        if (!prefix.EndsWith("/")) prefix += "/";
+
+                        if (path.StartsWith(site.RoutePrefix, StringComparison.OrdinalIgnoreCase) || site.RoutePrefix == "")
+                        {
+                            var relativePath = path.Substring(site.RoutePrefix.Length).TrimStart('/');
+                            var filePath = Path.Combine(site.OutputPath, relativePath + ".html");
+
+                            if (File.Exists(filePath))
+                            {
+                                request.Path = path + ".html";
+                                context.Result = RuleResult.SkipRemainingRules;
+                                return;
+                            }
+                        }
+                    }
+                });
+            app.UseRewriter(rewriteOptions);
+
+            // Serve static files from the output directory of each site
+            foreach (var site in _sites)
+            {
+                if (Directory.Exists(site.OutputPath))
+                {
+                    app.UseFileServer(new FileServerOptions
+                    {
+                        FileProvider = new PhysicalFileProvider(Path.GetFullPath(site.OutputPath)),
+                        RequestPath = site.RoutePrefix,
+                        EnableDirectoryBrowsing = false
+                    });
+                }
+            }
+
+            // 404 Handler
+            app.Use(async (context, next) =>
+            {
+                await next();
+
+                if (context.Response.StatusCode == 404 && !context.Response.HasStarted)
+                {
+                    var path = context.Request.Path.Value ?? "";
+
+                    SiteInfo matchedSite = _sites.FirstOrDefault(s => s.RoutePrefix != "" && path.StartsWith(s.RoutePrefix, StringComparison.OrdinalIgnoreCase));
+                    if (matchedSite == null) matchedSite = _sites.FirstOrDefault(s => s.RoutePrefix == "");
+
+                    if (matchedSite != null)
+                    {
+                        var notFoundPath = Path.Combine(matchedSite.OutputPath, "404.html");
                         if (File.Exists(notFoundPath))
                         {
                             context.Response.ContentType = "text/html";
                             await context.Response.SendFileAsync(notFoundPath);
                         }
                     }
-                });
-            }
+                }
+            });
 
             System.Console.WriteLine($"Server started at http://localhost:{_port}");
 
@@ -257,24 +282,52 @@ namespace Neko.Server
             public string Content { get; set; }
         }
 
-        private string ResolveMarkdownPath(string path)
+        private (string mdPath, SiteInfo site) ResolveMarkdownPath(string path)
         {
+            SiteInfo matchedSite = null;
             var relativePath = path.TrimStart('/');
+
+            // Find matching site by prefix
+            foreach (var site in _sites)
+            {
+                var prefix = site.RoutePrefix.TrimStart('/');
+                if (!string.IsNullOrEmpty(prefix) && relativePath.StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase))
+                {
+                    matchedSite = site;
+                    relativePath = relativePath.Substring(prefix.Length + 1);
+                    break;
+                }
+                else if (!string.IsNullOrEmpty(prefix) && relativePath.Equals(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    matchedSite = site;
+                    relativePath = "";
+                    break;
+                }
+            }
+
+            // Fallback to default site
+            if (matchedSite == null)
+            {
+                matchedSite = _sites.FirstOrDefault(s => string.IsNullOrEmpty(s.RoutePrefix));
+            }
+
+            if (matchedSite == null) return (null, null);
+
             if (relativePath.EndsWith(".html")) relativePath = relativePath.Substring(0, relativePath.Length - 5);
 
             // Try .md
-            var mdPath = Path.Combine(_inputPath, relativePath + ".md");
-            if (File.Exists(mdPath)) return mdPath;
+            var mdPath = Path.Combine(matchedSite.InputPath, relativePath + ".md");
+            if (File.Exists(mdPath)) return (mdPath, matchedSite);
 
             // Try index.md
-            mdPath = Path.Combine(_inputPath, relativePath, "index.md");
-            if (File.Exists(mdPath)) return mdPath;
+            mdPath = Path.Combine(matchedSite.InputPath, relativePath, "index.md");
+            if (File.Exists(mdPath)) return (mdPath, matchedSite);
 
             // Try just file
-            mdPath = Path.Combine(_inputPath, relativePath);
-            if (File.Exists(mdPath)) return mdPath;
+            mdPath = Path.Combine(matchedSite.InputPath, relativePath);
+            if (File.Exists(mdPath)) return (mdPath, matchedSite);
 
-            return null;
+            return (null, matchedSite);
         }
     }
 }
