@@ -80,9 +80,11 @@ namespace Neko.Tests
             var createEditorIndex = html.IndexOf("editor = monaco.editor.create");
             var pasteHandlerIndex = html.IndexOf("editor.getContainerDomNode().addEventListener('paste'");
 
+            var createEditorInsideOpenEditorIndex = html.IndexOf("editor = monaco.editor.create", openEditorIndex);
+
             Assert.That(openEditorIndex, Is.GreaterThan(-1), "nekoOpenEditor should be present");
-            Assert.That(createEditorIndex, Is.GreaterThan(openEditorIndex), "monaco.editor.create should be inside nekoOpenEditor");
-            Assert.That(pasteHandlerIndex, Is.GreaterThan(createEditorIndex), "Paste handler should be after editor creation");
+            Assert.That(createEditorInsideOpenEditorIndex, Is.GreaterThan(openEditorIndex), "monaco.editor.create should be inside nekoOpenEditor");
+            Assert.That(pasteHandlerIndex, Is.GreaterThan(createEditorInsideOpenEditorIndex), "Paste handler should be after editor creation");
         }
     }
 }

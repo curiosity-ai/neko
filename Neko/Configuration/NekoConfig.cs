@@ -169,6 +169,9 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "footerItems")]
         public List<LinkConfig> FooterItems { get; set; } = new List<LinkConfig>();
+
+        [YamlIgnore]
+        public string FolderPath { get; set; }
     }
 
     public class MetaConfig
