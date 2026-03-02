@@ -68,16 +68,13 @@ namespace Neko.Builder
             var files = Directory.GetFiles(directory, "*.md");
             foreach (var file in files)
             {
-                var fullPath = Path.GetFullPath(file);
-                if (!_parsedDocs.TryGetValue(fullPath, out var doc)) continue;
-
                 var fileName = Path.GetFileName(file);
                 // Skip hidden files
                 if (fileName.StartsWith(".")) continue;
-
-                var markdown = File.ReadAllText(file);
-                var doc = _parser.Parse(markdown);
-
+                
+                var fullPath = Path.GetFullPath(file);
+                if (!_parsedDocs.TryGetValue(fullPath, out var doc)) continue;
+                
                 string title = doc.FrontMatter.Label;
 
                 if (string.IsNullOrEmpty(title))
