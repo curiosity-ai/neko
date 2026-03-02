@@ -213,6 +213,9 @@ namespace Neko.Extensions
         {
             switch (obj.Name)
             {
+                case "command-example":
+                    RenderCommandExample(renderer, obj);
+                    break;
                 case "button":
                     RenderButton(renderer, obj);
                     break;
@@ -278,6 +281,38 @@ namespace Neko.Extensions
                     renderer.Write($"<span class=\"text-red-500\">Unknown component: {obj.Name}</span>");
                     break;
             }
+        }
+
+        private void RenderCommandExample(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var install = obj.GetAttribute("install");
+            var quickstart = obj.GetAttribute("quickstart");
+
+            renderer.Write("<div class=\"grid grid-cols-1 md:grid-cols-2 gap-6 my-8 not-prose\">");
+
+            // Left Box: INSTALL
+            renderer.Write("<div class=\"flex flex-col\">");
+            renderer.Write("<div class=\"text-xs tracking-widest text-gray-500 dark:text-gray-400 font-mono uppercase mb-3 text-center md:text-left md:ml-4\">INSTALL</div>");
+            renderer.Write("<div class=\"group relative flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#111111] px-4 py-4 md:px-6 md:py-5 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-200\">");
+            renderer.Write($"<code class=\"text-sm md:text-base text-gray-800 dark:text-gray-200 font-mono bg-transparent border-0 p-0\">{install}</code>");
+            renderer.Write($"<button class=\"copy-button text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors ml-4 focus:outline-none\" onclick=\"const btn = this; navigator.clipboard.writeText('{install}'); btn.innerHTML = '<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;20&quot; height=&quot;20&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><polyline points=&quot;20 6 9 17 4 12&quot;></polyline></svg>'; setTimeout(() => btn.innerHTML = '<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;20&quot; height=&quot;20&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><rect x=&quot;9&quot; y=&quot;9&quot; width=&quot;13&quot; height=&quot;13&quot; rx=&quot;2&quot; ry=&quot;2&quot;></rect><path d=&quot;M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1&quot;></path></svg>', 2000);\" title=\"Copy to clipboard\">");
+            renderer.Write("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"9\" y=\"9\" width=\"13\" height=\"13\" rx=\"2\" ry=\"2\"></rect><path d=\"M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1\"></path></svg>");
+            renderer.Write("</button>");
+            renderer.Write("</div>");
+            renderer.Write("</div>");
+
+            // Right Box: GIVE YOUR LLM
+            renderer.Write("<div class=\"flex flex-col\">");
+            renderer.Write("<div class=\"text-xs tracking-widest text-gray-500 dark:text-gray-400 font-mono uppercase mb-3 text-center md:text-left md:ml-4\">GIVE YOUR LLM</div>");
+            renderer.Write("<div class=\"group relative flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#111111] px-4 py-4 md:px-6 md:py-5 hover:border-primary-500 hover:ring-1 hover:ring-primary-500 dark:hover:border-primary-500 transition-all duration-200\">");
+            renderer.Write($"<code class=\"text-sm md:text-base text-gray-800 dark:text-gray-200 font-mono bg-transparent border-0 p-0\">{quickstart}</code>");
+            renderer.Write($"<button class=\"copy-button text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors ml-4 focus:outline-none\" onclick=\"const btn = this; navigator.clipboard.writeText('{quickstart}'); btn.innerHTML = '<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;20&quot; height=&quot;20&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><polyline points=&quot;20 6 9 17 4 12&quot;></polyline></svg>'; setTimeout(() => btn.innerHTML = '<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;20&quot; height=&quot;20&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><rect x=&quot;9&quot; y=&quot;9&quot; width=&quot;13&quot; height=&quot;13&quot; rx=&quot;2&quot; ry=&quot;2&quot;></rect><path d=&quot;M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1&quot;></path></svg>', 2000);\" title=\"Copy to clipboard\">");
+            renderer.Write("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"9\" y=\"9\" width=\"13\" height=\"13\" rx=\"2\" ry=\"2\"></rect><path d=\"M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1\"></path></svg>");
+            renderer.Write("</button>");
+            renderer.Write("</div>");
+            renderer.Write("</div>");
+
+            renderer.Write("</div>");
         }
 
         private void RenderFeatureGrid(HtmlRenderer renderer, ComponentInline obj)
