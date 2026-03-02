@@ -388,25 +388,25 @@ namespace Neko.Extensions
 
             renderer.Write("<div class=\"bg-white dark:bg-gray-900 not-prose\">");
             renderer.Write("<div class=\"mx-auto max-w-7xl py-24 sm:px-6 sm:py-32 lg:px-8\">");
-            renderer.Write("<div class=\"relative isolate overflow-hidden bg-gray-900 px-6 pt-16 shadow-2xl sm:rounded-3xl sm:px-16 md:pt-24 lg:flex lg:gap-x-20 lg:px-24 lg:pt-0\">");
+            renderer.Write("<div class=\"relative isolate overflow-hidden bg-gray-50 dark:bg-gray-900 px-6 pt-16 shadow-2xl sm:rounded-3xl sm:px-16 md:pt-24 lg:flex lg:gap-x-20 lg:px-24 lg:pt-0 ring-1 ring-gray-200 dark:ring-gray-800\">");
 
             // Text Content
             renderer.Write("<div class=\"mx-auto max-w-md text-center lg:mx-0 lg:flex-auto lg:py-32 lg:text-left\">");
-            renderer.Write("<h2 class=\"text-3xl font-bold tracking-tight text-white sm:text-4xl\">");
+            renderer.Write("<h2 class=\"text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl\">");
             renderer.WriteEscape(title);
             renderer.Write("</h2>");
-            renderer.Write("<p class=\"mt-6 text-lg leading-8 text-gray-300\">");
+            renderer.Write("<p class=\"mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300\">");
             renderer.WriteEscape(desc);
             renderer.Write("</p>");
 
             renderer.Write("<div class=\"mt-10 flex items-center justify-center gap-x-6 lg:justify-start\">");
             if (!string.IsNullOrEmpty(cta1))
             {
-                renderer.Write($"<a href=\"{link1}\" class=\"rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white no-underline\">{cta1}</a>");
+                renderer.Write($"<a href=\"{link1}\" class=\"rounded-md bg-white dark:bg-white/10 px-3.5 py-2.5 text-sm font-semibold text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-white/20 hover:bg-gray-50 dark:hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white no-underline\">{cta1}</a>");
             }
             if (!string.IsNullOrEmpty(cta2))
             {
-                renderer.Write($"<a href=\"{link2}\" class=\"text-sm font-semibold leading-6 text-white no-underline\">{cta2} <span aria-hidden=\"true\">→</span></a>");
+                renderer.Write($"<a href=\"{link2}\" class=\"text-sm font-semibold leading-6 text-gray-900 dark:text-white no-underline\">{cta2} <span aria-hidden=\"true\">→</span></a>");
             }
             renderer.Write("</div></div>");
 
@@ -414,7 +414,7 @@ namespace Neko.Extensions
             if (!string.IsNullOrEmpty(image))
             {
                 renderer.Write("<div class=\"relative mt-16 h-80 lg:mt-8\">");
-                renderer.Write($"<img class=\"absolute left-0 top-0 w-[57rem] max-w-none rounded-md bg-white/5 ring-1 ring-white/10\" src=\"{image}\" alt=\"App screenshot\" width=\"1824\" height=\"1080\">");
+                renderer.Write($"<img class=\"absolute left-0 top-0 w-[57rem] max-w-none rounded-md bg-white/5 ring-1 ring-gray-900/10 dark:ring-white/10\" src=\"{image}\" alt=\"App screenshot\" width=\"1824\" height=\"1080\">");
                 renderer.Write("</div>");
             }
 
@@ -549,13 +549,13 @@ namespace Neko.Extensions
             var title = obj.GetAttribute("title");
             var subtitle = obj.GetAttribute("subtitle");
 
-            renderer.Write("<div class=\"bg-gray-900 py-24 sm:py-32 not-prose\">");
+            renderer.Write("<div class=\"bg-gray-50 dark:bg-gray-900 py-24 sm:py-32 not-prose\">");
             renderer.Write("<div class=\"mx-auto max-w-7xl px-6 lg:px-8\">");
             renderer.Write("<div class=\"mx-auto max-w-2xl lg:mx-0\">");
-            renderer.Write("<h2 class=\"text-4xl font-bold tracking-tight text-white sm:text-6xl\">");
+            renderer.Write("<h2 class=\"text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl\">");
             renderer.WriteEscape(title);
             renderer.Write("</h2>");
-            renderer.Write("<p class=\"mt-6 text-lg leading-8 text-gray-300\">");
+            renderer.Write("<p class=\"mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300\">");
             renderer.WriteEscape(subtitle);
             renderer.Write("</p>");
             renderer.Write("</div>");
@@ -570,8 +570,8 @@ namespace Neko.Extensions
                 var value = obj.Arguments[i + 1];
 
                 renderer.Write("<div class=\"flex flex-col-reverse\">");
-                renderer.Write($"<dt class=\"text-base leading-7 text-gray-300\">{label}</dt>");
-                renderer.Write($"<dd class=\"text-2xl font-bold leading-9 tracking-tight text-white\">{value}</dd>");
+                renderer.Write($"<dt class=\"text-base leading-7 text-gray-600 dark:text-gray-300\">{label}</dt>");
+                renderer.Write($"<dd class=\"text-2xl font-bold leading-9 tracking-tight text-gray-900 dark:text-white\">{value}</dd>");
                 renderer.Write("</div>");
             }
 
@@ -587,26 +587,26 @@ namespace Neko.Extensions
 
             renderer.Write("<div class=\"bg-white dark:bg-gray-900 py-16 sm:py-24 not-prose\">");
             renderer.Write("<div class=\"mx-auto max-w-7xl sm:px-6 lg:px-8\">");
-            renderer.Write("<div class=\"relative isolate overflow-hidden bg-gray-900 px-6 py-24 shadow-2xl sm:rounded-3xl sm:px-24 xl:py-32\">");
+            renderer.Write("<div class=\"relative isolate overflow-hidden bg-gray-50 dark:bg-gray-900 px-6 py-24 shadow-2xl sm:rounded-3xl sm:px-24 xl:py-32 ring-1 ring-gray-200 dark:ring-gray-800\">");
 
-            renderer.Write("<h2 class=\"mx-auto max-w-2xl text-center text-3xl font-bold tracking-tight text-white sm:text-4xl\">");
+            renderer.Write("<h2 class=\"mx-auto max-w-2xl text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl\">");
             renderer.WriteEscape(title);
             renderer.Write("</h2>");
 
-            renderer.Write("<p class=\"mx-auto mt-2 max-w-xl text-center text-lg leading-8 text-gray-300\">");
+            renderer.Write("<p class=\"mx-auto mt-2 max-w-xl text-center text-lg leading-8 text-gray-600 dark:text-gray-300\">");
             renderer.WriteEscape(desc);
             renderer.Write("</p>");
 
             renderer.Write("<form class=\"mx-auto mt-10 flex max-w-md gap-x-4\">");
             renderer.Write("<label for=\"email-address\" class=\"sr-only\">Email address</label>");
-            renderer.Write($"<input id=\"email-address\" name=\"email\" type=\"email\" autocomplete=\"email\" required class=\"min-w-0 flex-auto rounded-md border-0 bg-white/5 px-3.5 py-2 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6\" placeholder=\"{placeholder}\">");
-            renderer.Write($"<button type=\"submit\" class=\"flex-none rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500\">{cta}</button>");
+            renderer.Write($"<input id=\"email-address\" name=\"email\" type=\"email\" autocomplete=\"email\" required class=\"min-w-0 flex-auto rounded-md border-0 bg-white dark:bg-white/5 px-3.5 py-2 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-indigo-500 sm:text-sm sm:leading-6\" placeholder=\"{placeholder}\">");
+            renderer.Write($"<button type=\"submit\" class=\"flex-none rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600\">{cta}</button>");
             renderer.Write("</form>");
 
             // Optional: Render details if arguments present?
             if (obj.Arguments.Count > 0)
             {
-                renderer.Write("<div class=\"mt-10 grid grid-cols-1 gap-x-8 gap-y-6 text-base font-semibold leading-7 text-white sm:grid-cols-2 md:flex lg:gap-x-10 justify-center\">");
+                renderer.Write("<div class=\"mt-10 grid grid-cols-1 gap-x-8 gap-y-6 text-base font-semibold leading-7 text-gray-900 dark:text-white sm:grid-cols-2 md:flex lg:gap-x-10 justify-center\">");
                 foreach(var arg in obj.Arguments)
                 {
                     renderer.Write($"<a href=\"#\">{arg} <span aria-hidden=\"true\">&rarr;</span></a>");
@@ -800,7 +800,7 @@ namespace Neko.Extensions
             var align = obj.GetAttribute("align", "center");
 
             // Container
-            renderer.Write("<div class=\"not-prose relative isolate overflow-hidden bg-gray-900 py-24 sm:py-32 rounded-3xl my-8\">");
+            renderer.Write("<div class=\"not-prose relative isolate overflow-hidden bg-gray-50 dark:bg-gray-900 py-24 sm:py-32 rounded-3xl my-8\">");
 
             // Background Image/Gradient
             if (!string.IsNullOrEmpty(image))
@@ -831,14 +831,14 @@ namespace Neko.Extensions
             {
                 var badgeAlign = align == "left" ? "justify-start" : "justify-center";
                 renderer.Write($"<div class=\"hidden sm:mb-8 sm:flex {badgeAlign}\">");
-                renderer.Write("<div class=\"relative rounded-full px-3 py-1 text-sm leading-6 text-gray-400 ring-1 ring-white/10 hover:ring-white/20\">");
+                renderer.Write("<div class=\"relative rounded-full px-3 py-1 text-sm leading-6 text-gray-600 dark:text-gray-400 ring-1 ring-gray-900/10 dark:ring-white/10 hover:ring-gray-900/20 dark:hover:ring-white/20\">");
 
                 if (!string.IsNullOrEmpty(badgeLink))
                 {
                     renderer.WriteEscape(badgeText);
                     renderer.Write(" <a href=\"");
                     renderer.WriteEscapeUrl(badgeLink);
-                    renderer.Write("\" class=\"font-semibold text-white\"><span class=\"absolute inset-0\" aria-hidden=\"true\"></span>Read more <span aria-hidden=\"true\">&rarr;</span></a>");
+                    renderer.Write("\" class=\"font-semibold text-gray-900 dark:text-white\"><span class=\"absolute inset-0\" aria-hidden=\"true\"></span>Read more <span aria-hidden=\"true\">&rarr;</span></a>");
                 }
                 else
                 {
@@ -850,7 +850,7 @@ namespace Neko.Extensions
             // Title
             if (!string.IsNullOrEmpty(title))
             {
-                renderer.Write("<h2 class=\"text-4xl font-bold tracking-tight text-white sm:text-6xl\">");
+                renderer.Write("<h2 class=\"text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl\">");
                 renderer.WriteEscape(title);
                 renderer.Write("</h2>");
             }
@@ -858,7 +858,7 @@ namespace Neko.Extensions
             // Subtitle
             if (!string.IsNullOrEmpty(subtitle))
             {
-                renderer.Write("<p class=\"mt-6 text-lg leading-8 text-gray-300\">");
+                renderer.Write("<p class=\"mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300\">");
                 renderer.WriteEscape(subtitle);
                 renderer.Write("</p>");
             }
@@ -874,7 +874,7 @@ namespace Neko.Extensions
                      var link = cta1Link ?? "#";
                      renderer.Write("<a href=\"");
                      renderer.WriteEscapeUrl(link);
-                     renderer.Write("\" class=\"rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400 no-underline\">");
+                     renderer.Write("\" class=\"rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 no-underline\">");
                      renderer.WriteEscape(cta1Text);
                      renderer.Write("</a>");
                 }
@@ -884,7 +884,7 @@ namespace Neko.Extensions
                      var link = cta2Link ?? "#";
                      renderer.Write("<a href=\"");
                      renderer.WriteEscapeUrl(link);
-                     renderer.Write("\" class=\"text-sm font-semibold leading-6 text-white no-underline\">");
+                     renderer.Write("\" class=\"text-sm font-semibold leading-6 text-gray-900 dark:text-white no-underline\">");
                      renderer.WriteEscape(cta2Text);
                      renderer.Write(" <span aria-hidden=\"true\">→</span></a>");
                 }
