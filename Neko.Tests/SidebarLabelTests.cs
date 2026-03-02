@@ -58,15 +58,11 @@ namespace Neko.Tests
 
             var parser = new MarkdownParser();
             var doc = parser.Parse(markdown, filePath, _testDir);
-            var parsedDocs = new System.Collections.Generic.List<(string, string, Neko.Builder.ParsedDocument, string)>
+            var parsedDocs = new System.Collections.Generic.List<(string FilePath, string RelativePath, Neko.Builder.ParsedDocument Doc, string Markdown)>
             {
                 (filePath, "components.md", doc, markdown)
             };
 
-            var parsedDocs = new System.Collections.Generic.List<(string FilePath, string RelativePath, Neko.Builder.ParsedDocument Doc, string Markdown)>();
-            var parser = new Neko.Builder.MarkdownParser();
-            var doc = parser.Parse(System.IO.File.ReadAllText(filePath), filePath);
-            parsedDocs.Add((filePath, "components.md", doc, System.IO.File.ReadAllText(filePath)));
             var generator = new SidebarGenerator(_testDir, parsedDocs);
 
             // Act

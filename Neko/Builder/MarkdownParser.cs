@@ -164,23 +164,28 @@ namespace Neko.Builder
 
                 foreach (var link in document.Descendants<LinkInline>())
                 {
-                    // Only process relative image URLs
-                    if (link.IsImage && !string.IsNullOrEmpty(link.Url) && !link.Url.Contains("://") && !link.Url.StartsWith("/") && !link.Url.StartsWith("#"))
+                    // Process image URLs
+                    if (link.IsImage && !string.IsNullOrEmpty(link.Url) && !link.Url.Contains("://") && !link.Url.StartsWith("#"))
                     {
                         var url = link.Url;
-                        var targetPath = Path.Combine(currentDir, url);
+                        var trimmedUrl = url.TrimStart('/');
+                        var targetPath = Path.Combine(currentDir, trimmedUrl);
 
                         // If file exists as is, no need to resolve
                         if (File.Exists(targetPath)) continue;
 
-                        // Try to resolve in assets folders up the tree
-                        var fileName = Path.GetFileName(url);
+                        // Try to resolve in folders up the tree
+                        var fileName = Path.GetFileName(trimmedUrl);
+                        var urlDir = Path.GetDirectoryName(trimmedUrl)?.Replace('\\', '/');
+
                         var searchDir = currentDir;
                         string foundPath = null;
 
                         while (searchDir.StartsWith(rootDir, System.StringComparison.OrdinalIgnoreCase))
                         {
-                            var assetPath = Path.Combine(searchDir, "assets", fileName);
+                            string candidateDir = string.IsNullOrEmpty(urlDir) ? Path.Combine(searchDir, "assets") : Path.Combine(searchDir, urlDir);
+                            var assetPath = Path.GetFullPath(Path.Combine(candidateDir, fileName));
+
                             if (File.Exists(assetPath))
                             {
                                 foundPath = assetPath;
