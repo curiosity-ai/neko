@@ -94,6 +94,66 @@ An energetic, faster, holographic gradient card utilizing custom defined colors 
 :::
 ```
 
+### Gradient Modes Grid
+
+Here is a grid showcasing all of the supported gradient modes.
+
+:::: card-grid
+::: card {variant="grid" title="Fluid Mesh" gradient="true" gradient-mode="mesh"}
+A smooth, flowing mesh gradient.
+:::
+::: card {variant="grid" title="Aurora" gradient="true" gradient-mode="aurora"}
+A gradient resembling the northern lights.
+:::
+::: card {variant="grid" title="Grainy" gradient="true" gradient-mode="grainy"}
+A gradient with a textured, noisy appearance.
+:::
+::: card {variant="grid" title="Deep Sea" gradient="true" gradient-mode="deep-sea"}
+A deep, immersive gradient experience.
+:::
+::: card {variant="grid" title="Holographic" gradient="true" gradient-mode="holographic"}
+A vibrant, multi-colored holographic gradient.
+:::
+::: card {variant="grid" title="Impasto" gradient="true" gradient-mode="impasto"}
+A rich, textured oil-paint style gradient.
+:::
+::: card {variant="grid" title="Spectral" gradient="true" gradient-mode="spectral"}
+A spectrum-based gradient blending multiple colors.
+:::
+::: card {variant="grid" title="Fractal" gradient="true" gradient-mode="fractal"}
+A complex, mathematically-inspired gradient.
+:::
+::::
+
+```markdown
+:::: card-grid
+::: card {variant="grid" title="Fluid Mesh" gradient="true" gradient-mode="mesh"}
+A smooth, flowing mesh gradient.
+:::
+::: card {variant="grid" title="Aurora" gradient="true" gradient-mode="aurora"}
+A gradient resembling the northern lights.
+:::
+::: card {variant="grid" title="Grainy" gradient="true" gradient-mode="grainy"}
+A gradient with a textured, noisy appearance.
+:::
+::: card {variant="grid" title="Deep Sea" gradient="true" gradient-mode="deep-sea"}
+A deep, immersive gradient experience.
+:::
+::: card {variant="grid" title="Holographic" gradient="true" gradient-mode="holographic"}
+A vibrant, multi-colored holographic gradient.
+:::
+::: card {variant="grid" title="Impasto" gradient="true" gradient-mode="impasto"}
+A rich, textured oil-paint style gradient.
+:::
+::: card {variant="grid" title="Spectral" gradient="true" gradient-mode="spectral"}
+A spectrum-based gradient blending multiple colors.
+:::
+::: card {variant="grid" title="Fractal" gradient="true" gradient-mode="fractal"}
+A complex, mathematically-inspired gradient.
+:::
+::::
+```
+
 ## Link Card
 
 The link card variant is designed for navigation and reference links. It features a clean, text-centric layout with an optional call-to-action link at the bottom.
