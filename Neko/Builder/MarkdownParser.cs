@@ -72,15 +72,15 @@ namespace Neko.Builder
     {
         private readonly MarkdownPipeline _pipeline;
 
-        public MarkdownParser()
+        public MarkdownParser(Configuration.NekoConfig config)
         {
-            _pipeline = new MarkdownPipelineBuilder()
+            var customContainerExtension = new CustomContainerExtension(config);
+            var pipelineBuilder = new MarkdownPipelineBuilder()
                 .UseYamlFrontMatter()
                 .UseAdvancedExtensions()
                 .UseMathematics()
                 .UseDiagrams()
                 .UseCustomContainers()
-                .Use<CustomContainerExtension>()
                 .UseGenericAttributes() // Enables {width=500}
                 .Use<IconExtension>()
                 .Use<EmojiExtension>()
@@ -95,8 +95,10 @@ namespace Neko.Builder
                 .Use<YouTubeEmbedExtension>()
                 .Use<CodeBlockExtension>()
                 .Use<CodeSnippetExtension>()
-                .Use<ImageAlignmentExtension>()
-                .Build();
+                .Use<ImageAlignmentExtension>();
+
+            pipelineBuilder.Extensions.Add(customContainerExtension);
+            _pipeline = pipelineBuilder.Build();
         }
 
         private string PreProcessIncludes(string content, string currentFilePath, string rootDirectory, int depth = 0)

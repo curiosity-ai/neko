@@ -12,7 +12,7 @@ namespace Neko.Tests
         [SetUp]
         public void Setup()
         {
-            _parser = new MarkdownParser();
+            _parser = new MarkdownParser(new Neko.Configuration.NekoConfig());
             _tempDir = Path.Combine(Path.GetTempPath(), "NekoTests_" + Path.GetRandomFileName());
             Directory.CreateDirectory(_tempDir);
         }

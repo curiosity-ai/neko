@@ -35,7 +35,7 @@ namespace Neko.Tests
             File.WriteAllText(filePath, markdown);
 
             var parsedDocs = new System.Collections.Generic.List<(string FilePath, string RelativePath, Neko.Builder.ParsedDocument Doc, string Markdown)>();
-            var parser = new Neko.Builder.MarkdownParser();
+            var parser = new Neko.Builder.MarkdownParser(new Neko.Configuration.NekoConfig());
             var doc = parser.Parse(System.IO.File.ReadAllText(filePath), filePath);
             parsedDocs.Add((filePath, "components.md", doc, System.IO.File.ReadAllText(filePath)));
             var generator = new SidebarGenerator(_testDir, parsedDocs);
@@ -56,7 +56,7 @@ namespace Neko.Tests
             var markdown = "---\r\ntitle: \"Title Components\"\r\nicon: stack\r\norder: 50\r\n---\r\n## Components\r\nSome text.";
             File.WriteAllText(filePath, markdown);
 
-            var parser = new MarkdownParser();
+            var parser = new MarkdownParser(new Neko.Configuration.NekoConfig());
             var doc = parser.Parse(markdown, filePath, _testDir);
             var parsedDocs = new System.Collections.Generic.List<(string FilePath, string RelativePath, Neko.Builder.ParsedDocument Doc, string Markdown)>
             {

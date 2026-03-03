@@ -131,7 +131,7 @@ namespace Neko.Builder
                 var files = scanner.Scan();
 
                 // 3. Prepare Pipeline
-                var parser = new MarkdownParser();
+                var parser = new MarkdownParser(_config);
 
                 string headIncludes = null;
                 var headIncludesPath = Path.Combine(_inputDirectory, "_includes", "head.html");
