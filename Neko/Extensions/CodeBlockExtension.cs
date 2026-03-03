@@ -24,6 +24,70 @@ namespace Neko.Extensions
                 return;
             }
 
+            // Handle Tesserae
+            if ((fencedBlock.Info ?? "").ToLower() == "tesserae")
+            {
+                var leafBlock = obj as Markdig.Syntax.LeafBlock;
+                if (leafBlock != null)
+                {
+                    var slices = leafBlock.Lines;
+                    var csharpCode = new System.Text.StringBuilder();
+                    for (int i = 0; i < slices.Count; i++)
+                    {
+                        var slice = slices.Lines[i].Slice;
+                        if (slice.Text == null) continue;
+                        csharpCode.AppendLine(slice.ToString());
+                    }
+
+                    var codeString = csharpCode.ToString();
+
+                    // SiteBuilder always set Environment.CurrentDirectory to the output folder
+                    var siteOutputRoot = Environment.CurrentDirectory;
+
+                    Neko.Builder.TesseraeCompilerResult result = null;
+                    try
+                    {
+                        result = Neko.Builder.TesseraeCompiler.CompileAsync(codeString, siteOutputRoot).GetAwaiter().GetResult(); //Can't use async as Markdig doesn't expose an async method
+                    }
+                    catch (System.Exception ex)
+                    {
+                        result = new Builder.TesseraeCompilerResult()
+                        {
+                            OutputHtml = $"<div class=\"text-red-500 font-bold p-4 border border-red-500 rounded my-4\">Tesserae compilation failed:<br/><pre>{ex.Message}</pre></div>"
+                        };
+                    }
+
+                    if (result != null)
+                    {
+                        var groupId = System.Guid.NewGuid().ToString("N");
+
+                        renderer.Write("<div class=\"my-4 border rounded-md dark:border-gray-700\">");
+
+                        // Tab Headers
+                        renderer.Write("<div class=\"flex border-b bg-gray-50 dark:bg-gray-800 dark:border-gray-700 overflow-x-auto\">");
+                        renderer.Write($"<button class=\"px-4 py-2 border-b-2 focus:outline-none whitespace-nowrap border-primary-500 text-primary-600 dark:text-primary-400 font-medium\" onclick=\"openTab(event, '{groupId}', 'tab-{groupId}-0')\">Live Preview</button>");
+                        renderer.Write($"<button class=\"px-4 py-2 border-b-2 focus:outline-none whitespace-nowrap border-transparent hover:text-gray-700 dark:hover:text-gray-300 text-gray-500 dark:text-gray-400\" onclick=\"openTab(event, '{groupId}', 'tab-{groupId}-1')\">Code</button>");
+                        renderer.Write("</div>");
+
+                        // Tab Contents
+                        renderer.Write("<div class=\"p-4\">");
+
+                        // Live Preview Tab (Active)
+                        renderer.Write($"<div id=\"tab-{groupId}-0\" class=\"tab-content\">");
+                        var encodedHtml = System.Net.WebUtility.HtmlEncode(result.OutputHtml);
+                        renderer.Write($"<iframe class=\"w-full rounded border border-gray-200 dark:border-gray-700\" style=\"min-height: 400px; resize: vertical;\" srcdoc=\"{encodedHtml}\"></iframe>");
+                        renderer.Write("</div>");
+
+                        // Code Tab (Hidden)
+                        renderer.Write($"<div id=\"tab-{groupId}-1\" class=\"tab-content hidden\">");
+
+                        // Fake a csharp code block to render it
+                        fencedBlock.Info = "csharp";
+                        fencedBlock.GetAttributes().AddClass("tesserae-code");
+                    }
+                }
+            }
+
             // Handle Mermaid
             if ((fencedBlock.Info ?? "").ToLower() == "mermaid")
             {
@@ -267,6 +331,14 @@ namespace Neko.Extensions
             base.Write(renderer, obj);
 
             renderer.Write("</div>"); // End Wrapper
+
+            // End Tesserae Tab
+            if ((fencedBlock.Info ?? "").ToLower() == "csharp" && obj.GetAttributes()?.Classes?.Contains("tesserae-code") == true)
+            {
+                renderer.Write("</div>"); // Close tab-content
+                renderer.Write("</div>"); // Close p-4
+                renderer.Write("</div>"); // Close outer my-4 border
+            }
         }
     }
 

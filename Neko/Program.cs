@@ -7,6 +7,8 @@ using Neko.Server;
 using System.IO;
 using System;
 using Neko.Configuration;
+using System.Text;
+using Microsoft.Build.Locator;
 
 namespace Neko
 {
@@ -14,6 +16,9 @@ namespace Neko
     {
         static async Task<int> Main(string[] args)
         {
+            ForceInvariantCultureAndUTF8Output();
+            InitializeMSBuild();
+
             var rootCommand = new RootCommand("Neko CLI - Static Site Generator");
 
             // Build Command
@@ -99,56 +104,62 @@ namespace Neko
 
                 var sites = new System.Collections.Generic.List<Neko.Server.SiteInfo>();
                 var builders = new System.Collections.Generic.Dictionary<string, SiteBuilder>();
-
-                if (isMultiRepo)
+                async Task BuildAsync ()
                 {
-                    if (Directory.Exists(inputFullPath))
+
+                    if (isMultiRepo)
                     {
-                        foreach (var configFile in configFiles)
+                        if (Directory.Exists(inputFullPath))
                         {
-                            var subDir = Path.GetDirectoryName(configFile);
-                            if (subDir == null) continue;
-
-                            var subDirRelative = Path.GetRelativePath(inputFullPath, subDir).Replace("\\", "/");
-                            var isRoot = subDir == inputFullPath;
-                            var routePrefix = isRoot ? "" : "/" + subDirRelative;
-                            var siteOutput = output != null
-                                ? (isRoot ? output : Path.Combine(output, subDirRelative))
-                                : Path.Combine(subDir, ".neko");
-
-                            var builder = new SiteBuilder(subDir, siteOutput, true, isRoot ? null : routePrefix);
-                            await builder.BuildAsync();
-
-                            var siteInfo = new Neko.Server.SiteInfo
+                            foreach (var configFile in configFiles)
                             {
-                                RoutePrefix = routePrefix,
-                                InputPath = subDir,
-                                OutputPath = builder.OutputDirectory
-                            };
+                                var subDir = Path.GetDirectoryName(configFile);
+                                if (subDir == null) continue;
 
-                            sites.Add(siteInfo);
-                            builders[subDir] = builder;
+                                var subDirRelative = Path.GetRelativePath(inputFullPath, subDir).Replace("\\", "/");
+                                var isRoot = subDir == inputFullPath;
+                                var routePrefix = isRoot ? "" : "/" + subDirRelative;
+                                var siteOutput = output != null
+                                    ? (isRoot ? output : Path.Combine(output, subDirRelative))
+                                    : Path.Combine(subDir, ".neko");
+
+                                var builder = new SiteBuilder(subDir, siteOutput, true, isRoot ? null : routePrefix);
+                                await builder.BuildAsync();
+
+                                var siteInfo = new Neko.Server.SiteInfo
+                                {
+                                    RoutePrefix = routePrefix,
+                                    InputPath = subDir,
+                                    OutputPath = builder.OutputDirectory
+                                };
+
+                                sites.Add(siteInfo);
+                                builders[subDir] = builder;
+                            }
+                        }
+
+                        if (sites.Count == 0)
+                        {
+                            Console.WriteLine("Warning: Multi-repo mode detected but no directories with neko.yml found.");
                         }
                     }
-
-                    if (sites.Count == 0)
+                    else
                     {
-                        Console.WriteLine("Warning: Multi-repo mode detected but no directories with neko.yml found.");
+                        var builder = new SiteBuilder(input, output, true, null);
+                        await builder.BuildAsync();
+
+                        sites.Add(new Neko.Server.SiteInfo
+                        {
+                            RoutePrefix = "",
+                            InputPath = input,
+                            OutputPath = builder.OutputDirectory
+                        });
+                        builders[Path.GetFullPath(input)] = builder;
                     }
                 }
-                else
-                {
-                    var builder = new SiteBuilder(input, output, true, null);
-                    await builder.BuildAsync();
 
-                    sites.Add(new Neko.Server.SiteInfo
-                    {
-                        RoutePrefix = "",
-                        InputPath = input,
-                        OutputPath = builder.OutputDirectory
-                    });
-                    builders[Path.GetFullPath(input)] = builder;
-                }
+                await BuildAsync();
+
 
                 // Start Server in background
                 var server = new DevServer(sites, port);
@@ -174,12 +185,10 @@ namespace Neko
                         lastBuild = DateTime.Now;
 
                         Console.WriteLine($"Change detected in {site.RoutePrefix}: {e.Name}. Rebuilding...");
+
                         try
                         {
-                            var b = new SiteBuilder(site.InputPath, site.OutputPath, true);
-                            await b.BuildAsync();
-                            builders[site.InputPath] = b;
-
+                            await BuildAsync();
                             await server.NotifyChange();
                         }
                         catch (Exception ex)
@@ -220,6 +229,63 @@ namespace Neko
             rootCommand.AddCommand(watchCommand);
 
             return await rootCommand.InvokeAsync(args);
+        }
+
+        private static void InitializeMSBuild()
+        {
+            // Initialize MSBuild
+            try
+            {
+                var instances = MSBuildLocator.QueryVisualStudioInstances().ToArray();
+                if (instances.Length > 0)
+                {
+                    var instance = instances.OrderByDescending(x => x.Version).First();
+                    MSBuildLocator.RegisterInstance(instance);
+                    Console.WriteLine($"Registered MSBuild instance: {instance.Name} {instance.Version} at {instance.MSBuildPath}");
+                }
+                else
+                {
+                    MSBuildLocator.RegisterDefaults();
+                    Console.WriteLine("Registered default MSBuild instance.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"MSBuildLocator initialization warning: {ex.Message}");
+            }
+        }
+
+        public static void ForceInvariantCultureAndUTF8Output()
+        {
+            var localTimeZone = TimeZoneInfo.Local;
+            var localCulture = Thread.CurrentThread.CurrentUICulture;
+            
+            bool consoleAvailable;
+            try
+            {
+                Console.OutputEncoding = Encoding.UTF8;
+                consoleAvailable = true;
+            }
+            catch
+            {
+                //This might throw if not running on a console, ignore as we don't care in that case
+                consoleAvailable = false;
+            }
+
+            if (consoleAvailable)
+            {
+                try
+                {
+                    Console.InputEncoding = Encoding.UTF8;
+                }
+                catch
+                {
+                    //This might throw if not running on a console that reads input, ignore as we don't care in that case
+                }
+            }
+
+            Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
         }
     }
 }
