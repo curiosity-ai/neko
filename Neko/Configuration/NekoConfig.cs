@@ -14,6 +14,9 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "url")]
         public string Url { get; set; } = "localhost";
+        
+        [YamlMember(Alias = "cname")]
+        public string Cname { get; set; }
 
         [YamlMember(Alias = "branding")]
         public BrandingConfig Branding { get; set; } = new BrandingConfig();
