@@ -12,6 +12,7 @@ using NuGet.Versioning;
 using H5.Compiler;
 using H5.Compiler.Hosted;
 using H5.Translator;
+using UID;
 
 namespace Neko.Builder
 {
@@ -24,16 +25,13 @@ namespace Neko.Builder
 
     public static class TesseraeCompiler
     {
-        private static readonly Dictionary<string, TesseraeCompilerResult> _cache = new();
+        private static readonly Dictionary<UID128, TesseraeCompilerResult> _cache = new();
         private static readonly HttpClient _httpClient = new HttpClient();
         private static Dictionary<string, NuGetVersion> _cachedLatestVersion = new Dictionary<string, NuGetVersion>();
 
-        public static string ComputeHash(string input)
+        public static UID128 ComputeHash(string input)
         {
-            using var sha256 = SHA256.Create();
-            var bytes = Encoding.UTF8.GetBytes(input);
-            var hash = sha256.ComputeHash(bytes);
-            return Convert.ToBase64String(hash).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+            return input.Hash128();
         }
 
         private static async Task<NuGetVersion> GetLatestVersionAsync(string package)
@@ -158,6 +156,7 @@ namespace Neko.Builder
             Directory.CreateDirectory(siteAssetsDir);
 
             var hash = ComputeHash(csharpCode);
+
             if (Directory.EnumerateFiles(siteAssetsDir).Any()) //Only re-use cached if the files are already in the output
             {
                 if (_cache.TryGetValue(hash, out var cachedResult))
