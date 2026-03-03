@@ -218,17 +218,18 @@ namespace Neko.Builder
                                 .WithPackageReference("h5.Newtonsoft.Json", h5JsonVer)
                                 .WithSourceFile("App.cs", csharpCode);
 
+            var result = new TesseraeCompilerResult();
+
+
+            try
+            {
+
                 var compiledJavascript = await CompilationProcessor.CompileAsync(request);
 
                 if (compiledJavascript.Output == null || !compiledJavascript.Output.Any())
                 {
                     throw new Exception("H5 compilation failed or produced no output.");
                 }
-
-                var result = new TesseraeCompilerResult();
-
-            try
-            {
 
                 // Read app.js
                 var appJsFile = compiledJavascript.Output.FirstOrDefault(f => f.Key.Equals("app.js", StringComparison.OrdinalIgnoreCase) || f.Key.EndsWith("/app.js", StringComparison.OrdinalIgnoreCase) || f.Key.EndsWith("\\app.js", StringComparison.OrdinalIgnoreCase));
