@@ -24,7 +24,6 @@ namespace Neko.Builder
 
     public static class TesseraeCompiler
     {
-        private static readonly Dictionary<string, TesseraeCompilerResult> _cache = new();
         private static readonly HttpClient _httpClient = new HttpClient();
         private static Dictionary<string, NuGetVersion> _cachedLatestVersion = new Dictionary<string, NuGetVersion>();
 
@@ -34,6 +33,13 @@ namespace Neko.Builder
             var bytes = Encoding.UTF8.GetBytes(input);
             var hash = sha256.ComputeHash(bytes);
             return Convert.ToBase64String(hash).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+        }
+
+        private static string GetCacheFilePath(string hash, NuGetVersion tesseraeVersion)
+        {
+            var cacheDir = Path.Combine(Path.GetTempPath(), "neko", "tesserae-cache");
+            Directory.CreateDirectory(cacheDir);
+            return Path.Combine(cacheDir, $"{hash}_{tesseraeVersion}.json");
         }
 
         private static async Task<NuGetVersion> GetLatestVersionAsync(string package)
@@ -158,16 +164,30 @@ namespace Neko.Builder
             Directory.CreateDirectory(siteAssetsDir);
 
             var hash = ComputeHash(csharpCode);
+            var tesseraeVersion = await GetLatestVersionAsync("Tesserae");
+            var cacheFilePath = GetCacheFilePath(hash, tesseraeVersion);
+
             if (Directory.EnumerateFiles(siteAssetsDir).Any()) //Only re-use cached if the files are already in the output
             {
-                if (_cache.TryGetValue(hash, out var cachedResult))
+                if (File.Exists(cacheFilePath))
                 {
-                    return cachedResult;
+                    try
+                    {
+                        var json = await File.ReadAllTextAsync(cacheFilePath);
+                        var cachedResult = JsonSerializer.Deserialize<TesseraeCompilerResult>(json);
+                        if (cachedResult != null)
+                        {
+                            return cachedResult;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to read cache file: {ex.Message}");
+                    }
                 }
             }
 
             var h5Version = await GetLatestVersionAsync("h5");
-            var tesseraeVersion = await GetLatestVersionAsync("Tesserae");
             var h5TargetVersion = await GetLatestVersionAsync("h5.Target");
 
             var h5CoreVer = await GetLatestVersionAsync("h5.core");
@@ -284,7 +304,16 @@ namespace Neko.Builder
 
             result.OutputHtml = htmlBuilder.ToString();
             
-            _cache[hash] = result;
+            try
+            {
+                var json = JsonSerializer.Serialize(result);
+                await File.WriteAllTextAsync(cacheFilePath, json);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to write cache file: {ex.Message}");
+            }
+
             return result;
         }
     }
