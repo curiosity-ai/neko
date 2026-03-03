@@ -158,7 +158,7 @@ namespace Neko.Builder
             }
         }
 
-        public static async Task<TesseraeCompilerResult> CompileAsync(string csharpCode, string siteOutputRoot)
+        public static async Task<TesseraeCompilerResult> CompileAsync(string codeBlockArguments, string csharpCode, string siteOutputRoot)
         {
             var siteAssetsDir = Path.Combine(siteOutputRoot, "assets", "tesserae");
             Directory.CreateDirectory(siteAssetsDir);
@@ -177,6 +177,7 @@ namespace Neko.Builder
                         var cachedResult = JsonSerializer.Deserialize<TesseraeCompilerResult>(json);
                         if (cachedResult != null)
                         {
+                            Console.WriteLine($"Using cached Tesserae code for {codeBlockArguments}");
                             return cachedResult;
                         }
                     }
@@ -187,9 +188,12 @@ namespace Neko.Builder
                 }
             }
 
+            Console.WriteLine($"Compiling Tesserae code for {codeBlockArguments}");
+
+            var sw = Stopwatch.StartNew();
+
             var h5Version = await GetLatestVersionAsync("h5");
             var h5TargetVersion = await GetLatestVersionAsync("h5.Target");
-
             var h5CoreVer = await GetLatestVersionAsync("h5.core");
             var h5JsonVer = await GetLatestVersionAsync("h5.Newtonsoft.Json");
                 
@@ -313,6 +317,9 @@ namespace Neko.Builder
             {
                 Console.WriteLine($"Failed to write cache file: {ex.Message}");
             }
+
+
+            Console.WriteLine($"Compiled Tesserae code for {codeBlockArguments} in {sw.Elapsed.TotalSeconds:n1}s");
 
             return result;
         }

@@ -47,7 +47,7 @@ namespace Neko.Extensions
                     Neko.Builder.TesseraeCompilerResult result = null;
                     try
                     {
-                        result = Neko.Builder.TesseraeCompiler.CompileAsync(codeString, siteOutputRoot).GetAwaiter().GetResult(); //Can't use async as Markdig doesn't expose an async method
+                        result = Neko.Builder.TesseraeCompiler.CompileAsync(fencedBlock.Arguments, codeString, siteOutputRoot).GetAwaiter().GetResult(); //Can't use async as Markdig doesn't expose an async method
                     }
                     catch (System.Exception ex)
                     {
