@@ -12,6 +12,7 @@ using NuGet.Versioning;
 using H5.Compiler;
 using H5.Compiler.Hosted;
 using H5.Translator;
+using UID;
 
 namespace Neko.Builder
 {
@@ -29,10 +30,7 @@ namespace Neko.Builder
 
         public static string ComputeHash(string input)
         {
-            using var sha256 = SHA256.Create();
-            var bytes = Encoding.UTF8.GetBytes(input);
-            var hash = sha256.ComputeHash(bytes);
-            return Convert.ToBase64String(hash).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+            return input.Hash128().ToString();
         }
 
         private static string GetCacheFilePath(string hash, NuGetVersion tesseraeVersion)
@@ -48,6 +46,8 @@ namespace Neko.Builder
             {
                 return cachedVersion;
             }
+
+            Console.WriteLine($"Checking latest version for {package}");
 
             try
             {
@@ -188,126 +188,141 @@ namespace Neko.Builder
                 }
             }
 
-            Console.WriteLine($"Compiling Tesserae code for {codeBlockArguments}");
+                Console.WriteLine($"Compiling Tesserae code for {codeBlockArguments}");
 
-            var sw = Stopwatch.StartNew();
+                var sw = Stopwatch.StartNew();
 
-            var h5Version = await GetLatestVersionAsync("h5");
-            var h5TargetVersion = await GetLatestVersionAsync("h5.Target");
-            var h5CoreVer = await GetLatestVersionAsync("h5.core");
-            var h5JsonVer = await GetLatestVersionAsync("h5.Newtonsoft.Json");
-                
+                var h5Version = await GetLatestVersionAsync("h5");
+                var h5TargetVersion = await GetLatestVersionAsync("h5.Target");
+                var h5CoreVer = await GetLatestVersionAsync("h5.core");
+                var h5JsonVer = await GetLatestVersionAsync("h5.Newtonsoft.Json");
 
 
-            var settings = new H5DotJson_AssemblySettings()
-            {
-                Reflection = new ReflectionConfig()
+
+                var settings = new H5DotJson_AssemblySettings()
                 {
-                    Disabled = false,
-                    Target = H5.Contract.MetadataTarget.Inline,
-                },
-                IgnoreDuplicateTypes = true
-            };
+                    Reflection = new ReflectionConfig()
+                    {
+                        Disabled = false,
+                        Target = H5.Contract.MetadataTarget.Inline,
+                    },
+                    IgnoreDuplicateTypes = true
+                };
 
-            var request = new CompilationRequest("App", settings)
-                            //.NoHTML()
-                            //.WithLanguageVersion("Latest")
-                            .WithPackageReference("h5", h5Version)
-                            .WithPackageReference("Tesserae", tesseraeVersion)
-                            .WithPackageReference("h5.core", h5CoreVer)
-                            .WithPackageReference("h5.Newtonsoft.Json", h5JsonVer)
-                            .WithSourceFile("App.cs", csharpCode);
+                var request = new CompilationRequest("App", settings)
+                                //.NoHTML()
+                                //.WithLanguageVersion("Latest")
+                                .WithPackageReference("h5", h5Version)
+                                .WithPackageReference("Tesserae", tesseraeVersion)
+                                .WithPackageReference("h5.core", h5CoreVer)
+                                .WithPackageReference("h5.Newtonsoft.Json", h5JsonVer)
+                                .WithSourceFile("App.cs", csharpCode);
 
-            var compiledJavascript = await CompilationProcessor.CompileAsync(request);
+                var compiledJavascript = await CompilationProcessor.CompileAsync(request);
 
-            if (compiledJavascript.Output == null || !compiledJavascript.Output.Any())
-            {
-                 throw new Exception("H5 compilation failed or produced no output.");
-            }
-
-            var result = new TesseraeCompilerResult();
-
-
-            // Read app.js
-            var appJsFile = compiledJavascript.Output.FirstOrDefault(f => f.Key.Equals("app.js", StringComparison.OrdinalIgnoreCase) || f.Key.EndsWith("/app.js", StringComparison.OrdinalIgnoreCase) || f.Key.EndsWith("\\app.js", StringComparison.OrdinalIgnoreCase));
-
-
-            if (appJsFile.Value != null)
-            {
-                result.AppJsContent = CompilationOutput.GetAsText(appJsFile.Value);
-            }
-            else
-            {
-                throw new Exception("Could not find compiled app.js");
-            }
-
-            // Collect other assets
-            var htmlBuilder = new StringBuilder();
-            htmlBuilder.AppendLine("<!DOCTYPE html>");
-            htmlBuilder.AppendLine("<html>");
-            htmlBuilder.AppendLine("<head>");
-            htmlBuilder.AppendLine("<meta charset=\"utf-8\" />");
-            htmlBuilder.AppendLine("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />");
-
-            // We need to keep h5.js, h5.core.js first, then other js, then css
-            var jsFiles = new List<string>();
-            var cssFiles = new List<string>();
-
-            foreach (var file in compiledJavascript.Output.DistinctBy(v => v.Key.Replace(".min.", ".")))
-            {
-                var fileName = Path.GetFileName(file.Key);
-                if (fileName.Equals("app.js", StringComparison.OrdinalIgnoreCase)) continue;
-
-                var relativePath = file.Key.Replace("\\", "/");
-                var destPath = Path.Combine(siteAssetsDir, relativePath);
-
-                Directory.CreateDirectory(Path.GetDirectoryName(destPath));
-
-                using(var f = File.OpenWrite(destPath))
+                if (compiledJavascript.Output == null || !compiledJavascript.Output.Any())
                 {
-                    await file.Value.CopyToAsync(f);
+                    throw new Exception("H5 compilation failed or produced no output.");
                 }
 
-                var assetUrl = $"/assets/tesserae/{relativePath}";
-                result.AssetsPath.Add(assetUrl);
+                var result = new TesseraeCompilerResult();
 
-                if (fileName.EndsWith(".js", StringComparison.OrdinalIgnoreCase))
+            try
+            {
+
+                // Read app.js
+                var appJsFile = compiledJavascript.Output.FirstOrDefault(f => f.Key.Equals("app.js", StringComparison.OrdinalIgnoreCase) || f.Key.EndsWith("/app.js", StringComparison.OrdinalIgnoreCase) || f.Key.EndsWith("\\app.js", StringComparison.OrdinalIgnoreCase));
+
+
+                if (appJsFile.Value != null)
                 {
-                    jsFiles.Add(assetUrl);
+                    result.AppJsContent = CompilationOutput.GetAsText(appJsFile.Value);
                 }
-                else if (fileName.EndsWith(".css", StringComparison.OrdinalIgnoreCase))
+                else
                 {
-                    cssFiles.Add(assetUrl);
+                    throw new Exception("Could not find compiled app.js");
                 }
+
+                // Collect other assets
+                var htmlBuilder = new StringBuilder();
+                htmlBuilder.AppendLine("<!DOCTYPE html>");
+                htmlBuilder.AppendLine("<html>");
+                htmlBuilder.AppendLine("<head>");
+                htmlBuilder.AppendLine("<meta charset=\"utf-8\" />");
+                htmlBuilder.AppendLine("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />");
+
+                // We need to keep h5.js, h5.core.js first, then other js, then css
+                var jsFiles = new List<string>();
+                var cssFiles = new List<string>();
+
+                foreach (var file in compiledJavascript.Output.DistinctBy(v => v.Key.Replace(".min.", ".")))
+                {
+                    var fileName = Path.GetFileName(file.Key);
+                    if (fileName.Equals("app.js", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    var relativePath = file.Key.Replace("\\", "/");
+                    var destPath = Path.Combine(siteAssetsDir, relativePath);
+
+                    Directory.CreateDirectory(Path.GetDirectoryName(destPath));
+
+                    using (var f = File.OpenWrite(destPath))
+                    {
+                        await file.Value.CopyToAsync(f);
+                    }
+
+                    var assetUrl = $"/assets/tesserae/{relativePath}";
+                    result.AssetsPath.Add(assetUrl);
+
+                    if (fileName.EndsWith(".js", StringComparison.OrdinalIgnoreCase))
+                    {
+                        jsFiles.Add(assetUrl);
+                    }
+                    else if (fileName.EndsWith(".css", StringComparison.OrdinalIgnoreCase))
+                    {
+                        cssFiles.Add(assetUrl);
+                    }
+                }
+
+                // Sort JS: h5.js first, h5.core.js second, others
+                jsFiles = jsFiles.OrderBy(f =>
+                {
+                    var name = Path.GetFileName(f).ToLowerInvariant();
+                    if (name == "h5.js") return 0;
+                    if (name == "h5.core.js") return 1;
+                    if (name.StartsWith("h5.")) return 2;
+                    return 10;
+                }).ToList();
+
+                foreach (var css in cssFiles)
+                {
+                    htmlBuilder.AppendLine($"<link rel=\"stylesheet\" href=\"{SiteBuilder.CurrentRoutePrefix}{css}\" />");
+                }
+                foreach (var js in jsFiles)
+                {
+                    htmlBuilder.AppendLine($"<script src=\"{SiteBuilder.CurrentRoutePrefix}{js}\"></script>");
+                }
+
+                htmlBuilder.AppendLine("</head>");
+                htmlBuilder.AppendLine("<body>");
+                htmlBuilder.AppendLine($"<script>{result.AppJsContent}</script>");
+                htmlBuilder.AppendLine("</body>");
+                htmlBuilder.AppendLine("</html>");
+
+                result.OutputHtml = htmlBuilder.ToString();
+
+                Console.WriteLine($"Compiled Tesserae code for {codeBlockArguments} in {sw.Elapsed.TotalSeconds:n1}s");
+
+            }
+            catch (System.Exception ex)
+            {
+                Console.WriteLine($"Failed to compile code for {codeBlockArguments}: {ex.Message}");
+
+                result = new Builder.TesseraeCompilerResult()
+                {
+                    OutputHtml = $"<div class=\"text-red-500 font-bold p-4 border border-red-500 rounded my-4\">Tesserae compilation failed:<br/>{System.Net.WebUtility.HtmlEncode(ex.Message)}</div>"
+                };
             }
 
-            // Sort JS: h5.js first, h5.core.js second, others
-            jsFiles = jsFiles.OrderBy(f =>
-            {
-                var name = Path.GetFileName(f).ToLowerInvariant();
-                if (name == "h5.js") return 0;
-                if (name == "h5.core.js") return 1;
-                if (name.StartsWith("h5.")) return 2;
-                return 10;
-            }).ToList();
-
-            foreach (var css in cssFiles)
-            {
-                htmlBuilder.AppendLine($"<link rel=\"stylesheet\" href=\"{SiteBuilder.CurrentRoutePrefix}{css}\" />");
-            }
-            foreach (var js in jsFiles)
-            {
-                htmlBuilder.AppendLine($"<script src=\"{SiteBuilder.CurrentRoutePrefix}{js}\"></script>");
-            }
-
-            htmlBuilder.AppendLine("</head>");
-            htmlBuilder.AppendLine("<body>");
-            htmlBuilder.AppendLine($"<script>{result.AppJsContent}</script>");
-            htmlBuilder.AppendLine("</body>");
-            htmlBuilder.AppendLine("</html>");
-
-            result.OutputHtml = htmlBuilder.ToString();
-            
             try
             {
                 var json = JsonSerializer.Serialize(result);
@@ -317,9 +332,6 @@ namespace Neko.Builder
             {
                 Console.WriteLine($"Failed to write cache file: {ex.Message}");
             }
-
-
-            Console.WriteLine($"Compiled Tesserae code for {codeBlockArguments} in {sw.Elapsed.TotalSeconds:n1}s");
 
             return result;
         }

@@ -44,18 +44,7 @@ namespace Neko.Extensions
                     // SiteBuilder always set Environment.CurrentDirectory to the output folder
                     var siteOutputRoot = Environment.CurrentDirectory;
 
-                    Neko.Builder.TesseraeCompilerResult result = null;
-                    try
-                    {
-                        result = Neko.Builder.TesseraeCompiler.CompileAsync(fencedBlock.Arguments, codeString, siteOutputRoot).GetAwaiter().GetResult(); //Can't use async as Markdig doesn't expose an async method
-                    }
-                    catch (System.Exception ex)
-                    {
-                        result = new Builder.TesseraeCompilerResult()
-                        {
-                            OutputHtml = $"<div class=\"text-red-500 font-bold p-4 border border-red-500 rounded my-4\">Tesserae compilation failed:<br/><pre>{ex.Message}</pre></div>"
-                        };
-                    }
+                    var result = Neko.Builder.TesseraeCompiler.CompileAsync(fencedBlock.Arguments, codeString, siteOutputRoot).GetAwaiter().GetResult(); //Can't use async as Markdig doesn't expose an async method
 
                     if (result != null)
                     {
