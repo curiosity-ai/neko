@@ -68,13 +68,20 @@ namespace Neko.Extensions
             var tags = GetAttribute(attributes, "tags");
             var variant = GetAttribute(attributes, "variant") ?? "stacked";
 
+            // Gradient attributes
+            var gradient = GetAttribute(attributes, "gradient") == "true" || GetAttribute(attributes, "gradient-mode") != null;
+            var gradientMode = GetAttribute(attributes, "gradient-mode");
+            var gradientNoise = GetAttribute(attributes, "gradient-noise");
+            var gradientSpeed = GetAttribute(attributes, "gradient-speed");
+            var gradientColors = GetAttribute(attributes, "gradient-colors");
+
             if (variant == "horizontal")
             {
-                RenderHorizontalCard(renderer, obj, image, title, link, seeMore, tags);
+                RenderHorizontalCard(renderer, obj, image, title, link, seeMore, tags, gradient, gradientMode, gradientNoise, gradientSpeed, gradientColors);
             }
             else if (variant == "grid")
             {
-                RenderGridCard(renderer, obj, image, title, link, seeMore, tags);
+                RenderGridCard(renderer, obj, image, title, link, seeMore, tags, gradient, gradientMode, gradientNoise, gradientSpeed, gradientColors);
             }
             else if (variant == "link")
             {
@@ -85,7 +92,7 @@ namespace Neko.Extensions
             }
             else
             {
-                RenderStackedCard(renderer, obj, image, title, link, seeMore, tags);
+                RenderStackedCard(renderer, obj, image, title, link, seeMore, tags, gradient, gradientMode, gradientNoise, gradientSpeed, gradientColors);
             }
         }
 
@@ -190,7 +197,7 @@ namespace Neko.Extensions
             return null;
         }
 
-        private void RenderGridCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags)
+        private void RenderGridCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags, bool gradient, string? gradientMode, string? gradientNoise, string? gradientSpeed, string? gradientColors)
         {
             var classes = "flex flex-col h-full rounded-lg border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 dark:hover:border-gray-600";
             var attrs = obj.GetAttributes();
@@ -218,6 +225,26 @@ namespace Neko.Extensions
                 renderer.Write($"<img class=\"max-h-full max-w-full object-contain\" src=\"{encodedImage}\" alt=\"{encodedTitle}\">");
 
                 if (!string.IsNullOrEmpty(link)) renderer.Write("</a>");
+
+                renderer.Write("</div>");
+            }
+            else if (gradient)
+            {
+                var encodedTitle = WebUtility.HtmlEncode(title ?? "");
+                renderer.Write("<div class=\"flex h-48 w-full items-center justify-center bg-gray-50 dark:bg-white relative\">");
+
+                if (!string.IsNullOrEmpty(link))
+                {
+                    var encodedLink = WebUtility.HtmlEncode(link);
+                    renderer.Write($"<a href=\"{encodedLink}\" class=\"flex h-full w-full items-center justify-center absolute inset-0 z-10\" title=\"{encodedTitle}\"></a>");
+                }
+
+                renderer.Write("<div data-lumina-gradient");
+                if (!string.IsNullOrEmpty(gradientMode)) renderer.Write($" data-mode=\"{WebUtility.HtmlEncode(gradientMode)}\"");
+                if (!string.IsNullOrEmpty(gradientNoise)) renderer.Write($" data-noise=\"{WebUtility.HtmlEncode(gradientNoise)}\"");
+                if (!string.IsNullOrEmpty(gradientSpeed)) renderer.Write($" data-speed=\"{WebUtility.HtmlEncode(gradientSpeed)}\"");
+                if (!string.IsNullOrEmpty(gradientColors)) renderer.Write($" data-colors=\"{WebUtility.HtmlEncode(gradientColors).Replace("\"", "&quot;")}\"");
+                renderer.Write(" style=\"width: 100%; height: 100%; position: absolute; inset: 0;\"></div>");
 
                 renderer.Write("</div>");
             }
@@ -269,7 +296,7 @@ namespace Neko.Extensions
             renderer.Write("</div>"); // End card div
         }
 
-        private void RenderStackedCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags)
+        private void RenderStackedCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags, bool gradient, string? gradientMode, string? gradientNoise, string? gradientSpeed, string? gradientColors)
         {
             var classes = "max-w-sm rounded overflow-hidden shadow-lg bg-white dark:bg-gray-800 my-4 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 dark:hover:border-gray-600";
             var attrs = obj.GetAttributes();
@@ -292,6 +319,26 @@ namespace Neko.Extensions
                 }
                 renderer.Write($"<img class=\"mt-0 mb-0 w-full object-cover\" src=\"{encodedImage}\" alt=\"{encodedTitle}\">");
                 if (!string.IsNullOrEmpty(link)) renderer.Write("</a>");
+            }
+            else if (gradient)
+            {
+                var encodedTitle = WebUtility.HtmlEncode(title ?? "");
+                renderer.Write("<div class=\"w-full h-48 relative\">");
+
+                if (!string.IsNullOrEmpty(link))
+                {
+                    var encodedLink = WebUtility.HtmlEncode(link);
+                    renderer.Write($"<a href=\"{encodedLink}\" class=\"flex h-full w-full items-center justify-center absolute inset-0 z-10\" title=\"{encodedTitle}\"></a>");
+                }
+
+                renderer.Write("<div data-lumina-gradient");
+                if (!string.IsNullOrEmpty(gradientMode)) renderer.Write($" data-mode=\"{WebUtility.HtmlEncode(gradientMode)}\"");
+                if (!string.IsNullOrEmpty(gradientNoise)) renderer.Write($" data-noise=\"{WebUtility.HtmlEncode(gradientNoise)}\"");
+                if (!string.IsNullOrEmpty(gradientSpeed)) renderer.Write($" data-speed=\"{WebUtility.HtmlEncode(gradientSpeed)}\"");
+                if (!string.IsNullOrEmpty(gradientColors)) renderer.Write($" data-colors=\"{WebUtility.HtmlEncode(gradientColors).Replace("\"", "&quot;")}\"");
+                renderer.Write(" style=\"width: 100%; height: 100%; position: absolute; inset: 0;\"></div>");
+
+                renderer.Write("</div>");
             }
 
             renderer.Write("<div class=\"px-6 py-4\">");
@@ -334,7 +381,7 @@ namespace Neko.Extensions
             renderer.Write("</div>");
         }
 
-        private void RenderHorizontalCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags)
+        private void RenderHorizontalCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags, bool gradient, string? gradientMode, string? gradientNoise, string? gradientSpeed, string? gradientColors)
         {
              var classes = "max-w-sm w-full lg:max-w-full lg:flex my-4 shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 dark:hover:border-gray-600";
              var attrs = obj.GetAttributes();
@@ -351,6 +398,20 @@ namespace Neko.Extensions
                  var encodedImage = WebUtility.HtmlEncode(image);
                  var encodedTitle = WebUtility.HtmlEncode(title ?? "");
                  renderer.Write($"<div class=\"h-48 lg:h-auto lg:w-48 flex-none bg-cover rounded-t lg:rounded-t-none lg:rounded-l text-center overflow-hidden\" style=\"background-image: url('{encodedImage}')\" title=\"{encodedTitle}\"></div>");
+             }
+             else if (gradient)
+             {
+                 var encodedTitle = WebUtility.HtmlEncode(title ?? "");
+                 renderer.Write($"<div class=\"h-48 lg:h-auto lg:w-48 flex-none rounded-t lg:rounded-t-none lg:rounded-l text-center overflow-hidden relative\" title=\"{encodedTitle}\">");
+
+                 renderer.Write("<div data-lumina-gradient");
+                 if (!string.IsNullOrEmpty(gradientMode)) renderer.Write($" data-mode=\"{WebUtility.HtmlEncode(gradientMode)}\"");
+                 if (!string.IsNullOrEmpty(gradientNoise)) renderer.Write($" data-noise=\"{WebUtility.HtmlEncode(gradientNoise)}\"");
+                 if (!string.IsNullOrEmpty(gradientSpeed)) renderer.Write($" data-speed=\"{WebUtility.HtmlEncode(gradientSpeed)}\"");
+                 if (!string.IsNullOrEmpty(gradientColors)) renderer.Write($" data-colors=\"{WebUtility.HtmlEncode(gradientColors).Replace("\"", "&quot;")}\"");
+                 renderer.Write(" style=\"width: 100%; height: 100%; position: absolute; inset: 0;\"></div>");
+
+                 renderer.Write("</div>");
              }
 
              renderer.Write("<div class=\"p-4 flex flex-col justify-between leading-normal w-full\">");

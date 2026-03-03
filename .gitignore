@@ -291,3 +291,8 @@ __pycache__/
 .taildocs/
 .neko/
 temp_output/
+test-output-docs/
+test-docs/
+test-output/
+Neko/test-output/
+Neko/test-docs/
