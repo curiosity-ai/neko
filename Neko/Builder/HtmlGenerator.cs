@@ -113,14 +113,64 @@ namespace Neko.Builder
             }
             if (!string.IsNullOrEmpty(_config.Branding.Logo))
             {
-                sb.AppendLine($"            <img src=\"{_config.Branding.Logo}\" class=\"h-8 w-auto dark:hidden\">");
+                string ResolveLogoPath(string logo)
+                {
+                    if (string.IsNullOrEmpty(logo) || logo.Contains("://") || logo.StartsWith("#")) return logo;
+
+                    var inputDir = System.IO.Path.GetFullPath(_config.Input);
+                    var currentDir = inputDir;
+
+                    if (!string.IsNullOrEmpty(currentUrl))
+                    {
+                        var fullUrlPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(inputDir, currentUrl.TrimStart('/')));
+                        currentDir = System.IO.Path.GetDirectoryName(fullUrlPath) ?? inputDir;
+                    }
+
+                    var trimmedLogo = logo.TrimStart('/');
+                    var targetPath = System.IO.Path.Combine(currentDir, trimmedLogo);
+
+                    if (System.IO.File.Exists(targetPath)) return "/" + System.IO.Path.GetRelativePath(inputDir, targetPath).Replace("\\", "/");
+
+                    var fileName = System.IO.Path.GetFileName(trimmedLogo);
+                    var urlDir = System.IO.Path.GetDirectoryName(trimmedLogo)?.Replace('\\', '/');
+
+                    var searchDir = currentDir;
+                    string foundPath = null;
+
+                    while (searchDir.StartsWith(inputDir, System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        string candidateDir = string.IsNullOrEmpty(urlDir) ? System.IO.Path.Combine(searchDir, "assets") : System.IO.Path.Combine(searchDir, urlDir);
+                        var assetPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(candidateDir, fileName));
+
+                        if (System.IO.File.Exists(assetPath))
+                        {
+                            foundPath = assetPath;
+                            break;
+                        }
+
+                        var parent = System.IO.Directory.GetParent(searchDir);
+                        if (parent == null) break;
+                        searchDir = parent.FullName;
+                    }
+
+                    if (foundPath != null)
+                    {
+                        return "/" + System.IO.Path.GetRelativePath(inputDir, foundPath).Replace("\\", "/");
+                    }
+
+                    return logo;
+                }
+
+                string logoUrl = ResolveLogoPath(_config.Branding.Logo);
+                sb.AppendLine($"            <img src=\"{logoUrl}\" class=\"h-8 w-auto dark:hidden\">");
                 if (!string.IsNullOrEmpty(_config.Branding.LogoDark))
                 {
-                    sb.AppendLine($"            <img src=\"{_config.Branding.LogoDark}\" class=\"h-8 w-auto hidden dark:block\">");
+                    string logoDarkUrl = ResolveLogoPath(_config.Branding.LogoDark);
+                    sb.AppendLine($"            <img src=\"{logoDarkUrl}\" class=\"h-8 w-auto hidden dark:block\">");
                 }
                 else
                 {
-                    sb.AppendLine($"            <img src=\"{_config.Branding.Logo}\" class=\"h-8 w-auto hidden dark:block\">");
+                    sb.AppendLine($"            <img src=\"{logoUrl}\" class=\"h-8 w-auto hidden dark:block\">");
                 }
             }
             else if (!string.IsNullOrEmpty(_config.Branding.Icon))
