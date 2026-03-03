@@ -103,16 +103,6 @@ namespace Neko.Builder
             }
 
             // Navbar
-            string relativePrefix = "";
-            if (!string.IsNullOrEmpty(currentUrl))
-            {
-                var segments = currentUrl.TrimStart('/').Split('/');
-                if (segments.Length > 1)
-                {
-                    relativePrefix = string.Join("", System.Linq.Enumerable.Repeat("../", segments.Length - 1));
-                }
-            }
-
             sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10\">");
             sb.AppendLine("        <div class=\"flex items-center gap-4\">");
             if (_config.Layout.Sidebar)
@@ -123,11 +113,59 @@ namespace Neko.Builder
             }
             if (!string.IsNullOrEmpty(_config.Branding.Logo))
             {
-                string logoUrl = _config.Branding.Logo.StartsWith("/") || _config.Branding.Logo.Contains("://") ? _config.Branding.Logo : relativePrefix + _config.Branding.Logo;
+                string ResolveLogoPath(string logo)
+                {
+                    if (string.IsNullOrEmpty(logo) || logo.Contains("://") || logo.StartsWith("#")) return logo;
+
+                    var inputDir = System.IO.Path.GetFullPath(_config.Input);
+                    var currentDir = inputDir;
+
+                    if (!string.IsNullOrEmpty(currentUrl))
+                    {
+                        var fullUrlPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(inputDir, currentUrl.TrimStart('/')));
+                        currentDir = System.IO.Path.GetDirectoryName(fullUrlPath) ?? inputDir;
+                    }
+
+                    var trimmedLogo = logo.TrimStart('/');
+                    var targetPath = System.IO.Path.Combine(currentDir, trimmedLogo);
+
+                    if (System.IO.File.Exists(targetPath)) return "/" + System.IO.Path.GetRelativePath(inputDir, targetPath).Replace("\\", "/");
+
+                    var fileName = System.IO.Path.GetFileName(trimmedLogo);
+                    var urlDir = System.IO.Path.GetDirectoryName(trimmedLogo)?.Replace('\\', '/');
+
+                    var searchDir = currentDir;
+                    string foundPath = null;
+
+                    while (searchDir.StartsWith(inputDir, System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        string candidateDir = string.IsNullOrEmpty(urlDir) ? System.IO.Path.Combine(searchDir, "assets") : System.IO.Path.Combine(searchDir, urlDir);
+                        var assetPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(candidateDir, fileName));
+
+                        if (System.IO.File.Exists(assetPath))
+                        {
+                            foundPath = assetPath;
+                            break;
+                        }
+
+                        var parent = System.IO.Directory.GetParent(searchDir);
+                        if (parent == null) break;
+                        searchDir = parent.FullName;
+                    }
+
+                    if (foundPath != null)
+                    {
+                        return "/" + System.IO.Path.GetRelativePath(inputDir, foundPath).Replace("\\", "/");
+                    }
+
+                    return logo;
+                }
+
+                string logoUrl = ResolveLogoPath(_config.Branding.Logo);
                 sb.AppendLine($"            <img src=\"{logoUrl}\" class=\"h-8 w-auto dark:hidden\">");
                 if (!string.IsNullOrEmpty(_config.Branding.LogoDark))
                 {
-                    string logoDarkUrl = _config.Branding.LogoDark.StartsWith("/") || _config.Branding.LogoDark.Contains("://") ? _config.Branding.LogoDark : relativePrefix + _config.Branding.LogoDark;
+                    string logoDarkUrl = ResolveLogoPath(_config.Branding.LogoDark);
                     sb.AppendLine($"            <img src=\"{logoDarkUrl}\" class=\"h-8 w-auto hidden dark:block\">");
                 }
                 else
