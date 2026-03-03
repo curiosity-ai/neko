@@ -99,33 +99,33 @@ An energetic, faster, holographic gradient card utilizing custom defined colors 
 The link card variant is designed for navigation and reference links. It features a clean, text-centric layout with an optional call-to-action link at the bottom.
 
 :::: card-grid
-::: card {variant="link" title="Elastic APIs" link="#" link-text="View docs"}
-Browse the API docs for Elasticsearch, Kibana, Elastic Cloud, and more.
+::: card {variant="link" title="View APIs" link="#" link-text="View docs"}
+Browse the API docs, read about endpoints response types, and more.
 :::
-::: card {variant="link" title="Elasticsearch clients" link="#" link-text="View docs"}
-Browse the Elasticsearch client libraries for Java, .Net, Python, and more.
+::: card {variant="link" title="View clients" link="#" link-text="View docs"}
+Browse the the existing client libraries for Java, .Net, Python, and more.
 :::
 ::: card {variant="link" theme="dark" title="Release notes" link="#" link-text="View release notes" arrow="true"}
 Explore the latest features and changes in Elastic.
 :::
 ::: card {variant="link" theme="dark" title="Extend and contribute" link="#" link-text="View extend and contribute docs" arrow="true"}
-Learn how to contribute to Elastic products and extend capabilities.
+Learn how to contribute to products and extend capabilities.
 :::
 ::::
 
 ```markdown
 :::: card-grid
-::: card {variant="link" title="Elastic APIs" link="#" link-text="View docs"}
-Browse the API docs for Elasticsearch, Kibana, Elastic Cloud, and more.
+::: card {variant="link" title="View APIs" link="#" link-text="View docs"}
+Browse the API docs, read about endpoints response types, and more.
 :::
-::: card {variant="link" title="Elasticsearch clients" link="#" link-text="View docs"}
-Browse the Elasticsearch client libraries for Java, .Net, Python, and more.
+::: card {variant="link" title="View clients" link="#" link-text="View docs"}
+Browse the the existing client libraries for Java, .Net, Python, and more.
 :::
 ::: card {variant="link" theme="dark" title="Release notes" link="#" link-text="View release notes" arrow="true"}
 Explore the latest features and changes in Elastic.
 :::
 ::: card {variant="link" theme="dark" title="Extend and contribute" link="#" link-text="View extend and contribute docs" arrow="true"}
-Learn how to contribute to Elastic products and extend capabilities.
+Learn how to contribute to products and extend capabilities.
 :::
 ::::
 ```
