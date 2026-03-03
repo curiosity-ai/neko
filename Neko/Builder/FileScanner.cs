@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Extensions.FileSystemGlobbing;
 
 namespace Neko.Builder
 {
@@ -17,12 +18,22 @@ namespace Neko.Builder
         private readonly string _inputDirectory;
         private readonly string _outputDirectory;
         private readonly HashSet<string>? _excludedSubDirectories;
+        private readonly Matcher _ignoreMatcher;
 
-        public FileScanner(string inputDirectory, string outputDirectory, HashSet<string>? excludedSubDirectories = null)
+        public FileScanner(string inputDirectory, string outputDirectory, HashSet<string>? excludedSubDirectories = null, string[]? ignorePatterns = null)
         {
             _inputDirectory = Path.GetFullPath(inputDirectory);
             _outputDirectory = Path.GetFullPath(outputDirectory);
             _excludedSubDirectories = excludedSubDirectories;
+
+            _ignoreMatcher = new Matcher();
+            if (ignorePatterns != null)
+            {
+                foreach (var pattern in ignorePatterns)
+                {
+                    _ignoreMatcher.AddInclude(pattern);
+                }
+            }
 
             // Ensure output directory ends with separator for safer check
             if (!_outputDirectory.EndsWith(Path.DirectorySeparatorChar.ToString()))
@@ -61,6 +72,17 @@ namespace Neko.Builder
                         }
                     }
                     if (isExcluded) continue;
+                }
+
+                // Check against global ignore patterns
+                var relativePath = Path.GetRelativePath(_inputDirectory, file);
+
+                // Normalise separators for globbing
+                var normalizedRelativePath = relativePath.Replace('\\', '/');
+
+                if (_ignoreMatcher.Match(normalizedRelativePath).HasMatches)
+                {
+                    continue;
                 }
 
                 // Exclude .git and other hidden folders/files

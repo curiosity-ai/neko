@@ -127,7 +127,7 @@ namespace Neko.Builder
                 }
 
                 // 2. Scan Files
-                var scanner = new FileScanner(_inputDirectory, OutputDirectory, excludedDirs.Count > 0 ? excludedDirs : null);
+                var scanner = new FileScanner(_inputDirectory, OutputDirectory, excludedDirs.Count > 0 ? excludedDirs : null, _config.Ignore);
                 var files = scanner.Scan();
 
                 // 3. Prepare Pipeline
