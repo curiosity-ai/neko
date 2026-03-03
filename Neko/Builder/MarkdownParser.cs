@@ -90,6 +90,7 @@ namespace Neko.Builder
                 .Use<TabExtension>()
                 .Use<PanelExtension>()
                 .Use<ColumnExtension>()
+                .Use<StepExtension>()
                 .Use<ComponentExtension>()
                 .Use<YouTubeEmbedExtension>()
                 .Use<CodeBlockExtension>()

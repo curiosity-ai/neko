@@ -34,3 +34,5 @@ This repository contains the source code for `Neko`, a CLI tool for generating s
 
 ## Testing
 - ALWAYS use the Neko project targeting an output folder in the temp directory.
+- **IMPORTANT**: When generating the documentation site locally for testing or verification using `dotnet run`, **always use a temporary output folder** (e.g., `$(TEMP)/test_out/`).
+- **NEVER** push or commit temporary files, logs, or generated documentation files (like `test_out/`, `test_dir/`, or any generated `.html` files in the repository root) to the codebase. Ensure the working tree is clean of test artifacts before committing.
