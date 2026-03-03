@@ -1418,7 +1418,21 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
                 }
             }
             var themeJson = System.Text.Json.JsonSerializer.Serialize(primaryTheme);
-            sb.AppendLine($"    <script>tailwind.config = {{ darkMode: 'class', theme: {{ extend: {{ colors: {{ primary: {themeJson} }} }} }} }}</script>");
+            sb.AppendLine($"    <script>tailwind.config = {{ darkMode: 'class', theme: {{ extend: {{ colors: {{ primary: {themeJson} }} }} }} }}; window.nekoThemeColors = {themeJson};</script>");
+
+            // Initialize gradient missing colors with theme colors
+            sb.AppendLine("    <script>");
+            sb.AppendLine("    document.addEventListener('DOMContentLoaded', () => {");
+            sb.AppendLine("        document.querySelectorAll('[data-lumina-gradient]').forEach(el => {");
+            sb.AppendLine("            if (!el.hasAttribute('data-colors')) {");
+            sb.AppendLine("                const colors = window.nekoThemeColors;");
+            sb.AppendLine("                if (colors) {");
+            sb.AppendLine("                    el.setAttribute('data-colors', JSON.stringify([colors['100'] || '#dee3ff', colors['300'] || '#d0c5ff', colors['500'] || '#ffe6f6', colors['700'] || '#dca512']));");
+            sb.AppendLine("                }");
+            sb.AppendLine("            }");
+            sb.AppendLine("        });");
+            sb.AppendLine("    });");
+            sb.AppendLine("    </script>");
 
             // Neko Config
             var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
@@ -1489,6 +1503,9 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
 
             // Force Graph
             sb.AppendLine("    <script src=\"/assets/force-graph.min.js\"></script>");
+
+            // Gradient Library
+            sb.AppendLine("    <script src=\"/assets/makegradient.js\"></script>");
 
             // Search Assets
             sb.AppendLine("    <script src=\"/assets/minisearch.min.js\"></script>");

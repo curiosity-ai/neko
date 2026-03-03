@@ -66,6 +66,34 @@ The Grid component provides a flexible layout container that arranges its child 
 ::::
 ```
 
+## Gradient Card
+
+You can replace the standard image of a card with an animated gradient. This is configured using `gradient="true"` or passing a `gradient-mode` parameter. When no colors are provided, Neko will automatically pick colors from your chosen theme to generate the gradient.
+
+::: card {title="Impasto Gradient" gradient="true" gradient-mode="impasto"}
+A rich, textured oil-paint style gradient background using theme colors automatically.
+:::
+
+```markdown
+::: card {title="Impasto Gradient" gradient="true" gradient-mode="impasto"}
+A rich, textured oil-paint style gradient background using theme colors automatically.
+:::
+```
+
+### Custom Gradient Settings
+
+You can pass an array of custom hex colors via `gradient-colors`, adjust the `gradient-noise`, and change the `gradient-speed`. Valid modes include `mesh`, `aurora`, `grainy`, `deep-sea`, `holographic`, `impasto`, `spectral`, and `fractal`.
+
+::: card {variant="horizontal" title="Holographic Vibe" gradient-mode="holographic" gradient-colors='["#dee3ff","#d0c5ff","#ffe6f6","#dca512"]' gradient-speed="2"}
+An energetic, faster, holographic gradient card utilizing custom defined colors instead of the theme default.
+:::
+
+```markdown
+::: card {variant="horizontal" title="Holographic Vibe" gradient-mode="holographic" gradient-colors='["#dee3ff","#d0c5ff","#ffe6f6","#dca512"]' gradient-speed="2"}
+An energetic, faster, holographic gradient card utilizing custom defined colors instead of the theme default.
+:::
+```
+
 ## Link Card
 
 The link card variant is designed for navigation and reference links. It features a clean, text-centric layout with an optional call-to-action link at the bottom.
@@ -116,3 +144,8 @@ Learn how to contribute to Elastic products and extend capabilities.
 | `link-text` | The text for the bottom link action (used with `variant="link"`). |
 | `theme` | Set to `dark` for a dark background variant (used with `variant="link"`). |
 | `arrow` | Set to `true` to display an arrow icon next to the link (used with `variant="link"`). |
+| `gradient` | Set to `true` to replace the top image with an animated gradient based on your theme. |
+| `gradient-mode` | Type of gradient: `mesh`, `aurora`, `grainy`, `deep-sea`, `holographic`, `impasto`, `spectral`, or `fractal`. |
+| `gradient-colors` | Custom JSON string array of hex codes for the gradient (e.g., `["#dee3ff", "#dca512"]`). |
+| `gradient-noise` | Control the level of noise over the gradient. Decimal values (e.g., `0.05`). |
+| `gradient-speed` | Speed multiplier for the gradient animation. (e.g., `1`, `1.5`, `0.5`). |
