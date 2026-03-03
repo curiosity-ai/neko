@@ -42,6 +42,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "poweredByNeko")]
         public bool PoweredByNeko { get; set; } = true;
 
+        [YamlMember(Alias = "ignore")]
+        public string[] Ignore { get; set; } = Array.Empty<string>();
+
         public void MergeWith(NekoConfig parent)
         {
             if (parent == null) return;
@@ -80,6 +83,12 @@ namespace Neko.Configuration
             if (Snippets.LineNumbers.Count == 0 && parent.Snippets.LineNumbers.Count > 0)
             {
                 Snippets.LineNumbers = new List<string>(parent.Snippets.LineNumbers);
+            }
+
+            // Inherit Ignore settings
+            if ((Ignore == null || Ignore.Length == 0) && parent.Ignore != null && parent.Ignore.Length > 0)
+            {
+                Ignore = (string[])parent.Ignore.Clone();
             }
         }
     }
