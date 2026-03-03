@@ -10,7 +10,7 @@ namespace Neko.Tests
         [SetUp]
         public void Setup()
         {
-            _parser = new MarkdownParser();
+            _parser = new MarkdownParser(new Neko.Configuration.NekoConfig());
         }
 
         [Test]

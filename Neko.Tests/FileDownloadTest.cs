@@ -10,7 +10,7 @@ namespace Neko.Tests
         [Test]
         public void TestFileSimple()
         {
-            var parser = new MarkdownParser();
+            var parser = new MarkdownParser(new Neko.Configuration.NekoConfig());
             var markdown = "[!file](/static/sample.txt)";
             var doc = parser.Parse(markdown);
 
@@ -23,7 +23,7 @@ namespace Neko.Tests
         [Test]
         public void TestFileWithText()
         {
-            var parser = new MarkdownParser();
+            var parser = new MarkdownParser(new Neko.Configuration.NekoConfig());
             var markdown = "[!file Sample](/static/sample.txt)";
             var doc = parser.Parse(markdown);
 
@@ -34,7 +34,7 @@ namespace Neko.Tests
         [Test]
         public void TestFileWithIcon()
         {
-            var parser = new MarkdownParser();
+            var parser = new MarkdownParser(new Neko.Configuration.NekoConfig());
             var markdown = "[!file icon=\"rocket\"](/static/sample.txt)";
             var doc = parser.Parse(markdown);
 

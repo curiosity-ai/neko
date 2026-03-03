@@ -10,10 +10,12 @@ namespace Neko.Extensions
     public class CustomContainerRenderer : HtmlObjectRenderer<CustomContainer>
     {
         private readonly HtmlObjectRenderer<CustomContainer> _originalRenderer;
+        private readonly Configuration.NekoConfig _config;
 
-        public CustomContainerRenderer(HtmlObjectRenderer<CustomContainer> originalRenderer)
+        public CustomContainerRenderer(HtmlObjectRenderer<CustomContainer> originalRenderer, Configuration.NekoConfig config)
         {
             _originalRenderer = originalRenderer;
+            _config = config;
         }
 
         protected override void Write(HtmlRenderer renderer, CustomContainer obj)
@@ -69,11 +71,12 @@ namespace Neko.Extensions
             var variant = GetAttribute(attributes, "variant") ?? "stacked";
 
             // Gradient attributes
-            var gradient = GetAttribute(attributes, "gradient") == "true" || GetAttribute(attributes, "gradient-mode") != null;
-            var gradientMode = GetAttribute(attributes, "gradient-mode");
-            var gradientNoise = GetAttribute(attributes, "gradient-noise");
-            var gradientSpeed = GetAttribute(attributes, "gradient-speed");
-            var gradientColors = GetAttribute(attributes, "gradient-colors");
+            var gradientModeAttr = GetAttribute(attributes, "gradient-mode");
+            var gradient = GetAttribute(attributes, "gradient") == "true" || gradientModeAttr != null || !string.IsNullOrEmpty(_config?.Theme?.Gradient?.Mode);
+            var gradientMode = gradientModeAttr ?? _config?.Theme?.Gradient?.Mode;
+            var gradientNoise = GetAttribute(attributes, "gradient-noise") ?? _config?.Theme?.Gradient?.Noise;
+            var gradientSpeed = GetAttribute(attributes, "gradient-speed") ?? _config?.Theme?.Gradient?.Speed;
+            var gradientColors = GetAttribute(attributes, "gradient-colors") ?? _config?.Theme?.Gradient?.Colors;
 
             if (variant == "horizontal")
             {
@@ -468,6 +471,13 @@ namespace Neko.Extensions
 
     public class CustomContainerExtension : IMarkdownExtension
     {
+        private readonly Configuration.NekoConfig _config;
+
+        public CustomContainerExtension(Configuration.NekoConfig config = null)
+        {
+            _config = config;
+        }
+
         public void Setup(MarkdownPipelineBuilder pipeline)
         {
         }
@@ -481,7 +491,7 @@ namespace Neko.Extensions
                 if (originalRenderer != null)
                 {
                     htmlRenderer.ObjectRenderers.Remove(originalRenderer);
-                    htmlRenderer.ObjectRenderers.Add(new CustomContainerRenderer(originalRenderer));
+                    htmlRenderer.ObjectRenderers.Add(new CustomContainerRenderer(originalRenderer, _config));
                 }
             }
         }

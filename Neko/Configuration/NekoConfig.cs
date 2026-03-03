@@ -79,6 +79,11 @@ namespace Neko.Configuration
             if (Theme.Highlight.Dark == "tokyo-night-dark" && parent.Theme.Highlight.Dark != "tokyo-night-dark")
                 Theme.Highlight.Dark = parent.Theme.Highlight.Dark;
 
+            if (string.IsNullOrEmpty(Theme.Gradient.Mode)) Theme.Gradient.Mode = parent.Theme.Gradient.Mode;
+            if (string.IsNullOrEmpty(Theme.Gradient.Noise)) Theme.Gradient.Noise = parent.Theme.Gradient.Noise;
+            if (string.IsNullOrEmpty(Theme.Gradient.Speed)) Theme.Gradient.Speed = parent.Theme.Gradient.Speed;
+            if (string.IsNullOrEmpty(Theme.Gradient.Colors)) Theme.Gradient.Colors = parent.Theme.Gradient.Colors;
+
             // Inherit Snippets settings
             if (Snippets.LineNumbers.Count == 0 && parent.Snippets.LineNumbers.Count > 0)
             {
@@ -235,6 +240,24 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "highlight")]
         public HighlightConfig Highlight { get; set; } = new HighlightConfig();
+
+        [YamlMember(Alias = "gradient")]
+        public GradientConfig Gradient { get; set; } = new GradientConfig();
+    }
+
+    public class GradientConfig
+    {
+        [YamlMember(Alias = "mode")]
+        public string Mode { get; set; }
+
+        [YamlMember(Alias = "noise")]
+        public string Noise { get; set; }
+
+        [YamlMember(Alias = "speed")]
+        public string Speed { get; set; }
+
+        [YamlMember(Alias = "colors")]
+        public string Colors { get; set; }
     }
 
     public class HighlightConfig
