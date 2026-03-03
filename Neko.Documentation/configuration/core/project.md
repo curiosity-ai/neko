@@ -1835,6 +1835,27 @@ showSidebarFilter: false
 
 ---
 
+## ignore
+
+=== ignore : `list`
+
+A list of glob patterns specifying files and directories that Neko should skip during the build process. Default is an empty list `[]`.
+
+By default, Neko scans and parses all Markdown files in your project directory (except for some system or hidden directories). The `ignore` property allows you to explicitly exclude files or entire directories from being processed into HTML or included in your navigation.
+
+```yml Exclude specific files and directories
+ignore:
+  - "drafts/**"              # Ignore everything in the drafts folder
+  - "private-docs/*.md"      # Ignore markdown files in private-docs
+  - "**/archived-*"          # Ignore files prefixed with archived- anywhere
+```
+
+These patterns use standard `Microsoft.Extensions.FileSystemGlobbing` syntax evaluated relative to your project's `input` directory.
+
+===
+
+---
+
 ## snippets
 
 The `snippets` configuration allows for the project with custom configuration of code block formatting, including the project wide enabling of [line numbering](/components/code-block.md#line-numbers).
