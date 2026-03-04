@@ -95,7 +95,8 @@ namespace Neko.Builder
                 .Use<YouTubeEmbedExtension>()
                 .Use<CodeBlockExtension>()
                 .Use<CodeSnippetExtension>()
-                .Use<ImageAlignmentExtension>();
+                .Use<ImageAlignmentExtension>()
+                .Use<CustomImageExtension>();
 
             pipelineBuilder.Extensions.Add(customContainerExtension);
             _pipeline = pipelineBuilder.Build();
