@@ -49,7 +49,7 @@ links:
         icon: rocket
       - text: View on GitHub
         link: https://github.com/curiosity-ai/neko
-        icon: fi-brands-github
+        icon: brands-github
 
 banner:
   text: "Welcome to Neko! Check out our new banner feature."
