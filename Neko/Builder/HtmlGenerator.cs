@@ -279,6 +279,12 @@ namespace Neko.Builder
             sb.AppendLine("                    </ul>");
             sb.AppendLine("                </div>");
             sb.AppendLine("            </div>");
+            if (_isWatchMode)
+            {
+                sb.AppendLine("            <button onclick=\"nekoOpenEditor()\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\" title=\"Edit Page\">");
+                sb.AppendLine("                <i class=\"fi fi-rr-edit text-lg\"></i>");
+                sb.AppendLine("            </button>");
+            }
             sb.AppendLine("            <button id=\"theme-toggle\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
             sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
             sb.AppendLine("                <i class=\"fi fi-rr-sun hidden dark:block text-lg\"></i>");
@@ -394,49 +400,6 @@ namespace Neko.Builder
                  var sbChangelog = new StringBuilder();
                  RenderChangelogIndex(sbChangelog, changelogEntries);
                  htmlContent += sbChangelog.ToString();
-            }
-
-            // Watch Mode Button Injection
-            if (_isWatchMode)
-            {
-                var editButtonHtml = "<button onclick=\"nekoOpenEditor()\" class=\"ml-3 inline-flex items-center rounded-md bg-white dark:bg-gray-800 px-2.5 py-1.5 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 not-prose\"><i class=\"fi fi-rr-edit mr-1\"></i> Edit</button>";
-
-                // Inject after the first header opening tag and content, but before closing tag?
-                // Or just append to the content.
-                // Regex: Find <h[1-6]...>(...)</h[1-6]>
-                var regex = new Regex(@"(<h[1-6][^>]*>)(.*?)(</h[1-6]>)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                var match = regex.Match(htmlContent);
-                if (match.Success)
-                {
-                    // Inject button after the content of the header, but inside the tag
-                    htmlContent = regex.Replace(htmlContent, m => {
-                        var openTag = m.Groups[1].Value;
-                        var content = m.Groups[2].Value;
-                        var closeTag = m.Groups[3].Value;
-
-                        // Add classes to openTag
-                        if (openTag.Contains("class=\""))
-                        {
-                            openTag = openTag.Replace("class=\"", "class=\"flex justify-between ");
-                        }
-                        else if (openTag.Contains("class='"))
-                        {
-                            openTag = openTag.Replace("class='", "class='flex justify-between ");
-                        }
-                        else
-                        {
-                            // Insert class before the closing >
-                            openTag = openTag.Substring(0, openTag.Length - 1) + " class=\"flex justify-between\">";
-                        }
-
-                        return $"{openTag}{content}{editButtonHtml}{closeTag}";
-                    }, 1);
-                }
-                else
-                {
-                    // If no header, prepend to top
-                    htmlContent = editButtonHtml + htmlContent;
-                }
             }
 
             if (!string.IsNullOrEmpty(document.FrontMatter.Password))
@@ -625,189 +588,6 @@ namespace Neko.Builder
                 sb.AppendLine("");
               
                 sb.AppendLine("        function nekoOpenEditorPath(path, event) {");
-sb.AppendLine("            if (event) {");
-sb.AppendLine("                event.preventDefault();");
-sb.AppendLine("                event.stopPropagation();");
-sb.AppendLine("            }");
-sb.AppendLine("            fetch('/api/neko/content?path=' + encodeURIComponent(path))");
-sb.AppendLine("                .then(res => {");
-sb.AppendLine("                    if (!res.ok) throw new Error('Not found');");
-sb.AppendLine("                    return res.text();");
-sb.AppendLine("                })");
-sb.AppendLine("                .then(markdown => {");
-sb.AppendLine("                    modal.classList.remove('hidden');");
-sb.AppendLine("                    loadMonaco(() => {");
-sb.AppendLine("                        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});");
-sb.AppendLine("                        require(['vs/editor/editor.main'], function() {");
-sb.AppendLine("                            if (editor) {");
-sb.AppendLine("                                monaco.editor.setModelLanguage(editor.getModel(), 'yaml');");
-sb.AppendLine("                                editor.setValue(markdown);");
-sb.AppendLine("                            } else {");
-sb.AppendLine("                                editor = monaco.editor.create(container, {");
-sb.AppendLine("                                    value: markdown,");
-sb.AppendLine("                                    language: 'yaml',");
-sb.AppendLine("                                    theme: document.documentElement.classList.contains('dark') ? 'vs-dark' : 'vs',");
-sb.AppendLine("                                    automaticLayout: true,");
-sb.AppendLine("                                    minimap: { enabled: false },");
-sb.AppendLine("                                    wordWrap: 'on',");
-sb.AppendLine("                                    pasteAs: { enabled: false, },");
-sb.AppendLine("                                    fontSize: 14");
-sb.AppendLine("                                });");
-sb.AppendLine("                            }");
-sb.AppendLine("                            window.nekoCurrentEditPath = path;");
-sb.AppendLine("                        });");
-sb.AppendLine("                    });");
-sb.AppendLine("                })");
-sb.AppendLine("                .catch(err => {");
-sb.AppendLine("                    modal.classList.remove('hidden');");
-sb.AppendLine("                    loadMonaco(() => {");
-sb.AppendLine("                        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});");
-sb.AppendLine("                        require(['vs/editor/editor.main'], function() {");
-sb.AppendLine("                            const defaultYaml = \"order: 0\\nlabel: ''\\nicon: ''\\nexpanded: false\\n\";");
-sb.AppendLine("                            if (editor) {");
-sb.AppendLine("                                monaco.editor.setModelLanguage(editor.getModel(), 'yaml');");
-sb.AppendLine("                                editor.setValue(defaultYaml);");
-sb.AppendLine("                            } else {");
-sb.AppendLine("                                editor = monaco.editor.create(container, {");
-sb.AppendLine("                                    value: defaultYaml,");
-sb.AppendLine("                                    language: 'yaml',");
-sb.AppendLine("                                    theme: document.documentElement.classList.contains('dark') ? 'vs-dark' : 'vs',");
-sb.AppendLine("                                    automaticLayout: true,");
-sb.AppendLine("                                    minimap: { enabled: false },");
-sb.AppendLine("                                    wordWrap: 'on',");
-sb.AppendLine("                                    pasteAs: { enabled: false, },");
-sb.AppendLine("                                    fontSize: 14");
-sb.AppendLine("                                });");
-sb.AppendLine("                            }");
-sb.AppendLine("                            window.nekoCurrentEditPath = path;");
-sb.AppendLine("                        });");
-sb.AppendLine("                    });");
-sb.AppendLine("                });");
-sb.AppendLine("        }");
-sb.AppendLine("");
-sb.AppendLine("        function nekoOpenEditorPath(path, event) {");
-sb.AppendLine("            if (event) {");
-sb.AppendLine("                event.preventDefault();");
-sb.AppendLine("                event.stopPropagation();");
-sb.AppendLine("            }");
-sb.AppendLine("            fetch('/api/neko/content?path=' + encodeURIComponent(path))");
-sb.AppendLine("                .then(res => {");
-sb.AppendLine("                    if (!res.ok) throw new Error('Not found');");
-sb.AppendLine("                    return res.text();");
-sb.AppendLine("                })");
-sb.AppendLine("                .then(markdown => {");
-sb.AppendLine("                    modal.classList.remove('hidden');");
-sb.AppendLine("                    loadMonaco(() => {");
-sb.AppendLine("                        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});");
-sb.AppendLine("                        require(['vs/editor/editor.main'], function() {");
-sb.AppendLine("                            if (editor) {");
-sb.AppendLine("                                monaco.editor.setModelLanguage(editor.getModel(), 'yaml');");
-sb.AppendLine("                                editor.setValue(markdown);");
-sb.AppendLine("                            } else {");
-sb.AppendLine("                                editor = monaco.editor.create(container, {");
-sb.AppendLine("                                    value: markdown,");
-sb.AppendLine("                                    language: 'yaml',");
-sb.AppendLine("                                    theme: document.documentElement.classList.contains('dark') ? 'vs-dark' : 'vs',");
-sb.AppendLine("                                    automaticLayout: true,");
-sb.AppendLine("                                    minimap: { enabled: false },");
-sb.AppendLine("                                    wordWrap: 'on',");
-sb.AppendLine("                                    pasteAs: { enabled: false, },");
-sb.AppendLine("                                    fontSize: 14");
-sb.AppendLine("                                });");
-sb.AppendLine("                            }");
-sb.AppendLine("                            window.nekoCurrentEditPath = path;");
-sb.AppendLine("                        });");
-sb.AppendLine("                    });");
-sb.AppendLine("                })");
-sb.AppendLine("                .catch(err => {");
-sb.AppendLine("                    modal.classList.remove('hidden');");
-sb.AppendLine("                    loadMonaco(() => {");
-sb.AppendLine("                        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});");
-sb.AppendLine("                        require(['vs/editor/editor.main'], function() {");
-sb.AppendLine("                            const defaultYaml = \"order: 0\\nlabel: ''\\nicon: ''\\nexpanded: false\\n\";");
-sb.AppendLine("                            if (editor) {");
-sb.AppendLine("                                monaco.editor.setModelLanguage(editor.getModel(), 'yaml');");
-sb.AppendLine("                                editor.setValue(defaultYaml);");
-sb.AppendLine("                            } else {");
-sb.AppendLine("                                editor = monaco.editor.create(container, {");
-sb.AppendLine("                                    value: defaultYaml,");
-sb.AppendLine("                                    language: 'yaml',");
-sb.AppendLine("                                    theme: document.documentElement.classList.contains('dark') ? 'vs-dark' : 'vs',");
-sb.AppendLine("                                    automaticLayout: true,");
-sb.AppendLine("                                    minimap: { enabled: false },");
-sb.AppendLine("                                    wordWrap: 'on',");
-sb.AppendLine("                                    pasteAs: { enabled: false, },");
-sb.AppendLine("                                    fontSize: 14");
-sb.AppendLine("                                });");
-sb.AppendLine("                            }");
-sb.AppendLine("                            window.nekoCurrentEditPath = path;");
-sb.AppendLine("                        });");
-sb.AppendLine("                    });");
-sb.AppendLine("                });");
-sb.AppendLine("        }");
-sb.AppendLine("");
-sb.AppendLine("        function nekoOpenEditorPath(path, event) {");
-sb.AppendLine("            if (event) {");
-sb.AppendLine("                event.preventDefault();");
-sb.AppendLine("                event.stopPropagation();");
-sb.AppendLine("            }");
-sb.AppendLine("            fetch('/api/neko/content?path=' + encodeURIComponent(path))");
-sb.AppendLine("                .then(res => {");
-sb.AppendLine("                    if (!res.ok) throw new Error('Not found');");
-sb.AppendLine("                    return res.text();");
-sb.AppendLine("                })");
-sb.AppendLine("                .then(markdown => {");
-sb.AppendLine("                    modal.classList.remove('hidden');");
-sb.AppendLine("                    loadMonaco(() => {");
-sb.AppendLine("                        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});");
-sb.AppendLine("                        require(['vs/editor/editor.main'], function() {");
-sb.AppendLine("                            if (editor) {");
-sb.AppendLine("                                monaco.editor.setModelLanguage(editor.getModel(), 'yaml');");
-sb.AppendLine("                                editor.setValue(markdown);");
-sb.AppendLine("                            } else {");
-sb.AppendLine("                                editor = monaco.editor.create(container, {");
-sb.AppendLine("                                    value: markdown,");
-sb.AppendLine("                                    language: 'yaml',");
-sb.AppendLine("                                    theme: document.documentElement.classList.contains('dark') ? 'vs-dark' : 'vs',");
-sb.AppendLine("                                    automaticLayout: true,");
-sb.AppendLine("                                    minimap: { enabled: false },");
-sb.AppendLine("                                    wordWrap: 'on',");
-sb.AppendLine("                                    pasteAs: { enabled: false, },");
-sb.AppendLine("                                    fontSize: 14");
-sb.AppendLine("                                });");
-sb.AppendLine("                            }");
-sb.AppendLine("                            window.nekoCurrentEditPath = path;");
-sb.AppendLine("                        });");
-sb.AppendLine("                    });");
-sb.AppendLine("                })");
-sb.AppendLine("                .catch(err => {");
-sb.AppendLine("                    modal.classList.remove('hidden');");
-sb.AppendLine("                    loadMonaco(() => {");
-sb.AppendLine("                        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});");
-sb.AppendLine("                        require(['vs/editor/editor.main'], function() {");
-sb.AppendLine("                            const defaultYaml = \"order: 0\\nlabel: ''\\nicon: ''\\nexpanded: false\\n\";");
-sb.AppendLine("                            if (editor) {");
-sb.AppendLine("                                monaco.editor.setModelLanguage(editor.getModel(), 'yaml');");
-sb.AppendLine("                                editor.setValue(defaultYaml);");
-sb.AppendLine("                            } else {");
-sb.AppendLine("                                editor = monaco.editor.create(container, {");
-sb.AppendLine("                                    value: defaultYaml,");
-sb.AppendLine("                                    language: 'yaml',");
-sb.AppendLine("                                    theme: document.documentElement.classList.contains('dark') ? 'vs-dark' : 'vs',");
-sb.AppendLine("                                    automaticLayout: true,");
-sb.AppendLine("                                    minimap: { enabled: false },");
-sb.AppendLine("                                    wordWrap: 'on',");
-sb.AppendLine("                                    pasteAs: { enabled: false, },");
-sb.AppendLine("                                    fontSize: 14");
-sb.AppendLine("                                });");
-sb.AppendLine("                            }");
-sb.AppendLine("                            window.nekoCurrentEditPath = path;");
-sb.AppendLine("                        });");
-sb.AppendLine("                    });");
-sb.AppendLine("                });");
-sb.AppendLine("        }");
-sb.AppendLine("");
-sb.AppendLine("        function nekoOpenEditorPath(path, event) {");
 sb.AppendLine("            if (event) {");
 sb.AppendLine("                event.preventDefault();");
 sb.AppendLine("                event.stopPropagation();");
@@ -1653,7 +1433,10 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
                     {
                         // Render as a flat header
                         sb.AppendLine($"                    <li class=\"first:mt-0 px-2\" style=\"margin-top:1.2rem;margin-bottom:0.5rem;\">");
-                        sb.AppendLine($"                        <span class=\"text-xs font-bold text-gray-500 uppercase tracking-wider\">{link.Text}</span>");
+                        sb.AppendLine($"                        <div class=\"flex items-center justify-between w-full\">");
+                        sb.AppendLine($"                            <span class=\"text-xs font-bold text-gray-500 uppercase tracking-wider\">{link.Text}</span>");
+                        sb.AppendLine($"                            <div class=\"flex items-center shrink-0\">{editHtml}</div>");
+                        sb.AppendLine($"                        </div>");
                         sb.AppendLine($"                    </li>");
 
                         RenderSidebarItems(sb, link.Items, level + 1);
