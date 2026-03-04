@@ -2,6 +2,7 @@
 title: Newsletter Side
 description: A newsletter subscription component.
 icon: mail
+order: 10
 ---
 
 # Newsletter Side

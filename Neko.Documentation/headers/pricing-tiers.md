@@ -2,6 +2,7 @@
 title: Pricing Tiers
 description: A component to display pricing plans.
 icon: tag
+order: 7
 ---
 
 # Pricing Tiers

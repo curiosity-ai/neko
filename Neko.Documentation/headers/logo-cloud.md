@@ -1,7 +1,8 @@
 ---
 title: Logo Cloud
 description: A grid of partner or client logos.
-icon: grid
+icon: cloud
+order: 8
 ---
 
 # Logo Cloud

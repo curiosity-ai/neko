@@ -2,6 +2,7 @@
 title: Stats Simple
 description: A simple statistics display.
 icon: chart-bar
+order: 12
 ---
 
 # Stats Simple
