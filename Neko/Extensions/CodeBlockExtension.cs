@@ -240,7 +240,10 @@ namespace Neko.Extensions
                         foreach (var node in col)
                         {
                             var nodeId = $"{groupId}-node-{node.Id}";
-                            renderer.Write($"<div id=\"{nodeId}\" data-node-id=\"{node.Id}\" class=\"workflow-node relative group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-md w-64\" onclick=\"this.querySelector('.workflow-description')?.classList.toggle('hidden')\">");
+                            var clickableClass = !string.IsNullOrEmpty(node.Description) ? " cursor-pointer" : "";
+                            var onclickAttr = !string.IsNullOrEmpty(node.Description) ? " onclick=\"this.querySelector('.workflow-description')?.classList.toggle('hidden'); setTimeout(() => window.dispatchEvent(new Event('resize')), 10);\"" : "";
+
+                            renderer.Write($"<div id=\"{nodeId}\" data-node-id=\"{node.Id}\" class=\"workflow-node relative group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm{clickableClass} transition-all duration-150 hover:scale-[1.02] hover:shadow-lg w-64\"{onclickAttr}>");
 
                             // Top Right Badge
                             if (!string.IsNullOrEmpty(node.Badge))
@@ -283,65 +286,41 @@ namespace Neko.Extensions
                     renderer.Write("</div>"); // workflow-layout
 
                     var edgesJson = System.Text.Json.JsonSerializer.Serialize(edges, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+
+                    if (!renderer.EnableHtmlForBlock)
+                    {
+                        // Ignore leader-line scripts if not outputting HTML block
+                    }
+                    else
+                    {
+                        // Add script once
+                        renderer.Write("<script src=\"https://cdn.jsdelivr.net/npm/leader-line-new@1.1.9/leader-line.min.js\"></script>");
+                    }
+
                     renderer.Write("<script>");
                     renderer.Write($"(function() {{");
                     renderer.Write($"    const container = document.getElementById('{groupId}');");
-                    renderer.Write($"    const linesContainer = document.getElementById('{groupId}-lines');");
                     renderer.Write($"    const edges = {edgesJson};");
+                    renderer.Write($"    let lines = [];");
                     renderer.Write($"    let observer;");
                     renderer.Write($"    function drawLines() {{");
-                    renderer.Write($"        if (!linesContainer) return;");
+                    renderer.Write($"        if (typeof LeaderLine === 'undefined') {{ setTimeout(drawLines, 50); return; }}");
                     renderer.Write($"        if (observer) observer.disconnect();");
-                    renderer.Write($"        linesContainer.innerHTML = '';");
-                    renderer.Write($"        const containerRect = container.getBoundingClientRect();");
+                    renderer.Write($"        lines.forEach(l => l.remove());");
+                    renderer.Write($"        lines = [];");
                     renderer.Write($"        edges.forEach(edge => {{");
                     renderer.Write($"            const sourceEl = document.getElementById(`{groupId}-node-${{edge.source}}`);");
                     renderer.Write($"            const targetEl = document.getElementById(`{groupId}-node-${{edge.target}}`);");
                     renderer.Write($"            if (!sourceEl || !targetEl) return;");
-                    renderer.Write($"            const sRect = sourceEl.getBoundingClientRect();");
-                    renderer.Write($"            const tRect = targetEl.getBoundingClientRect();");
-                    renderer.Write($"            const x1 = sRect.right - containerRect.left + container.scrollLeft;");
-                    renderer.Write($"            const y1 = sRect.top + sRect.height/2 - containerRect.top + container.scrollTop;");
-                    renderer.Write($"            const x2 = tRect.left - containerRect.left + container.scrollLeft;");
-                    renderer.Write($"            const y2 = tRect.top + tRect.height/2 - containerRect.top + container.scrollTop;");
-                    renderer.Write($"            const midX = x1 + (x2 - x1) / 2;");
-
-                    // Horizontal segment 1
-                    renderer.Write($"            const line1 = document.createElement('div');");
-                    renderer.Write($"            line1.className = 'absolute border-t border-dashed border-gray-400 dark:border-gray-600 transition-all duration-300';");
-                    renderer.Write($"            line1.style.left = `${{x1}}px`;");
-                    renderer.Write($"            line1.style.top = `${{y1}}px`;");
-                    renderer.Write($"            line1.style.width = `${{Math.abs(midX - x1)}}px`;");
-                    renderer.Write($"            linesContainer.appendChild(line1);");
-
-                    // Vertical segment
-                    renderer.Write($"            const line2 = document.createElement('div');");
-                    renderer.Write($"            line2.className = 'absolute border-l border-dashed border-gray-400 dark:border-gray-600 transition-all duration-300';");
-                    renderer.Write($"            line2.style.left = `${{midX}}px`;");
-                    renderer.Write($"            line2.style.top = `${{Math.min(y1, y2)}}px`;");
-                    renderer.Write($"            line2.style.height = `${{Math.abs(y2 - y1)}}px`;");
-                    renderer.Write($"            linesContainer.appendChild(line2);");
-
-                    // Horizontal segment 2
-                    renderer.Write($"            const line3 = document.createElement('div');");
-                    renderer.Write($"            line3.className = 'absolute border-t border-dashed border-gray-400 dark:border-gray-600 transition-all duration-300';");
-                    renderer.Write($"            line3.style.left = `${{Math.min(midX, x2)}}px`;");
-                    renderer.Write($"            line3.style.top = `${{y2}}px`;");
-                    renderer.Write($"            line3.style.width = `${{Math.abs(x2 - midX)}}px`;");
-                    renderer.Write($"            linesContainer.appendChild(line3);");
-
-                    // Arrow head
-                    renderer.Write($"            const arrow = document.createElement('div');");
-                    renderer.Write($"            arrow.className = 'absolute w-2 h-2 border-t border-r border-gray-400 dark:border-gray-600 rotate-45 transition-all duration-300';");
-                    renderer.Write($"            arrow.style.left = `${{x2 - 5}}px`;");
-                    renderer.Write($"            arrow.style.top = `${{y2 - 4}}px`;");
-                    renderer.Write($"            linesContainer.appendChild(arrow);");
-
+                    renderer.Write($"            lines.push(new LeaderLine(sourceEl, targetEl, {{ color: '#9ca3af', path: 'grid', size: 2, startPlug: 'behind', endPlug: 'arrow1' }}));");
                     renderer.Write($"        }});");
+                    renderer.Write($"        document.querySelectorAll('.leader-line').forEach(el => el.style.zIndex = 0);");
                     renderer.Write($"        if (observer) observer.observe(container, {{ childList: true, subtree: true, attributes: true }});");
                     renderer.Write($"    }}");
+                    renderer.Write($"    function updatePosition() {{ lines.forEach(l => l.position()); }}");
                     renderer.Write($"    window.addEventListener('resize', drawLines);");
-                    renderer.Write($"    container.addEventListener('scroll', drawLines);");
+                    renderer.Write($"    container.addEventListener('scroll', updatePosition);");
+                    renderer.Write($"    window.addEventListener('scroll', updatePosition);");
                     renderer.Write($"    observer = new MutationObserver(drawLines);");
                     renderer.Write($"    observer.observe(container, {{ childList: true, subtree: true, attributes: true }});");
                     renderer.Write($"    // initial draw");
