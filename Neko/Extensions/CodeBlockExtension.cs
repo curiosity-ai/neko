@@ -323,9 +323,7 @@ namespace Neko.Extensions
                     renderer.Write($"    window.addEventListener('scroll', updatePosition);");
                     renderer.Write($"    observer = new MutationObserver(drawLines);");
                     renderer.Write($"    observer.observe(container, {{ childList: true, subtree: true, attributes: true }});");
-                    renderer.Write($"    // initial draw");
                     renderer.Write($"    setTimeout(drawLines, 100);");
-                    renderer.Write($"    // observe font load to redraw lines correctly");
                     renderer.Write($"    if (document.fonts) document.fonts.ready.then(drawLines);");
                     renderer.Write($"}})();");
                     renderer.Write("</script>");
