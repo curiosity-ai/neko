@@ -1,0 +1,61 @@
+variables:
+  repo: 'https://$(username):$(pat)@github.com/curiosity-ai/neko.git'
+  msg: 'update_site_$(build.buildId)'
+
+pool:
+  vmImage: 'windows-latest'
+
+trigger: 
+  branches:
+    include:
+    - main
+
+pr: none
+
+steps:
+- checkout: self
+  persistCredentials: true
+
+- task: NuGetToolInstaller@1
+
+- task: UseDotNet@2
+  displayName: 'Use .NET 10.0 sdk'
+  inputs:
+    packageType: sdk
+    version: 10.x
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+
+- task: CmdLine@2
+  displayName: 'git config'
+  inputs:
+    script: |
+      git config --global credential.helper store
+      git config --global user.email "$(email)"
+      git config --global user.name "$(username)"
+      git config --global user.password "$(pat)"
+
+- task: CmdLine@2
+  displayName: 'build documentation'
+  inputs:
+    script: |
+      dotnet run --project $(Build.SourcesDirectory)\Neko\Neko.csproj -- build -i $(Build.SourcesDirectory)\Neko.Documentation -o $(Build.SourcesDirectory)\.build
+
+- task: PowerShell@2
+  displayName: 'push website changes if any'
+  inputs:
+    targetType: 'inline'
+    script: |
+      cd $(Build.SourcesDirectory)\.build
+      mkdir $(Build.SourcesDirectory)\.build\.well-known\
+      touch .nojekyll
+      git init
+      git config core.autocrlf true
+      git config core.safecrlf false
+      git add .
+      git commit -m $(msg)
+      git branch gh-pages
+      git checkout gh-pages
+      git remote add origin $(repo)
+      git push --set-upstream origin gh-pages --force
+    errorActionPreference: 'continue'
+    ignoreLASTEXITCODE: true
