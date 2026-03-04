@@ -1618,9 +1618,9 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
                         // Render as a collapsible group
                         sb.AppendLine($"                    <li class=\"space-y-1\">");
                         sb.AppendLine($"                        <details class=\"group\" open>");
-                        sb.AppendLine($"                            <summary class=\"flex items-center justify-between py-1 px-2 text-[13px] whitespace-nowrap font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none\">");
-                        sb.AppendLine($"                                <span class=\"flex items-center gap-2\">{iconHtml} {link.Text}</span>");
-                        sb.AppendLine($"                                <div class=\"flex items-center\">{editHtml}<i class=\"fi fi-rr-angle-small-down transition-transform group-open:rotate-180\"></i></div>");
+                        sb.AppendLine($"                            <summary class=\"flex items-center justify-between py-1 px-2 text-[13px] font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none\">");
+                        sb.AppendLine($"                                <span class=\"flex items-center gap-2 truncate\">{iconHtml} <span class=\"truncate\">{link.Text}</span></span>");
+                        sb.AppendLine($"                                <div class=\"flex items-center shrink-0\">{editHtml}<i class=\"fi fi-rr-angle-small-down transition-transform group-open:rotate-180\"></i></div>");
                         sb.AppendLine($"                            </summary>");
                         sb.AppendLine($"                            <ul class=\"pl-0 space-y-1 mt-1 border-l border-gray-200 dark:border-gray-700 ml-3\">");
 
@@ -1644,7 +1644,7 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
                         href = "/" + href;
                     }
 
-                    sb.AppendLine($"                    <li><a href=\"{href}\" class=\"block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] whitespace-nowrap text-gray-700 dark:text-gray-300\">{iconHtml} {link.Text}</a></li>");
+                    sb.AppendLine($"                    <li><a href=\"{href}\" class=\"block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] text-gray-700 dark:text-gray-300 truncate\">{iconHtml} <span class=\"truncate\">{link.Text}</span></a></li>");
                 }
             }
         }

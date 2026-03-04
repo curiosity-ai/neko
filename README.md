@@ -2,6 +2,9 @@
 
 Neko is a powerful static site generator designed to help you create beautiful, documentation-first websites with ease. Built with .NET 10 and leveraging the flexibility of Markdown and Tailwind CSS, Neko transforms your content into a modern, responsive, and feature-rich documentation site.
 
+GitHub: [https://github.com/curiosity-ai/neko/](https://github.com/curiosity-ai/neko/)
+Docs: [https://neko.curiosity.ai/](https://neko.curiosity.ai/)
+
 ## Key Features
 
 - **Markdown First**: Write your documentation in standard Markdown. Neko handles the rest.

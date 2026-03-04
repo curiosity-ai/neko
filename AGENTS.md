@@ -31,8 +31,15 @@ This repository contains the source code for `Neko`, a CLI tool for generating s
 ## Resources
 -   External libraries are tracked in `reference/` folder.
 -   License information for assets should be in `Neko/Resources/sources.md`.
+-   **GitHub**: https://github.com/curiosity-ai/neko/
+-   **Docs**: https://neko.curiosity.ai/
+
+## Changelog
+- You MUST ALWAYS update the `Neko.Documentation/changelog.md` file by adding or updating the current "Calendar Versioning" version entry explaining the changes done.
+- The versions must follow the mandatory version format of `vYY.M.x` (or `v.YY.M`), and be updated using the current date of when the agent is running.
 
 ## Testing
 - ALWAYS use the Neko project targeting an output folder in the temp directory.
-- **IMPORTANT**: When generating the documentation site locally for testing or verification using `dotnet run`, **always use a temporary output folder** (e.g., `$(TEMP)/test_out/`).
+- **IMPORTANT**: When generating the documentation site locally for testing or verification using `dotnet run`, **always use a temporary output folder** (e.g., `$(TEMP)/test_out/`). Example: `dotnet run --project Neko/Neko.csproj -- watch --input Neko.Documentation --output /tmp/test_out`.
+- **NEVER** commit temporary scripts used for playwright testing.
 - **NEVER** push or commit temporary files, logs, or generated documentation files (like `test_out/`, `test_dir/`, or any generated `.html` files in the repository root) to the codebase. Ensure the working tree is clean of test artifacts before committing.
