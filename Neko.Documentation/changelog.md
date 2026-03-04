@@ -9,6 +9,13 @@ Neko is currently under active development.
 
 Please note that Neko uses a calendar versioning approach.
 
+## v26.3.x
+
+**Documentation Update**
+
+- Added a NuGet badge to the project `README.md`.
+- Enhanced the `README.md` to be more engaging, featuring emojis, clearer formatting, and direct links to the official documentation and GitHub repository.
+
 ## v26.3.64930
 
 **Initial Release of Neko v26.3**

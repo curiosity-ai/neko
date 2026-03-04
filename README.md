@@ -1,21 +1,27 @@
 # Neko
 
-Neko is a powerful static site generator designed to help you create beautiful, documentation-first websites with ease. Built with .NET 10 and leveraging the flexibility of Markdown and Tailwind CSS, Neko transforms your content into a modern, responsive, and feature-rich documentation site.
+[![NuGet](https://img.shields.io/nuget/v/Neko.svg)](https://www.nuget.org/packages/Neko)
 
-GitHub: [https://github.com/curiosity-ai/neko/](https://github.com/curiosity-ai/neko/)
-Docs: [https://neko.curiosity.ai/](https://neko.curiosity.ai/)
+Neko is a powerful, elegant static site generator designed to help you create beautiful, documentation-first websites with incredible ease. Built with **.NET 10** and leveraging the full flexibility of **Markdown** paired with the modern styling of **Tailwind CSS**, Neko effortlessly transforms your content into a modern, highly responsive, and feature-rich documentation site.
 
-## Key Features
+Whether you're writing simple project READMEs or complex multi-repository enterprise documentation, Neko makes it look professional right out of the box! ✨
 
-- **Markdown First**: Write your documentation in standard Markdown. Neko handles the rest.
-- **Rich Components**: Enhance your docs with built-in components like Alerts, Badges, Tabs, and more.
-- **Syntax Highlighting**: Beautiful code blocks with syntax highlighting and copy functionality.
-- **Diagrams & Math**: Integrated support for Mermaid diagrams and KaTeX math formulas.
-- **Responsive Design**: Mobile-friendly layout powered by Tailwind CSS.
-- **Dark Mode**: Built-in support for light and dark themes.
-- **Fast & Lightweight**: Generates static HTML files that can be hosted anywhere.
+## 🌟 Key Features
 
-## Installation
+- 📝 **Markdown First**: Write your documentation in standard Markdown. Neko intuitively handles the rest.
+- 🧩 **Rich Components**: Enhance your docs with powerful built-in components like Callout Alerts, Badges, Tabs, Steps, Cards, and more!
+- 🎨 **Syntax Highlighting**: Beautiful, automatically-styled code blocks with syntax highlighting and one-click copy functionality.
+- 📊 **Diagrams & Math**: Integrated, out-of-the-box support for Mermaid diagrams and KaTeX math formulas.
+- 📱 **Responsive Design**: A perfect mobile-friendly layout powered by Tailwind CSS that looks great on any screen size.
+- 🌓 **Dark Mode**: Seamless built-in support for fluid light and dark themes.
+- ⚡ **Fast & Lightweight**: Generates purely static HTML files that are lightning fast and can be hosted anywhere.
+
+## 📚 Resources
+
+- 🌐 **Official Documentation**: [neko.curiosity.ai](https://neko.curiosity.ai/)
+- 💻 **GitHub Repository**: [github.com/curiosity-ai/neko](https://github.com/curiosity-ai/neko/)
+
+## 🚀 Installation
 
 Install Neko as a global .NET tool:
 
@@ -23,7 +29,7 @@ Install Neko as a global .NET tool:
 dotnet tool install -g Neko
 ```
 
-## Usage
+## 🛠️ Usage
 
 Build your site:
 
@@ -37,7 +43,7 @@ Watch for changes and serve locally:
 neko watch
 ```
 
-## Multi-Repo Mode
+## 📂 Multi-Repo Mode
 
 Neko automatically supports building and watching multiple documentation projects from a single repository. If Neko detects multiple `neko.yml` files in subdirectories, it automatically enables multi-repo mode.
 
