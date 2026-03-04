@@ -271,7 +271,7 @@ namespace Neko.Extensions
                  case "xl": sizeClass = "text-lg px-3.5 py-1"; break;
             }
 
-            renderer.Write($"<span class=\"inline-flex items-center font-medium {bgClass} {roundedClass} {sizeClass} mr-2\">");
+            renderer.Write($"<span class=\"inline-flex items-center font-medium {bgClass} {roundedClass} {sizeClass} mr-2 mb-1\" style=\"white-space: nowrap; flex-shrink: 0;\">");
 
             bool iconRight = string.Equals(obj.IconAlign, "right", System.StringComparison.OrdinalIgnoreCase);
 

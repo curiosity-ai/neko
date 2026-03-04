@@ -18,7 +18,7 @@ Neko is installed using the [`dotnet`](https://dotnet.microsoft.com/download/dot
 
 | Package Manager | Supported Platforms |
 | --- | --- |
-| [`dotnet`](https://dotnet.microsoft.com/download/dotnet-core) | [!badge text="Mac" variant="light"] [!badge text="Win" variant="primary"] [!badge text="Linux" variant="dark"]
+| [`dotnet`](https://dotnet.microsoft.com/download/dotnet-core) | <div class="flex gap-2 flex-wrap">[!badge text="Mac" variant="light"] [!badge text="Win" variant="primary"] [!badge text="Linux" variant="dark"]</div>
 
 ---
 
