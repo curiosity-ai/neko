@@ -2,7 +2,7 @@
 order: 5
 icon: note
 tags: [guide]
-label: Markdown (RFM)
+label: Markdown Syntax
 ---
 # Formatting
 
