@@ -134,16 +134,16 @@ Apply CSS classes to your image for styling. Class names are prefixed with a `.`
 
 ### Custom width or height
 
-Set specific dimensions for your image using the `width` and `height` attributes. Values can be specified in pixels (px) or other CSS units.
+Set specific dimensions for your image using the `width` and `height` attributes. Values can be specified in pixels (px) or other CSS units. You can also set `min-width`, `max-width`, `min-height`, and `max-height` directly using standard CSS units, which will be converted to inline styles.
 
 ```md
-![](../assets/neko-logo.png){width="300" height="200"}
+![](../assets/neko-logo.png){width="300" height="200" max-height="100px"}
 
 // Creates the following HTML
-<img src="neko-logo.png" width="300" height="200">
+<img src="neko-logo.png" width="300" height="200" style="max-height: 100px">
 ```
 
-![](../assets/neko-logo.png){width="300" height="200"}
+![](../assets/neko-logo.png){width="300" height="200" max-height="100px"}
 
 ### Custom CSS class and width
 

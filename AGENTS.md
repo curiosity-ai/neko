@@ -36,7 +36,8 @@ This repository contains the source code for `Neko`, a CLI tool for generating s
 
 ## Changelog
 - You MUST ALWAYS update the `Neko.Documentation/changelog.md` file by adding or updating the current "Calendar Versioning" version entry explaining the changes done.
-- The versions must follow the mandatory version format of `vYY.M.x` (or `v.YY.M`), and be updated using the current date of when the agent is running.
+- The versions must follow the mandatory version format of `vYY.M` (or `v.YY.M`), and be updated using the current date of when the agent is running.
+- If an entry is already there, update it's content, don't replace it. Keep the depth of the update aligned with the already existing content.
 
 ## Testing
 - ALWAYS use the Neko project targeting an output folder in the temp directory.

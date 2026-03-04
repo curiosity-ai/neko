@@ -14,6 +14,15 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void Image_MinMaxDimensions_Parsed()
+        {
+            var markdown = "![Alt Text](image.png){max-height=\"100px\" min-width=\"50%\"}";
+            var doc = _parser.Parse(markdown, "mockPath", "mockPath");
+
+            Assert.That(doc.Html, Contains.Substring("style=\"max-height: 100px; min-width: 50%\""));
+        }
+
+        [Test]
         public void TestCodeBlockWithTitle()
         {
             var markdown = "```csharp title=\"MyFile.cs\"\npublic class Foo {}\n```";
