@@ -32,11 +32,11 @@ links:
   - text: Features
     items:
       - text: Components
-        link: /components/index
+        link: /components/components
         description: Explore the rich set of built-in components
         icon: cube
       - text: Configuration
-        link: /configuration/index
+        link: /configuration/page
         description: Learn how to customize your Neko site
         icon: settings
       - text: Themes
@@ -49,7 +49,7 @@ links:
         icon: rocket
       - text: View on GitHub
         link: https://github.com/curiosity-ai/neko
-        icon: github
+        icon: fi-brands-github
 
 banner:
   text: "Welcome to Neko! Check out our new banner feature."
