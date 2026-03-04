@@ -1,6 +1,7 @@
 input: ./
 output: .neko
-url: localhost
+url: neko.curiosity.ai
+cname: neko.curiosity.ai
 
 branding:
   title: Neko
@@ -12,14 +13,11 @@ theme:
   name: violet
 
 meta:
-  description: A modern, lightweight static site generator.
+  description: A modern, lightweight static documentation site generator.
   keywords: static site generator, csharp, dotnet, documentation, markdown
   author: Neko Team
   image: /assets/neko-logo.png
   type: website
-  twitterCard: summary
-  twitterSite: "@neko"
-  twitterCreator: "@neko"
 
 links:
   - text: Home
@@ -50,7 +48,7 @@ links:
         link: /guides/getting-started
         icon: rocket
       - text: View on GitHub
-        link: https://github.com/theolivenbaum/taildocs
+        link: https://github.com/curiosity-ai/neko
         icon: github
 
 banner:
