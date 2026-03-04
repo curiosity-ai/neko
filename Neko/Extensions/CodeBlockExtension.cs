@@ -327,11 +327,14 @@ namespace Neko.Extensions
                     renderer.Write($"            lineElements.push({{ lineEl, svgClip, rectEl: svgClip.querySelector('rect') }});");
                     renderer.Write($"        }});");
                     renderer.Write($"        document.querySelectorAll('.leader-line').forEach(el => el.style.zIndex = 0);");
-                    renderer.Write($"        updatePosition();");
+                    renderer.Write($"        updatePosition(false);");
                     renderer.Write($"        if (observer) observer.observe(container, {{ childList: true, subtree: true, attributes: true }});");
                     renderer.Write($"    }}");
-                    renderer.Write($"    function updatePosition() {{");
+                    renderer.Write($"    let timeoutLines = 0;");
+                    renderer.Write($"    function updatePosition(scroll) {{");
                     renderer.Write($"        lines.forEach(l => l.position());");
+                    renderer.Write($"        if(scroll) {{lines.forEach(l => l.hide('fade', {{duration:50}}));");
+                    renderer.Write($"        window.clearTimeout(timeoutLines); timeoutLines = window.setTimeout(_ => lines.forEach(l => l.show('fade', {{duration:50}})), 250);}}");
                     renderer.Write($"        const rectFrame = container.getBoundingClientRect();");
                     renderer.Write($"        const FRAME_LEFT = rectFrame.left;");
                     renderer.Write($"        const FRAME_TOP = rectFrame.top;");
@@ -357,8 +360,9 @@ namespace Neko.Extensions
                     renderer.Write($"        }});");
                     renderer.Write($"    }}");
                     renderer.Write($"    window.addEventListener('resize', drawLines);");
-                    renderer.Write($"    container.addEventListener('scroll', updatePosition);");
-                    renderer.Write($"    window.addEventListener('scroll', updatePosition);");
+                    renderer.Write($"    container.addEventListener('scroll', (_) => updatePosition(true));");
+                    renderer.Write($"    document.getElementById('main-scroll').addEventListener('scroll', (_) => updatePosition(true));");
+                    renderer.Write($"    window.addEventListener('scroll', (_) => updatePosition(true));");
                     renderer.Write($"    observer = new MutationObserver(drawLines);");
                     renderer.Write($"    observer.observe(container, {{ childList: true, subtree: true, attributes: true }});");
                     renderer.Write($"    setTimeout(drawLines, 100);");
