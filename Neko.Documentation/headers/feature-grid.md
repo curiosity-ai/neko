@@ -2,6 +2,7 @@
 title: Feature Grid
 description: A grid layout to showcase features.
 icon: layout-grid
+order: 4
 ---
 
 # Feature Grid

@@ -1,7 +1,8 @@
 ---
 title: Bento Grid
 description: A bento box style grid layout.
-icon: layout
+icon: grid
+order: 3
 ---
 
 # Bento Grid

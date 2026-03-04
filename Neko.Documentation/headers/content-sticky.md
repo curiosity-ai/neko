@@ -2,6 +2,7 @@
 title: Content Sticky
 description: A content section with a sticky image.
 icon: sticky-note
+order: 5
 ---
 
 # Content Sticky

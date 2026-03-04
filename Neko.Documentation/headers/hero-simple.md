@@ -2,6 +2,7 @@
 title: Hero Simple
 description: A simple centered hero component.
 icon: star
+order: 2
 ---
 
 # Hero Simple

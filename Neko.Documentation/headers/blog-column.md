@@ -2,6 +2,7 @@
 title: Blog Column
 description: A three-column blog post layout.
 icon: newspaper
+order: 9
 ---
 
 # Blog Column
