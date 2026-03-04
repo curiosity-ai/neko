@@ -9,14 +9,13 @@ Neko is currently under active development.
 
 Please note that Neko uses a calendar versioning approach.
 
-## v26.3.x
+## v26.3
 
-**Documentation Update**
+**Mermaid Diagram Zoom Controls**
 
-- Added a NuGet badge to the project `README.md`.
-- Enhanced the `README.md` to be more engaging, featuring emojis, clearer formatting, and direct links to the official documentation and GitHub repository.
-
-## v26.3.64930
+- Added built-in zoom controls to Mermaid diagrams.
+- Hover over any Mermaid diagram to access Zoom In, Zoom Out, and Reset buttons.
+- Applied a minimum height of 400px to all Mermaid diagrams to give ample space for interacting with diagrams.
 
 **Initial Release of Neko v26.3**
 
