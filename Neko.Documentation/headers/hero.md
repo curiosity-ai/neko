@@ -2,6 +2,7 @@
 title: Hero
 description: Display a large hero section at the top of your page.
 icon: star
+order: 1
 ---
 
 # Hero

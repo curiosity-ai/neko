@@ -1,7 +1,8 @@
 ---
 title: Header Stats
 description: A header component with statistics.
-icon: stats
+icon: chart-bar
+order: 11
 ---
 
 # Header Stats

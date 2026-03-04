@@ -2,6 +2,7 @@
 title: CTA Panel
 description: A call-to-action panel with an image.
 icon: bolt
+order: 6
 ---
 
 # CTA Panel
