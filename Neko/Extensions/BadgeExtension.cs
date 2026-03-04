@@ -315,7 +315,7 @@ namespace Neko.Extensions
             }
             else
             {
-                 renderer.Write($"<i class=\"fi fi-rr-{icon} {marginClass}\"></i>");
+                 renderer.Write($"<i class=\"{Neko.Builder.IconHelper.GetIconClass(icon)} {marginClass}\"></i>");
             }
         }
     }

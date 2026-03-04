@@ -81,7 +81,7 @@ namespace Neko.Extensions
     {
         protected override void Write(HtmlRenderer renderer, IconInline obj)
         {
-            renderer.Write($"<i class=\"fi fi-rr-{obj.Name} align-middle\"></i>");
+            renderer.Write($"<i class=\"{Neko.Builder.IconHelper.GetIconClass(obj.Name)} align-middle\"></i>");
         }
     }
 

@@ -224,7 +224,7 @@ namespace Neko.Extensions
             renderer.Write("<div class=\"flex items-start\">");
 
             renderer.Write($"<div class=\"flex-shrink-0 text-xl mr-3 {iconColor}\">");
-            renderer.Write($"<i class=\"fi fi-rr-{icon}\"></i>");
+            renderer.Write($"<i class=\"{Neko.Builder.IconHelper.GetIconClass(icon)}\"></i>");
             renderer.Write("</div>");
 
             renderer.Write("<div class=\"flex-1\">");

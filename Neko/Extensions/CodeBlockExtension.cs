@@ -259,7 +259,7 @@ namespace Neko.Extensions
                                 if (node.Icon.Contains("/") || node.Icon.Contains(".")) {
                                     renderer.Write($"<img src=\"{System.Net.WebUtility.HtmlEncode(node.Icon)}\" class=\"w-8 h-8 object-contain\">");
                                 } else {
-                                    renderer.Write($"<i class=\"fi fi-rr-{System.Net.WebUtility.HtmlEncode(node.Icon)} text-primary-500 text-3xl\"></i>");
+                                    renderer.Write($"<i class=\"{Neko.Builder.IconHelper.GetIconClass(System.Net.WebUtility.HtmlEncode(node.Icon))} text-primary-500 text-3xl\"></i>");
                                 }
                             }
 

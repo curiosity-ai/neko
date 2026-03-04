@@ -360,7 +360,7 @@ namespace Neko.Extensions
                 }
                 else
                 {
-                     renderer.Write($"<i class=\"fi fi-rr-{icon} text-white text-xl\"></i>");
+                     renderer.Write($"<i class=\"{Neko.Builder.IconHelper.GetIconClass(icon)} text-white text-xl\"></i>");
                 }
 
                 renderer.Write("</div>");
@@ -1001,7 +1001,7 @@ namespace Neko.Extensions
                 }
                 else
                 {
-                     renderer.Write($"<i class=\"fi fi-rr-{icon} mr-2\"></i>");
+                     renderer.Write($"<i class=\"{Neko.Builder.IconHelper.GetIconClass(icon)} mr-2\"></i>");
                 }
             }
 
@@ -1141,7 +1141,7 @@ namespace Neko.Extensions
                 }
                 else
                 {
-                    renderer.Write($"<i class=\"fi fi-rr-{icon} text-primary-600 dark:text-primary-400 text-xl\"></i>");
+                    renderer.Write($"<i class=\"{Neko.Builder.IconHelper.GetIconClass(icon)} text-primary-600 dark:text-primary-400 text-xl\"></i>");
                 }
             }
             else
@@ -1165,7 +1165,7 @@ namespace Neko.Extensions
             var name = obj.GetAttribute("name");
             if (!string.IsNullOrEmpty(name))
             {
-                renderer.Write($"<i class=\"fi fi-rr-{name} align-middle\"></i>");
+                renderer.Write($"<i class=\"{Neko.Builder.IconHelper.GetIconClass(name)} align-middle\"></i>");
             }
         }
 
