@@ -11,6 +11,10 @@ Please note that Neko uses a calendar versioning approach.
 
 ## v26.3
 
+**Workflow LeaderLines Clipping Improvements**
+
+- Modified the workflow component javascript to appropriately clip connection lines within the workflow container.
+
 **Mermaid Diagram Zoom Controls**
 
 - Added built-in zoom controls to Mermaid diagrams.
