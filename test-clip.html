@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdn.jsdelivr.net/npm/leader-line-new@1.1.9/leader-line.min.js"></script>
+<style>
+  #container { width: 300px; height: 300px; overflow: auto; border: 1px solid black; position: relative; margin: 100px; }
+  .box { width: 50px; height: 50px; background: red; position: absolute; }
+  #box1 { top: 50px; left: 50px; }
+  #box2 { top: 400px; left: 400px; }
+</style>
+</head>
+<body>
+  <div id="container">
+    <div id="box1" class="box"></div>
+    <div id="box2" class="box"></div>
+  </div>
+  <script>
+    const box1 = document.getElementById('box1');
+    const box2 = document.getElementById('box2');
+    const container = document.getElementById('container');
+    const line = new LeaderLine(box1, box2);
+
+    // Find the SVG element
+    const svgs = document.querySelectorAll('.leader-line');
+    const elmLine = svgs[svgs.length - 1];
+
+    // Create clip path
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
+    clipPath.id = 'clip-test';
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    clipPath.appendChild(rect);
+    defs.appendChild(clipPath);
+    elmLine.appendChild(defs);
+    elmLine.style.clipPath = 'url(#clip-test)';
+
+    function update() {
+      line.position();
+      const rectFrame = container.getBoundingClientRect();
+      const pt1 = elmLine.createSVGPoint();
+      pt1.x = rectFrame.left;
+      pt1.y = rectFrame.top;
+      const svgPt1 = pt1.matrixTransform(elmLine.getScreenCTM().inverse());
+
+      const pt2 = elmLine.createSVGPoint();
+      pt2.x = rectFrame.right;
+      pt2.y = rectFrame.bottom;
+      const svgPt2 = pt2.matrixTransform(elmLine.getScreenCTM().inverse());
+
+      rect.x.baseVal.value = svgPt1.x;
+      rect.y.baseVal.value = svgPt1.y;
+      rect.width.baseVal.value = svgPt2.x - svgPt1.x;
+      rect.height.baseVal.value = svgPt2.y - svgPt1.y;
+    }
+
+    container.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    update();
+  </script>
+</body>
+</html>
