@@ -12,6 +12,8 @@ namespace Neko.Extensions
     public class ForceGraphNode { public string id { get; set; } }
     public class ForceGraphLink { public string source { get; set; } public string target { get; set; } public string name { get; set; } }
     public class ForceGraphData { public List<ForceGraphNode> nodes { get; set; } = new List<ForceGraphNode>(); public List<ForceGraphLink> links { get; set; } = new List<ForceGraphLink>(); }
+    public class WorkflowNode { public string Id { get; set; } public string Title { get; set; } public string Icon { get; set; } public string Badge { get; set; } public string Description { get; set; } public int Column { get; set; } }
+    public class WorkflowEdge { public string Source { get; set; } public string Target { get; set; } }
 
     public class CodeBlockRenderer : Markdig.Renderers.Html.CodeBlockRenderer
     {
@@ -150,6 +152,206 @@ namespace Neko.Extensions
                 renderer.Write($"const graph = ForceGraph() (container) .graphData(gData) .nodeId('id') .nodeLabel('id') .linkLabel('name') .linkDirectionalParticles(2) .linkCurvature(0.3) .nodeColor(() => '#4a5568') .linkColor(() => '#cbd5e0') .backgroundColor('#f9fafb') .width(width) .height(height);");
                 renderer.Write($"new ResizeObserver(() => {{ graph.width(container.clientWidth).height(container.clientHeight); }}).observe(container); }})()");
                 renderer.Write("</script>");
+                return;
+            }
+
+            // Handle Workflow
+            if ((fencedBlock.Info ?? "").ToLower() == "workflow")
+            {
+                var leafBlock = obj as Markdig.Syntax.LeafBlock;
+                if (leafBlock != null)
+                {
+                    var lines = leafBlock.Lines;
+                    var nodes = new Dictionary<string, WorkflowNode>();
+                    var edges = new List<WorkflowEdge>();
+
+                    for (int i = 0; i < lines.Count; i++)
+                    {
+                        var line = lines.Lines[i].Slice.ToString().Trim();
+                        if (string.IsNullOrEmpty(line) || line.StartsWith("//")) continue;
+
+                        // Edge
+                        var edgeMatch = Regex.Match(line, @"^([a-zA-Z0-9_-]+)\s*-->\s*([a-zA-Z0-9_-]+)$");
+                        if (edgeMatch.Success)
+                        {
+                            edges.Add(new WorkflowEdge { Source = edgeMatch.Groups[1].Value, Target = edgeMatch.Groups[2].Value });
+                            continue;
+                        }
+
+                        // Description
+                        var descMatch = Regex.Match(line, @"^([a-zA-Z0-9_-]+)\.description:\s*(.+)$");
+                        if (descMatch.Success)
+                        {
+                            var id = descMatch.Groups[1].Value;
+                            if (!nodes.ContainsKey(id)) nodes[id] = new WorkflowNode { Id = id };
+                            nodes[id].Description = descMatch.Groups[2].Value;
+                            continue;
+                        }
+
+                        // Node
+                        var nodeMatch = Regex.Match(line, @"^([a-zA-Z0-9_-]+):\s*(.+)$");
+                        if (nodeMatch.Success)
+                        {
+                            var id = nodeMatch.Groups[1].Value;
+                            var parts = nodeMatch.Groups[2].Value.Split('|').Select(p => p.Trim()).ToArray();
+                            if (!nodes.ContainsKey(id)) nodes[id] = new WorkflowNode { Id = id };
+                            nodes[id].Title = parts.Length > 0 ? parts[0] : id;
+                            nodes[id].Icon = parts.Length > 1 ? parts[1] : "";
+                            nodes[id].Badge = parts.Length > 2 ? parts[2] : "";
+                            continue;
+                        }
+                    }
+
+                    // Layout DAG
+                    foreach (var edge in edges)
+                    {
+                        if (!nodes.ContainsKey(edge.Source)) nodes[edge.Source] = new WorkflowNode { Id = edge.Source, Title = edge.Source };
+                        if (!nodes.ContainsKey(edge.Target)) nodes[edge.Target] = new WorkflowNode { Id = edge.Target, Title = edge.Target };
+                    }
+
+                    // Compute columns (longest path) with cycle detection
+                    bool changed = true;
+                    int maxIterations = nodes.Count + 1;
+                    int iterations = 0;
+                    while (changed && iterations < maxIterations)
+                    {
+                        changed = false;
+                        foreach (var edge in edges)
+                        {
+                            if (nodes[edge.Target].Column <= nodes[edge.Source].Column)
+                            {
+                                nodes[edge.Target].Column = nodes[edge.Source].Column + 1;
+                                changed = true;
+                            }
+                        }
+                        iterations++;
+                    }
+
+                    var columns = nodes.Values.GroupBy(n => n.Column).OrderBy(g => g.Key).ToList();
+                    var groupId = "workflow-" + System.Guid.NewGuid().ToString("N");
+
+                    renderer.Write($"<div id=\"{groupId}\" class=\"workflow-container relative w-full overflow-x-auto bg-gray-50/50 dark:bg-gray-800/20 p-8 rounded-xl border border-gray-200 dark:border-gray-700 my-8 min-h-[300px]\">");
+                    renderer.Write($"<div id=\"{groupId}-lines\" class=\"absolute inset-0 pointer-events-none z-0\"></div>");
+                    renderer.Write("<div class=\"workflow-layout flex items-stretch justify-start gap-16 relative z-10 w-max mx-auto px-4\">");
+
+                    foreach (var col in columns)
+                    {
+                        renderer.Write("<div class=\"workflow-column flex flex-col justify-center gap-6\">");
+                        foreach (var node in col)
+                        {
+                            var nodeId = $"{groupId}-node-{node.Id}";
+                            renderer.Write($"<div id=\"{nodeId}\" data-node-id=\"{node.Id}\" class=\"workflow-node relative group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-md w-64\" onclick=\"this.querySelector('.workflow-description')?.classList.toggle('hidden')\">");
+
+                            // Top Right Badge
+                            if (!string.IsNullOrEmpty(node.Badge))
+                            {
+                                renderer.Write($"<div class=\"absolute -top-3 -right-3 min-w-[1.5rem] h-6 px-1.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold z-20\">{System.Net.WebUtility.HtmlEncode(node.Badge)}</div>");
+                            }
+
+                            renderer.Write("<div class=\"p-5\">");
+                            renderer.Write("<div class=\"flex flex-col gap-3\">");
+
+                            if (!string.IsNullOrEmpty(node.Icon))
+                            {
+                                if (node.Icon.Contains("/") || node.Icon.Contains(".")) {
+                                    renderer.Write($"<img src=\"{System.Net.WebUtility.HtmlEncode(node.Icon)}\" class=\"w-8 h-8 object-contain\">");
+                                } else {
+                                    renderer.Write($"<i class=\"fi fi-rr-{System.Net.WebUtility.HtmlEncode(node.Icon)} text-primary-500 text-3xl\"></i>");
+                                }
+                            }
+
+                            renderer.Write($"<h4 class=\"font-semibold text-gray-900 dark:text-gray-100 m-0 text-base leading-tight\">{System.Net.WebUtility.HtmlEncode(node.Title)}</h4>");
+                            renderer.Write("</div>");
+
+                            if (!string.IsNullOrEmpty(node.Description))
+                            {
+                                renderer.Write($"<div class=\"workflow-description hidden mt-4 text-sm text-gray-600 dark:text-gray-400 border-t pt-3 border-gray-100 dark:border-gray-800\">");
+                                renderer.Write(System.Net.WebUtility.HtmlEncode(node.Description));
+                                renderer.Write("</div>");
+                            }
+
+                            // Connectors (dots for start/end of lines)
+                            renderer.Write("<div class=\"workflow-connector-left absolute top-1/2 -left-1 w-2 h-2 rounded-full border border-gray-400 bg-white dark:bg-gray-900 -translate-y-1/2 z-20\"></div>");
+                            renderer.Write("<div class=\"workflow-connector-right absolute top-1/2 -right-1 w-2 h-2 rounded-full border border-gray-400 bg-white dark:bg-gray-900 -translate-y-1/2 z-20\"></div>");
+
+                            renderer.Write("</div>"); // p-5
+                            renderer.Write("</div>"); // workflow-node
+                        }
+                        renderer.Write("</div>"); // workflow-column
+                    }
+
+                    renderer.Write("</div>"); // workflow-layout
+
+                    var edgesJson = System.Text.Json.JsonSerializer.Serialize(edges, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+                    renderer.Write("<script>");
+                    renderer.Write($"(function() {{");
+                    renderer.Write($"    const container = document.getElementById('{groupId}');");
+                    renderer.Write($"    const linesContainer = document.getElementById('{groupId}-lines');");
+                    renderer.Write($"    const edges = {edgesJson};");
+                    renderer.Write($"    let observer;");
+                    renderer.Write($"    function drawLines() {{");
+                    renderer.Write($"        if (!linesContainer) return;");
+                    renderer.Write($"        if (observer) observer.disconnect();");
+                    renderer.Write($"        linesContainer.innerHTML = '';");
+                    renderer.Write($"        const containerRect = container.getBoundingClientRect();");
+                    renderer.Write($"        edges.forEach(edge => {{");
+                    renderer.Write($"            const sourceEl = document.getElementById(`{groupId}-node-${{edge.source}}`);");
+                    renderer.Write($"            const targetEl = document.getElementById(`{groupId}-node-${{edge.target}}`);");
+                    renderer.Write($"            if (!sourceEl || !targetEl) return;");
+                    renderer.Write($"            const sRect = sourceEl.getBoundingClientRect();");
+                    renderer.Write($"            const tRect = targetEl.getBoundingClientRect();");
+                    renderer.Write($"            const x1 = sRect.right - containerRect.left + container.scrollLeft;");
+                    renderer.Write($"            const y1 = sRect.top + sRect.height/2 - containerRect.top + container.scrollTop;");
+                    renderer.Write($"            const x2 = tRect.left - containerRect.left + container.scrollLeft;");
+                    renderer.Write($"            const y2 = tRect.top + tRect.height/2 - containerRect.top + container.scrollTop;");
+                    renderer.Write($"            const midX = x1 + (x2 - x1) / 2;");
+
+                    // Horizontal segment 1
+                    renderer.Write($"            const line1 = document.createElement('div');");
+                    renderer.Write($"            line1.className = 'absolute border-t border-dashed border-gray-400 dark:border-gray-600 transition-all duration-300';");
+                    renderer.Write($"            line1.style.left = `${{x1}}px`;");
+                    renderer.Write($"            line1.style.top = `${{y1}}px`;");
+                    renderer.Write($"            line1.style.width = `${{Math.abs(midX - x1)}}px`;");
+                    renderer.Write($"            linesContainer.appendChild(line1);");
+
+                    // Vertical segment
+                    renderer.Write($"            const line2 = document.createElement('div');");
+                    renderer.Write($"            line2.className = 'absolute border-l border-dashed border-gray-400 dark:border-gray-600 transition-all duration-300';");
+                    renderer.Write($"            line2.style.left = `${{midX}}px`;");
+                    renderer.Write($"            line2.style.top = `${{Math.min(y1, y2)}}px`;");
+                    renderer.Write($"            line2.style.height = `${{Math.abs(y2 - y1)}}px`;");
+                    renderer.Write($"            linesContainer.appendChild(line2);");
+
+                    // Horizontal segment 2
+                    renderer.Write($"            const line3 = document.createElement('div');");
+                    renderer.Write($"            line3.className = 'absolute border-t border-dashed border-gray-400 dark:border-gray-600 transition-all duration-300';");
+                    renderer.Write($"            line3.style.left = `${{Math.min(midX, x2)}}px`;");
+                    renderer.Write($"            line3.style.top = `${{y2}}px`;");
+                    renderer.Write($"            line3.style.width = `${{Math.abs(x2 - midX)}}px`;");
+                    renderer.Write($"            linesContainer.appendChild(line3);");
+
+                    // Arrow head
+                    renderer.Write($"            const arrow = document.createElement('div');");
+                    renderer.Write($"            arrow.className = 'absolute w-2 h-2 border-t border-r border-gray-400 dark:border-gray-600 rotate-45 transition-all duration-300';");
+                    renderer.Write($"            arrow.style.left = `${{x2 - 5}}px`;");
+                    renderer.Write($"            arrow.style.top = `${{y2 - 4}}px`;");
+                    renderer.Write($"            linesContainer.appendChild(arrow);");
+
+                    renderer.Write($"        }});");
+                    renderer.Write($"        if (observer) observer.observe(container, {{ childList: true, subtree: true, attributes: true }});");
+                    renderer.Write($"    }}");
+                    renderer.Write($"    window.addEventListener('resize', drawLines);");
+                    renderer.Write($"    container.addEventListener('scroll', drawLines);");
+                    renderer.Write($"    observer = new MutationObserver(drawLines);");
+                    renderer.Write($"    observer.observe(container, {{ childList: true, subtree: true, attributes: true }});");
+                    renderer.Write($"    // initial draw");
+                    renderer.Write($"    setTimeout(drawLines, 100);");
+                    renderer.Write($"    // observe font load to redraw lines correctly");
+                    renderer.Write($"    if (document.fonts) document.fonts.ready.then(drawLines);");
+                    renderer.Write($"}})();");
+                    renderer.Write("</script>");
+                    renderer.Write("</div>"); // workflow-container
+                }
                 return;
             }
 
