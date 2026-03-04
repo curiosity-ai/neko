@@ -28,7 +28,7 @@ links:
     icon: book
   - text: GitHub
     link: https://github.com/theolivenbaum/taildocs
-    icon: github
+    icon: brands-github
   - text: Features
     items:
       - text: Components

@@ -105,12 +105,14 @@ namespace Neko.Builder
             // Navbar
             sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10\">");
             sb.AppendLine("        <div class=\"flex items-center gap-4\">");
+            
             if (_config.Layout.Sidebar)
             {
                 sb.AppendLine("            <button id=\"mobile-menu-btn\" class=\"md:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none\">");
                 sb.AppendLine("                <i class=\"fi fi-rr-menu-burger text-xl\"></i>");
                 sb.AppendLine("            </button>");
             }
+
             if (!string.IsNullOrEmpty(_config.Branding.Logo))
             {
                 string ResolveLogoPath(string logo)
@@ -215,7 +217,7 @@ namespace Neko.Builder
                             }
                             sb.AppendLine($"                            </div>");
                             sb.AppendLine($"                            <div class=\"flex-auto\">");
-                            sb.AppendLine($"                                <a href=\"{itemHref}\"{itemTarget} class=\"block font-semibold text-gray-900 dark:text-gray-100\">");
+                            sb.AppendLine($"                                <a href=\"{itemHref}\"{itemTarget} class=\"block font-semibold text-gray-900 dark:text-gray-100 text-sm/3\">");
                             sb.AppendLine($"                                    {item.Text}");
                             sb.AppendLine($"                                    <span class=\"absolute inset-0\"></span>");
                             sb.AppendLine($"                                </a>");
@@ -251,9 +253,9 @@ namespace Neko.Builder
                     else
                     {
                          var href = link.Link ?? "#";
-                         var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(link.Icon)} mr-1\"></i>";
+                         var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(link.Icon)} mr-2\"></i>";
                          var target = !string.IsNullOrEmpty(link.Target) ? $" target=\"{link.Target}\"" : "";
-                         sb.AppendLine($"            <a href=\"{href}\"{target} class=\"hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center\">{iconHtml}{link.Text}</a>");
+                         sb.AppendLine($"            <a href=\"{href}\"{target} class=\"hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center text-sm/3\">{iconHtml}{link.Text}</a>");
                     }
                 }
             }
@@ -1226,6 +1228,7 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
 
             // Flaticon UIcons
             sb.AppendLine("    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>");
+            sb.AppendLine("    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-brands/css/uicons-brands.css'>");
 
             // Emoji CSS
             sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/emoji.css\">");
@@ -1266,24 +1269,30 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
             sb.AppendLine("                    const rDark = await mermaid.render(idDark, sourceDark);");
             sb.AppendLine("                    ");
             sb.AppendLine("                    el.innerHTML = `");
-            sb.AppendLine("                        <div class=\"dark:hidden w-full h-full flex items-center justify-center\">${rLight.svg}</div>");
-            sb.AppendLine("                        <div class=\"hidden dark:block w-full h-full flex items-center justify-center\">${rDark.svg}</div>");
+            sb.AppendLine("                        <div class=\"dark:hidden w-full h-full flex items-center justify-center min-h-[inherit]\">${rLight.svg}</div>");
+            sb.AppendLine("                        <div class=\"hidden dark:block w-full h-full flex items-center justify-center min-h-[inherit]\">${rDark.svg}</div>");
             sb.AppendLine("                        <div class=\"absolute bottom-4 right-4 flex bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm z-10 overflow-hidden\">");
-            sb.AppendLine("                            <button class=\"zoom-in-btn px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors\" title=\"Zoom In\">+</button>");
-            sb.AppendLine("                            <button class=\"zoom-out-btn px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors border-l border-r border-gray-200 dark:border-gray-700\" title=\"Zoom Out\">-</button>");
-            sb.AppendLine("                            <button class=\"zoom-reset-btn px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors\" title=\"Reset Zoom\">O</button>");
+            sb.AppendLine("                            <button class=\"zoom-in-btn px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors\" title=\"Zoom In\"><i class=\"fi fi-rr-plus\"></i></button>");
+            sb.AppendLine("                            <button class=\"zoom-out-btn px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors border-l border-r border-gray-200 dark:border-gray-700\" title=\"Zoom Out\"><i class=\"fi fi-rr-minus\"></i></button>");
+            sb.AppendLine("                            <button class=\"zoom-reset-btn px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors\" title=\"Reset Zoom\"><i class=\"fi fi-rr-expand\"></i></button>");
             sb.AppendLine("                        </div>");
             sb.AppendLine("                    `;");
             sb.AppendLine("                    ");
             sb.AppendLine("                    const lightSvg = el.querySelector('.dark\\\\:hidden > svg');");
             sb.AppendLine("                    const darkSvg = el.querySelector('.hidden.dark\\\\:block > svg');");
+            sb.AppendLine("                    lightSvg.classList.add(\"w-full\");");
+            sb.AppendLine("                    lightSvg.classList.add(\"h-full\");");
+            sb.AppendLine("                    lightSvg.classList.add(\"min-h-[inherit]\");");
+            sb.AppendLine("                    darkSvg.classList.add(\"w-full\");");
+            sb.AppendLine("                    darkSvg.classList.add(\"h-full\");");
+            sb.AppendLine("                    darkSvg.classList.add(\"min-h-[inherit]\");");
             sb.AppendLine("                    ");
             sb.AppendLine("                    if (rLight.bindFunctions && lightSvg) rLight.bindFunctions(lightSvg);");
             sb.AppendLine("                    if (rDark.bindFunctions && darkSvg) rDark.bindFunctions(darkSvg);");
             sb.AppendLine("                    ");
             sb.AppendLine("                    const instances = [];");
-            sb.AppendLine("                    if (lightSvg) instances.push(panzoom(lightSvg, { bounds: true, boundsPadding: 0.1 }));");
-            sb.AppendLine("                    if (darkSvg) instances.push(panzoom(darkSvg, { bounds: true, boundsPadding: 0.1 }));");
+            sb.AppendLine("                    if (lightSvg) instances.push({svg: lightSvg, gpz: panzoom(lightSvg, { bounds: true, boundsPadding: 0.1 })});");
+            sb.AppendLine("                    if (darkSvg) instances.push({svg: darkSvg, gpz: panzoom(darkSvg, { bounds: true, boundsPadding: 0.1 })});");
             sb.AppendLine("                    ");
             sb.AppendLine("                    const zoomInBtn = el.querySelector('.zoom-in-btn');");
             sb.AppendLine("                    const zoomOutBtn = el.querySelector('.zoom-out-btn');");
@@ -1294,7 +1303,7 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
             sb.AppendLine("                            e.preventDefault();");
             sb.AppendLine("                            instances.forEach(instance => {");
             sb.AppendLine("                                const rect = el.getBoundingClientRect();");
-            sb.AppendLine("                                instance.smoothZoom(rect.left + rect.width / 2, rect.top + rect.height / 2, 1.2);");
+            sb.AppendLine("                                instance.gpz.smoothZoom(rect.left + rect.width / 2, rect.top + rect.height / 2, 1.2);");
             sb.AppendLine("                            });");
             sb.AppendLine("                        });");
             sb.AppendLine("                    }");
@@ -1303,7 +1312,7 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
             sb.AppendLine("                            e.preventDefault();");
             sb.AppendLine("                            instances.forEach(instance => {");
             sb.AppendLine("                                const rect = el.getBoundingClientRect();");
-            sb.AppendLine("                                instance.smoothZoom(rect.left + rect.width / 2, rect.top + rect.height / 2, 0.8);");
+            sb.AppendLine("                                instance.gpz.smoothZoom(rect.left + rect.width / 2, rect.top + rect.height / 2, 0.8);");
             sb.AppendLine("                            });");
             sb.AppendLine("                        });");
             sb.AppendLine("                    }");
@@ -1311,10 +1320,10 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
             sb.AppendLine("                        zoomResetBtn.addEventListener('click', (e) => {");
             sb.AppendLine("                            e.preventDefault();");
             sb.AppendLine("                            instances.forEach(instance => {");
-            sb.AppendLine("                                instance.moveTo(0, 0);");
-            sb.AppendLine("                                instance.zoomAbs(0, 0, 1);");
+            sb.AppendLine("                                zoomToFit(instance.svg, instance.gpz);");
             sb.AppendLine("                            });");
             sb.AppendLine("                        });");
+            sb.AppendLine("                        window.setTimeout(_ => zoomResetBtn.click(), 250);");
             sb.AppendLine("                    }");
             sb.AppendLine("                } catch (e) {");
             sb.AppendLine("                    console.error('Mermaid rendering failed:', e);");
@@ -1324,6 +1333,59 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
             sb.AppendLine("        }");
             sb.AppendLine("        ");
             sb.AppendLine("        document.addEventListener('DOMContentLoaded', renderMermaid);");
+            sb.AppendLine(@"async function zoomToFit(svg, gpz) {
+                const parent = svg.parentElement.parentElement;
+                const rectParent = parent.getBoundingClientRect();
+                const rectScene = svg.getBoundingClientRect();
+
+                const xys = gpz.getTransform();
+                const originWidth  = (rectScene.width + 20) / xys.scale;
+                const originHeight = (rectScene.height + 20) / xys.scale;
+                const zoomX = (rectParent.width - 40) / originWidth;
+                const zoomY = (rectParent.height - 40) / originHeight;
+
+                let targetScale = zoomX < zoomY ? zoomX : zoomY;
+
+                //when target scale is the same as currently, we reset back to 100%, so it acts as toggle.
+                if (Math.abs(targetScale - xys.scale) < 0.005) {
+                    //reset to 100%
+                    targetScale = 1;
+                }
+
+                const targetWidth = originWidth * xys.scale;
+                const targetHeight = originHeight * xys.scale;
+                const newX = targetWidth > rectParent.width ? -(targetWidth / 2) + rectParent.width / 2 : (rectParent.width / 2) - (targetWidth / 2);
+                const newY = targetHeight > rectParent.height ? -(targetHeight / 2) + rectParent.height / 2 : (rectParent.height / 2) - (targetHeight / 2);
+
+                //we need to cancel current running animations
+                gpz.pause();
+                gpz.resume();
+
+                const xDiff = Math.abs(newX - xys.x);
+                const yDiff = Math.abs(newX - xys.x);
+                if (xDiff > 5 || yDiff > 5) {
+                    //overything over 5px change will be animated
+                    gpz.moveBy(
+                        newX - xys.x,
+                        newY - xys.y,
+                        true
+                    );
+                    await new Promise(r => setTimeout(r, 250));
+                } else {
+                    gpz.moveBy(
+                        newX - xys.x,
+                        newY - xys.y,
+                        false
+                    );
+                }
+
+                //correct way to zoom with center of graph as origin when scaled
+                gpz.smoothZoomAbs(
+                    xys.x + originWidth * xys.scale / 2,
+                    xys.y + originHeight * xys.scale / 2,
+                    targetScale,
+                );
+            }");
             sb.AppendLine("    </script>");
 
             // Force Graph
