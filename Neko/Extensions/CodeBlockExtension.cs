@@ -147,7 +147,7 @@ namespace Neko.Extensions
                 renderer.Write($"const container = document.getElementById('{graphId}');");
                 renderer.Write($"const width = container.clientWidth > 0 ? container.clientWidth : 800;");
                 renderer.Write($"const height = container.clientHeight > 0 ? container.clientHeight : 400;");
-                renderer.Write($"const graph = ForceGraph() (container) .graphData(gData) .nodeId('id') .nodeLabel('id') .linkLabel('name') .linkDirectionalParticles(2) .linkCurvature(0.3) .nodeColor(() => '#4a5568') .linkColor(() => '#cbd5e0') .backgroundColor('#f9fafb') .width(width) .height(height);");
+                renderer.Write($"const graph = ForceGraph() (container) .graphData(gData) .nodeId('id') .nodeLabel('id') .linkLabel('name') .linkDirectionalArrowLength(6) .linkDirectionalArrowRelPos(1) .linkCurvature(0.3) .nodeColor(() => '#4a5568') .linkColor(() => '#cbd5e0') .backgroundColor('#f9fafb') .width(width) .height(height);");
                 renderer.Write($"new ResizeObserver(() => {{ graph.width(container.clientWidth).height(container.clientHeight); }}).observe(container); }})()");
                 renderer.Write("</script>");
                 return;
