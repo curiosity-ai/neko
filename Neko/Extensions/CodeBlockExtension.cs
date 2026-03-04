@@ -240,7 +240,10 @@ namespace Neko.Extensions
                         foreach (var node in col)
                         {
                             var nodeId = $"{groupId}-node-{node.Id}";
-                            renderer.Write($"<div id=\"{nodeId}\" data-node-id=\"{node.Id}\" class=\"workflow-node relative group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-md w-64\" onclick=\"this.querySelector('.workflow-description')?.classList.toggle('hidden')\">");
+                            var clickableClass = !string.IsNullOrEmpty(node.Description) ? " cursor-pointer" : "";
+                            var onclickAttr = !string.IsNullOrEmpty(node.Description) ? " onclick=\"this.querySelector('.workflow-description')?.classList.toggle('hidden'); setTimeout(() => window.dispatchEvent(new Event('resize')), 10);\"" : "";
+
+                            renderer.Write($"<div id=\"{nodeId}\" data-node-id=\"{node.Id}\" class=\"workflow-node relative group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm{clickableClass} transition-all duration-150 hover:scale-[1.02] hover:shadow-lg w-64\"{onclickAttr}>");
 
                             // Top Right Badge
                             if (!string.IsNullOrEmpty(node.Badge))
@@ -308,7 +311,7 @@ namespace Neko.Extensions
 
                     // Horizontal segment 1
                     renderer.Write($"            const line1 = document.createElement('div');");
-                    renderer.Write($"            line1.className = 'absolute border-t border-dashed border-gray-400 dark:border-gray-600 transition-all duration-300';");
+                    renderer.Write($"            line1.className = 'absolute border-t border-dashed border-gray-400 dark:border-gray-600 transition-all duration-150';");
                     renderer.Write($"            line1.style.left = `${{x1}}px`;");
                     renderer.Write($"            line1.style.top = `${{y1}}px`;");
                     renderer.Write($"            line1.style.width = `${{Math.abs(midX - x1)}}px`;");
@@ -316,7 +319,7 @@ namespace Neko.Extensions
 
                     // Vertical segment
                     renderer.Write($"            const line2 = document.createElement('div');");
-                    renderer.Write($"            line2.className = 'absolute border-l border-dashed border-gray-400 dark:border-gray-600 transition-all duration-300';");
+                    renderer.Write($"            line2.className = 'absolute border-l border-dashed border-gray-400 dark:border-gray-600 transition-all duration-150';");
                     renderer.Write($"            line2.style.left = `${{midX}}px`;");
                     renderer.Write($"            line2.style.top = `${{Math.min(y1, y2)}}px`;");
                     renderer.Write($"            line2.style.height = `${{Math.abs(y2 - y1)}}px`;");
@@ -324,7 +327,7 @@ namespace Neko.Extensions
 
                     // Horizontal segment 2
                     renderer.Write($"            const line3 = document.createElement('div');");
-                    renderer.Write($"            line3.className = 'absolute border-t border-dashed border-gray-400 dark:border-gray-600 transition-all duration-300';");
+                    renderer.Write($"            line3.className = 'absolute border-t border-dashed border-gray-400 dark:border-gray-600 transition-all duration-150';");
                     renderer.Write($"            line3.style.left = `${{Math.min(midX, x2)}}px`;");
                     renderer.Write($"            line3.style.top = `${{y2}}px`;");
                     renderer.Write($"            line3.style.width = `${{Math.abs(x2 - midX)}}px`;");
@@ -332,9 +335,9 @@ namespace Neko.Extensions
 
                     // Arrow head
                     renderer.Write($"            const arrow = document.createElement('div');");
-                    renderer.Write($"            arrow.className = 'absolute w-2 h-2 border-t border-r border-gray-400 dark:border-gray-600 rotate-45 transition-all duration-300';");
-                    renderer.Write($"            arrow.style.left = `${{x2 - 5}}px`;");
-                    renderer.Write($"            arrow.style.top = `${{y2 - 4}}px`;");
+                    renderer.Write($"            arrow.className = 'absolute w-3 h-3 border-t-2 border-r-2 border-solid border-gray-400 dark:border-gray-600 rotate-45 transition-all duration-150';");
+                    renderer.Write($"            arrow.style.left = `${{x2 - 6}}px`;");
+                    renderer.Write($"            arrow.style.top = `${{y2 - 6}}px`;");
                     renderer.Write($"            linesContainer.appendChild(arrow);");
 
                     renderer.Write($"        }});");
