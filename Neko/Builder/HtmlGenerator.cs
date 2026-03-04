@@ -192,7 +192,7 @@ namespace Neko.Builder
                         sb.AppendLine($"                <button class=\"flex items-center gap-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors focus:outline-none\">");
                         if (!string.IsNullOrEmpty(link.Icon))
                         {
-                            sb.AppendLine($"                    <i class=\"fi fi-rr-{link.Icon}\"></i>");
+                            sb.AppendLine($"                    <i class=\"{Neko.Builder.IconHelper.GetIconClass(link.Icon)}\"></i>");
                         }
                         sb.AppendLine($"                    <span>{link.Text}</span>");
                         sb.AppendLine($"                    <i class=\"fi fi-rr-angle-small-down transition-transform group-hover:rotate-180\"></i>");
@@ -207,7 +207,7 @@ namespace Neko.Builder
                             sb.AppendLine($"                            <div class=\"flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700 group-hover:bg-white dark:group-hover:bg-gray-600\">");
                             if (!string.IsNullOrEmpty(item.Icon))
                             {
-                                sb.AppendLine($"                                <i class=\"fi fi-rr-{item.Icon} text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400\"></i>");
+                                sb.AppendLine($"                                <i class=\"{Neko.Builder.IconHelper.GetIconClass(item.Icon)} text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400\"></i>");
                             }
                             else
                             {
@@ -238,7 +238,7 @@ namespace Neko.Builder
                                  sb.AppendLine($"                        <a href=\"{footerHref}\"{footerTarget} class=\"flex items-center justify-center gap-x-2.5 p-3 text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700\">");
                                  if (!string.IsNullOrEmpty(footerItem.Icon))
                                  {
-                                     sb.AppendLine($"                            <i class=\"fi fi-rr-{footerItem.Icon} text-gray-400 dark:text-gray-500\"></i>");
+                                     sb.AppendLine($"                            <i class=\"{Neko.Builder.IconHelper.GetIconClass(footerItem.Icon)} text-gray-400 dark:text-gray-500\"></i>");
                                  }
                                  sb.AppendLine($"                            {footerItem.Text}");
                                  sb.AppendLine($"                        </a>");
@@ -251,7 +251,7 @@ namespace Neko.Builder
                     else
                     {
                          var href = link.Link ?? "#";
-                         var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"fi fi-rr-{link.Icon} mr-1\"></i>";
+                         var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(link.Icon)} mr-1\"></i>";
                          var target = !string.IsNullOrEmpty(link.Target) ? $" target=\"{link.Target}\"" : "";
                          sb.AppendLine($"            <a href=\"{href}\"{target} class=\"hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center\">{iconHtml}{link.Text}</a>");
                     }
@@ -1625,7 +1625,7 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
                 var iconHtml = "";
                 if (!string.IsNullOrEmpty(link.Icon))
                 {
-                    iconHtml = $"<i class=\"fi fi-rr-{link.Icon}\"></i>";
+                    iconHtml = $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(link.Icon)}\"></i>";
                 }
                 else
                 {
