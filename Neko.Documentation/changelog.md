@@ -11,6 +11,12 @@ Please note that Neko uses a calendar versioning approach.
 
 ## v26.3
 
+**Icon Search in Watch Mode Editor**
+
+- Added a searchable list of icons in the watch mode editor modal.
+- Accessible via the `Ctrl+I` or `Cmd+I` keyboard shortcut.
+- Allows inserting the selected icon's name directly into the editor at the current cursor position.
+
 **Workflow LeaderLines Clipping Improvements**
 
 - Modified the workflow component javascript to appropriately clip connection lines within the workflow container.
