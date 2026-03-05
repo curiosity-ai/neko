@@ -1,7 +1,7 @@
 ---
 title: Newsletter Side
 description: A newsletter subscription component.
-icon: mail
+icon: poll-h
 order: 10
 ---
 

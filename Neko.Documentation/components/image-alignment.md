@@ -3,7 +3,7 @@ layout: central
 visibility: hidden
 icon: picture
 ---
-# Image alignment demo
+# Image Alignment
 
 Please see [image alignment](image.md#alignment-options) docs for more details.
 

@@ -123,7 +123,7 @@ namespace Neko.Server
                     return Results.BadRequest("Invalid path");
                 }
 
-                var content = await File.ReadAllTextAsync(mdPath);
+                var content = File.Exists(mdPath) ? await File.ReadAllTextAsync(mdPath) : "";
                 return Results.Text(content);
             });
 
@@ -314,6 +314,20 @@ namespace Neko.Server
             if (matchedSite == null) return (null, null);
 
             if (relativePath.EndsWith(".html")) relativePath = relativePath.Substring(0, relativePath.Length - 5);
+            
+            relativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
+
+            if(relativePath.Contains("."))
+            {
+                var pathCandidate = Path.Combine(matchedSite.InputPath, relativePath);
+                if (File.Exists(pathCandidate)) return (pathCandidate, matchedSite);
+                if(pathCandidate.EndsWith("index.yml"))
+                {
+                    //Configuration file for folder, might not exist yet
+                    return (pathCandidate, matchedSite);
+                }
+            }
+
 
             // Try .md
             var mdPath = Path.Combine(matchedSite.InputPath, relativePath + ".md");

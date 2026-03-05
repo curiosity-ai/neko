@@ -2,6 +2,7 @@
 title: Blog
 description: Latest news and updates from the Neko team.
 layout: blog
+icon: home
 order: 1
 ---
 

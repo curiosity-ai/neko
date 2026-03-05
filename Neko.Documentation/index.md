@@ -1,6 +1,7 @@
 ---
 order: 1
 title: Introduction
+icon: home
 ---
 
 # Welcome to Neko: The Modern .NET Static Site Generator

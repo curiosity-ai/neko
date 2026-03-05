@@ -9,7 +9,12 @@ namespace Neko.Configuration
     {
         public static NekoConfig Parse(string configPath)
         {
-            return Parse<NekoConfig>(configPath) ?? new NekoConfig();
+            var config  = Parse<NekoConfig>(configPath) ?? new NekoConfig();
+            if(!Path.IsPathRooted(config.Input))
+            {
+                config.Input = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(configPath), config.Input));
+            }
+            return config;
         }
 
         public static T Parse<T>(string configPath) where T : new()

@@ -1,5 +1,5 @@
 ---
-order: 6
+order: 2
 icon: memo
 layout: changelog
 ---

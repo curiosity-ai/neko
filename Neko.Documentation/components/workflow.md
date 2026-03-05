@@ -1,6 +1,7 @@
 ---
 title: Workflow
 description: Create visual workflows with blocks and arrows.
+icon: share
 ---
 
 # Workflow

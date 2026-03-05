@@ -1,7 +1,7 @@
 ---
 title: Stats Simple
 description: A simple statistics display.
-icon: chart-bar
+icon: badge-percent
 order: 12
 ---
 

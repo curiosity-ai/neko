@@ -102,11 +102,11 @@ namespace Neko
 
                 Console.WriteLine($"Watching {input}{(isMultiRepo ? " (Multi-Repo Mode)" : "")}...");
 
-                var sites = new System.Collections.Generic.List<Neko.Server.SiteInfo>();
-                var builders = new System.Collections.Generic.Dictionary<string, SiteBuilder>();
+                var sites    = new List<SiteInfo>();
+                var builders = new Dictionary<string, SiteBuilder>();
+
                 async Task BuildAsync ()
                 {
-
                     if (isMultiRepo)
                     {
                         if (Directory.Exists(inputFullPath))
@@ -160,7 +160,6 @@ namespace Neko
 
                 await BuildAsync();
 
-
                 // Start Server in background
                 var server = new DevServer(sites, port);
                 var serverTask = server.StartAsync(cts.Token);
@@ -174,7 +173,7 @@ namespace Neko
                     var watcher = new FileSystemWatcher(site.InputPath);
                     watcher.IncludeSubdirectories = true;
                     watcher.Filters.Add("*.md");
-                    watcher.Filters.Add("neko.yml");
+                    watcher.Filters.Add("*.yml");
 
                     FileSystemEventHandler onChanged = async (sender, e) =>
                     {
