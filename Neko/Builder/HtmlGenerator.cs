@@ -536,7 +536,7 @@ namespace Neko.Builder
                 sb.AppendLine("        <div class=\"absolute inset-0 flex items-center justify-center p-4\">");
                 sb.AppendLine("            <div class=\"bg-white dark:bg-gray-900 w-full max-w-6xl h-[90vh] rounded-lg shadow-xl flex flex-col border border-gray-200 dark:border-gray-700\">");
                 sb.AppendLine("                <div class=\"flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700\">");
-                sb.AppendLine("                    <h3 class=\"text-lg font-semibold text-gray-900 dark:text-gray-100\">Edit Content</h3>");
+                sb.AppendLine("                    <h3 class=\"text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center\">Edit Content<span class=\"text-xs text-gray-500 dark:text-gray-400 font-normal ml-3 hidden md:inline\">Press <kbd class=\"px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-sans text-[10px] mx-1\">Ctrl</kbd>+<kbd class=\"px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-sans text-[10px] mx-1\">I</kbd> for icons</span></h3>");
                 sb.AppendLine("                    <div class=\"flex items-center gap-2\">");
                 sb.AppendLine("                        <button onclick=\"nekoCancelEdit()\" class=\"px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors\">Cancel</button>");
                 sb.AppendLine("                        <button onclick=\"nekoSaveContent()\" class=\"px-3 py-1.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md transition-colors\">Save</button>");
@@ -1398,6 +1398,7 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
             sb.AppendLine("    <script src=\"/assets/minisearch.min.js\"></script>");
             sb.AppendLine("    <script defer src=\"/assets/search.js\"></script>");
             sb.AppendLine("    <script defer src=\"/assets/history.js\"></script>");
+            sb.AppendLine("    <script defer src=\"/assets/icons.js\"></script>");
 
             // Highlight.js
             sb.AppendLine($"    <link id=\"highlight-theme\" rel=\"stylesheet\" href=\"/assets/highlight/{darkTheme}.min.css\">");
