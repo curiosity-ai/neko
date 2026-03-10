@@ -13,10 +13,14 @@ using System.Threading;
 
 namespace Neko.Extensions
 {
+    using System.Collections.Generic;
+    using System.Linq;
+
     public class SnapFrameInline : Inline
     {
         public string Url { get; set; }
         public string Options { get; set; }
+        public List<string> Commands { get; set; } = new List<string>();
     }
 
     public class SnapFrameParser : InlineParser
@@ -71,17 +75,27 @@ namespace Neko.Extensions
             var content = slice.Text.Substring(contentStart, slice.Start - contentStart).Trim();
             slice.NextChar();
 
-            var firstSpace = content.IndexOf(' ');
-            string url = content;
+            var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(l => l.Trim()).ToList();
+            if (lines.Count == 0)
+            {
+                processor.Inline = new SnapFrameInline { Url = "", Options = "" };
+                return true;
+            }
+
+            var firstLine = lines[0];
+            var firstSpace = firstLine.IndexOf(' ');
+            string url = firstLine;
             string options = "";
 
             if (firstSpace > 0)
             {
-                url = content.Substring(0, firstSpace);
-                options = content.Substring(firstSpace + 1).Trim();
+                url = firstLine.Substring(0, firstSpace);
+                options = firstLine.Substring(firstSpace + 1).Trim();
             }
 
-            processor.Inline = new SnapFrameInline { Url = url, Options = options };
+            var commands = lines.Skip(1).ToList();
+
+            processor.Inline = new SnapFrameInline { Url = url, Options = options, Commands = commands };
             return true;
         }
     }
@@ -155,7 +169,7 @@ namespace Neko.Extensions
 
                         if (!File.Exists(targetPath))
                         {
-                            CaptureScreenshot(snapFrame.Url, snapFrame.Options, targetPath);
+                            CaptureScreenshot(snapFrame.Url, snapFrame.Options, snapFrame.Commands, targetPath);
                         }
                     }
                 }
@@ -241,7 +255,7 @@ namespace Neko.Extensions
             }
         }
 
-        private void CaptureScreenshot(string url, string options, string targetPath)
+        private void CaptureScreenshot(string url, string options, List<string> commands, string targetPath)
         {
             try
             {
@@ -295,6 +309,109 @@ namespace Neko.Extensions
                 }
 
                 var pageId = match.Groups[1].Value;
+
+                // Execute Commands
+                if (commands != null)
+                {
+                    foreach (var commandLine in commands)
+                    {
+                        var firstSpace = commandLine.IndexOf(' ');
+                        if (firstSpace < 0) continue;
+
+                        var action = commandLine.Substring(0, firstSpace).Trim();
+                        var commandArgs = commandLine.Substring(firstSpace + 1).Trim();
+                        var finalArgs = "";
+
+                        if (action.Equals("click", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (commandArgs.StartsWith("'") && commandArgs.EndsWith("'"))
+                            {
+                                finalArgs = $"click {pageId} --text \"{commandArgs.Substring(1, commandArgs.Length - 2)}\"";
+                            }
+                            else if (commandArgs.StartsWith("\"") && commandArgs.EndsWith("\""))
+                            {
+                                finalArgs = $"click {pageId} --text {commandArgs}";
+                            }
+                            else
+                            {
+                                var parts = commandArgs.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                                if (parts.Length == 2 && int.TryParse(parts[0], out _) && int.TryParse(parts[1], out _))
+                                {
+                                    finalArgs = $"click {pageId} --x {parts[0]} --y {parts[1]}";
+                                }
+                                else
+                                {
+                                    finalArgs = $"click {pageId} --text \"{commandArgs}\"";
+                                }
+                            }
+                        }
+                        else if (action.Equals("interact", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var argsFirstSpace = commandArgs.IndexOf(' ');
+                            if (argsFirstSpace > 0)
+                            {
+                                var elementId = commandArgs.Substring(0, argsFirstSpace).Trim();
+                                var rest = commandArgs.Substring(argsFirstSpace + 1).Trim();
+
+                                if (rest.StartsWith("value=", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var val = rest.Substring("value=".Length).Trim();
+                                    if (val.StartsWith("'") && val.EndsWith("'")) val = val.Substring(1, val.Length - 2);
+                                    else if (val.StartsWith("\"") && val.EndsWith("\"")) val = val.Substring(1, val.Length - 2);
+
+                                    finalArgs = $"interact {pageId} {elementId} set-value --value \"{val}\"";
+                                }
+                                else if (rest.Equals("click", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    finalArgs = $"interact {pageId} {elementId} click";
+                                }
+                                else if (rest.Equals("right-click", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    finalArgs = $"interact {pageId} {elementId} right-click";
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"[SnapFrame] Unrecognized interact action: {rest}");
+                                    continue;
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine($"[SnapFrame] Invalid interact format: {commandArgs}");
+                                continue;
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[SnapFrame] Unrecognized action: {action}");
+                            continue;
+                        }
+
+                        if (!string.IsNullOrEmpty(finalArgs))
+                        {
+                            Console.WriteLine($"[SnapFrame] Executing: {finalArgs}");
+                            var commandProcess = new Process
+                            {
+                                StartInfo = new ProcessStartInfo
+                                {
+                                    FileName = exeName,
+                                    Arguments = finalArgs,
+                                    RedirectStandardOutput = true,
+                                    RedirectStandardError = true,
+                                    UseShellExecute = false,
+                                    CreateNoWindow = true
+                                }
+                            };
+                            commandProcess.Start();
+                            commandProcess.WaitForExit();
+
+                            if (commandProcess.ExitCode != 0)
+                            {
+                                Console.WriteLine($"[SnapFrame] Command failed: {commandProcess.StandardError.ReadToEnd()}");
+                            }
+                        }
+                    }
+                }
 
                 // Capture
                 var args = $"capture {pageId} \"{targetPath}\" {options}";
