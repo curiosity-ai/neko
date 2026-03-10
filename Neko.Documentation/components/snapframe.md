@@ -38,6 +38,20 @@ Available options mirror the `snapframe capture` command:
 * `--bg <Gradient|GradientAqua|GradientBreeze|GradientCandy|GradientMidnight|GradientPeach|GradientSunset|Transparent>`: Background style.
 * `--full-page`: Capture the full scrollable page (not just the visible viewport).
 
+## Command Execution
+
+You can execute a series of commands on the page before taking the screenshot. Each line after the URL maps to one `snapframe` CLI call to execute a command on the page.
+
+Supported commands are `click` and `interact`.
+
+```md
+[!snapframe http://localhost:8080/#/admin/endpoints
+click 'sample button'
+click 10 20
+interact #elementId value='text to type']
+![Curiosity Workspace Custom Endpoints](/assets/screenshots/workspace-customization/custom-endpoints.png)
+```
+
 ## How It Works
 
 When the documentation is being compiled:
