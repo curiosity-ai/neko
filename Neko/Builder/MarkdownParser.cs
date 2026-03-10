@@ -102,6 +102,24 @@ namespace Neko.Builder
             _pipeline = pipelineBuilder.Build();
         }
 
+        public void SetupSnapFrame(string rootDirectory)
+        {
+            if (!_pipeline.Extensions.Any(e => e is SnapFrameExtension))
+            {
+                var builder = new MarkdownPipelineBuilder();
+                foreach (var extension in _pipeline.Extensions)
+                {
+                    builder.Extensions.Add(extension);
+                }
+                builder.Extensions.Add(new SnapFrameExtension(rootDirectory));
+                var field = typeof(MarkdownParser).GetField("_pipeline", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (field != null)
+                {
+                    field.SetValue(this, builder.Build());
+                }
+            }
+        }
+
         private string PreProcessIncludes(string content, string currentFilePath, string rootDirectory, int depth = 0)
         {
             if (depth > 5) return content; // Recursion limit
@@ -156,9 +174,17 @@ namespace Neko.Builder
             if (!string.IsNullOrEmpty(markdown) && !string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(rootDirectory))
             {
                 markdown = PreProcessIncludes(markdown, filePath, rootDirectory);
+                SetupSnapFrame(rootDirectory);
             }
 
             var document = Markdig.Markdown.Parse(markdown, _pipeline);
+
+            // Execute SnapFrame processing if applicable
+            var snapFrameExtension = _pipeline.Extensions.OfType<SnapFrameExtension>().FirstOrDefault();
+            if (snapFrameExtension != null)
+            {
+                snapFrameExtension.ProcessDocument(document);
+            }
 
             // Asset Resolution
             if (!string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(rootDirectory) && File.Exists(filePath))
