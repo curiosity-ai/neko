@@ -9,6 +9,13 @@ Neko is currently under active development.
 
 Please note that Neko uses a calendar versioning approach.
 
+## v26.3.3
+
+**Snapframe Component**
+
+- Added a new `[!snapframe]` Markdown extension that automatically generates screenshots of external websites using the SnapFrame .NET tool during the build process.
+- Merged the image alignment documentation into the main `image.md` file.
+
 ## v26.3
 
 **Icon Search in Watch Mode Editor**
