@@ -14,6 +14,7 @@ Please note that Neko uses a calendar versioning approach.
 
 * **Improvement**: Made the sidebar search box sticky when scrolling the sidebar, allowing quick access to the filter functionality. This was achieved by updating the HTML generation in `Neko/Builder/HtmlGenerator.cs` to wrap the search input in a sticky container while maintaining the proper layout for the rest of the navigation list.
 * **Feature**: Added Monaco Editor support for auto-completing templates for all valid components of neko starting with the "neko-" prefix. The template list is loaded dynamically from `templates.json` on the first render of the editor.
+* **Documentation**: Added a new guide for the Live Editing feature in Watch mode, including details on auto-completing templates.
 
 
 ## v26.3.3

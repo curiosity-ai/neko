@@ -27,5 +27,9 @@
   "neko-force-graph": "```force-graph\n{\n  \"nodes\": [{\"id\": \"id1\", \"name\": \"name1\", \"val\": 1}],\n  \"links\": [{\"source\": \"id1\", \"target\": \"id2\"}]\n}\n```",
   "neko-include": "{{ include \"file.md\" }}",
   "neko-card": "::: card {image=\"\" icon=\"\"}\nCard content\n:::",
-  "neko-card-grid": ":::: card-grid\n::: card {image=\"\" icon=\"\" variant=\"grid\"}\nCard content\n:::\n::::"
+  "neko-card-grid": ":::: card-grid\n::: card {image=\"\" icon=\"\" variant=\"grid\"}\nCard content\n:::\n::::",
+  "neko-example": "::: example\nDescription of the example goes here.\n\n```csharp\n// Code goes here\n```\n:::",
+  "neko-mermaid": "```mermaid\ngraph LR\n    A[Hard edge] -->|Link text| B(Round edge)\n    B --> C{Decision}\n    C -->|One| D[Result one]\n```",
+  "neko-snapframe": "[!snapframe https://example.com]\n![Screenshot](/assets/screenshot.png)",
+  "neko-workflow": "```workflow\nnode1: Start | play\nnode2: Process | gear\nnode3: End | flag\n\nnode1 --> node2\nnode2 --> node3\n```"
 }
