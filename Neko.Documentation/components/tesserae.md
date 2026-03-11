@@ -32,12 +32,10 @@ namespace Neko.Documentation
                 text.Text = "Button clicked at " + DateTime.Now.ToString("HH:mm:ss");
             });
 
-            document.body.appendChild(
-                VStack().Children(
+            MountToBody(VStack().Children(
                     btn,
                     text
-                ).Render()
-            );
+                ));
         }
     }
 }
