@@ -532,7 +532,7 @@ namespace Neko.Builder
             var assembly = System.Reflection.Assembly.GetExecutingAssembly();
             foreach (var resourceName in assembly.GetManifestResourceNames())
             {
-                if (resourceName.EndsWith(".js") || resourceName.EndsWith(".css") || resourceName.EndsWith(".woff2"))
+                if (resourceName.EndsWith(".js") || resourceName.EndsWith(".css") || resourceName.EndsWith(".woff2") || resourceName.EndsWith(".json"))
                 {
                     // Resource name format: Neko.Resources.filename.ext
                     // We need to map it to assets/filename.ext
