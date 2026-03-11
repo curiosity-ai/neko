@@ -301,18 +301,22 @@ namespace Neko.Builder
             {
                 sb.AppendLine("        <div id=\"sidebar-overlay\" class=\"fixed inset-0 bg-black/50 z-20 hidden md:hidden glassmorphism\"></div>");
                 sb.AppendLine("        <aside id=\"sidebar\" class=\"w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex flex-col shrink-0 fixed md:static inset-y-0 left-0 z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out h-full\">");
-                sb.AppendLine("            <nav class=\"p-4 flex-1\">");
-                sb.AppendLine("                <div class=\"mb-6 relative\">");
-                sb.AppendLine("                    <div class=\"absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none\">");
-                sb.AppendLine("                        <i class=\"fi fi-rr-filter text-gray-400\"></i>");
+                sb.AppendLine("            <nav class=\"flex-1\">");
+                sb.AppendLine("                <div class=\"p-4 sticky top-0 z-10 bg-gray-50 dark:bg-gray-800\">");
+                sb.AppendLine("                    <div class=\"relative\">");
+                sb.AppendLine("                        <div class=\"absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none\">");
+                sb.AppendLine("                            <i class=\"fi fi-rr-filter text-gray-400\"></i>");
+                sb.AppendLine("                        </div>");
+                sb.AppendLine("                        <input type=\"text\" id=\"sidebar-filter\" placeholder=\"Filter...\" class=\"w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm\">");
                 sb.AppendLine("                    </div>");
-                sb.AppendLine("                    <input type=\"text\" id=\"sidebar-filter\" placeholder=\"Filter...\" class=\"w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm\">");
                 sb.AppendLine("                </div>");
-                sb.AppendLine("                <ul class=\"space-y-1\" id=\"sidebar-list\">");
+                sb.AppendLine("                <div class=\"px-4 pb-4\">");
+                sb.AppendLine("                    <ul class=\"space-y-1\" id=\"sidebar-list\">");
 
                 RenderSidebarItems(sb, sidebarLinks ?? new List<LinkConfig>(), 0);
 
-                sb.AppendLine("                </ul>");
+                sb.AppendLine("                    </ul>");
+                sb.AppendLine("                </div>");
                 sb.AppendLine("            </nav>");
                 sb.AppendLine("        </aside>");
             }
