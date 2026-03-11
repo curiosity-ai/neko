@@ -18,6 +18,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "cname")]
         public string Cname { get; set; }
 
+        [YamlMember(Alias = "sitemap")]
+        public bool Sitemap { get; set; } = false;
+
         [YamlMember(Alias = "branding")]
         public BrandingConfig Branding { get; set; } = new BrandingConfig();
 
