@@ -632,7 +632,7 @@ sb.AppendLine("                    modal.classList.remove('hidden');");
 sb.AppendLine("                    loadMonaco(() => {");
 sb.AppendLine("                        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});");
 sb.AppendLine("                        require(['vs/editor/editor.main'], function() {");
-sb.AppendLine("                            const defaultYaml = \"order: 0\\nlabel: ''\\nicon: ''\\nexpanded: false\\n\";");
+sb.AppendLine("                            const defaultYaml = \"# Folder Configuration\\n# Valid options:\\n# order: 0           # Sorting order (lower numbers appear first)\\n# label: 'My Title'  # The display title of the folder in the sidebar\\n# icon: 'folder'     # The Flaticon UIcon name (e.g., folder, star, layout-grid)\\n# expanded: false    # Whether the folder is expanded by default in the sidebar\\n\\norder: 0\\nlabel: ''\\nicon: ''\\nexpanded: false\\n\";");
 sb.AppendLine("                            if (editor) {");
 sb.AppendLine("                                monaco.editor.setModelLanguage(editor.getModel(), 'yaml');");
 sb.AppendLine("                                editor.setValue(defaultYaml);");
