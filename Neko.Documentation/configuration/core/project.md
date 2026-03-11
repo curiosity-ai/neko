@@ -2172,6 +2172,23 @@ url: companyx.github.io/docs
 
 ---
 
+## sitemap
+
+=== sitemap : `boolean`
+
+Set to `true` to enable the generation of a `sitemap.xml` file in the output directory. The sitemap will include all generated pages using the `url` property as the base URL. If no `url` is provided, it defaults to `localhost`.
+
+The default is `false`.
+
+```yml
+sitemap: true
+url: https://example.com/docs
+```
+
+===
+
+---
+
 ## Additional options
 
 | Option       | Type     | Default value | Description                                                   |

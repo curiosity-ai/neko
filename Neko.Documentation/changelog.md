@@ -10,8 +10,9 @@ Neko is currently under active development.
 Please note that Neko uses a calendar versioning approach.
 
 
-## v2026.3.11
+## v26.3.11
 
+* **Feature**: Added a `sitemap` boolean configuration option in `neko.yml` to automatically generate a `sitemap.xml` file containing all generated HTML pages, utilizing the configured `url` as the base address.
 * **Improvement**: Made the sidebar search box sticky when scrolling the sidebar, allowing quick access to the filter functionality. This was achieved by updating the HTML generation in `Neko/Builder/HtmlGenerator.cs` to wrap the search input in a sticky container while maintaining the proper layout for the rest of the navigation list.
 
 

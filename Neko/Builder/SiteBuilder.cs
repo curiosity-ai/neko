@@ -335,6 +335,43 @@ namespace Neko.Builder
 
                 await searchIndexer.WriteIndexAsync(OutputDirectory);
 
+                // Generate Sitemap
+                if (_config.Sitemap)
+                {
+                    Console.WriteLine("Generating sitemap.xml...");
+                    string baseUrl = string.IsNullOrWhiteSpace(_config.Url) ? "localhost" : _config.Url;
+                    if (!baseUrl.StartsWith("http://") && !baseUrl.StartsWith("https://"))
+                    {
+                        baseUrl = "https://" + baseUrl;
+                    }
+                    baseUrl = baseUrl.TrimEnd('/');
+
+                    var sitemapContent = new System.Text.StringBuilder();
+                    sitemapContent.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+                    sitemapContent.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+
+                    foreach (var item in parsedDocs)
+                    {
+                        var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html").Replace("\\", "/");
+
+                        // We will allow index.html to be included as is,
+                        // or we could strip it to directory path, but let's leave it as relative .html file path for simplicity
+                        // and standard compatibility. Many sites use /index.html in sitemaps.
+                        // Wait, it is cleaner to just use the path as generated
+                        if (!htmlFileName.StartsWith("/"))
+                        {
+                            htmlFileName = "/" + htmlFileName;
+                        }
+
+                        sitemapContent.AppendLine($"  <url>");
+                        sitemapContent.AppendLine($"    <loc>{baseUrl}{htmlFileName}</loc>");
+                        sitemapContent.AppendLine($"  </url>");
+                    }
+
+                    sitemapContent.AppendLine("</urlset>");
+                    await File.WriteAllTextAsync(Path.Combine(OutputDirectory, "sitemap.xml"), sitemapContent.ToString());
+                }
+
                 // Generate 404 Page
                 var notFoundConfigPath = Path.Combine(_inputDirectory, "404.yml");
                 NotFoundConfig notFoundConfig;
