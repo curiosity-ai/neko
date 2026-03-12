@@ -588,9 +588,14 @@ namespace Neko.Builder
                 sb.AppendLine("            script.onload = () => {");
                 sb.AppendLine("                require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});");
                 sb.AppendLine("                require(['vs/editor/editor.main'], function() {");
-                sb.AppendLine("                    var baseUrl = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);");
-                sb.AppendLine("                    var templatesUrl = baseUrl + 'assets/templates.json';");
-                sb.AppendLine("                    if (!baseUrl.startsWith('/')) templatesUrl = '/assets/templates.json';");
+                sb.AppendLine("                    var currentPath = window.location.pathname;");
+                sb.AppendLine("                    var inRoot = currentPath === '/' || currentPath.indexOf('/', 1) === -1;");
+                sb.AppendLine("                    var templatesUrl = inRoot ? '/assets/templates.json' : window.nekoRootPath + 'assets/templates.json';");
+                sb.AppendLine("                    if (!window.nekoRootPath && !inRoot) {");
+                sb.AppendLine("                        var depth = currentPath.split('/').length - 2;");
+                sb.AppendLine("                        var prefix = depth > 0 ? '../'.repeat(depth) : './';");
+                sb.AppendLine("                        templatesUrl = prefix + 'assets/templates.json';");
+                sb.AppendLine("                    }");
                 sb.AppendLine("                    fetch(templatesUrl).then(res => res.json()).then(templates => {");
                 sb.AppendLine("                        monaco.languages.registerCompletionItemProvider('markdown', {");
                 sb.AppendLine("                            provideCompletionItems: function(model, position) {");
