@@ -94,5 +94,35 @@ namespace Neko.Tests
             Assert.That(doc.Html, Does.Match("Send.*fi-rr-paper-plane"), "Icon should be after text");
             Assert.That(doc.Html, Contains.Substring("ml-1"), "Icon should have left margin (ml-1)");
         }
+        [Test]
+        public void Badge_Consecutive_AreNotNested()
+        {
+            var markdown = "[!badge variant=\"info\" icon=\"user\" text=\"User\" margin=\"0 8 0 0\"]\n[!badge variant=\"primary\" icon=\"paper-plane\" iconAlign=\"right\" text=\"Send\"]";
+            var doc = _parser.Parse(markdown);
+
+            // Assert that there are 2 badges present, not nested. We can check the count of <span class="inline-flex...
+            // that is an immediate child of <p>. Since _parser returns HTML, let's just count occurrences.
+            // Two badges should be produced.
+
+            var matchCount = System.Text.RegularExpressions.Regex.Matches(doc.Html, "<span class=\"inline-flex").Count;
+            // The outer span contains inline-flex, but maybe not the inner span.
+            // Let's just check the outer ones. We expect 2 badges.
+            Assert.That(matchCount, Is.GreaterThanOrEqualTo(2), "Expected at least 2 inline-flex spans");
+
+            // The actual bug caused the second badge to be inside the first badge's span.
+            // When badges are correctly not nested, they should appear as separate siblings.
+            // In HTML, we should see `</span></span>\n<span` (with newlines/spaces) instead of `</span></span></span>`
+
+            var nestedCount = System.Text.RegularExpressions.Regex.Matches(doc.Html, "class=\"inline-flex.*?class=\"inline-flex", System.Text.RegularExpressions.RegexOptions.Singleline).Count;
+            // If one is inside the other, we might see it without a closing tag in between.
+
+            // We can just assert that it produces two distinct badges by looking for 2 occurrences of `class="inline-flex items-center font-medium`
+            var outerMatchCount = System.Text.RegularExpressions.Regex.Matches(doc.Html, "class=\"inline-flex items-center font-medium").Count;
+            Assert.That(outerMatchCount, Is.EqualTo(2), "Expected exactly 2 outer badge spans");
+
+            // Check they aren't nested - if they were nested, the second one would be parsed as text or inside the first.
+            // With the fix, they are adjacent.
+            Assert.That(doc.Html, Does.Not.Contain("</span></span></span>"));
+        }
     }
 }
