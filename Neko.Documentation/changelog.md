@@ -12,6 +12,7 @@ Please note that Neko uses a calendar versioning approach.
 
 ## v26.3.11
 
+* **Feature**: Added `csharp-docs` code block language mode which leverages Roslyn to parse C# code blocks containing XML comments and beautifully renders them with DocFx-like layouts detailing the summary, parameters, remarks, return types, and exceptions.
 * **Feature**: Added a `sitemap` boolean configuration option in `neko.yml` to automatically generate a `sitemap.xml` file containing all generated HTML pages, utilizing the configured `url` as the base address.
 * **Improvement**: Made the sidebar search box sticky when scrolling the sidebar, allowing quick access to the filter functionality. This was achieved by updating the HTML generation in `Neko/Builder/HtmlGenerator.cs` to wrap the search input in a sticky container while maintaining the proper layout for the rest of the navigation list.
 * **Feature**: Added Monaco Editor support for auto-completing templates for all valid components of neko starting with the "neko-" prefix. The template list is loaded dynamically from `templates.json` on the first render of the editor.
