@@ -12,6 +12,7 @@ Please note that Neko uses a calendar versioning approach.
 
 ## v26.3.12
 
+* **Feature**: Added support for configuring a global password in `neko.yml`. You can now protect the entire documentation by defining `password: "my-secret"` in your global configuration. Individual pages can bypass this global protection by setting `password: none` in their frontmatter.
 * **Documentation**: Updated the Tesserae component documentation (`components/tesserae.md`) to include a full interactive TODO sample application that demonstrates building UI components and persisting state via `window.localStorage`.
 
 ## v26.3.11
