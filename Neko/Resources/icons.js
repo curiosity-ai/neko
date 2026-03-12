@@ -2604,7 +2604,7 @@ function createIconSearchModal() {
 
 function renderIconResults(results, container) {
     if (results.length === 0) {
-        renderIconStatus(container, 'fi fi-rr-search', 'No results found', 'We couldn\\'t find any icons matching your search criteria.');
+        renderIconStatus(container, 'fi fi-rr-search', 'No results found', 'We could not find any icons matching your search criteria.');
         return;
     }
 
