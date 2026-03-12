@@ -10,6 +10,10 @@ Neko is currently under active development.
 Please note that Neko uses a calendar versioning approach.
 
 
+## v26.3.12
+
+* **Documentation**: Updated the Tesserae component documentation (`components/tesserae.md`) to include a full interactive TODO sample application that demonstrates building UI components and persisting state via `window.localStorage`.
+
 ## v26.3.11
 
 * **Feature**: Added `csharp-docs` code block language mode which leverages Roslyn to parse C# code blocks containing XML comments and beautifully renders them with DocFx-like layouts detailing the summary, parameters, remarks, return types, and exceptions.
