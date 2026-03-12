@@ -1,22 +1,5 @@
 (function() {
-    const encryptedDataEl = document.getElementById('encrypted-data');
-    if (!encryptedDataEl) return;
-
-    let payload;
-    try {
-        payload = JSON.parse(encryptedDataEl.textContent);
-    } catch (e) {
-        console.error("Failed to parse encrypted payload", e);
-        return;
-    }
-
-    const contentContainer = document.getElementById('content-container');
-    const formContainer = document.getElementById('password-form-container');
-    const passwordInput = document.getElementById('password-input');
-    const submitBtn = document.getElementById('password-submit');
-    const errorMsg = document.getElementById('password-error');
-
-    async function decrypt(password) {
+    async function decryptText(payload, password) {
         try {
             const enc = new TextEncoder();
             const salt = Uint8Array.from(atob(payload.salt), c => c.charCodeAt(0));
@@ -61,6 +44,60 @@
         }
     }
 
+    async function tryUnlockSidebar(password) {
+        if (!password) return;
+        const items = document.querySelectorAll('.protected-sidebar-item');
+        for (const item of items) {
+            const payloadBase64 = item.getAttribute('data-protected-payload');
+            if (payloadBase64) {
+                try {
+                    const payloadStr = atob(payloadBase64);
+                    const payload = JSON.parse(payloadStr);
+                    const decryptedName = await decryptText(payload, password);
+                    if (decryptedName) {
+                        const textSpan = item.querySelector('.protected-text');
+                        if (textSpan) {
+                            textSpan.innerHTML = decryptedName; // allow HTML if there were icons originally, but we html encoded the non-protected
+                        }
+                        item.classList.remove('hidden');
+                        // Make sure parent details are open or visible
+                        let parent = item.parentElement;
+                        while(parent && parent.id !== 'sidebar-list') {
+                            parent.classList.remove('hidden');
+                            if (parent.tagName === 'DETAILS') parent.open = true;
+                            parent = parent.parentElement;
+                        }
+                    }
+                } catch (e) {
+                    // Password didn't match this item, ignore
+                }
+            }
+        }
+    }
+
+    // Attempt to unlock sidebar early if we have a global password
+    const savedGlobal = sessionStorage.getItem('neko-global-password');
+    if (savedGlobal) {
+        tryUnlockSidebar(savedGlobal);
+    }
+
+    const encryptedDataEl = document.getElementById('encrypted-data');
+    if (!encryptedDataEl) return;
+
+    let payload;
+    try {
+        payload = JSON.parse(encryptedDataEl.textContent);
+    } catch (e) {
+        console.error("Failed to parse encrypted payload", e);
+        return;
+    }
+
+    const contentContainer = document.getElementById('content-container');
+    const formContainer = document.getElementById('password-form-container');
+    const passwordInput = document.getElementById('password-input');
+    const submitBtn = document.getElementById('password-submit');
+    const errorMsg = document.getElementById('password-error');
+
     async function handleUnlock(password) {
         if (!password) return;
 
@@ -71,7 +108,7 @@
         if (errorMsg) errorMsg.classList.add('hidden');
 
         try {
-            const html = await decrypt(password);
+            const html = await decryptText(payload, password);
 
             // Replace content
             if (contentContainer) {
@@ -134,6 +171,10 @@
 
             // Save password
             sessionStorage.setItem('neko-page-password-' + window.location.pathname, password);
+            if (window.nekoIsGlobalPassword) {
+                sessionStorage.setItem('neko-global-password', password);
+                tryUnlockSidebar(password);
+            }
 
         } catch (e) {
             if (errorMsg) errorMsg.classList.remove('hidden');
@@ -142,11 +183,14 @@
                 submitBtn.textContent = 'Unlock';
             }
             sessionStorage.removeItem('neko-page-password-' + window.location.pathname);
+            if (window.nekoIsGlobalPassword) {
+                sessionStorage.removeItem('neko-global-password');
+            }
         }
     }
 
     // Check saved password
-    const saved = sessionStorage.getItem('neko-page-password-' + window.location.pathname);
+    const saved = sessionStorage.getItem('neko-page-password-' + window.location.pathname) || (window.nekoIsGlobalPassword ? sessionStorage.getItem('neko-global-password') : null);
     if (saved) {
         handleUnlock(saved);
     }
