@@ -423,6 +423,9 @@ namespace Neko.Builder
 
             if (!string.IsNullOrEmpty(effectivePassword))
             {
+                var isGlobalPassword = string.IsNullOrEmpty(document.FrontMatter.Password) && !string.IsNullOrEmpty(_config.Password);
+                sb.AppendLine($"<script>window.nekoIsGlobalPassword = {isGlobalPassword.ToString().ToLower()};</script>");
+
                 var encryptionResult = Neko.Encryption.PageEncryptor.Encrypt(htmlContent, effectivePassword);
 
                 sb.AppendLine($"<div id=\"content-container\">");
@@ -1545,14 +1548,48 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
                     editHtml = $"<button onclick=\"nekoOpenEditorPath('{ymlPath}', event)\" class=\"text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors focus:outline-none p-1 rounded hover:bg-gray-300 dark:hover:bg-gray-600 mr-1\" title=\"Edit Folder Config\"><i class=\"fi fi-rr-pencil text-xs\"></i></button>";
                 }
 
+                string effectivePassword = null;
+                if (!string.IsNullOrEmpty(link.Password))
+                {
+                    if (!link.Password.Equals("none", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        effectivePassword = link.Password;
+                    }
+                }
+                else if (!string.IsNullOrEmpty(_config.Password))
+                {
+                    effectivePassword = _config.Password;
+                }
+
+                string liClasses = "";
+                string itemAttributes = "";
+                string displayTitle = link.Text;
+
+                if (!string.IsNullOrEmpty(effectivePassword))
+                {
+                    var encryptionResult = Neko.Encryption.PageEncryptor.Encrypt(link.Text ?? "", effectivePassword);
+                    var payloadObj = new { salt = encryptionResult.Salt, iv = encryptionResult.Iv, data = encryptionResult.Data };
+                    var payloadJson = System.Text.Json.JsonSerializer.Serialize(payloadObj);
+                    var payloadBase64 = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(payloadJson));
+
+                    liClasses = "protected-sidebar-item hidden";
+                    itemAttributes = $" data-protected-payload=\"{payloadBase64}\"";
+                    displayTitle = "<span class=\"protected-text\">Protected</span>";
+                }
+                else
+                {
+                     // Ensure non-protected items don't accidentally contain HTML
+                     displayTitle = System.Net.WebUtility.HtmlEncode(link.Text);
+                }
+
                 if (link.Items != null && link.Items.Count > 0)
                 {
                     if (level == 0)
                     {
                         // Render as a flat header
-                        sb.AppendLine($"                    <li class=\"first:mt-0 px-2\" style=\"margin-top:1.2rem;margin-bottom:0.5rem;\">");
+                        sb.AppendLine($"                    <li class=\"first:mt-0 px-2 {liClasses}\"{itemAttributes} style=\"margin-top:1.2rem;margin-bottom:0.5rem;\">");
                         sb.AppendLine($"                        <div class=\"flex items-center justify-between w-full\">");
-                        sb.AppendLine($"                            <span class=\"text-xs font-bold text-gray-500 uppercase tracking-wider\">{link.Text}</span>");
+                        sb.AppendLine($"                            <span class=\"text-xs font-bold text-gray-500 uppercase tracking-wider\">{displayTitle}</span>");
                         sb.AppendLine($"                            <div class=\"flex items-center shrink-0\">{editHtml}</div>");
                         sb.AppendLine($"                        </div>");
                         sb.AppendLine($"                    </li>");
@@ -1562,10 +1599,10 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
                     else
                     {
                         // Render as a collapsible group
-                        sb.AppendLine($"                    <li class=\"space-y-1\">");
+                        sb.AppendLine($"                    <li class=\"space-y-1 {liClasses}\"{itemAttributes}>");
                         sb.AppendLine($"                        <details class=\"group\" open>");
                         sb.AppendLine($"                            <summary class=\"flex items-center justify-between py-1 px-2 text-[13px] font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none\">");
-                        sb.AppendLine($"                                <span class=\"flex items-center gap-2 truncate\">{iconHtml} <span class=\"truncate\">{link.Text}</span></span>");
+                        sb.AppendLine($"                                <span class=\"flex items-center gap-2 truncate\">{iconHtml} <span class=\"truncate\">{displayTitle}</span></span>");
                         sb.AppendLine($"                                <div class=\"flex items-center shrink-0\">{editHtml}<i class=\"fi fi-rr-angle-small-down transition-transform group-open:rotate-180\"></i></div>");
                         sb.AppendLine($"                            </summary>");
                         sb.AppendLine($"                            <ul class=\"pl-0 space-y-1 mt-1 border-l border-gray-200 dark:border-gray-700 ml-3\">");
@@ -1590,7 +1627,7 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
                         href = "/" + href;
                     }
 
-                    sb.AppendLine($"                    <li><a href=\"{href}\" class=\"block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] text-gray-700 dark:text-gray-300 truncate\">{iconHtml} <span class=\"truncate\">{link.Text}</span></a></li>");
+                    sb.AppendLine($"                    <li class=\"{liClasses}\"{itemAttributes}><a href=\"{href}\" class=\"block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] text-gray-700 dark:text-gray-300 truncate\">{iconHtml} <span class=\"truncate\">{displayTitle}</span></a></li>");
                 }
             }
         }

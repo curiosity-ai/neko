@@ -143,7 +143,8 @@ namespace Neko.Builder
                 {
                     Text = title,
                     Link = relativePath,
-                    Icon = doc.FrontMatter.Icon
+                    Icon = doc.FrontMatter.Icon,
+                    Password = doc.FrontMatter.Password
                 };
 
                 items.Add((linkConfig, order, title));
