@@ -18,6 +18,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "cname")]
         public string Cname { get; set; }
 
+        [YamlMember(Alias = "password")]
+        public string Password { get; set; }
+
         [YamlMember(Alias = "sitemap")]
         public bool Sitemap { get; set; } = false;
 
@@ -60,6 +63,8 @@ namespace Neko.Configuration
             if (string.IsNullOrEmpty(Branding.Icon)) Branding.Icon = parent.Branding.Icon;
             if (string.IsNullOrEmpty(Branding.Favicon)) Branding.Favicon = parent.Branding.Favicon;
             if (string.IsNullOrEmpty(Branding.Repository)) Branding.Repository = parent.Branding.Repository;
+
+            if (string.IsNullOrEmpty(Password)) Password = parent.Password;
 
             // Inherit Theme settings
             if (Theme.Name == "blue" && parent.Theme.Name != "blue") Theme.Name = parent.Theme.Name;

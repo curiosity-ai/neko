@@ -408,9 +408,22 @@ namespace Neko.Builder
                  htmlContent += sbChangelog.ToString();
             }
 
+            string effectivePassword = null;
             if (!string.IsNullOrEmpty(document.FrontMatter.Password))
             {
-                var encryptionResult = Neko.Encryption.PageEncryptor.Encrypt(htmlContent, document.FrontMatter.Password);
+                if (!document.FrontMatter.Password.Equals("none", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    effectivePassword = document.FrontMatter.Password;
+                }
+            }
+            else if (!string.IsNullOrEmpty(_config.Password))
+            {
+                effectivePassword = _config.Password;
+            }
+
+            if (!string.IsNullOrEmpty(effectivePassword))
+            {
+                var encryptionResult = Neko.Encryption.PageEncryptor.Encrypt(htmlContent, effectivePassword);
 
                 sb.AppendLine($"<div id=\"content-container\">");
                 sb.AppendLine($"    <div id=\"password-form-container\" class=\"flex flex-col items-center justify-center py-20 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700\">");
