@@ -45,12 +45,20 @@
             <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl ring-1 ring-black/5 overflow-hidden">
                 <div class="flex items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                     <i class="fi fi-rr-search text-gray-500 mr-3 text-lg"></i>
-                    <input type="text" id="search-input" class="w-full bg-transparent border-2 border-gray-900 dark:border-gray-100 rounded focus:outline-none focus:ring-0 text-gray-900 dark:text-gray-100 placeholder-gray-500 mr-3 px-3 py-1" placeholder="Search documentation..." autocomplete="off">
+                    <input type="text" id="search-input" class="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900 dark:text-gray-100 placeholder-gray-500 mr-3 px-0 py-1" placeholder="Search documentation..." autocomplete="off">
                     <button id="search-close" class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-500 border border-gray-200 dark:border-gray-600">ESC</button>
                 </div>
                 <div id="search-results" class="max-h-96 overflow-y-auto py-2"></div>
-                <div id="search-footer" class="px-4 py-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 flex justify-between">
-                    <span>Search by MiniSearch</span>
+                <div id="search-footer" class="px-4 py-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 flex justify-end items-center space-x-4">
+                    <div class="flex items-center space-x-1">
+                        <kbd class="px-1.5 py-0.5 text-[10px] font-sans bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-gray-500 dark:text-gray-400">↑</kbd>
+                        <kbd class="px-1.5 py-0.5 text-[10px] font-sans bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-gray-500 dark:text-gray-400">↓</kbd>
+                        <span class="ml-1">to navigate</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <kbd class="px-1.5 py-0.5 text-[10px] font-sans bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-gray-500 dark:text-gray-400">↵</kbd>
+                        <span class="ml-1">to open</span>
+                    </div>
                 </div>
             </div>
         `;

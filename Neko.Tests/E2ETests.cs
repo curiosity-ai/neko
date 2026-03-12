@@ -20,6 +20,8 @@ namespace Neko.Tests
 
             // Create sample config and files
             File.WriteAllText(Path.Combine(_sampleDir, "neko.yml"), @"
+url: https://example.com
+sitemap: true
 branding:
   title: E2E Docs
 links:
@@ -76,6 +78,13 @@ AlertContent
             Assert.That(componentsContent, Contains.Substring("AlertContent"));
             Assert.That(componentsContent, Contains.Substring("test-install"));
             Assert.That(componentsContent, Contains.Substring("test-quickstart"));
+
+            // Verify Sitemap
+            var sitemapPath = Path.Combine(outputDir, "sitemap.xml");
+            Assert.That(File.Exists(sitemapPath), Is.True, "sitemap.xml should exist");
+            var sitemapContent = await File.ReadAllTextAsync(sitemapPath);
+            Assert.That(sitemapContent, Contains.Substring("<loc>https://example.com/index.html</loc>"));
+            Assert.That(sitemapContent, Contains.Substring("<loc>https://example.com/components.html</loc>"));
         }
     }
 }

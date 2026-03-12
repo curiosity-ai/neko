@@ -16,6 +16,7 @@ This repository contains the source code for `Neko`, a CLI tool for generating s
 3.  **Documentation**:
     -   Update `Neko.Documentation` with examples of supported features.
     -   **All components and features of Neko should have an equivalent documentation page in the documentation project.**
+    -   You MUST always update `Neko/Resources/templates.json` on components changes or new components.
     -   Maintain `TODO.md` and `WIP.md`.
 4.  **Assets**:
     -   Use embedded resources for CSS, JS, and Fonts.
