@@ -194,6 +194,7 @@ namespace Neko.Extensions
 
             }
 
+            badge.IsClosed = true;
             processor.Inline = badge;
             return true;
         }
