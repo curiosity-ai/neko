@@ -12,6 +12,7 @@ Please note that Neko uses a calendar versioning approach.
 
 ## v2026.3.11
 
+* **Feature**: Added `csharp-docs` code block language mode which leverages Roslyn to parse C# code blocks containing XML comments and beautifully renders them with DocFx-like layouts detailing the summary, parameters, remarks, return types, and exceptions.
 * **Improvement**: Made the sidebar search box sticky when scrolling the sidebar, allowing quick access to the filter functionality. This was achieved by updating the HTML generation in `Neko/Builder/HtmlGenerator.cs` to wrap the search input in a sticky container while maintaining the proper layout for the rest of the navigation list.
 
 
