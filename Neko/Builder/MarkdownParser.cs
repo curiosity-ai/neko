@@ -96,7 +96,8 @@ namespace Neko.Builder
                 .Use<CodeBlockExtension>()
                 .Use<CodeSnippetExtension>()
                 .Use<ImageAlignmentExtension>()
-                .Use<CustomImageExtension>();
+                .Use<CustomImageExtension>()
+                .Use<PdfExtension>();
 
             pipelineBuilder.Extensions.Add(customContainerExtension);
             _pipeline = pipelineBuilder.Build();
