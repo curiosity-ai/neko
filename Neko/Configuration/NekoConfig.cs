@@ -197,6 +197,9 @@ namespace Neko.Configuration
 
         [YamlIgnore]
         public string FolderPath { get; set; }
+
+        [YamlIgnore]
+        public string Password { get; set; }
     }
 
     public class MetaConfig
