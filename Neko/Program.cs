@@ -26,11 +26,13 @@ namespace Neko
 
             var inputOption  = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var outputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
+            var disableSnapframeOption = new Option<bool>(new[] { "--disable-snapframe" }, () => false, "Disable playwright snapframe screenshots");
 
             buildCommand.AddOption(inputOption);
             buildCommand.AddOption(outputOption);
+            buildCommand.AddOption(disableSnapframeOption);
 
-            buildCommand.SetHandler(async (string input, string? output) =>
+            buildCommand.SetHandler(async (string input, string? output, bool disableSnapframe) =>
             {
                 var inputFullPath = Path.GetFullPath(input);
                 var configFiles = Directory.Exists(inputFullPath)
@@ -54,32 +56,35 @@ namespace Neko
                             ? (isRoot ? output : Path.Combine(output, subDirRelative))
                             : Path.Combine(subDir, ".neko");
 
-                        var builder = new SiteBuilder(subDir, siteOutput, false, isRoot ? null : routePrefix);
+                        var builder = new SiteBuilder(subDir, siteOutput, false, isRoot ? null : routePrefix, disableSnapframe);
                         await builder.BuildAsync();
                     }
                 }
                 else
                 {
-                    var builder = new SiteBuilder(input, output);
+                    var builder = new SiteBuilder(input, output, disableSnapFrame: disableSnapframe);
                     await builder.BuildAsync();
                 }
-            }, inputOption, outputOption);
+            }, inputOption, outputOption, disableSnapframeOption);
 
             // Watch Command
             var watchCommand = new Command("watch", "Watch for changes and rebuild");
             var portOption   = new Option<int?>(new[] { "--port", "-p" }, "Port to use (default: 5000)");
             var watchInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var watchOutputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
+            var watchDisableSnapframeOption = new Option<bool>(new[] { "--disable-snapframe" }, () => false, "Disable playwright snapframe screenshots");
 
             watchCommand.AddOption(watchInputOption);
             watchCommand.AddOption(portOption);
             watchCommand.AddOption(watchOutputOption);
+            watchCommand.AddOption(watchDisableSnapframeOption);
 
             watchCommand.SetHandler(async (context) =>
             {
                 var input = context.ParseResult.GetValueForOption(watchInputOption) ?? ".";
                 var output = context.ParseResult.GetValueForOption(watchOutputOption);
                 var port = context.ParseResult.GetValueForOption(portOption) ?? 5000;
+                var disableSnapframe = context.ParseResult.GetValueForOption(watchDisableSnapframeOption);
                 var token = context.GetCancellationToken();
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -123,7 +128,7 @@ namespace Neko
                                     ? (isRoot ? output : Path.Combine(output, subDirRelative))
                                     : Path.Combine(subDir, ".neko");
 
-                                var builder = new SiteBuilder(subDir, siteOutput, true, isRoot ? null : routePrefix);
+                                var builder = new SiteBuilder(subDir, siteOutput, true, isRoot ? null : routePrefix, disableSnapframe);
                                 await builder.BuildAsync();
 
                                 var siteInfo = new Neko.Server.SiteInfo
@@ -145,7 +150,7 @@ namespace Neko
                     }
                     else
                     {
-                        var builder = new SiteBuilder(input, output, true, null);
+                        var builder = new SiteBuilder(input, output, true, null, disableSnapframe);
                         await builder.BuildAsync();
 
                         sites.Add(new Neko.Server.SiteInfo

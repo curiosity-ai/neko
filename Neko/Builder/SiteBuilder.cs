@@ -13,16 +13,18 @@ namespace Neko.Builder
         private readonly string? _outputDirectoryOverride;
         private readonly bool _isWatchMode;
         private readonly string? _routePrefix;
+        private readonly bool _disableSnapFrame;
         private NekoConfig _config;
 
         public string OutputDirectory { get; private set; }
 
-        public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false, string? routePrefix = null)
+        public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false, string? routePrefix = null, bool disableSnapFrame = false)
         {
             _inputDirectory = Path.GetFullPath(inputDirectory);
             _outputDirectoryOverride = outputDirectory;
             _isWatchMode = isWatchMode;
             _routePrefix = routePrefix;
+            _disableSnapFrame = disableSnapFrame;
         }
 
         private static readonly SemaphoreSlim _singleBuild = new SemaphoreSlim(1, 1);
@@ -131,7 +133,7 @@ namespace Neko.Builder
                 var files = scanner.Scan();
 
                 // 3. Prepare Pipeline
-                var parser = new MarkdownParser(_config);
+                var parser = new MarkdownParser(_config, _disableSnapFrame);
 
                 string headIncludes = null;
                 var headIncludesPath = Path.Combine(_inputDirectory, "_includes", "head.html");
