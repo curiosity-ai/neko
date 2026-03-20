@@ -71,9 +71,11 @@ namespace Neko.Builder
     public class MarkdownParser
     {
         private readonly MarkdownPipeline _pipeline;
+        private readonly bool _disableSnapFrame;
 
-        public MarkdownParser(Configuration.NekoConfig config)
+        public MarkdownParser(Configuration.NekoConfig config, bool disableSnapFrame = false)
         {
+            _disableSnapFrame = disableSnapFrame;
             var customContainerExtension = new CustomContainerExtension(config);
             var pipelineBuilder = new MarkdownPipelineBuilder()
                 .UseYamlFrontMatter()
@@ -105,6 +107,8 @@ namespace Neko.Builder
 
         public void SetupSnapFrame(string rootDirectory)
         {
+            if (_disableSnapFrame) return;
+
             if (!_pipeline.Extensions.Any(e => e is SnapFrameExtension))
             {
                 var builder = new MarkdownPipelineBuilder();
@@ -181,10 +185,13 @@ namespace Neko.Builder
             var document = Markdig.Markdown.Parse(markdown, _pipeline);
 
             // Execute SnapFrame processing if applicable
-            var snapFrameExtension = _pipeline.Extensions.OfType<SnapFrameExtension>().FirstOrDefault();
-            if (snapFrameExtension != null)
+            if (!_disableSnapFrame)
             {
-                snapFrameExtension.ProcessDocument(document);
+                var snapFrameExtension = _pipeline.Extensions.OfType<SnapFrameExtension>().FirstOrDefault();
+                if (snapFrameExtension != null)
+                {
+                    snapFrameExtension.ProcessDocument(document);
+                }
             }
 
             // Asset Resolution
