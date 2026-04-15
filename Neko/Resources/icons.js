@@ -2611,12 +2611,12 @@ function renderIconResults(results, container) {
     container.innerHTML = results.map((result, index) => {
         let iconClass = result.icon.startsWith('brands-') ? 'fi fi-' + result.icon : 'fi fi-rr-' + result.icon;
         return `
-        <button class="w-full text-left flex items-center px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700/50 group" data-icon="\${result.id}">
+        <button class="w-full text-left flex items-center px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700/50 group" data-icon="${result.id}">
             <div class="mr-4 w-6 h-6 flex items-center justify-center">
-                <i class="\${iconClass} text-xl text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400"></i>
+                <i class="${iconClass} text-xl text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400"></i>
             </div>
             <div class="text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-primary-600 dark:group-hover:text-primary-400">
-                \${result.title}
+                ${result.title}
             </div>
         </button>
     `}).join('');
