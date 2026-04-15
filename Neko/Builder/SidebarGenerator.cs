@@ -70,6 +70,31 @@ namespace Neko.Builder
                 if (subItems.Count > 0)
                 {
                     var title = !string.IsNullOrEmpty(folderConfig.Label) ? folderConfig.Label : ToTitleCase(dirName);
+
+                    int order = folderConfig.Order ?? int.MaxValue;
+
+                    // Fallback to index.md or README.md frontmatter order if not defined in folder config
+                    if (folderConfig.Order == null)
+                    {
+                        var indexDocPath = Path.Combine(fullSubDir, "index.md");
+                        var readmeDocPath = Path.Combine(fullSubDir, "README.md");
+                        ParsedDocument indexDoc = null;
+
+                        if (_parsedDocs.TryGetValue(indexDocPath, out var doc1))
+                        {
+                            indexDoc = doc1;
+                        }
+                        else if (_parsedDocs.TryGetValue(readmeDocPath, out var doc2))
+                        {
+                            indexDoc = doc2;
+                        }
+
+                        if (indexDoc != null && indexDoc.FrontMatter.Order.HasValue)
+                        {
+                            order = indexDoc.FrontMatter.Order.Value;
+                        }
+                    }
+
                     var linkConfig = new LinkConfig
                     {
                         Text = title,
@@ -78,7 +103,7 @@ namespace Neko.Builder
                         FolderPath = subDir
                     };
 
-                    items.Add((linkConfig, folderConfig.Order ?? int.MaxValue, title));
+                    items.Add((linkConfig, order, title));
                 }
             }
 
