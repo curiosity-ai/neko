@@ -123,6 +123,11 @@ namespace Neko.Server
                     return Results.BadRequest("Invalid path");
                 }
 
+                if (!File.Exists(mdPath) && path.EndsWith("index.yml"))
+                {
+                    return Results.Text("# Folder Configuration\n# Valid options:\n# order: 0           # Sorting order (lower numbers appear first)\n# label: 'My Title'  # The display title of the folder in the sidebar\n# icon: 'folder'     # The Flaticon UIcon name (e.g., folder, star, layout-grid)\n# expanded: false    # Whether the folder is expanded by default in the sidebar\n\norder: 0\nlabel: ''\nicon: ''\nexpanded: false\n");
+                }
+
                 var content = File.Exists(mdPath) ? await File.ReadAllTextAsync(mdPath) : "";
                 return Results.Text(content);
             });
@@ -139,6 +144,12 @@ namespace Neko.Server
                     if (!Path.GetFullPath(mdPath).StartsWith(Path.GetFullPath(siteInfo.InputPath)))
                     {
                         return Results.BadRequest("Invalid path");
+                    }
+
+                    var mdDir = Path.GetDirectoryName(mdPath);
+                    if (!string.IsNullOrEmpty(mdDir) && !Directory.Exists(mdDir))
+                    {
+                        Directory.CreateDirectory(mdDir);
                     }
 
                     await File.WriteAllTextAsync(mdPath, body.Content);
