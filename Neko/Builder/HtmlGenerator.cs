@@ -849,6 +849,130 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
                 sb.AppendLine("            })");
                 sb.AppendLine("            .catch(err => alert('Failed to save: ' + err));");
                 sb.AppendLine("        }");
+                sb.AppendLine("");
+                sb.AppendLine("        // Sidebar Drag-and-Drop Reorder (Edit Mode only)");
+                sb.AppendLine("        (function() {");
+                sb.AppendLine("            const sidebarRoot = document.getElementById('sidebar-list');");
+                sb.AppendLine("            if (!sidebarRoot) return;");
+                sb.AppendLine("            let dragEl = null;");
+                sb.AppendLine("            let dragGroup = null;");
+                sb.AppendLine("            let dropIndicator = null;");
+                sb.AppendLine("            let dropTarget = null;");
+                sb.AppendLine("            let dropBefore = true;");
+                sb.AppendLine("");
+                sb.AppendLine("            function ensureIndicator() {");
+                sb.AppendLine("                if (!dropIndicator) {");
+                sb.AppendLine("                    dropIndicator = document.createElement('div');");
+                sb.AppendLine("                    dropIndicator.style.height = '2px';");
+                sb.AppendLine("                    dropIndicator.style.background = '#3b82f6';");
+                sb.AppendLine("                    dropIndicator.style.margin = '2px 0';");
+                sb.AppendLine("                    dropIndicator.style.borderRadius = '2px';");
+                sb.AppendLine("                    dropIndicator.style.pointerEvents = 'none';");
+                sb.AppendLine("                    dropIndicator.id = 'neko-reorder-indicator';");
+                sb.AppendLine("                }");
+                sb.AppendLine("                return dropIndicator;");
+                sb.AppendLine("            }");
+                sb.AppendLine("");
+                sb.AppendLine("            function removeIndicator() {");
+                sb.AppendLine("                if (dropIndicator && dropIndicator.parentNode) {");
+                sb.AppendLine("                    dropIndicator.parentNode.removeChild(dropIndicator);");
+                sb.AppendLine("                }");
+                sb.AppendLine("            }");
+                sb.AppendLine("");
+                sb.AppendLine("            function cssEscape(s) {");
+                sb.AppendLine("                if (window.CSS && CSS.escape) return CSS.escape(s);");
+                sb.AppendLine("                return String(s).replace(/[\"\\\\]/g, '\\\\$&');");
+                sb.AppendLine("            }");
+                sb.AppendLine("");
+                sb.AppendLine("            function siblingsInGroup(groupId) {");
+                sb.AppendLine("                return Array.from(document.querySelectorAll('[data-neko-reorder=\"true\"][data-neko-parent=\"' + cssEscape(groupId) + '\"]'));");
+                sb.AppendLine("            }");
+                sb.AppendLine("");
+                sb.AppendLine("            document.addEventListener('dragstart', (e) => {");
+                sb.AppendLine("                const li = e.target.closest && e.target.closest('[data-neko-reorder=\"true\"]');");
+                sb.AppendLine("                if (!li) return;");
+                sb.AppendLine("                dragEl = li;");
+                sb.AppendLine("                dragGroup = li.getAttribute('data-neko-parent') || '__root__';");
+                sb.AppendLine("                li.style.opacity = '0.4';");
+                sb.AppendLine("                try { e.dataTransfer.setData('text/plain', li.getAttribute('data-neko-path') || ''); } catch (err) {}");
+                sb.AppendLine("                if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';");
+                sb.AppendLine("            });");
+                sb.AppendLine("");
+                sb.AppendLine("            document.addEventListener('dragend', () => {");
+                sb.AppendLine("                if (dragEl) dragEl.style.opacity = '';");
+                sb.AppendLine("                removeIndicator();");
+                sb.AppendLine("                dragEl = null;");
+                sb.AppendLine("                dragGroup = null;");
+                sb.AppendLine("                dropTarget = null;");
+                sb.AppendLine("            });");
+                sb.AppendLine("");
+                sb.AppendLine("            document.addEventListener('dragover', (e) => {");
+                sb.AppendLine("                if (!dragEl) return;");
+                sb.AppendLine("                const over = e.target.closest && e.target.closest('[data-neko-reorder=\"true\"]');");
+                sb.AppendLine("                if (!over || over === dragEl) return;");
+                sb.AppendLine("                const overGroup = over.getAttribute('data-neko-parent') || '__root__';");
+                sb.AppendLine("                if (overGroup !== dragGroup) return;");
+                sb.AppendLine("                e.preventDefault();");
+                sb.AppendLine("                if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';");
+                sb.AppendLine("                const rect = over.getBoundingClientRect();");
+                sb.AppendLine("                const before = (e.clientY - rect.top) < (rect.height / 2);");
+                sb.AppendLine("                dropTarget = over;");
+                sb.AppendLine("                dropBefore = before;");
+                sb.AppendLine("                const indicator = ensureIndicator();");
+                sb.AppendLine("                if (before) {");
+                sb.AppendLine("                    over.parentNode.insertBefore(indicator, over);");
+                sb.AppendLine("                } else {");
+                sb.AppendLine("                    over.parentNode.insertBefore(indicator, over.nextSibling);");
+                sb.AppendLine("                }");
+                sb.AppendLine("            });");
+                sb.AppendLine("");
+                sb.AppendLine("            document.addEventListener('drop', (e) => {");
+                sb.AppendLine("                if (!dragEl || !dropTarget) { removeIndicator(); return; }");
+                sb.AppendLine("                const overGroup = dropTarget.getAttribute('data-neko-parent') || '__root__';");
+                sb.AppendLine("                if (overGroup !== dragGroup) { removeIndicator(); return; }");
+                sb.AppendLine("                e.preventDefault();");
+                sb.AppendLine("                // For level-0 section headers, also collect children so they move along");
+                sb.AppendLine("                let trailing = [];");
+                sb.AppendLine("                if (dragEl.getAttribute('data-neko-type') === 'folder' && dragEl.parentNode === sidebarRoot) {");
+                sb.AppendLine("                    const folderPath = dragEl.getAttribute('data-neko-path');");
+                sb.AppendLine("                    trailing = Array.from(document.querySelectorAll('[data-neko-reorder=\"true\"][data-neko-parent=\"' + cssEscape(folderPath) + '\"]'));");
+                sb.AppendLine("                }");
+                sb.AppendLine("                if (dropBefore) {");
+                sb.AppendLine("                    dropTarget.parentNode.insertBefore(dragEl, dropTarget);");
+                sb.AppendLine("                } else {");
+                sb.AppendLine("                    dropTarget.parentNode.insertBefore(dragEl, dropTarget.nextSibling);");
+                sb.AppendLine("                }");
+                sb.AppendLine("                let prev = dragEl;");
+                sb.AppendLine("                for (const child of trailing) {");
+                sb.AppendLine("                    prev.parentNode.insertBefore(child, prev.nextSibling);");
+                sb.AppendLine("                    prev = child;");
+                sb.AppendLine("                }");
+                sb.AppendLine("                removeIndicator();");
+                sb.AppendLine("                const siblings = siblingsInGroup(dragGroup);");
+                sb.AppendLine("                const payload = { items: siblings.map((el, idx) => ({");
+                sb.AppendLine("                    path: el.getAttribute('data-neko-path') || '',");
+                sb.AppendLine("                    order: (idx + 1) * 10");
+                sb.AppendLine("                })).filter(i => i.path) };");
+                sb.AppendLine("                fetch('/api/neko/reorder', {");
+                sb.AppendLine("                    method: 'POST',");
+                sb.AppendLine("                    headers: { 'Content-Type': 'application/json' },");
+                sb.AppendLine("                    body: JSON.stringify(payload)");
+                sb.AppendLine("                }).then(res => {");
+                sb.AppendLine("                    if (!res.ok) {");
+                sb.AppendLine("                        console.error('Reorder failed', res.status);");
+                sb.AppendLine("                        alert('Failed to save new order');");
+                sb.AppendLine("                    }");
+                sb.AppendLine("                }).catch(err => {");
+                sb.AppendLine("                    console.error('Reorder request failed', err);");
+                sb.AppendLine("                    alert('Failed to save new order: ' + err);");
+                sb.AppendLine("                });");
+                sb.AppendLine("            });");
+                sb.AppendLine("");
+                sb.AppendLine("            // Prevent link navigation when initiating drag on an anchor child");
+                sb.AppendLine("            sidebarRoot.addEventListener('click', (e) => {");
+                sb.AppendLine("                if (dragEl) { e.preventDefault(); e.stopPropagation(); }");
+                sb.AppendLine("            }, true);");
+                sb.AppendLine("        })();");
                 sb.AppendLine("    </script>");
             }
 
@@ -1529,7 +1653,7 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
             sb.AppendLine("</head>");
         }
 
-        private void RenderSidebarItems(StringBuilder sb, List<LinkConfig> links, int level)
+        private void RenderSidebarItems(StringBuilder sb, List<LinkConfig> links, int level, string parentGroupId = "__root__")
         {
             if (links == null || links.Count == 0) return;
 
@@ -1547,17 +1671,42 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
                 }
 
                 string editHtml = "";
-                if (_isWatchMode && !string.IsNullOrEmpty(link.FolderPath))
+                string folderRelativePath = null;
+                string folderYmlPath = null;
+                if (!string.IsNullOrEmpty(link.FolderPath))
                 {
-                    // Clean up folder path to be relative
-                    var relativePath = link.FolderPath.Replace("\\", "/");
-                    if (relativePath.StartsWith(_config.Input.Replace("\\", "/")))
+                    folderRelativePath = link.FolderPath.Replace("\\", "/");
+                    if (folderRelativePath.StartsWith(_config.Input.Replace("\\", "/")))
                     {
-                         relativePath = relativePath.Substring(_config.Input.Replace("\\", "/").Length).TrimStart('/');
+                         folderRelativePath = folderRelativePath.Substring(_config.Input.Replace("\\", "/").Length).TrimStart('/');
                     }
-                    var ymlPath = string.IsNullOrEmpty(relativePath) ? "index.yml" : relativePath + "/index.yml";
+                    folderYmlPath = string.IsNullOrEmpty(folderRelativePath) ? "index.yml" : folderRelativePath + "/index.yml";
+                }
+                if (_isWatchMode && folderYmlPath != null)
+                {
+                    editHtml = $"<button onclick=\"nekoOpenEditorPath('{folderYmlPath}', event)\" class=\"text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors focus:outline-none p-1 rounded hover:bg-gray-300 dark:hover:bg-gray-600 mr-1\" title=\"Edit Folder Config\"><i class=\"fi fi-rr-pencil text-xs\"></i></button>";
+                }
 
-                    editHtml = $"<button onclick=\"nekoOpenEditorPath('{ymlPath}', event)\" class=\"text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors focus:outline-none p-1 rounded hover:bg-gray-300 dark:hover:bg-gray-600 mr-1\" title=\"Edit Folder Config\"><i class=\"fi fi-rr-pencil text-xs\"></i></button>";
+                string reorderAttrs = "";
+                string groupIdForChildren = parentGroupId;
+                if (_isWatchMode)
+                {
+                    string neonType;
+                    string neonPath;
+                    if (folderYmlPath != null)
+                    {
+                        neonType = "folder";
+                        neonPath = folderYmlPath;
+                        groupIdForChildren = folderYmlPath;
+                    }
+                    else
+                    {
+                        neonType = "file";
+                        neonPath = link.Link ?? "";
+                    }
+                    var encPath = System.Net.WebUtility.HtmlEncode(neonPath);
+                    var encParent = System.Net.WebUtility.HtmlEncode(parentGroupId ?? "__root__");
+                    reorderAttrs = $" draggable=\"true\" data-neko-reorder=\"true\" data-neko-type=\"{neonType}\" data-neko-path=\"{encPath}\" data-neko-parent=\"{encParent}\"";
                 }
 
                 string effectivePassword = null;
@@ -1599,19 +1748,19 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
                     if (level == 0)
                     {
                         // Render as a flat header
-                        sb.AppendLine($"                    <li class=\"first:mt-0 px-2 {liClasses}\"{itemAttributes} style=\"margin-top:1.2rem;margin-bottom:0.5rem;\">");
+                        sb.AppendLine($"                    <li class=\"first:mt-0 px-2 {liClasses}\"{itemAttributes}{reorderAttrs} style=\"margin-top:1.2rem;margin-bottom:0.5rem;\">");
                         sb.AppendLine($"                        <div class=\"flex items-center justify-between w-full\">");
                         sb.AppendLine($"                            <span class=\"text-xs font-bold text-gray-500 uppercase tracking-wider\">{displayTitle}</span>");
                         sb.AppendLine($"                            <div class=\"flex items-center shrink-0\">{editHtml}</div>");
                         sb.AppendLine($"                        </div>");
                         sb.AppendLine($"                    </li>");
 
-                        RenderSidebarItems(sb, link.Items, level + 1);
+                        RenderSidebarItems(sb, link.Items, level + 1, groupIdForChildren);
                     }
                     else
                     {
                         // Render as a collapsible group
-                        sb.AppendLine($"                    <li class=\"space-y-1 {liClasses}\"{itemAttributes}>");
+                        sb.AppendLine($"                    <li class=\"space-y-1 {liClasses}\"{itemAttributes}{reorderAttrs}>");
                         sb.AppendLine($"                        <details class=\"group\" open>");
                         sb.AppendLine($"                            <summary class=\"flex items-center justify-between py-1 px-2 text-[13px] font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none\">");
                         sb.AppendLine($"                                <span class=\"flex items-center gap-2 truncate\">{iconHtml} <span class=\"truncate\">{displayTitle}</span></span>");
@@ -1619,7 +1768,7 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
                         sb.AppendLine($"                            </summary>");
                         sb.AppendLine($"                            <ul class=\"pl-0 space-y-1 mt-1 border-l border-gray-200 dark:border-gray-700 ml-3\">");
 
-                        RenderSidebarItems(sb, link.Items, level + 1);
+                        RenderSidebarItems(sb, link.Items, level + 1, groupIdForChildren);
 
                         sb.AppendLine($"                            </ul>");
                         sb.AppendLine($"                        </details>");
@@ -1639,7 +1788,7 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
                         href = "/" + href;
                     }
 
-                    sb.AppendLine($"                    <li class=\"{liClasses}\"{itemAttributes}><a href=\"{href}\" class=\"block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] text-gray-700 dark:text-gray-300 truncate\">{iconHtml} <span class=\"truncate\">{displayTitle}</span></a></li>");
+                    sb.AppendLine($"                    <li class=\"{liClasses}\"{itemAttributes}{reorderAttrs}><a href=\"{href}\" class=\"block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] text-gray-700 dark:text-gray-300 truncate\">{iconHtml} <span class=\"truncate\">{displayTitle}</span></a></li>");
                 }
             }
         }

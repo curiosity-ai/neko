@@ -12,6 +12,7 @@ Please note that Neko uses a calendar versioning approach.
 
 ## v26.5
 
+* **Feature**: Added drag-and-drop reordering of sidebar items while running `neko watch`. Items can be reordered within their parent group; on drop, the corresponding `.md` frontmatter `order` (or folder `index.yml` `order`) values are rewritten as multiples of 10, and the site reloads automatically. A new `POST /api/neko/reorder` endpoint handles the update.
 * **Theme**: Refreshed the default light / dark themes to match the look-and-feel of [docs.curiosity.ai](https://docs.curiosity.ai). Introduced a new `curiosity` default theme (deep navy `#050914` background in dark mode), a paired `accent` palette, and a `neko-text-gradient` utility used by the hero accent word.
 * **Feature**: Split screenshot capture into a dedicated `neko snap` command. `neko build` and `neko watch` no longer call Playwright; instead, run `neko snap` to capture missing screenshots, or `neko snap --all` to re-capture everything.
 * **Feature**: Added a new `[!lesson]` Markdown component that renders a curriculum-style track. Steps are auto-discovered from sibling `.md` files in the folder, ordered by their `order` frontmatter. User progress is persisted to `localStorage` per lesson.
