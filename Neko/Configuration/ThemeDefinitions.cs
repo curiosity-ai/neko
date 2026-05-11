@@ -5,8 +5,26 @@ namespace Neko.Configuration
 {
     public static class ThemeDefinitions
     {
+        public const string DefaultThemeName = "curiosity";
+
         public static readonly Dictionary<string, Dictionary<string, string>> Themes = new(StringComparer.OrdinalIgnoreCase)
         {
+            {
+                "curiosity", new Dictionary<string, string>
+                {
+                    { "50",  "#eef4ff" },
+                    { "100", "#dce8ff" },
+                    { "200", "#bcd4ff" },
+                    { "300", "#8bb6ff" },
+                    { "400", "#5b94ff" },
+                    { "500", "#3b82f6" },
+                    { "600", "#2563eb" },
+                    { "700", "#1d4ed8" },
+                    { "800", "#1e3a8a" },
+                    { "900", "#162e6f" },
+                    { "950", "#0a1535" }
+                }
+            },
             {
                 "blue", new Dictionary<string, string>
                 {
@@ -123,8 +141,23 @@ namespace Neko.Configuration
 
         public static Dictionary<string, string> GetTheme(string name)
         {
-            if (string.IsNullOrEmpty(name)) return Themes["blue"];
-            return Themes.TryGetValue(name, out var theme) ? theme : Themes["blue"];
+            if (string.IsNullOrEmpty(name)) return Themes[DefaultThemeName];
+            return Themes.TryGetValue(name, out var theme) ? theme : Themes[DefaultThemeName];
         }
+
+        public static readonly Dictionary<string, string> AccentTheme = new()
+        {
+            { "50",  "#f5f3ff" },
+            { "100", "#ede9fe" },
+            { "200", "#ddd6fe" },
+            { "300", "#c4b5fd" },
+            { "400", "#a78bfa" },
+            { "500", "#8b5cf6" },
+            { "600", "#7c3aed" },
+            { "700", "#6d28d9" },
+            { "800", "#5b21b6" },
+            { "900", "#4c1d95" },
+            { "950", "#2e1065" }
+        };
     }
 }

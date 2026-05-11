@@ -66,93 +66,31 @@ The Grid component provides a flexible layout container that arranges its child 
 ::::
 ```
 
-## Gradient Card
+## Icon Card
 
-You can replace the standard image of a card with an animated gradient. This is configured using `gradient="true"` or passing a `gradient-mode` parameter. When no colors are provided, Neko will automatically pick colors from your chosen theme to generate the gradient.
-
-::: card {title="Impasto Gradient" gradient="true" gradient-mode="impasto"}
-A rich, textured oil-paint style gradient background using theme colors automatically.
-:::
-
-```markdown
-::: card {title="Impasto Gradient" gradient="true" gradient-mode="impasto"}
-A rich, textured oil-paint style gradient background using theme colors automatically.
-:::
-```
-
-### Custom Gradient Settings
-
-You can pass an array of custom hex colors via `gradient-colors`, adjust the `gradient-noise`, and change the `gradient-speed`. Valid modes include `mesh`, `aurora`, `grainy`, `deep-sea`, `holographic`, `impasto`, `spectral`, and `fractal`.
-
-::: card {variant="horizontal" title="Holographic Vibe" gradient-mode="holographic" gradient-colors='["#dee3ff","#d0c5ff","#ffe6f6","#dca512"]' gradient-speed="2"}
-An energetic, faster, holographic gradient card utilizing custom defined colors instead of the theme default.
-:::
-
-```markdown
-::: card {variant="horizontal" title="Holographic Vibe" gradient-mode="holographic" gradient-colors='["#dee3ff","#d0c5ff","#ffe6f6","#dca512"]' gradient-speed="2"}
-An energetic, faster, holographic gradient card utilizing custom defined colors instead of the theme default.
-:::
-```
-
-### Gradient Modes Grid
-
-Here is a grid showcasing all of the supported gradient modes.
+The `grid` variant doubles as an icon card. Pass an `icon` to render a colored icon badge in the top-left of the card &mdash; no image required.
 
 :::: card-grid
-::: card {variant="grid" title="Fluid Mesh" gradient="true" gradient-mode="mesh"}
-A smooth, flowing mesh gradient.
+::: card {variant="grid" icon="route" title="Graph Query Language" palette="blue" tags="24 lessons, 4h, All levels"}
+Traversals, projections, joins. Think in graphs.
 :::
-::: card {variant="grid" title="Aurora" gradient="true" gradient-mode="aurora"}
-A gradient resembling the northern lights.
+::: card {variant="grid" icon="star" title="NLP — Patterns & Spotters" palette="violet" tags="18 lessons, 3h, Intermediate"}
+Build entity capture pipelines that scale.
 :::
-::: card {variant="grid" title="Grainy" gradient="true" gradient-mode="grainy"}
-A gradient with a textured, noisy appearance.
-:::
-::: card {variant="grid" title="Deep Sea" gradient="true" gradient-mode="deep-sea"}
-A deep, immersive gradient experience.
-:::
-::: card {variant="grid" title="Holographic" gradient="true" gradient-mode="holographic"}
-A vibrant, multi-colored holographic gradient.
-:::
-::: card {variant="grid" title="Impasto" gradient="true" gradient-mode="impasto"}
-A rich, textured oil-paint style gradient.
-:::
-::: card {variant="grid" title="Spectral" gradient="true" gradient-mode="spectral"}
-A spectrum-based gradient blending multiple colors.
-:::
-::: card {variant="grid" title="Fractal" gradient="true" gradient-mode="fractal"}
-A complex, mathematically-inspired gradient.
+::: card {variant="grid" icon="plug" title="Building data connectors" palette="emerald" tags="12 lessons, 2h, Beginner"}
+Ingest anything into the graph with the SDK.
 :::
 ::::
 
 ```markdown
 :::: card-grid
-::: card {variant="grid" title="Fluid Mesh" gradient="true" gradient-mode="mesh"}
-A smooth, flowing mesh gradient.
-:::
-::: card {variant="grid" title="Aurora" gradient="true" gradient-mode="aurora"}
-A gradient resembling the northern lights.
-:::
-::: card {variant="grid" title="Grainy" gradient="true" gradient-mode="grainy"}
-A gradient with a textured, noisy appearance.
-:::
-::: card {variant="grid" title="Deep Sea" gradient="true" gradient-mode="deep-sea"}
-A deep, immersive gradient experience.
-:::
-::: card {variant="grid" title="Holographic" gradient="true" gradient-mode="holographic"}
-A vibrant, multi-colored holographic gradient.
-:::
-::: card {variant="grid" title="Impasto" gradient="true" gradient-mode="impasto"}
-A rich, textured oil-paint style gradient.
-:::
-::: card {variant="grid" title="Spectral" gradient="true" gradient-mode="spectral"}
-A spectrum-based gradient blending multiple colors.
-:::
-::: card {variant="grid" title="Fractal" gradient="true" gradient-mode="fractal"}
-A complex, mathematically-inspired gradient.
+::: card {variant="grid" icon="route" title="Graph Query Language" palette="blue" tags="24 lessons, 4h, All levels"}
+Traversals, projections, joins. Think in graphs.
 :::
 ::::
 ```
+
+Available `palette` values: `blue`, `violet`, `emerald`, `amber`, `rose`, `sky`, `fuchsia`, `orange`. When omitted, Neko picks a palette deterministically from the card's title.
 
 ## Link Card
 
@@ -204,8 +142,5 @@ Learn how to contribute to products and extend capabilities.
 | `link-text` | The text for the bottom link action (used with `variant="link"`). |
 | `theme` | Set to `dark` for a dark background variant (used with `variant="link"`). |
 | `arrow` | Set to `true` to display an arrow icon next to the link (used with `variant="link"`). |
-| `gradient` | Set to `true` to replace the top image with an animated gradient based on your theme. |
-| `gradient-mode` | Type of gradient: `mesh`, `aurora`, `grainy`, `deep-sea`, `holographic`, `impasto`, `spectral`, or `fractal`. |
-| `gradient-colors` | Custom JSON string array of hex codes for the gradient (e.g., `["#dee3ff", "#dca512"]`). |
-| `gradient-noise` | Control the level of noise over the gradient. Decimal values (e.g., `0.05`). |
-| `gradient-speed` | Speed multiplier for the gradient animation. (e.g., `1`, `1.5`, `0.5`). |
+| `icon` | Icon shown in the colored badge of the `grid` variant. |
+| `palette` | Color palette for the `grid` variant icon badge. One of `blue`, `violet`, `emerald`, `amber`, `rose`, `sky`, `fuchsia`, `orange`. |

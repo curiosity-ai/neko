@@ -71,11 +71,9 @@ namespace Neko.Builder
     public class MarkdownParser
     {
         private readonly MarkdownPipeline _pipeline;
-        private readonly bool _disableSnapFrame;
 
-        public MarkdownParser(Configuration.NekoConfig config, bool disableSnapFrame = false)
+        public MarkdownParser(Configuration.NekoConfig config)
         {
-            _disableSnapFrame = disableSnapFrame;
             var customContainerExtension = new CustomContainerExtension(config);
             var pipelineBuilder = new MarkdownPipelineBuilder()
                 .UseYamlFrontMatter()
@@ -99,30 +97,12 @@ namespace Neko.Builder
                 .Use<CodeSnippetExtension>()
                 .Use<ImageAlignmentExtension>()
                 .Use<CustomImageExtension>()
-                .Use<PdfExtension>();
+                .Use<PdfExtension>()
+                .Use<SnapFrameExtension>()
+                .Use<LessonExtension>();
 
             pipelineBuilder.Extensions.Add(customContainerExtension);
             _pipeline = pipelineBuilder.Build();
-        }
-
-        public void SetupSnapFrame(string rootDirectory)
-        {
-            if (_disableSnapFrame) return;
-
-            if (!_pipeline.Extensions.Any(e => e is SnapFrameExtension))
-            {
-                var builder = new MarkdownPipelineBuilder();
-                foreach (var extension in _pipeline.Extensions)
-                {
-                    builder.Extensions.Add(extension);
-                }
-                builder.Extensions.Add(new SnapFrameExtension(rootDirectory));
-                var field = typeof(MarkdownParser).GetField("_pipeline", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                if (field != null)
-                {
-                    field.SetValue(this, builder.Build());
-                }
-            }
         }
 
         private string PreProcessIncludes(string content, string currentFilePath, string rootDirectory, int depth = 0)
@@ -179,20 +159,12 @@ namespace Neko.Builder
             if (!string.IsNullOrEmpty(markdown) && !string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(rootDirectory))
             {
                 markdown = PreProcessIncludes(markdown, filePath, rootDirectory);
-                SetupSnapFrame(rootDirectory);
             }
+
+            LessonExtension.CurrentFilePath = filePath;
+            LessonExtension.CurrentRootDirectory = rootDirectory;
 
             var document = Markdig.Markdown.Parse(markdown, _pipeline);
-
-            // Execute SnapFrame processing if applicable
-            if (!_disableSnapFrame)
-            {
-                var snapFrameExtension = _pipeline.Extensions.OfType<SnapFrameExtension>().FirstOrDefault();
-                if (snapFrameExtension != null)
-                {
-                    snapFrameExtension.ProcessDocument(document);
-                }
-            }
 
             // Asset Resolution
             if (!string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(rootDirectory) && File.Exists(filePath))

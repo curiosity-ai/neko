@@ -102,22 +102,12 @@ namespace Neko.Extensions
 
     public class SnapFrameExtension : IMarkdownExtension
     {
-        private string _inputDirectory;
-
-        public SnapFrameExtension(string inputDirectory)
-        {
-            _inputDirectory = inputDirectory;
-        }
-
         public void Setup(MarkdownPipelineBuilder pipeline)
         {
             if (!pipeline.InlineParsers.Contains<SnapFrameParser>())
             {
                 pipeline.InlineParsers.Insert(0, new SnapFrameParser());
             }
-
-            // We will call ProcessDocument explicitly from MarkdownParser to guarantee execution
-            // pipeline.DocumentProcessed += DocumentProcessed;
         }
 
         public void Setup(MarkdownPipeline pipeline, IMarkdownRenderer renderer)
@@ -129,54 +119,7 @@ namespace Neko.Extensions
             }
         }
 
-        public void ProcessDocument(MarkdownDocument document)
-        {
-            if (string.IsNullOrEmpty(_inputDirectory)) return;
-
-            foreach (var node in document.Descendants())
-            {
-                if (node is SnapFrameInline snapFrame)
-                {
-                    // Find the next LinkInline that is an image
-                    Inline current = snapFrame;
-                    LinkInline targetImage = null;
-
-                    // Search siblings
-                    while (current.NextSibling != null)
-                    {
-                        current = current.NextSibling;
-                        if (current is LinkInline link && link.IsImage)
-                        {
-                            targetImage = link;
-                            break;
-                        }
-                    }
-
-                    if (targetImage != null && !string.IsNullOrEmpty(targetImage.Url))
-                    {
-                        var url = targetImage.Url;
-                        if (url.StartsWith("http://") || url.StartsWith("https://"))
-                        {
-                            continue;
-                        }
-
-                        // Remove starting slash if any for relative resolution
-                        var relativePath = url.TrimStart('/');
-
-                        // Wait, we need the exact output path to save the image to.
-                        // We will save it in the input directory, so it's a permanent asset.
-                        var targetPath = Path.Combine(_inputDirectory, relativePath.Replace('/', Path.DirectorySeparatorChar));
-
-                        if (!File.Exists(targetPath))
-                        {
-                            CaptureScreenshot(snapFrame.Url, snapFrame.Options, snapFrame.Commands, targetPath);
-                        }
-                    }
-                }
-            }
-        }
-
-        private bool EnsureToolInstalled()
+        public static bool EnsureToolInstalled()
         {
             try
             {
@@ -255,7 +198,7 @@ namespace Neko.Extensions
             }
         }
 
-        private void CaptureScreenshot(string url, string options, List<string> commands, string targetPath)
+        public static void CaptureScreenshot(string url, string options, List<string> commands, string targetPath)
         {
             try
             {

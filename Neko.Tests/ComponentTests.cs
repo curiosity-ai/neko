@@ -144,7 +144,7 @@ namespace Neko.Tests
             Assert.That(doc.Html, Contains.Substring("New"));
             Assert.That(doc.Html, Contains.Substring("Get Started"));
             Assert.That(doc.Html, Contains.Substring("href=\"/start\""));
-            Assert.That(doc.Html, Contains.Substring("bg-gray-900"));
+            Assert.That(doc.Html, Contains.Substring("dark:from-[#0a1428]"));
         }
 
         [Test]

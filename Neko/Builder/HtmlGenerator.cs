@@ -1262,22 +1262,32 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
                     primaryTheme[kvp.Key] = kvp.Value;
                 }
             }
-            var themeJson = System.Text.Json.JsonSerializer.Serialize(primaryTheme);
-            sb.AppendLine($"    <script>tailwind.config = {{ darkMode: 'class', theme: {{ extend: {{ colors: {{ primary: {themeJson} }} }} }} }}; window.nekoThemeColors = {themeJson};</script>");
 
-            // Initialize gradient missing colors with theme colors
-            sb.AppendLine("    <script>");
-            sb.AppendLine("    document.addEventListener('DOMContentLoaded', () => {");
-            sb.AppendLine("        document.querySelectorAll('[data-lumina-gradient]').forEach(el => {");
-            sb.AppendLine("            if (!el.hasAttribute('data-colors')) {");
-            sb.AppendLine("                const colors = window.nekoThemeColors;");
-            sb.AppendLine("                if (colors) {");
-            sb.AppendLine("                    el.setAttribute('data-colors', JSON.stringify([colors['100'] || '#dee3ff', colors['300'] || '#d0c5ff', colors['500'] || '#ffe6f6', colors['700'] || '#dca512']));");
-            sb.AppendLine("                }");
-            sb.AppendLine("            }");
-            sb.AppendLine("        });");
-            sb.AppendLine("    });");
-            sb.AppendLine("    </script>");
+            var accentTheme = new Dictionary<string, string>(ThemeDefinitions.AccentTheme);
+            if (_config.Theme.Accent != null && _config.Theme.Accent.Count > 0)
+            {
+                foreach (var kvp in _config.Theme.Accent)
+                {
+                    accentTheme[kvp.Key] = kvp.Value;
+                }
+            }
+
+            var themeJson = System.Text.Json.JsonSerializer.Serialize(primaryTheme);
+            var accentJson = System.Text.Json.JsonSerializer.Serialize(accentTheme);
+            sb.AppendLine($"    <script>tailwind.config = {{ darkMode: 'class', theme: {{ extend: {{ colors: {{ primary: {themeJson}, accent: {accentJson} }} }} }} }}; window.nekoThemeColors = {themeJson}; window.nekoAccentColors = {accentJson};</script>");
+
+            // Curiosity-inspired neutral palette overrides (deep navy in dark mode, soft white in light mode)
+            sb.AppendLine("    <style>");
+            sb.AppendLine("      :root { --neko-bg: #ffffff; --neko-bg-elevated: #f8fafc; --neko-bg-muted: #f1f5f9; --neko-border: #e5e7eb; }");
+            sb.AppendLine("      html.dark { --neko-bg: #050914; --neko-bg-elevated: #0b1226; --neko-bg-muted: #111a33; --neko-border: #1f2a44; }");
+            sb.AppendLine("      html.dark body { background-color: var(--neko-bg); }");
+            sb.AppendLine("      html.dark .dark\\:bg-gray-900 { background-color: var(--neko-bg) !important; }");
+            sb.AppendLine("      html.dark .dark\\:bg-gray-800 { background-color: var(--neko-bg-elevated) !important; }");
+            sb.AppendLine("      html.dark .dark\\:border-gray-800 { border-color: var(--neko-border) !important; }");
+            sb.AppendLine("      html.dark .dark\\:border-gray-700 { border-color: var(--neko-border) !important; }");
+            sb.AppendLine("      .neko-text-gradient { background-image: linear-gradient(90deg, var(--neko-grad-from, #5b94ff) 0%, var(--neko-grad-to, #a78bfa) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }");
+            sb.AppendLine($"      :root {{ --neko-grad-from: {(primaryTheme.TryGetValue("400", out var pf) ? pf : "#5b94ff")}; --neko-grad-to: {(accentTheme.TryGetValue("400", out var af) ? af : "#a78bfa")}; }}");
+            sb.AppendLine("    </style>");
 
             // Neko Config
             var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
@@ -1453,9 +1463,6 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
 
             // Force Graph
             sb.AppendLine("    <script src=\"/assets/force-graph.min.js\"></script>");
-
-            // Gradient Library
-            sb.AppendLine("    <script src=\"/assets/makegradient.js\"></script>");
 
             // Search Assets
             sb.AppendLine("    <script src=\"/assets/minisearch.min.js\"></script>");

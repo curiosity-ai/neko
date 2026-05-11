@@ -2,6 +2,7 @@ using Markdig;
 using Markdig.Extensions.CustomContainers;
 using Markdig.Renderers;
 using Markdig.Renderers.Html;
+using System;
 using System.Linq;
 using System.Net;
 
@@ -11,6 +12,19 @@ namespace Neko.Extensions
     {
         private readonly HtmlObjectRenderer<CustomContainer> _originalRenderer;
         private readonly Configuration.NekoConfig _config;
+
+        // Curated icon color palettes for variant="grid" cards (curiosity-style).
+        private static readonly (string Bg, string Ring, string Text)[] IconPalettes = new[]
+        {
+            ("bg-blue-500/15",    "ring-blue-500/30",    "text-blue-300"),
+            ("bg-violet-500/15",  "ring-violet-500/30",  "text-violet-300"),
+            ("bg-emerald-500/15", "ring-emerald-500/30", "text-emerald-300"),
+            ("bg-amber-500/15",   "ring-amber-500/30",   "text-amber-300"),
+            ("bg-rose-500/15",    "ring-rose-500/30",    "text-rose-300"),
+            ("bg-sky-500/15",     "ring-sky-500/30",     "text-sky-300"),
+            ("bg-fuchsia-500/15", "ring-fuchsia-500/30", "text-fuchsia-300"),
+            ("bg-orange-500/15",  "ring-orange-500/30",  "text-orange-300"),
+        };
 
         public CustomContainerRenderer(HtmlObjectRenderer<CustomContainer> originalRenderer, Configuration.NekoConfig config)
         {
@@ -34,8 +48,6 @@ namespace Neko.Extensions
                 return;
             }
 
-            // Apply styles based on container type
-            // Note: UseAddClass helper from Markdig handles appending to existing classes.
             if (type == "panel")
             {
                 var classes = "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-6 my-4";
@@ -53,7 +65,7 @@ namespace Neko.Extensions
             }
             else if (type == "card-grid")
             {
-                var classes = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 my-8";
+                var classes = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 my-8 not-prose";
                 obj.GetAttributes().AddClass(classes);
             }
 
@@ -70,22 +82,15 @@ namespace Neko.Extensions
             var tags = GetAttribute(attributes, "tags");
             var icon = GetAttribute(attributes, "icon");
             var variant = GetAttribute(attributes, "variant") ?? "stacked";
-
-            // Gradient attributes
-            var gradientModeAttr = GetAttribute(attributes, "gradient-mode");
-            var gradient = GetAttribute(attributes, "gradient") == "true" || gradientModeAttr != null || !string.IsNullOrEmpty(_config?.Theme?.Gradient?.Mode);
-            var gradientMode = gradientModeAttr ?? _config?.Theme?.Gradient?.Mode;
-            var gradientNoise = GetAttribute(attributes, "gradient-noise") ?? _config?.Theme?.Gradient?.Noise;
-            var gradientSpeed = GetAttribute(attributes, "gradient-speed") ?? _config?.Theme?.Gradient?.Speed;
-            var gradientColors = GetAttribute(attributes, "gradient-colors") ?? _config?.Theme?.Gradient?.Colors;
+            var palette = GetAttribute(attributes, "palette");
 
             if (variant == "horizontal")
             {
-                RenderHorizontalCard(renderer, obj, image, title, link, seeMore, tags, icon, gradient, gradientMode, gradientNoise, gradientSpeed, gradientColors);
+                RenderHorizontalCard(renderer, obj, image, title, link, seeMore, tags, icon);
             }
             else if (variant == "grid")
             {
-                RenderGridCard(renderer, obj, image, title, link, seeMore, tags, icon, gradient, gradientMode, gradientNoise, gradientSpeed, gradientColors);
+                RenderGridCard(renderer, obj, title, link, icon, palette, seeMore, tags);
             }
             else if (variant == "link")
             {
@@ -96,17 +101,14 @@ namespace Neko.Extensions
             }
             else
             {
-                RenderStackedCard(renderer, obj, image, title, link, seeMore, tags, icon, gradient, gradientMode, gradientNoise, gradientSpeed, gradientColors);
+                RenderStackedCard(renderer, obj, image, title, link, seeMore, tags, icon);
             }
         }
 
         private void RenderExample(HtmlRenderer renderer, CustomContainer obj)
         {
-            // The "example" component encompasses a markdown section for the left side
-            // and a code section for the right side.
             renderer.Write("<div class=\"grid grid-cols-1 lg:grid-cols-2 gap-8 items-start my-12\">");
 
-            // Left side: Non-code blocks
             renderer.Write("<div class=\"prose dark:prose-invert max-w-none\">");
             foreach (var block in obj)
             {
@@ -117,7 +119,6 @@ namespace Neko.Extensions
             }
             renderer.Write("</div>");
 
-            // Right side: Code blocks
             renderer.Write("<div class=\"sticky top-8\">");
             foreach (var block in obj)
             {
@@ -134,7 +135,7 @@ namespace Neko.Extensions
         private void RenderLinkCard(HtmlRenderer renderer, CustomContainer obj, string? title, string? link, string? linkText, string? theme, bool arrow)
         {
             var isDark = theme == "dark";
-            var baseClasses = "flex flex-col h-full p-6 rounded-lg transition-all duration-300 hover:-translate-y-1";
+            var baseClasses = "flex flex-col h-full p-6 rounded-xl transition-all duration-300 hover:-translate-y-0.5 not-prose";
 
             if (isDark)
             {
@@ -201,9 +202,39 @@ namespace Neko.Extensions
             return null;
         }
 
-        private void RenderGridCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags, string? icon, bool gradient, string? gradientMode, string? gradientNoise, string? gradientSpeed, string? gradientColors)
+        private static (string Bg, string Ring, string Text) ResolvePalette(string? requested, string? title, string? icon)
         {
-            var classes = "flex flex-col h-full rounded-lg border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 dark:hover:border-gray-600";
+            if (!string.IsNullOrEmpty(requested))
+            {
+                var idx = requested.ToLowerInvariant() switch
+                {
+                    "blue"    => 0,
+                    "violet"  => 1,
+                    "emerald" => 2,
+                    "amber"   => 3,
+                    "rose"    => 4,
+                    "sky"     => 5,
+                    "fuchsia" => 6,
+                    "orange"  => 7,
+                    _ => -1
+                };
+                if (idx >= 0) return IconPalettes[idx];
+            }
+
+            // Deterministic palette from title/icon for visual variety.
+            var seed = (title ?? icon ?? "");
+            unchecked
+            {
+                int hash = 17;
+                foreach (var c in seed) hash = hash * 31 + c;
+                var i = Math.Abs(hash) % IconPalettes.Length;
+                return IconPalettes[i];
+            }
+        }
+
+        private void RenderGridCard(HtmlRenderer renderer, CustomContainer obj, string? title, string? link, string? icon, string? palette, string? seeMore, string? tags)
+        {
+            var classes = "group relative flex flex-col h-full rounded-2xl p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-lg overflow-hidden not-prose";
             var attrs = obj.GetAttributes();
             if (attrs.Classes != null)
             {
@@ -213,84 +244,49 @@ namespace Neko.Extensions
 
             renderer.Write($"<div class=\"{classes}\">");
 
-            if (!string.IsNullOrEmpty(image))
+            // Subtle radial glow background (curiosity-style)
+            renderer.Write("<div aria-hidden=\"true\" class=\"pointer-events-none absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary-500/10 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500\"></div>");
+
+            if (!string.IsNullOrEmpty(link))
             {
-                var encodedImage = WebUtility.HtmlEncode(image);
-                var encodedTitle = WebUtility.HtmlEncode(title ?? "");
-
-                renderer.Write("<div class=\"flex h-48 w-full items-center justify-center bg-gray-50 dark:bg-white p-6 relative\">");
-
-                if (!string.IsNullOrEmpty(link))
-                {
-                    var encodedLink = WebUtility.HtmlEncode(link);
-                    renderer.Write($"<a href=\"{encodedLink}\" class=\"flex h-full w-full items-center justify-center absolute inset-0 z-10\"></a>");
-                }
-
-                renderer.Write($"<img class=\"max-h-full max-w-full object-contain relative z-0\" src=\"{encodedImage}\" alt=\"{encodedTitle}\">");
-
-                if (!string.IsNullOrEmpty(icon))
-                {
-                    renderer.Write($"<div class=\"absolute inset-0 flex items-center justify-center pointer-events-none z-20\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(WebUtility.HtmlEncode(icon))} text-white text-6xl drop-shadow-md\"></i></div>");
-                }
-
-                renderer.Write("</div>");
-            }
-            else if (gradient)
-            {
-                var encodedTitle = WebUtility.HtmlEncode(title ?? "");
-                renderer.Write("<div class=\"flex h-48 w-full items-center justify-center bg-gray-50 dark:bg-white relative\">");
-
-                if (!string.IsNullOrEmpty(link))
-                {
-                    var encodedLink = WebUtility.HtmlEncode(link);
-                    renderer.Write($"<a href=\"{encodedLink}\" class=\"flex h-full w-full items-center justify-center absolute inset-0 z-10\" title=\"{encodedTitle}\"></a>");
-                }
-
-                renderer.Write("<div data-lumina-gradient");
-                if (!string.IsNullOrEmpty(gradientMode)) renderer.Write($" data-mode=\"{WebUtility.HtmlEncode(gradientMode)}\"");
-                if (!string.IsNullOrEmpty(gradientNoise)) renderer.Write($" data-noise=\"{WebUtility.HtmlEncode(gradientNoise)}\"");
-                if (!string.IsNullOrEmpty(gradientSpeed)) renderer.Write($" data-speed=\"{WebUtility.HtmlEncode(gradientSpeed)}\"");
-                if (!string.IsNullOrEmpty(gradientColors)) renderer.Write($" data-colors=\"{WebUtility.HtmlEncode(gradientColors).Replace("\"", "&quot;")}\"");
-                renderer.Write(" style=\"width: 100%; height: 100%; position: absolute; inset: 0; z-index: 0;\"></div>");
-
-                if (!string.IsNullOrEmpty(icon))
-                {
-                    renderer.Write($"<div class=\"absolute inset-0 flex items-center justify-center pointer-events-none z-20\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(WebUtility.HtmlEncode(icon))} text-white text-6xl drop-shadow-md\"></i></div>");
-                }
-
-                renderer.Write("</div>");
+                renderer.Write($"<a href=\"{WebUtility.HtmlEncode(link)}\" class=\"absolute inset-0 z-10\" aria-label=\"{WebUtility.HtmlEncode(title ?? "")}\"></a>");
             }
 
-            renderer.Write("<div class=\"flex flex-1 flex-col p-6\">");
+            // Icon badge
+            var (bg, ring, text) = ResolvePalette(palette, title, icon);
+            renderer.Write($"<div class=\"relative inline-flex h-11 w-11 items-center justify-center rounded-xl {bg} ring-1 {ring} {text} mb-5\">");
+            if (!string.IsNullOrEmpty(icon))
+            {
+                renderer.Write($"<i class=\"{Neko.Builder.IconHelper.GetIconClass(WebUtility.HtmlEncode(icon))} text-lg\"></i>");
+            }
+            else
+            {
+                renderer.Write("<i class=\"fi fi-rr-square text-lg\"></i>");
+            }
+            renderer.Write("</div>");
 
             if (!string.IsNullOrEmpty(title))
             {
-                renderer.Write("<h3 class=\"text-xl mt-1 mb-2 font-bold tracking-tight text-gray-900 dark:text-white\">");
-                if (!string.IsNullOrEmpty(link))
-                {
-                    var encodedLink = WebUtility.HtmlEncode(link);
-                    renderer.Write($"<a href=\"{encodedLink}\" class=\"hover:underline\">");
-                }
+                renderer.Write("<h3 class=\"relative text-lg font-semibold tracking-tight text-gray-900 dark:text-white mb-2\">");
                 renderer.Write(WebUtility.HtmlEncode(title));
-                if (!string.IsNullOrEmpty(link)) renderer.Write("</a>");
                 renderer.Write("</h3>");
             }
 
-            renderer.Write("<div class=\"flex-1 text-gray-700 dark:text-gray-400\">");
+            renderer.Write("<div class=\"relative flex-1 text-sm leading-relaxed text-gray-600 dark:text-gray-400\">");
             renderer.WriteChildren(obj);
             renderer.Write("</div>");
 
             if (!string.IsNullOrEmpty(tags) || !string.IsNullOrEmpty(seeMore))
             {
-                renderer.Write("<div class=\"mt-auto pt-4 flex items-center justify-between\">");
+                renderer.Write("<div class=\"relative mt-5 pt-4 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400\">");
 
                 if (!string.IsNullOrEmpty(tags))
                 {
-                    renderer.Write("<div class=\"flex flex-wrap gap-2\">");
+                    renderer.Write("<div class=\"flex flex-wrap gap-1.5\">");
                     foreach (var tag in tags.Split(new[] { ',' }, System.StringSplitOptions.RemoveEmptyEntries))
                     {
                         var t = WebUtility.HtmlEncode(tag.Trim());
-                        renderer.Write($"<span class=\"inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300\">#{t}</span>");
+                        renderer.Write($"<span class=\"font-mono\">· {t}</span>");
                     }
                     renderer.Write("</div>");
                 }
@@ -298,19 +294,18 @@ namespace Neko.Extensions
                 if (!string.IsNullOrEmpty(seeMore))
                 {
                     var encodedSeeMore = WebUtility.HtmlEncode(seeMore);
-                    renderer.Write($"<a href=\"{encodedSeeMore}\" class=\"inline-flex items-center text-sm font-medium text-primary-600 hover:underline dark:text-primary-500\">See more &rarr;</a>");
+                    renderer.Write($"<a href=\"{encodedSeeMore}\" class=\"relative z-20 inline-flex items-center font-medium text-primary-600 hover:underline dark:text-primary-400\">More <span aria-hidden=\"true\" class=\"ml-1\">&rarr;</span></a>");
                 }
 
                 renderer.Write("</div>");
             }
 
-            renderer.Write("</div>"); // End content div
-            renderer.Write("</div>"); // End card div
+            renderer.Write("</div>");
         }
 
-        private void RenderStackedCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags, string? icon, bool gradient, string? gradientMode, string? gradientNoise, string? gradientSpeed, string? gradientColors)
+        private void RenderStackedCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags, string? icon)
         {
-            var classes = "max-w-sm rounded overflow-hidden shadow-lg bg-white dark:bg-gray-800 my-4 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 dark:hover:border-gray-600";
+            var classes = "max-w-sm rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-gray-800 my-4 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-lg not-prose";
             var attrs = obj.GetAttributes();
             if (attrs.Classes != null)
             {
@@ -339,36 +334,11 @@ namespace Neko.Extensions
                 }
                 renderer.Write("</div>");
             }
-            else if (gradient)
-            {
-                var encodedTitle = WebUtility.HtmlEncode(title ?? "");
-                renderer.Write("<div class=\"w-full h-48 relative\">");
 
-                if (!string.IsNullOrEmpty(link))
-                {
-                    var encodedLink = WebUtility.HtmlEncode(link);
-                    renderer.Write($"<a href=\"{encodedLink}\" class=\"flex h-full w-full items-center justify-center absolute inset-0 z-10\" title=\"{encodedTitle}\"></a>");
-                }
-
-                renderer.Write("<div data-lumina-gradient");
-                if (!string.IsNullOrEmpty(gradientMode)) renderer.Write($" data-mode=\"{WebUtility.HtmlEncode(gradientMode)}\"");
-                if (!string.IsNullOrEmpty(gradientNoise)) renderer.Write($" data-noise=\"{WebUtility.HtmlEncode(gradientNoise)}\"");
-                if (!string.IsNullOrEmpty(gradientSpeed)) renderer.Write($" data-speed=\"{WebUtility.HtmlEncode(gradientSpeed)}\"");
-                if (!string.IsNullOrEmpty(gradientColors)) renderer.Write($" data-colors=\"{WebUtility.HtmlEncode(gradientColors).Replace("\"", "&quot;")}\"");
-                renderer.Write(" style=\"width: 100%; height: 100%; position: absolute; inset: 0; z-index: 0;\"></div>");
-
-                if (!string.IsNullOrEmpty(icon))
-                {
-                    renderer.Write($"<div class=\"absolute inset-0 flex items-center justify-center pointer-events-none z-20\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(WebUtility.HtmlEncode(icon))} text-white text-6xl drop-shadow-md\"></i></div>");
-                }
-
-                renderer.Write("</div>");
-            }
-
-            renderer.Write("<div class=\"px-6 py-4\">");
+            renderer.Write("<div class=\"px-6 py-5\">");
             if (!string.IsNullOrEmpty(title))
             {
-                renderer.Write("<div class=\"font-bold text-xl mt-1 mb-2 text-gray-900 dark:text-white\">");
+                renderer.Write("<div class=\"font-semibold text-lg mt-1 mb-2 text-gray-900 dark:text-white\">");
                 if (!string.IsNullOrEmpty(link))
                 {
                     var encodedLink = WebUtility.HtmlEncode(link);
@@ -379,25 +349,25 @@ namespace Neko.Extensions
                 renderer.Write("</div>");
             }
 
-            renderer.Write("<div class=\"text-gray-700 dark:text-gray-300 text-base\">");
+            renderer.Write("<div class=\"text-gray-600 dark:text-gray-400 text-sm\">");
             renderer.WriteChildren(obj);
             renderer.Write("</div>");
 
             if (!string.IsNullOrEmpty(seeMore))
             {
                 var encodedSeeMore = WebUtility.HtmlEncode(seeMore);
-                renderer.Write($"<div class=\"mt-4\"><a href=\"{encodedSeeMore}\" class=\"text-primary-600 dark:text-primary-400 hover:underline\">See more &rarr;</a></div>");
+                renderer.Write($"<div class=\"mt-4\"><a href=\"{encodedSeeMore}\" class=\"text-primary-600 dark:text-primary-400 hover:underline text-sm font-medium\">See more &rarr;</a></div>");
             }
 
             renderer.Write("</div>");
 
             if (!string.IsNullOrEmpty(tags))
             {
-                renderer.Write("<div class=\"px-6 pt-4 pb-2\">");
+                renderer.Write("<div class=\"px-6 pb-4 -mt-2 flex flex-wrap gap-2\">");
                 foreach (var tag in tags.Split(new[] { ',' }, System.StringSplitOptions.RemoveEmptyEntries))
                 {
                     var t = WebUtility.HtmlEncode(tag.Trim());
-                    renderer.Write($"<span class=\"inline-block bg-gray-200 dark:bg-gray-700 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 dark:text-gray-300 mr-2 mb-2\">#{t}</span>");
+                    renderer.Write($"<span class=\"inline-block bg-gray-100 dark:bg-gray-700/60 rounded-full px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:text-gray-300\">#{t}</span>");
                 }
                 renderer.Write("</div>");
             }
@@ -405,100 +375,79 @@ namespace Neko.Extensions
             renderer.Write("</div>");
         }
 
-        private void RenderHorizontalCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags, string? icon, bool gradient, string? gradientMode, string? gradientNoise, string? gradientSpeed, string? gradientColors)
+        private void RenderHorizontalCard(HtmlRenderer renderer, CustomContainer obj, string? image, string? title, string? link, string? seeMore, string? tags, string? icon)
         {
-             var classes = "max-w-sm w-full lg:max-w-full lg:flex my-4 shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 dark:hover:border-gray-600";
-             var attrs = obj.GetAttributes();
-             if (attrs.Classes != null)
-             {
-                 var extraClasses = string.Join(" ", attrs.Classes.Where(c => c != "card"));
-                 if (!string.IsNullOrEmpty(extraClasses)) classes += " " + extraClasses;
-             }
+            var classes = "max-w-sm w-full lg:max-w-full lg:flex my-4 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-lg not-prose";
+            var attrs = obj.GetAttributes();
+            if (attrs.Classes != null)
+            {
+                var extraClasses = string.Join(" ", attrs.Classes.Where(c => c != "card"));
+                if (!string.IsNullOrEmpty(extraClasses)) classes += " " + extraClasses;
+            }
 
-             renderer.Write($"<div class=\"{classes}\">");
+            renderer.Write($"<div class=\"{classes}\">");
 
-             if (!string.IsNullOrEmpty(image))
-             {
-                 var encodedImage = WebUtility.HtmlEncode(image);
-                 var encodedTitle = WebUtility.HtmlEncode(title ?? "");
-                 renderer.Write($"<div class=\"h-48 lg:h-auto lg:w-48 flex-none bg-cover rounded-t lg:rounded-t-none lg:rounded-l text-center overflow-hidden relative\" style=\"background-image: url('{encodedImage}')\" title=\"{encodedTitle}\">");
+            if (!string.IsNullOrEmpty(image))
+            {
+                var encodedImage = WebUtility.HtmlEncode(image);
+                var encodedTitle = WebUtility.HtmlEncode(title ?? "");
+                renderer.Write($"<div class=\"h-48 lg:h-auto lg:w-48 flex-none bg-cover text-center overflow-hidden relative\" style=\"background-image: url('{encodedImage}')\" title=\"{encodedTitle}\">");
 
-                 if (!string.IsNullOrEmpty(icon))
-                 {
-                     renderer.Write($"<div class=\"absolute inset-0 flex items-center justify-center pointer-events-none z-20\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(WebUtility.HtmlEncode(icon))} text-white text-6xl drop-shadow-md\"></i></div>");
-                 }
+                if (!string.IsNullOrEmpty(icon))
+                {
+                    renderer.Write($"<div class=\"absolute inset-0 flex items-center justify-center pointer-events-none z-20\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(WebUtility.HtmlEncode(icon))} text-white text-6xl drop-shadow-md\"></i></div>");
+                }
+                renderer.Write("</div>");
+            }
 
-                 renderer.Write("</div>");
-             }
-             else if (gradient)
-             {
-                 var encodedTitle = WebUtility.HtmlEncode(title ?? "");
-                 renderer.Write($"<div class=\"h-48 lg:h-auto lg:w-48 flex-none rounded-t lg:rounded-t-none lg:rounded-l text-center overflow-hidden relative\" title=\"{encodedTitle}\">");
+            renderer.Write("<div class=\"p-5 flex flex-col justify-between leading-normal w-full\">");
+            renderer.Write("<div class=\"mb-6\">");
 
-                 renderer.Write("<div data-lumina-gradient");
-                 if (!string.IsNullOrEmpty(gradientMode)) renderer.Write($" data-mode=\"{WebUtility.HtmlEncode(gradientMode)}\"");
-                 if (!string.IsNullOrEmpty(gradientNoise)) renderer.Write($" data-noise=\"{WebUtility.HtmlEncode(gradientNoise)}\"");
-                 if (!string.IsNullOrEmpty(gradientSpeed)) renderer.Write($" data-speed=\"{WebUtility.HtmlEncode(gradientSpeed)}\"");
-                 if (!string.IsNullOrEmpty(gradientColors)) renderer.Write($" data-colors=\"{WebUtility.HtmlEncode(gradientColors).Replace("\"", "&quot;")}\"");
-                 renderer.Write(" style=\"width: 100%; height: 100%; position: absolute; inset: 0; z-index: 0;\"></div>");
-
-                 if (!string.IsNullOrEmpty(icon))
-                 {
-                     renderer.Write($"<div class=\"absolute inset-0 flex items-center justify-center pointer-events-none z-20\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(WebUtility.HtmlEncode(icon))} text-white text-6xl drop-shadow-md\"></i></div>");
-                 }
-
-                 renderer.Write("</div>");
-             }
-
-             renderer.Write("<div class=\"p-4 flex flex-col justify-between leading-normal w-full\">");
-
-             renderer.Write("<div class=\"mb-8\">");
-
-             if (!string.IsNullOrEmpty(title))
-             {
-                 renderer.Write("<div class=\"text-gray-900 dark:text-white font-bold text-xl mb-2\">");
-                 if (!string.IsNullOrEmpty(link))
-                 {
+            if (!string.IsNullOrEmpty(title))
+            {
+                renderer.Write("<div class=\"text-gray-900 dark:text-white font-semibold text-lg mb-2\">");
+                if (!string.IsNullOrEmpty(link))
+                {
                     var encodedLink = WebUtility.HtmlEncode(link);
                     renderer.Write($"<a href=\"{encodedLink}\" class=\"hover:underline\">");
-                 }
-                 renderer.Write(WebUtility.HtmlEncode(title));
-                 if (!string.IsNullOrEmpty(link)) renderer.Write("</a>");
-                 renderer.Write("</div>");
-             }
+                }
+                renderer.Write(WebUtility.HtmlEncode(title));
+                if (!string.IsNullOrEmpty(link)) renderer.Write("</a>");
+                renderer.Write("</div>");
+            }
 
-             renderer.Write("<div class=\"text-gray-700 dark:text-gray-300 text-base\">");
-             renderer.WriteChildren(obj);
-             renderer.Write("</div>");
+            renderer.Write("<div class=\"text-gray-600 dark:text-gray-400 text-sm\">");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
 
-             renderer.Write("</div>");
+            renderer.Write("</div>");
 
-             if (!string.IsNullOrEmpty(tags) || !string.IsNullOrEmpty(seeMore))
-             {
-                 renderer.Write("<div class=\"flex items-center justify-between mt-auto\">");
+            if (!string.IsNullOrEmpty(tags) || !string.IsNullOrEmpty(seeMore))
+            {
+                renderer.Write("<div class=\"flex items-center justify-between mt-auto\">");
 
-                 if (!string.IsNullOrEmpty(tags))
-                 {
-                     renderer.Write("<div class=\"flex flex-wrap\">");
-                     foreach (var tag in tags.Split(new[] { ',' }, System.StringSplitOptions.RemoveEmptyEntries))
-                     {
-                         var t = WebUtility.HtmlEncode(tag.Trim());
-                         renderer.Write($"<span class=\"text-xs font-semibold inline-block py-1 px-2 uppercase rounded text-primary-600 bg-primary-200 dark:text-primary-400 dark:bg-primary-900 last:mr-0 mr-1\">{t}</span>");
-                     }
-                     renderer.Write("</div>");
-                 }
+                if (!string.IsNullOrEmpty(tags))
+                {
+                    renderer.Write("<div class=\"flex flex-wrap gap-2\">");
+                    foreach (var tag in tags.Split(new[] { ',' }, System.StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var t = WebUtility.HtmlEncode(tag.Trim());
+                        renderer.Write($"<span class=\"text-xs font-medium inline-block py-1 px-2 rounded-full text-primary-700 bg-primary-50 dark:text-primary-300 dark:bg-primary-900/30\">{t}</span>");
+                    }
+                    renderer.Write("</div>");
+                }
 
-                 if (!string.IsNullOrEmpty(seeMore))
-                 {
-                     var encodedSeeMore = WebUtility.HtmlEncode(seeMore);
-                     renderer.Write($"<div class=\"text-sm\"><a href=\"{encodedSeeMore}\" class=\"text-primary-600 dark:text-primary-400 hover:underline\">See more</a></div>");
-                 }
+                if (!string.IsNullOrEmpty(seeMore))
+                {
+                    var encodedSeeMore = WebUtility.HtmlEncode(seeMore);
+                    renderer.Write($"<div class=\"text-sm\"><a href=\"{encodedSeeMore}\" class=\"text-primary-600 dark:text-primary-400 hover:underline font-medium\">See more</a></div>");
+                }
 
-                 renderer.Write("</div>");
-             }
+                renderer.Write("</div>");
+            }
 
-             renderer.Write("</div>");
-             renderer.Write("</div>");
+            renderer.Write("</div>");
+            renderer.Write("</div>");
         }
     }
 
@@ -519,7 +468,6 @@ namespace Neko.Extensions
         {
             if (renderer is HtmlRenderer htmlRenderer)
             {
-                // Find the default HtmlCustomContainerRenderer
                 var originalRenderer = htmlRenderer.ObjectRenderers.FindExact<HtmlCustomContainerRenderer>();
                 if (originalRenderer != null)
                 {

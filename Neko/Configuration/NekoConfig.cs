@@ -67,7 +67,7 @@ namespace Neko.Configuration
             if (string.IsNullOrEmpty(Password)) Password = parent.Password;
 
             // Inherit Theme settings
-            if (Theme.Name == "blue" && parent.Theme.Name != "blue") Theme.Name = parent.Theme.Name;
+            if (Theme.Name == ThemeDefinitions.DefaultThemeName && parent.Theme.Name != ThemeDefinitions.DefaultThemeName) Theme.Name = parent.Theme.Name;
 
             foreach (var kvp in parent.Theme.Colors)
             {
@@ -87,10 +87,10 @@ namespace Neko.Configuration
             if (Theme.Highlight.Dark == "tokyo-night-dark" && parent.Theme.Highlight.Dark != "tokyo-night-dark")
                 Theme.Highlight.Dark = parent.Theme.Highlight.Dark;
 
-            if (string.IsNullOrEmpty(Theme.Gradient.Mode)) Theme.Gradient.Mode = parent.Theme.Gradient.Mode;
-            if (string.IsNullOrEmpty(Theme.Gradient.Noise)) Theme.Gradient.Noise = parent.Theme.Gradient.Noise;
-            if (string.IsNullOrEmpty(Theme.Gradient.Speed)) Theme.Gradient.Speed = parent.Theme.Gradient.Speed;
-            if (string.IsNullOrEmpty(Theme.Gradient.Colors)) Theme.Gradient.Colors = parent.Theme.Gradient.Colors;
+            foreach (var kvp in parent.Theme.Accent)
+            {
+                if (!Theme.Accent.ContainsKey(kvp.Key)) Theme.Accent[kvp.Key] = kvp.Value;
+            }
 
             // Inherit Snippets settings
             if (Snippets.LineNumbers.Count == 0 && parent.Snippets.LineNumbers.Count > 0)
@@ -238,7 +238,7 @@ namespace Neko.Configuration
     public class ThemeConfig
     {
         [YamlMember(Alias = "name")]
-        public string Name { get; set; } = "blue";
+        public string Name { get; set; } = ThemeDefinitions.DefaultThemeName;
 
         [YamlMember(Alias = "colors")]
         public Dictionary<string, string> Colors { get; set; } = new Dictionary<string, string>();
@@ -252,23 +252,8 @@ namespace Neko.Configuration
         [YamlMember(Alias = "highlight")]
         public HighlightConfig Highlight { get; set; } = new HighlightConfig();
 
-        [YamlMember(Alias = "gradient")]
-        public GradientConfig Gradient { get; set; } = new GradientConfig();
-    }
-
-    public class GradientConfig
-    {
-        [YamlMember(Alias = "mode")]
-        public string Mode { get; set; }
-
-        [YamlMember(Alias = "noise")]
-        public string Noise { get; set; }
-
-        [YamlMember(Alias = "speed")]
-        public string Speed { get; set; }
-
-        [YamlMember(Alias = "colors")]
-        public string Colors { get; set; }
+        [YamlMember(Alias = "accent")]
+        public Dictionary<string, string> Accent { get; set; } = new Dictionary<string, string>();
     }
 
     public class HighlightConfig
