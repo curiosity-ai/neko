@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 namespace Neko.Server
 {
@@ -210,6 +211,53 @@ namespace Neko.Server
                 return Results.Ok(new { url = $"assets/{safeName}" });
             });
 
+            app.MapPost("/api/neko/reorder", async (HttpRequest request) => {
+                try
+                {
+                    var body = await request.ReadFromJsonAsync<ReorderRequest>();
+                    if (body == null || body.Items == null || body.Items.Count == 0)
+                        return Results.BadRequest("Invalid body");
+
+                    foreach (var item in body.Items)
+                    {
+                        if (string.IsNullOrEmpty(item.Path)) continue;
+
+                        var (targetPath, siteInfo) = ResolveMarkdownPath(item.Path);
+                        if (targetPath == null || siteInfo == null) continue;
+
+                        if (!Path.GetFullPath(targetPath).StartsWith(Path.GetFullPath(siteInfo.InputPath)))
+                            continue;
+
+                        var isYaml = targetPath.EndsWith(".yml", StringComparison.OrdinalIgnoreCase)
+                                  || targetPath.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase);
+
+                        if (isYaml)
+                        {
+                            var dir = Path.GetDirectoryName(targetPath);
+                            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                                Directory.CreateDirectory(dir);
+
+                            var existing = File.Exists(targetPath) ? await File.ReadAllTextAsync(targetPath) : "";
+                            var updated = UpdateYamlOrder(existing, item.Order);
+                            await File.WriteAllTextAsync(targetPath, updated);
+                        }
+                        else
+                        {
+                            if (!File.Exists(targetPath)) continue;
+                            var existing = await File.ReadAllTextAsync(targetPath);
+                            var updated = UpdateFrontMatterOrder(existing, item.Order);
+                            await File.WriteAllTextAsync(targetPath, updated);
+                        }
+                    }
+
+                    return Results.Ok();
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(ex.Message);
+                }
+            });
+
             // Rewriter for extensionless URLs for all sites
             var rewriteOptions = new RewriteOptions()
                 .Add(context => {
@@ -291,6 +339,68 @@ namespace Neko.Server
         {
             public string Path { get; set; }
             public string Content { get; set; }
+        }
+
+        public class ReorderItem
+        {
+            public string Path { get; set; }
+            public int Order { get; set; }
+        }
+
+        public class ReorderRequest
+        {
+            public List<ReorderItem> Items { get; set; }
+        }
+
+        private static string UpdateFrontMatterOrder(string content, int order)
+        {
+            content ??= "";
+            var newline = content.Contains("\r\n") ? "\r\n" : "\n";
+
+            var fmRegex = new Regex(@"\A(---\s*\r?\n)([\s\S]*?)(\r?\n---\s*(?:\r?\n|$))", RegexOptions.Multiline);
+            var match = fmRegex.Match(content);
+
+            if (match.Success)
+            {
+                var open = match.Groups[1].Value;
+                var body = match.Groups[2].Value;
+                var close = match.Groups[3].Value;
+                var rest = content.Substring(match.Length);
+
+                var orderLineRegex = new Regex(@"^[ \t]*order[ \t]*:[^\r\n]*", RegexOptions.Multiline);
+                string newBody;
+                if (orderLineRegex.IsMatch(body))
+                {
+                    newBody = orderLineRegex.Replace(body, $"order: {order}", 1);
+                }
+                else
+                {
+                    var trimmedBody = body.TrimEnd('\r', '\n');
+                    newBody = trimmedBody.Length == 0
+                        ? $"order: {order}"
+                        : trimmedBody + newline + $"order: {order}";
+                }
+
+                return open + newBody + close + rest;
+            }
+
+            return $"---{newline}order: {order}{newline}---{newline}{newline}" + content;
+        }
+
+        private static string UpdateYamlOrder(string content, int order)
+        {
+            content ??= "";
+            var newline = content.Contains("\r\n") ? "\r\n" : "\n";
+            var orderLineRegex = new Regex(@"^[ \t]*order[ \t]*:[^\r\n]*", RegexOptions.Multiline);
+
+            if (orderLineRegex.IsMatch(content))
+            {
+                return orderLineRegex.Replace(content, $"order: {order}", 1);
+            }
+
+            if (string.IsNullOrEmpty(content)) return $"order: {order}{newline}";
+            if (!content.EndsWith("\n") && !content.EndsWith("\r")) content += newline;
+            return content + $"order: {order}{newline}";
         }
 
         private (string mdPath, SiteInfo site) ResolveMarkdownPath(string path)
