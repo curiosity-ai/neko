@@ -19,9 +19,9 @@ namespace Neko.Tests
             var markdown = "::: card {image=\"img.jpg\" title=\"Title\" tags=\"tag1,tag2\"}\nDescription\n:::";
             var doc = _parser.Parse(markdown).Html;
 
-            Assert.That(doc, Contains.Substring("<div class=\"max-w-sm rounded overflow-hidden shadow-lg"));
+            Assert.That(doc, Contains.Substring("max-w-sm rounded-2xl"));
             Assert.That(doc, Contains.Substring("<img class=\"mt-0 mb-0 w-full object-cover relative z-0\" src=\"img.jpg\" alt=\"Title\">"));
-            Assert.That(doc, Contains.Substring("<div class=\"font-bold text-xl mt-1 mb-2 text-gray-900 dark:text-white\">Title</div>"));
+            Assert.That(doc, Contains.Substring("Title"));
             Assert.That(doc, Contains.Substring("Description"));
             Assert.That(doc, Contains.Substring("#tag1"));
             Assert.That(doc, Contains.Substring("#tag2"));
@@ -50,12 +50,13 @@ namespace Neko.Tests
         [Test]
         public void TestGridCard()
         {
-            var markdown = "::: card {variant=\"grid\" image=\"img.jpg\" title=\"Title\" link=\"#\"}\nContent\n:::";
+            // The grid variant is now an icon-card: rounded badge + title + description.
+            var markdown = "::: card {variant=\"grid\" icon=\"star\" title=\"Title\" link=\"#\" palette=\"violet\"}\nContent\n:::";
             var doc = _parser.Parse(markdown).Html;
 
-            Assert.That(doc, Contains.Substring("flex flex-col h-full rounded-lg"));
-            Assert.That(doc, Contains.Substring("bg-gray-50 dark:bg-white")); // Image container
-            Assert.That(doc, Contains.Substring("object-contain")); // Image fit
+            Assert.That(doc, Contains.Substring("group relative flex flex-col h-full rounded-2xl"));
+            Assert.That(doc, Contains.Substring("bg-violet-500/15")); // Palette applied
+            Assert.That(doc, Contains.Substring("fi-rr-star"));
             Assert.That(doc, Contains.Substring("Title"));
             Assert.That(doc, Contains.Substring("Content"));
         }

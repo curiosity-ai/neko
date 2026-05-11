@@ -10,7 +10,7 @@ branding:
   repository: https://github.com/theolivenbaum/taildocs
 
 theme:
-  name: violet
+  name: curiosity
 
 meta:
   description: A modern, lightweight static documentation site generator.

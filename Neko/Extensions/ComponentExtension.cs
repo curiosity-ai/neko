@@ -789,7 +789,9 @@ namespace Neko.Extensions
         private void RenderHero(HtmlRenderer renderer, ComponentInline obj)
         {
             var title = obj.GetAttribute("title");
+            var titleAccent = obj.GetAttribute("title-accent");
             var subtitle = obj.GetAttribute("subtitle");
+            var eyebrow = obj.GetAttribute("eyebrow");
             var badgeText = obj.GetAttribute("badge-text");
             var badgeLink = obj.GetAttribute("badge-link");
             var cta1Text = obj.GetAttribute("cta1-text");
@@ -797,103 +799,99 @@ namespace Neko.Extensions
             var cta2Text = obj.GetAttribute("cta2-text");
             var cta2Link = obj.GetAttribute("cta2-link");
             var image = obj.GetAttribute("image");
-            var align = obj.GetAttribute("align", "center");
+            var align = obj.GetAttribute("align", "left");
 
-            // Container
-            renderer.Write("<div class=\"not-prose relative isolate overflow-hidden bg-gray-50 dark:bg-gray-900 py-24 sm:py-32 rounded-3xl my-8\">");
+            // Curiosity-style hero: dark navy container with subtle radial gradient.
+            renderer.Write("<div class=\"not-prose relative isolate overflow-hidden rounded-3xl my-8 bg-gradient-to-b from-gray-50 to-white dark:from-[#0a1428] dark:to-[#050914] border border-gray-200 dark:border-gray-800 px-6 py-16 sm:px-12 sm:py-20\">");
 
-            // Background Image/Gradient
+            // Soft glow accents
+            renderer.Write("<div aria-hidden=\"true\" class=\"pointer-events-none absolute -top-32 -left-20 h-72 w-72 rounded-full bg-primary-500/10 blur-3xl\"></div>");
+            renderer.Write("<div aria-hidden=\"true\" class=\"pointer-events-none absolute -bottom-32 -right-20 h-72 w-72 rounded-full bg-accent-500/10 blur-3xl\"></div>");
+
             if (!string.IsNullOrEmpty(image))
             {
                 renderer.Write("<img src=\"");
                 renderer.WriteEscapeUrl(image);
-                renderer.Write("\" alt=\"\" class=\"absolute inset-0 -z-10 h-full w-full object-cover object-right md:object-center opacity-20\">");
-            }
-            else
-            {
-                // Default Dark Gradient
-                renderer.Write("<div class=\"hidden sm:absolute sm:-top-10 sm:right-1/2 sm:-z-10 sm:mr-10 sm:block sm:transform-gpu sm:blur-3xl\" aria-hidden=\"true\">");
-                renderer.Write("<div class=\"aspect-[1097/845] w-[68.5625rem] bg-gradient-to-tr from-[#ff4694] to-[#776fff] opacity-20\" style=\"clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)\"></div>");
-                renderer.Write("</div>");
-                renderer.Write("<div class=\"absolute -top-52 left-1/2 -z-10 -translate-x-1/2 transform-gpu blur-3xl sm:top-[-28rem] sm:ml-16 sm:translate-x-0 sm:transform-gpu\" aria-hidden=\"true\">");
-                renderer.Write("<div class=\"aspect-[1097/845] w-[68.5625rem] bg-gradient-to-tr from-[#ff4694] to-[#776fff] opacity-20\" style=\"clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)\"></div>");
-                renderer.Write("</div>");
+                renderer.Write("\" alt=\"\" class=\"pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-10\">");
             }
 
-            // Content Wrapper
-            var alignClass = align == "left" ? "text-left" : "text-center";
-            var maxWClass = align == "left" ? "max-w-2xl" : "mx-auto max-w-2xl";
+            var alignClass = align == "center" ? "text-center mx-auto" : "text-left";
+            renderer.Write($"<div class=\"relative max-w-3xl {alignClass}\">");
 
-            renderer.Write($"<div class=\"{maxWClass} {alignClass} px-6 lg:px-8\">");
-
-            // Badge
-            if (!string.IsNullOrEmpty(badgeText))
+            if (!string.IsNullOrEmpty(eyebrow))
             {
-                var badgeAlign = align == "left" ? "justify-start" : "justify-center";
-                renderer.Write($"<div class=\"hidden sm:mb-8 sm:flex {badgeAlign}\">");
-                renderer.Write("<div class=\"relative rounded-full px-3 py-1 text-sm leading-6 text-gray-600 dark:text-gray-400 ring-1 ring-gray-900/10 dark:ring-white/10 hover:ring-gray-900/20 dark:hover:ring-white/20\">");
-
+                var eyebrowAlign = align == "center" ? "justify-center" : "justify-start";
+                renderer.Write($"<div class=\"flex items-center gap-2 {eyebrowAlign} mb-5\">");
+                renderer.Write("<span class=\"inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]\"></span>");
+                renderer.Write("<span class=\"text-xs font-semibold tracking-[0.18em] uppercase text-gray-600 dark:text-gray-400\">");
+                renderer.WriteEscape(eyebrow);
+                renderer.Write("</span></div>");
+            }
+            else if (!string.IsNullOrEmpty(badgeText))
+            {
+                var badgeAlign = align == "center" ? "justify-center" : "justify-start";
+                renderer.Write($"<div class=\"flex {badgeAlign} mb-6\">");
+                renderer.Write("<div class=\"inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700 bg-white/60 dark:bg-white/5 backdrop-blur\">");
+                renderer.WriteEscape(badgeText);
                 if (!string.IsNullOrEmpty(badgeLink))
                 {
-                    renderer.WriteEscape(badgeText);
                     renderer.Write(" <a href=\"");
                     renderer.WriteEscapeUrl(badgeLink);
-                    renderer.Write("\" class=\"font-semibold text-gray-900 dark:text-white\"><span class=\"absolute inset-0\" aria-hidden=\"true\"></span>Read more <span aria-hidden=\"true\">&rarr;</span></a>");
-                }
-                else
-                {
-                    renderer.WriteEscape(badgeText);
+                    renderer.Write("\" class=\"font-semibold text-primary-600 dark:text-primary-300\">Read more <span aria-hidden=\"true\">&rarr;</span></a>");
                 }
                 renderer.Write("</div></div>");
             }
 
-            // Title
             if (!string.IsNullOrEmpty(title))
             {
-                renderer.Write("<h2 class=\"text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl\">");
+                renderer.Write("<h1 class=\"text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900 dark:text-white leading-[1.05]\">");
                 renderer.WriteEscape(title);
-                renderer.Write("</h2>");
+                if (!string.IsNullOrEmpty(titleAccent))
+                {
+                    renderer.Write(" <span class=\"neko-text-gradient\">");
+                    renderer.WriteEscape(titleAccent);
+                    renderer.Write("</span>");
+                }
+                renderer.Write("</h1>");
             }
 
-            // Subtitle
             if (!string.IsNullOrEmpty(subtitle))
             {
-                renderer.Write("<p class=\"mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300\">");
+                renderer.Write("<p class=\"mt-6 max-w-2xl text-base sm:text-lg leading-7 text-gray-600 dark:text-gray-300\">");
                 renderer.WriteEscape(subtitle);
                 renderer.Write("</p>");
             }
 
-            // Buttons
             if (!string.IsNullOrEmpty(cta1Text) || !string.IsNullOrEmpty(cta2Text))
             {
-                var justifyClass = align == "left" ? "justify-start" : "justify-center";
-                renderer.Write($"<div class=\"mt-10 flex items-center {justifyClass} gap-x-6\">");
+                var justifyClass = align == "center" ? "justify-center" : "justify-start";
+                renderer.Write($"<div class=\"mt-10 flex flex-wrap items-center {justifyClass} gap-3\">");
 
                 if (!string.IsNullOrEmpty(cta1Text))
                 {
-                     var link = cta1Link ?? "#";
-                     renderer.Write("<a href=\"");
-                     renderer.WriteEscapeUrl(link);
-                     renderer.Write("\" class=\"rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 no-underline\">");
-                     renderer.WriteEscape(cta1Text);
-                     renderer.Write("</a>");
+                    var link = cta1Link ?? "#";
+                    renderer.Write("<a href=\"");
+                    renderer.WriteEscapeUrl(link);
+                    renderer.Write("\" class=\"inline-flex items-center rounded-full bg-primary-600 hover:bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors no-underline\">");
+                    renderer.WriteEscape(cta1Text);
+                    renderer.Write("</a>");
                 }
 
                 if (!string.IsNullOrEmpty(cta2Text))
                 {
-                     var link = cta2Link ?? "#";
-                     renderer.Write("<a href=\"");
-                     renderer.WriteEscapeUrl(link);
-                     renderer.Write("\" class=\"text-sm font-semibold leading-6 text-gray-900 dark:text-white no-underline\">");
-                     renderer.WriteEscape(cta2Text);
-                     renderer.Write(" <span aria-hidden=\"true\">→</span></a>");
+                    var link = cta2Link ?? "#";
+                    renderer.Write("<a href=\"");
+                    renderer.WriteEscapeUrl(link);
+                    renderer.Write("\" class=\"inline-flex items-center rounded-full px-5 py-2.5 text-sm font-semibold text-gray-900 dark:text-white ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-gray-300 dark:hover:ring-gray-500 transition-colors no-underline\">");
+                    renderer.WriteEscape(cta2Text);
+                    renderer.Write(" <span aria-hidden=\"true\" class=\"ml-1\">→</span></a>");
                 }
 
                 renderer.Write("</div>");
             }
 
-            renderer.Write("</div>"); // End Content Wrapper
-            renderer.Write("</div>"); // End Container
+            renderer.Write("</div>");
+            renderer.Write("</div>");
         }
 
         private void RenderButton(HtmlRenderer renderer, ComponentInline obj)

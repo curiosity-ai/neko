@@ -26,13 +26,11 @@ namespace Neko
 
             var inputOption  = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var outputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
-            var disableSnapframeOption = new Option<bool>(new[] { "--disable-snapframe" }, () => false, "Disable playwright snapframe screenshots");
 
             buildCommand.AddOption(inputOption);
             buildCommand.AddOption(outputOption);
-            buildCommand.AddOption(disableSnapframeOption);
 
-            buildCommand.SetHandler(async (string input, string? output, bool disableSnapframe) =>
+            buildCommand.SetHandler(async (string input, string? output) =>
             {
                 var inputFullPath = Path.GetFullPath(input);
                 var configFiles = Directory.Exists(inputFullPath)
@@ -56,35 +54,46 @@ namespace Neko
                             ? (isRoot ? output : Path.Combine(output, subDirRelative))
                             : Path.Combine(subDir, ".neko");
 
-                        var builder = new SiteBuilder(subDir, siteOutput, false, isRoot ? null : routePrefix, disableSnapframe);
+                        var builder = new SiteBuilder(subDir, siteOutput, false, isRoot ? null : routePrefix);
                         await builder.BuildAsync();
                     }
                 }
                 else
                 {
-                    var builder = new SiteBuilder(input, output, disableSnapFrame: disableSnapframe);
+                    var builder = new SiteBuilder(input, output);
                     await builder.BuildAsync();
                 }
-            }, inputOption, outputOption, disableSnapframeOption);
+            }, inputOption, outputOption);
+
+            // Snap Command
+            var snapCommand = new Command("snap", "Capture screenshots referenced by [!snapframe ...] directives via Playwright");
+            var snapInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
+            var snapAllOption = new Option<bool>(new[] { "--all" }, () => false, "Re-capture all screenshots (overwrite existing images)");
+            snapCommand.AddOption(snapInputOption);
+            snapCommand.AddOption(snapAllOption);
+
+            snapCommand.SetHandler((string input, bool all) =>
+            {
+                var inputFullPath = Path.GetFullPath(input);
+                var snap = new Neko.Builder.SnapCommand(inputFullPath, all);
+                snap.Run();
+            }, snapInputOption, snapAllOption);
 
             // Watch Command
             var watchCommand = new Command("watch", "Watch for changes and rebuild");
             var portOption   = new Option<int?>(new[] { "--port", "-p" }, "Port to use (default: 5000)");
             var watchInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var watchOutputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
-            var watchDisableSnapframeOption = new Option<bool>(new[] { "--disable-snapframe" }, () => false, "Disable playwright snapframe screenshots");
 
             watchCommand.AddOption(watchInputOption);
             watchCommand.AddOption(portOption);
             watchCommand.AddOption(watchOutputOption);
-            watchCommand.AddOption(watchDisableSnapframeOption);
 
             watchCommand.SetHandler(async (context) =>
             {
                 var input = context.ParseResult.GetValueForOption(watchInputOption) ?? ".";
                 var output = context.ParseResult.GetValueForOption(watchOutputOption);
                 var port = context.ParseResult.GetValueForOption(portOption) ?? 5000;
-                var disableSnapframe = context.ParseResult.GetValueForOption(watchDisableSnapframeOption);
                 var token = context.GetCancellationToken();
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -128,7 +137,7 @@ namespace Neko
                                     ? (isRoot ? output : Path.Combine(output, subDirRelative))
                                     : Path.Combine(subDir, ".neko");
 
-                                var builder = new SiteBuilder(subDir, siteOutput, true, isRoot ? null : routePrefix, disableSnapframe);
+                                var builder = new SiteBuilder(subDir, siteOutput, true, isRoot ? null : routePrefix);
                                 await builder.BuildAsync();
 
                                 var siteInfo = new Neko.Server.SiteInfo
@@ -150,7 +159,7 @@ namespace Neko
                     }
                     else
                     {
-                        var builder = new SiteBuilder(input, output, true, null, disableSnapframe);
+                        var builder = new SiteBuilder(input, output, true, null);
                         await builder.BuildAsync();
 
                         sites.Add(new Neko.Server.SiteInfo
@@ -231,6 +240,7 @@ namespace Neko
 
             rootCommand.AddCommand(buildCommand);
             rootCommand.AddCommand(watchCommand);
+            rootCommand.AddCommand(snapCommand);
 
             return await rootCommand.InvokeAsync(args);
         }

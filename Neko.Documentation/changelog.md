@@ -10,6 +10,17 @@ Neko is currently under active development.
 Please note that Neko uses a calendar versioning approach.
 
 
+## v26.5
+
+* **Theme**: Refreshed the default light / dark themes to match the look-and-feel of [docs.curiosity.ai](https://docs.curiosity.ai). Introduced a new `curiosity` default theme (deep navy `#050914` background in dark mode), a paired `accent` palette, and a `neko-text-gradient` utility used by the hero accent word.
+* **Feature**: Split screenshot capture into a dedicated `neko snap` command. `neko build` and `neko watch` no longer call Playwright; instead, run `neko snap` to capture missing screenshots, or `neko snap --all` to re-capture everything.
+* **Feature**: Added a new `[!lesson]` Markdown component that renders a curriculum-style track. Steps are auto-discovered from sibling `.md` files in the folder, ordered by their `order` frontmatter. User progress is persisted to `localStorage` per lesson.
+* **Sample**: Added a `Learn Neko` sample track under `lesson/` showcasing the new component end-to-end.
+* **Cards**: Redesigned the `grid` card variant to match the curiosity card style &mdash; rounded icon badge with palette-coloured tint, hover glow, no image required. Added a new `palette` attribute and a deterministic palette fallback.
+* **Hero**: Redesigned the `[!hero]` component with an eyebrow label, gradient accent word (`title-accent`), and subtle radial glow accents. Default alignment is now `left` to match the reference.
+* **Breaking**: Removed all gradient card options (`gradient`, `gradient-mode`, `gradient-colors`, `gradient-noise`, `gradient-speed`) and the bundled `makegradient.js` asset. Use the new icon-badge style instead.
+* **Breaking**: Removed the `--disable-snapframe` build/watch flag &mdash; capturing is now opt-in via `neko snap`.
+
 ## v26.3.16
 
 * **Feature**: Added a new component for rendering PDF files inline in the text. You can now use the standard markdown image syntax pointing to a `.pdf` file to automatically render it in an iframe using pdf.js.

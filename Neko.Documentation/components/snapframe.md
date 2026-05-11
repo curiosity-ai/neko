@@ -7,7 +7,14 @@ tags: [component, screenshot]
 
 The `snapframe` extension allows you to easily embed automated screenshots of external websites directly into your documentation. Under the hood, it uses the [SnapFrame .NET tool](https://www.nuget.org/packages/SnapFrame) to navigate to the specified URL and capture a screenshot.
 
-If the image file does not exist locally during the documentation build, Neko will automatically invoke the CLI to generate it and save it to your assets folder.
+Capturing is **not** done during `neko build`. Instead, run the dedicated `neko snap` command to refresh screenshots. This keeps regular builds fast and offline.
+
+```bash
+neko snap            # capture only missing screenshots
+neko snap --all      # re-capture everything, overwriting existing images
+```
+
+`neko build` continues to render the image tag exactly as if the file were a hand-authored asset. If the image is missing, the `<img>` simply 404s until you run `neko snap`.
 
 ## Basic Syntax
 
@@ -54,10 +61,12 @@ interact #elementId value='text to type']
 
 ## How It Works
 
-When the documentation is being compiled:
-1. Neko checks if the target image file exists (e.g., `/assets/screenshots/neko-screenshot.png`).
-2. If it does not exist, Neko runs `snapframe navigate-json <url>` to get the page ready.
-3. Neko runs `snapframe capture <page_id> <path> <options>`.
-4. Finally, it closes the page. The image is now successfully created in the documentation folder!
+`neko snap` walks your input directory, finds every `[!snapframe ...]` directive paired with an image tag, and:
 
-Because Neko saves the captured image locally, subsequent builds will skip the capture step, ensuring fast compilation times.
+1. Skips entries whose target image already exists (unless `--all` is passed).
+2. Runs `snapframe navigate-json <url>` to open the page.
+3. Optionally executes the `click`/`interact` commands listed after the URL.
+4. Runs `snapframe capture <page_id> <path> <options>` to write the file.
+5. Closes the Playwright page.
+
+Once captured, the image lives in your repo just like any other asset. Builds stay fast because the capture pipeline is opt-in.
