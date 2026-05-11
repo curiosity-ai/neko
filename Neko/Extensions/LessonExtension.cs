@@ -137,9 +137,9 @@ namespace Neko.Extensions
             renderer.Write("</div>");
 
             // Title block
-            renderer.Write("<div class=\"flex items-start gap-4 mb-4\">");
-            renderer.Write("<div class=\"flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-500/15 ring-1 ring-primary-500/30 text-primary-400\"><i class=\"fi fi-rr-book-alt text-2xl\"></i></div>");
-            renderer.Write("<div><h2 class=\"text-3xl font-bold tracking-tight text-gray-900 dark:text-white mt-0\">");
+            renderer.Write("<div class=\"flex items-center gap-4 mb-4\">");
+            renderer.Write("<div class=\"flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-500/15 ring-1 ring-primary-500/30 text-primary-400 leading-none\"><i class=\"fi fi-rr-book-alt text-xl leading-none\"></i></div>");
+            renderer.Write("<div class=\"min-w-0\"><h2 class=\"text-3xl font-bold tracking-tight text-gray-900 dark:text-white mt-0 mb-0\">");
             renderer.Write(WebUtility.HtmlEncode(title));
             renderer.Write("</h2>");
             if (!string.IsNullOrEmpty(description))
