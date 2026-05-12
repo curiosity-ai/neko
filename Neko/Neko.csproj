@@ -41,4 +41,28 @@
     <EmbeddedResource Include="Resources\**\*" />
   </ItemGroup>
 
+  <!--
+    Zip the .template/ starter at build time and embed it as a resource so
+    `neko new` can extract a fresh hello-world project anywhere.
+    The .template/.claude folder is hidden, so its contents are listed
+    explicitly to make incremental builds notice changes.
+  -->
+  <ItemGroup>
+    <NekoTemplateFile Include="$(MSBuildProjectDirectory)\..\.template\**\*" />
+    <NekoTemplateFile Include="$(MSBuildProjectDirectory)\..\.template\.claude\**\*" />
+    <EmbeddedResource Include="$(IntermediateOutputPath)template.zip"
+                      LogicalName="Neko.Resources.template.zip"
+                      Visible="false" />
+  </ItemGroup>
+
+  <Target Name="ZipNekoTemplate"
+          BeforeTargets="GetEmbeddedResources;CoreCompile"
+          Inputs="@(NekoTemplateFile);$(MSBuildProjectFullPath)"
+          Outputs="$(IntermediateOutputPath)template.zip">
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <ZipDirectory SourceDirectory="$(MSBuildProjectDirectory)\..\.template"
+                  DestinationFile="$(IntermediateOutputPath)template.zip"
+                  Overwrite="true" />
+  </Target>
+
 </Project>

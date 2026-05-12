@@ -32,6 +32,7 @@ Options:
 Commands:
   start <path>  Build and serve the project using a local development only web server
   init <path>   Initialize a new Neko project
+  new           Scaffold a new documentation project from the built-in template
   build <path>  Generate a static website from the project
   serve <path>  Serve the website in a local development only web server
   clean <path>  Clean the output directory
@@ -150,6 +151,45 @@ Options:
 
 See the [`--override`](#neko---override) docs below for additional details.
 ///endregion
+
+---
+
+## `neko new`
+
+The `neko new` command scaffolds a brand-new Neko documentation project from the built-in template. The template is a minimal hello-world site (a `neko.yml`, a homepage, and two sample pages) plus a `.claude/` folder of skills that help Claude author Neko docs.
+
+```
+neko new
+```
+
+By default the project is unpacked into the current directory. Pass `--path` to choose another location:
+
+```
+neko new --path my-new-docs
+```
+
+If the target directory already contains files, `neko new` refuses to overwrite. Pass `--force` to overwrite:
+
+```
+neko new --path my-new-docs --force
+```
+
+The template ships embedded in the `Neko` assembly — no internet access or external download is required.
+
+### Options
+
+```
+Description:
+  Initialize a new Neko documentation project from the built-in template
+
+Usage:
+  neko new [options]
+
+Options:
+  -p, --path <path>  Target directory for the new project (default: current directory)
+  -f, --force        Overwrite existing files at the target path
+  -?, -h, --help     Show help and usage information
+```
 
 ---
 

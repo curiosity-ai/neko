@@ -238,9 +238,24 @@ namespace Neko
                 }
             });
 
+            // New Command — scaffold a new documentation project from the
+            // embedded .template/ starter zip.
+            var newCommand = new Command("new", "Initialize a new Neko documentation project from the built-in template");
+            var newPathOption = new Option<string?>(new[] { "--path", "-p" }, "Target directory for the new project (default: current directory)");
+            var newForceOption = new Option<bool>(new[] { "--force", "-f" }, () => false, "Overwrite existing files at the target path");
+            newCommand.AddOption(newPathOption);
+            newCommand.AddOption(newForceOption);
+
+            newCommand.SetHandler((string? newPath, bool newForce) =>
+            {
+                var exitCode = Neko.Builder.NewCommand.Run(newPath, newForce);
+                Environment.ExitCode = exitCode;
+            }, newPathOption, newForceOption);
+
             rootCommand.AddCommand(buildCommand);
             rootCommand.AddCommand(watchCommand);
             rootCommand.AddCommand(snapCommand);
+            rootCommand.AddCommand(newCommand);
 
             return await rootCommand.InvokeAsync(args);
         }
