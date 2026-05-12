@@ -48,6 +48,24 @@ namespace Neko.Extensions
                 return;
             }
 
+            if (type == "roadmap")
+            {
+                RenderRoadmap(renderer, obj);
+                return;
+            }
+
+            if (type == "lane")
+            {
+                RenderRoadmapLane(renderer, obj);
+                return;
+            }
+
+            if (type == "roadmap-item")
+            {
+                RenderRoadmapItem(renderer, obj);
+                return;
+            }
+
             if (type == "panel")
             {
                 var classes = "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-6 my-4";
@@ -447,6 +465,151 @@ namespace Neko.Extensions
             }
 
             renderer.Write("</div>");
+            renderer.Write("</div>");
+        }
+
+        // Lane palette (accent bar + count badge). Matches the "icon-badge"
+        // style used by the grid card (bg-{color}-500/15 + ring-1 + text-300).
+        private static readonly System.Collections.Generic.Dictionary<string, (string Bar, string Badge)> RoadmapLanePalettes =
+            new(System.StringComparer.OrdinalIgnoreCase)
+            {
+                ["gray"]    = ("bg-gray-400",    "bg-gray-500/15 ring-1 ring-gray-500/30 text-gray-700 dark:text-gray-300"),
+                ["teal"]    = ("bg-teal-500",    "bg-teal-500/15 ring-1 ring-teal-500/30 text-teal-700 dark:text-teal-300"),
+                ["amber"]   = ("bg-amber-500",   "bg-amber-500/15 ring-1 ring-amber-500/30 text-amber-700 dark:text-amber-300"),
+                ["sky"]     = ("bg-sky-500",     "bg-sky-500/15 ring-1 ring-sky-500/30 text-sky-700 dark:text-sky-300"),
+                ["blue"]    = ("bg-blue-500",    "bg-blue-500/15 ring-1 ring-blue-500/30 text-blue-700 dark:text-blue-300"),
+                ["violet"]  = ("bg-violet-500",  "bg-violet-500/15 ring-1 ring-violet-500/30 text-violet-700 dark:text-violet-300"),
+                ["emerald"] = ("bg-emerald-500", "bg-emerald-500/15 ring-1 ring-emerald-500/30 text-emerald-700 dark:text-emerald-300"),
+                ["rose"]    = ("bg-rose-500",    "bg-rose-500/15 ring-1 ring-rose-500/30 text-rose-700 dark:text-rose-300"),
+                ["orange"]  = ("bg-orange-500",  "bg-orange-500/15 ring-1 ring-orange-500/30 text-orange-700 dark:text-orange-300"),
+                ["fuchsia"] = ("bg-fuchsia-500", "bg-fuchsia-500/15 ring-1 ring-fuchsia-500/30 text-fuchsia-700 dark:text-fuchsia-300"),
+            };
+
+        // Tag pill palette for roadmap items. Matches Neko's BadgeExtension style:
+        // bg-{color}-100 text-{color}-800 dark:bg-{color}-900 dark:text-{color}-300.
+        private static readonly System.Collections.Generic.Dictionary<string, string> RoadmapTagPalettes =
+            new(System.StringComparer.OrdinalIgnoreCase)
+            {
+                ["emerald"] = "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+                ["green"]   = "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+                ["teal"]    = "bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300",
+                ["amber"]   = "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+                ["yellow"]  = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300",
+                ["rose"]    = "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300",
+                ["red"]     = "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+                ["sky"]     = "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300",
+                ["blue"]    = "bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300",
+                ["primary"] = "bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300",
+                ["violet"]  = "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300",
+                ["purple"]  = "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+                ["orange"]  = "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300",
+                ["gray"]    = "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+            };
+
+        private void RenderRoadmap(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var classes = "neko-roadmap not-prose grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 my-8";
+            var attrs = obj.GetAttributes();
+            if (attrs.Classes != null)
+            {
+                var extra = string.Join(" ", attrs.Classes.Where(c => c != "roadmap"));
+                if (!string.IsNullOrEmpty(extra)) classes += " " + extra;
+            }
+            renderer.Write($"<div class=\"{classes}\">");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
+        }
+
+        private void RenderRoadmapLane(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var attributes = obj.GetAttributes();
+            var title = GetAttribute(attributes, "title") ?? "";
+            var count = GetAttribute(attributes, "count");
+            var accent = GetAttribute(attributes, "accent") ?? GetAttribute(attributes, "color") ?? "gray";
+
+            if (!RoadmapLanePalettes.TryGetValue(accent, out var palette))
+            {
+                palette = RoadmapLanePalettes["gray"];
+            }
+
+            renderer.Write("<div class=\"neko-roadmap-lane relative flex flex-col bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm overflow-hidden\">");
+            renderer.Write($"<div class=\"neko-roadmap-lane-accent absolute top-0 left-0 right-0 h-1 {palette.Bar}\"></div>");
+
+            // Header
+            renderer.Write("<div class=\"flex items-center gap-2 px-4 pt-5 pb-3\">");
+            if (!string.IsNullOrEmpty(count))
+            {
+                renderer.Write($"<span class=\"inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full text-xs font-semibold {palette.Badge}\">{WebUtility.HtmlEncode(count)}</span>");
+            }
+            renderer.Write($"<span class=\"text-sm font-semibold tracking-tight text-gray-700 dark:text-gray-200\">{WebUtility.HtmlEncode(title)}</span>");
+            renderer.Write("</div>");
+
+            // Items container
+            renderer.Write("<div class=\"flex flex-col gap-3 px-4 pb-4\">");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
+
+            renderer.Write("</div>");
+        }
+
+        private void RenderRoadmapItem(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var attributes = obj.GetAttributes();
+            var title = GetAttribute(attributes, "title") ?? "";
+            var tag = GetAttribute(attributes, "tag");
+            var tagColor = GetAttribute(attributes, "tag-color") ?? "emerald";
+            var date = GetAttribute(attributes, "date");
+            var votes = GetAttribute(attributes, "votes");
+            var link = GetAttribute(attributes, "link");
+
+            if (!RoadmapTagPalettes.TryGetValue(tagColor, out var tagClasses))
+            {
+                tagClasses = RoadmapTagPalettes["emerald"];
+            }
+
+            renderer.Write("<div class=\"neko-roadmap-item group relative p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md transition-all duration-200\">");
+
+            if (!string.IsNullOrEmpty(link))
+            {
+                renderer.Write($"<a href=\"{WebUtility.HtmlEncode(link)}\" class=\"absolute inset-0 z-10\" aria-label=\"{WebUtility.HtmlEncode(title)}\"></a>");
+            }
+
+            // Title
+            renderer.Write("<div class=\"text-sm font-semibold text-gray-900 dark:text-white leading-snug mb-2\">");
+            renderer.Write(WebUtility.HtmlEncode(title));
+            renderer.Write("</div>");
+
+            // Optional body content (description)
+            if (obj.Count > 0)
+            {
+                renderer.Write("<div class=\"neko-roadmap-item-body text-xs text-gray-600 dark:text-gray-400 mb-2 leading-relaxed\">");
+                renderer.WriteChildren(obj);
+                renderer.Write("</div>");
+            }
+
+            // Footer row: tag + date (left) and vote count (right)
+            renderer.Write("<div class=\"flex items-center justify-between gap-2 mt-1\">");
+            renderer.Write("<div class=\"flex items-center gap-2 min-w-0\">");
+
+            if (!string.IsNullOrEmpty(tag))
+            {
+                renderer.Write($"<span class=\"inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide {tagClasses}\">{WebUtility.HtmlEncode(tag)}</span>");
+            }
+
+            if (!string.IsNullOrEmpty(date))
+            {
+                renderer.Write($"<span class=\"text-[11px] text-gray-500 dark:text-gray-400 truncate\">{WebUtility.HtmlEncode(date)}</span>");
+            }
+
+            renderer.Write("</div>");
+
+            if (!string.IsNullOrEmpty(votes))
+            {
+                renderer.Write($"<span class=\"inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 dark:text-gray-400 tabular-nums\" title=\"Votes\"><i class=\"fi fi-rr-arrow-up text-[10px]\"></i>{WebUtility.HtmlEncode(votes)}</span>");
+            }
+
+            renderer.Write("</div>");
+
             renderer.Write("</div>");
         }
     }
