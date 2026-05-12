@@ -122,7 +122,7 @@ The `accent` attribute on a `lane` sets the colour of the top border and the cou
 
 ## Item tag colours
 
-The `tag-color` attribute on `roadmap-item` picks the colour of the tag pill. Available values: `emerald`, `teal`, `amber`, `rose`, `sky`, `blue`, `violet`, `orange`, `gray`, `red`, `yellow`.
+The `tag-color` attribute on `roadmap-item` picks the colour of the tag pill. The pill follows the same soft-tinted style as the [Badge](badge.md) component (`bg-{color}-100 text-{color}-800` light / `bg-{color}-900 text-{color}-300` dark). Available values: `emerald`, `green`, `teal`, `amber`, `yellow`, `rose`, `red`, `sky`, `blue` (alias `primary`), `violet` (alias `purple`), `orange`, `gray`.
 
 ## Properties
 

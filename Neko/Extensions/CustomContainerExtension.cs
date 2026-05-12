@@ -468,37 +468,42 @@ namespace Neko.Extensions
             renderer.Write("</div>");
         }
 
-        // Curated accent palette for roadmap lanes (top bar + count badge).
-        private static readonly System.Collections.Generic.Dictionary<string, (string Bar, string Badge, string Text)> RoadmapLanePalettes =
+        // Lane palette (accent bar + count badge). Matches the "icon-badge"
+        // style used by the grid card (bg-{color}-500/15 + ring-1 + text-300).
+        private static readonly System.Collections.Generic.Dictionary<string, (string Bar, string Badge)> RoadmapLanePalettes =
             new(System.StringComparer.OrdinalIgnoreCase)
             {
-                ["gray"]    = ("bg-gray-400",    "bg-gray-100 dark:bg-gray-700/60",       "text-gray-700 dark:text-gray-200"),
-                ["teal"]    = ("bg-teal-400",    "bg-teal-100 dark:bg-teal-900/40",       "text-teal-700 dark:text-teal-200"),
-                ["amber"]   = ("bg-amber-400",   "bg-amber-100 dark:bg-amber-900/40",     "text-amber-700 dark:text-amber-200"),
-                ["sky"]     = ("bg-sky-400",     "bg-sky-100 dark:bg-sky-900/40",         "text-sky-700 dark:text-sky-200"),
-                ["blue"]    = ("bg-blue-500",    "bg-blue-100 dark:bg-blue-900/40",       "text-blue-700 dark:text-blue-200"),
-                ["violet"]  = ("bg-violet-500",  "bg-violet-100 dark:bg-violet-900/40",   "text-violet-700 dark:text-violet-200"),
-                ["emerald"] = ("bg-emerald-500", "bg-emerald-100 dark:bg-emerald-900/40", "text-emerald-700 dark:text-emerald-200"),
-                ["rose"]    = ("bg-rose-400",    "bg-rose-100 dark:bg-rose-900/40",       "text-rose-700 dark:text-rose-200"),
-                ["orange"]  = ("bg-orange-400",  "bg-orange-100 dark:bg-orange-900/40",   "text-orange-700 dark:text-orange-200"),
-                ["fuchsia"] = ("bg-fuchsia-400", "bg-fuchsia-100 dark:bg-fuchsia-900/40", "text-fuchsia-700 dark:text-fuchsia-200"),
+                ["gray"]    = ("bg-gray-400",    "bg-gray-500/15 ring-1 ring-gray-500/30 text-gray-700 dark:text-gray-300"),
+                ["teal"]    = ("bg-teal-500",    "bg-teal-500/15 ring-1 ring-teal-500/30 text-teal-700 dark:text-teal-300"),
+                ["amber"]   = ("bg-amber-500",   "bg-amber-500/15 ring-1 ring-amber-500/30 text-amber-700 dark:text-amber-300"),
+                ["sky"]     = ("bg-sky-500",     "bg-sky-500/15 ring-1 ring-sky-500/30 text-sky-700 dark:text-sky-300"),
+                ["blue"]    = ("bg-blue-500",    "bg-blue-500/15 ring-1 ring-blue-500/30 text-blue-700 dark:text-blue-300"),
+                ["violet"]  = ("bg-violet-500",  "bg-violet-500/15 ring-1 ring-violet-500/30 text-violet-700 dark:text-violet-300"),
+                ["emerald"] = ("bg-emerald-500", "bg-emerald-500/15 ring-1 ring-emerald-500/30 text-emerald-700 dark:text-emerald-300"),
+                ["rose"]    = ("bg-rose-500",    "bg-rose-500/15 ring-1 ring-rose-500/30 text-rose-700 dark:text-rose-300"),
+                ["orange"]  = ("bg-orange-500",  "bg-orange-500/15 ring-1 ring-orange-500/30 text-orange-700 dark:text-orange-300"),
+                ["fuchsia"] = ("bg-fuchsia-500", "bg-fuchsia-500/15 ring-1 ring-fuchsia-500/30 text-fuchsia-700 dark:text-fuchsia-300"),
             };
 
-        // Tag color palette for roadmap items (small pill below the title).
+        // Tag pill palette for roadmap items. Matches Neko's BadgeExtension style:
+        // bg-{color}-100 text-{color}-800 dark:bg-{color}-900 dark:text-{color}-300.
         private static readonly System.Collections.Generic.Dictionary<string, string> RoadmapTagPalettes =
             new(System.StringComparer.OrdinalIgnoreCase)
             {
-                ["emerald"] = "bg-emerald-500 text-white",
-                ["teal"]    = "bg-teal-500 text-white",
-                ["amber"]   = "bg-amber-400 text-amber-900",
-                ["rose"]    = "bg-rose-500 text-white",
-                ["sky"]     = "bg-sky-500 text-white",
-                ["blue"]    = "bg-blue-500 text-white",
-                ["violet"]  = "bg-violet-500 text-white",
-                ["orange"]  = "bg-orange-400 text-orange-900",
-                ["gray"]    = "bg-gray-400 text-white",
-                ["red"]     = "bg-red-500 text-white",
-                ["yellow"]  = "bg-yellow-400 text-yellow-900",
+                ["emerald"] = "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+                ["green"]   = "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+                ["teal"]    = "bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300",
+                ["amber"]   = "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+                ["yellow"]  = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300",
+                ["rose"]    = "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300",
+                ["red"]     = "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+                ["sky"]     = "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300",
+                ["blue"]    = "bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300",
+                ["primary"] = "bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300",
+                ["violet"]  = "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300",
+                ["purple"]  = "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+                ["orange"]  = "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300",
+                ["gray"]    = "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
             };
 
         private void RenderRoadmap(HtmlRenderer renderer, CustomContainer obj)
@@ -527,16 +532,16 @@ namespace Neko.Extensions
                 palette = RoadmapLanePalettes["gray"];
             }
 
-            renderer.Write("<div class=\"neko-roadmap-lane relative flex flex-col bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden\">");
+            renderer.Write("<div class=\"neko-roadmap-lane relative flex flex-col bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm overflow-hidden\">");
             renderer.Write($"<div class=\"neko-roadmap-lane-accent absolute top-0 left-0 right-0 h-1 {palette.Bar}\"></div>");
 
             // Header
             renderer.Write("<div class=\"flex items-center gap-2 px-4 pt-5 pb-3\">");
             if (!string.IsNullOrEmpty(count))
             {
-                renderer.Write($"<span class=\"inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full text-xs font-semibold {palette.Badge} {palette.Text}\">{WebUtility.HtmlEncode(count)}</span>");
+                renderer.Write($"<span class=\"inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full text-xs font-semibold {palette.Badge}\">{WebUtility.HtmlEncode(count)}</span>");
             }
-            renderer.Write($"<span class=\"text-sm font-medium text-gray-700 dark:text-gray-200\">{WebUtility.HtmlEncode(title)}</span>");
+            renderer.Write($"<span class=\"text-sm font-semibold tracking-tight text-gray-700 dark:text-gray-200\">{WebUtility.HtmlEncode(title)}</span>");
             renderer.Write("</div>");
 
             // Items container
@@ -562,7 +567,7 @@ namespace Neko.Extensions
                 tagClasses = RoadmapTagPalettes["emerald"];
             }
 
-            renderer.Write("<div class=\"neko-roadmap-item group relative p-3 rounded-md border border-gray-100 dark:border-gray-700/60 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all\">");
+            renderer.Write("<div class=\"neko-roadmap-item group relative p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md transition-all duration-200\">");
 
             if (!string.IsNullOrEmpty(link))
             {

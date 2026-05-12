@@ -30,14 +30,16 @@ namespace Neko.Tests
 
             // Lane: header + accent bar
             Assert.That(html, Contains.Substring("neko-roadmap-lane"));
-            Assert.That(html, Contains.Substring("bg-teal-400"));
+            Assert.That(html, Contains.Substring("bg-teal-500"));
             Assert.That(html, Contains.Substring("Planned"));
 
             // Item: title, tag, votes
             Assert.That(html, Contains.Substring("neko-roadmap-item"));
             Assert.That(html, Contains.Substring("Item A"));
             Assert.That(html, Contains.Substring("Feature"));
-            Assert.That(html, Contains.Substring("bg-emerald-500"));
+            // emerald tag uses the Neko badge-style tinted pill
+            Assert.That(html, Contains.Substring("bg-emerald-100"));
+            Assert.That(html, Contains.Substring("text-emerald-800"));
             Assert.That(html, Contains.Substring(">3<"));
         }
 
@@ -73,14 +75,20 @@ namespace Neko.Tests
 ::::
 :::::";
 
+            // Each accent value should produce a solid accent bar of the matching color
+            // plus a tinted count-badge using bg-{color}-500/15 + ring-1 ring-{color}-500/30.
             Assert.That(_parser.Parse(Build("gray")).Html,    Contains.Substring("bg-gray-400"));
-            Assert.That(_parser.Parse(Build("teal")).Html,    Contains.Substring("bg-teal-400"));
-            Assert.That(_parser.Parse(Build("amber")).Html,   Contains.Substring("bg-amber-400"));
-            Assert.That(_parser.Parse(Build("sky")).Html,     Contains.Substring("bg-sky-400"));
+            Assert.That(_parser.Parse(Build("gray")).Html,    Contains.Substring("ring-gray-500/30"));
+            Assert.That(_parser.Parse(Build("teal")).Html,    Contains.Substring("bg-teal-500"));
+            Assert.That(_parser.Parse(Build("teal")).Html,    Contains.Substring("ring-teal-500/30"));
+            Assert.That(_parser.Parse(Build("amber")).Html,   Contains.Substring("bg-amber-500"));
+            Assert.That(_parser.Parse(Build("amber")).Html,   Contains.Substring("ring-amber-500/30"));
+            Assert.That(_parser.Parse(Build("sky")).Html,     Contains.Substring("bg-sky-500"));
+            Assert.That(_parser.Parse(Build("sky")).Html,     Contains.Substring("ring-sky-500/30"));
             Assert.That(_parser.Parse(Build("blue")).Html,    Contains.Substring("bg-blue-500"));
             Assert.That(_parser.Parse(Build("violet")).Html,  Contains.Substring("bg-violet-500"));
             Assert.That(_parser.Parse(Build("emerald")).Html, Contains.Substring("bg-emerald-500"));
-            Assert.That(_parser.Parse(Build("rose")).Html,    Contains.Substring("bg-rose-400"));
+            Assert.That(_parser.Parse(Build("rose")).Html,    Contains.Substring("bg-rose-500"));
         }
 
         [Test]
@@ -113,8 +121,9 @@ namespace Neko.Tests
             Assert.That(html, Contains.Substring("Sep, 21"));
             Assert.That(html, Contains.Substring(">141<"));
             Assert.That(html, Contains.Substring("href=\"https://example.com\""));
-            // Tag color for amber
-            Assert.That(html, Contains.Substring("bg-amber-400 text-amber-900"));
+            // Tag color for amber uses the Neko badge style
+            Assert.That(html, Contains.Substring("bg-amber-100"));
+            Assert.That(html, Contains.Substring("text-amber-800"));
         }
 
         [Test]
