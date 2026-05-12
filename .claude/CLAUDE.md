@@ -50,6 +50,24 @@ point. It contains:
   - a `skills/` folder with one `SKILL.md` per component, covering every
     syntax form and attribute
 
+### How it ships in the CLI
+
+At build time the `ZipNekoTemplate` target in `Neko/Neko.csproj` zips the
+entire `.template/` folder into `obj/<config>/<tfm>/template.zip` and embeds
+it in the `Neko` assembly under the manifest name
+`Neko.Resources.template.zip`. The `neko new` command
+(`Neko/Builder/NewCommand.cs`) reads that resource and extracts it into the
+target directory (current directory by default; `--path X` to choose another).
+
+Two things to watch out for if you touch the wiring:
+
+- MSBuild's `**\*` glob **does not** match hidden directories. The
+  `NekoTemplateFile` item in the csproj therefore includes
+  `.template\.claude\**\*` explicitly so that edits to skills invalidate the
+  incremental build.
+- The zip is created with `<ZipDirectory>` (built-in MSBuild task). Run
+  `dotnet build` once to (re-)generate it before invoking `neko new`.
+
 **Always keep `.template/` in sync with the engine.** When you add, remove, or
 change a component / config key:
 

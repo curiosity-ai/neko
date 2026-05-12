@@ -12,6 +12,7 @@ Please note that Neko uses a calendar versioning approach.
 
 ## v26.5
 
+* **Feature**: Added a new `neko new` command that scaffolds a fresh hello-world documentation project (with `neko.yml`, three sample pages, and a `.claude/` folder of skills) into the current directory or a directory passed via `--path`. The starter lives under `.template/` in the repository and is zipped at build time and embedded as a resource in the CLI assembly. Pass `--force` to overwrite a non-empty target.
 * **Feature**: Added drag-and-drop reordering of sidebar items while running `neko watch`. Items can be reordered within their parent group; on drop, the corresponding `.md` frontmatter `order` (or folder `index.yml` `order`) values are rewritten as multiples of 10, and the site reloads automatically. A new `POST /api/neko/reorder` endpoint handles the update.
 * **Theme**: Refreshed the default light / dark themes to match the look-and-feel of [docs.curiosity.ai](https://docs.curiosity.ai). Introduced a new `curiosity` default theme (deep navy `#050914` background in dark mode), a paired `accent` palette, and a `neko-text-gradient` utility used by the hero accent word.
 * **Feature**: Split screenshot capture into a dedicated `neko snap` command. `neko build` and `neko watch` no longer call Playwright; instead, run `neko snap` to capture missing screenshots, or `neko snap --all` to re-capture everything.

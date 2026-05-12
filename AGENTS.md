@@ -21,6 +21,7 @@ This repository contains the source code for `Neko`, a CLI tool for generating s
 4.  **Template**:
     -   `.template/` contains a blank "hello world" Neko documentation project used as a starter for downstream sites.
     -   Inside it, `.template/.claude/CLAUDE.md` documents how to author Neko docs, and `.template/.claude/skills/<name>/SKILL.md` covers every component (one skill per component).
+    -   **Builds zip `.template/` into `obj/.../template.zip` and embed it in the `Neko` assembly as `Neko.Resources.template.zip`. The `neko new` command extracts this resource to scaffold a fresh project.** The zipping is wired in `Neko/Neko.csproj` via the `ZipNekoTemplate` target — do not break it. The MSBuild `**\*` glob does **not** match hidden directories, so `.template/.claude/**` is listed explicitly in the `NekoTemplateFile` input set for incremental builds to notice changes.
     -   **When you add, remove, or change a component, configuration key, or page-metadata field, you MUST update the matching skill in `.template/.claude/skills/` in the same change.**
     -   When the change is broad enough to be worth showcasing, also update `.template/index.md`, `getting-started.md`, or `about.md` so the starter demonstrates the new behaviour.
     -   When a brand-new component is added, create a new `.template/.claude/skills/<name>/SKILL.md` following the existing format (frontmatter `name` + `description`, syntax, attributes, examples, tips).
