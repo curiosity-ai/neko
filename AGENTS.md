@@ -18,12 +18,18 @@ This repository contains the source code for `Neko`, a CLI tool for generating s
     -   **All components and features of Neko should have an equivalent documentation page in the documentation project.**
     -   You MUST always update `Neko/Resources/templates.json` on components changes or new components.
     -   Maintain `TODO.md` and `WIP.md`.
-4.  **Assets**:
+4.  **Template**:
+    -   `.template/` contains a blank "hello world" Neko documentation project used as a starter for downstream sites.
+    -   Inside it, `.template/.claude/CLAUDE.md` documents how to author Neko docs, and `.template/.claude/skills/<name>/SKILL.md` covers every component (one skill per component).
+    -   **When you add, remove, or change a component, configuration key, or page-metadata field, you MUST update the matching skill in `.template/.claude/skills/` in the same change.**
+    -   When the change is broad enough to be worth showcasing, also update `.template/index.md`, `getting-started.md`, or `about.md` so the starter demonstrates the new behaviour.
+    -   When a brand-new component is added, create a new `.template/.claude/skills/<name>/SKILL.md` following the existing format (frontmatter `name` + `description`, syntax, attributes, examples, tips).
+5.  **Assets**:
     -   Use embedded resources for CSS, JS, and Fonts.
     -   Do not use Node.js or NPM at runtime.
     -   Use vanilla JavaScript. No frameworks like React/Vue/Angular.
     -   **Icons**: Use Flaticon UIcons (Regular Rounded) as the official icon set. Octicons are no longer supported.
-5.  **Architecture**:
+6.  **Architecture**:
     -   The CLI should support a `watch` command that serves the site on localhost and auto-reloads on file changes.
     -   Use `System.CommandLine` for argument parsing.
     -   Use `Markdig` for Markdown parsing.
@@ -34,6 +40,9 @@ This repository contains the source code for `Neko`, a CLI tool for generating s
 -   License information for assets should be in `Neko/Resources/sources.md`.
 -   **GitHub**: https://github.com/curiosity-ai/neko/
 -   **Docs**: https://neko.curiosity.ai/
+-   **Engine development guide**: [`.claude/CLAUDE.md`](.claude/CLAUDE.md)
+-   **Docs authoring guide (template)**: [`.template/.claude/CLAUDE.md`](.template/.claude/CLAUDE.md)
+-   **Per-component skills (template)**: [`.template/.claude/skills/`](.template/.claude/skills/)
 
 ## Changelog
 - You MUST ALWAYS update the `Neko.Documentation/changelog.md` file by adding or updating the current "Calendar Versioning" version entry explaining the changes done.

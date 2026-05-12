@@ -1,0 +1,30 @@
+input: ./
+output: .neko
+url: example.com
+
+branding:
+  title: Hello Neko
+  label: Docs
+  baseColor: "#5495f1"
+
+theme:
+  name: curiosity
+
+meta:
+  description: A blank Neko documentation starter.
+  keywords: neko, documentation, starter, template
+  author: Your Name
+
+links:
+  - text: Home
+    link: /
+    icon: house-chimney
+  - text: Getting Started
+    link: /getting-started
+    icon: rocket
+  - text: About
+    link: /about
+    icon: info
+
+footer:
+  copyright: "&copy; Copyright {{ year }}. All rights reserved."
