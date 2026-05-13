@@ -52,6 +52,34 @@ namespace Neko.Builder
             return sb.ToString();
         }
 
+        // Returns the rendered article HTML for `document`, including blog/changelog
+        // listings that would be injected at this URL. Used by the page generator
+        // and by the search indexer so both see the same content.
+        public string BuildIndexableContent(ParsedDocument document, List<(ParsedDocument Doc, string Url)> blogPosts = null, List<(ParsedDocument Doc, string Url)> changelogEntries = null, string currentUrl = null)
+        {
+            var htmlContent = document.Html ?? string.Empty;
+            if (!string.IsNullOrEmpty(htmlContent))
+            {
+                htmlContent = System.Text.RegularExpressions.Regex.Replace(htmlContent, "href=\"((?!http:|https:|ftp:|mailto:|#|/)[^\"]+)\\.(md|html)\"", "href=\"$1\"");
+            }
+
+            if (currentUrl != null && (currentUrl == "/blog/index" || document.FrontMatter.Layout == "blog"))
+            {
+                var sbBlog = new StringBuilder();
+                RenderBlogIndex(sbBlog, blogPosts);
+                htmlContent += sbBlog.ToString();
+            }
+
+            if (currentUrl != null && (currentUrl == "/changelog/index" || document.FrontMatter.Layout == "changelog"))
+            {
+                var sbChangelog = new StringBuilder();
+                RenderChangelogIndex(sbChangelog, changelogEntries);
+                htmlContent += sbChangelog.ToString();
+            }
+
+            return htmlContent;
+        }
+
         public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null, List<LinkConfig> sidebarLinks = null, List<(ParsedDocument Doc, string Url)> blogPosts = null, List<(ParsedDocument Doc, string Url)> changelogEntries = null, string currentUrl = null)
         {
             var title = !string.IsNullOrEmpty(document.FrontMatter.Title)
@@ -384,29 +412,7 @@ namespace Neko.Builder
                 sb.AppendLine("</div>");
             }
 
-            // Link Cleanup Logic
-            var htmlContent = document.Html;
-            if (!string.IsNullOrEmpty(htmlContent))
-            {
-                 // Strip extension, preserve relative/absolute nature
-                 htmlContent = System.Text.RegularExpressions.Regex.Replace(htmlContent, "href=\"((?!http:|https:|ftp:|mailto:|#|/)[^\"]+)\\.(md|html)\"", "href=\"$1\"");
-            }
-
-            // Inject Blog Index
-            if (currentUrl != null && (currentUrl == "/blog/index" || document.FrontMatter.Layout == "blog"))
-            {
-                var sbBlog = new StringBuilder();
-                RenderBlogIndex(sbBlog, blogPosts);
-                htmlContent += sbBlog.ToString();
-            }
-
-            // Inject Changelog Index
-            if (currentUrl != null && (currentUrl == "/changelog/index" || document.FrontMatter.Layout == "changelog"))
-            {
-                 var sbChangelog = new StringBuilder();
-                 RenderChangelogIndex(sbChangelog, changelogEntries);
-                 htmlContent += sbChangelog.ToString();
-            }
+            var htmlContent = BuildIndexableContent(document, blogPosts, changelogEntries, currentUrl);
 
             string effectivePassword = null;
             if (!string.IsNullOrEmpty(document.FrontMatter.Password))
@@ -1417,7 +1423,8 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
             var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
             var snippetsJson = _config.Snippets != null ? System.Text.Json.JsonSerializer.Serialize(_config.Snippets, jsonOptions) : "{}";
             var brandingJson = _config.Branding != null ? System.Text.Json.JsonSerializer.Serialize(_config.Branding, jsonOptions) : "{}";
-            sb.AppendLine($"    <script>window.nekoConfig = {{ snippets: {snippetsJson}, branding: {brandingJson} }};</script>");
+            var routePrefixJson = System.Text.Json.JsonSerializer.Serialize(SiteBuilder.CurrentRoutePrefix ?? string.Empty);
+            sb.AppendLine($"    <script>window.nekoConfig = {{ snippets: {snippetsJson}, branding: {brandingJson} }}; window.NEKO_ROUTE_PREFIX = {routePrefixJson};</script>");
 
             // Inter Font
             sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");

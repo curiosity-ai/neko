@@ -1,44 +1,76 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Neko.Configuration;
 
 namespace Neko.Builder
 {
     public class SearchIndexGenerator
     {
+        private static readonly Regex ScriptOrStyleRegex = new Regex(
+            @"<(script|style)\b[^>]*>.*?</\1>",
+            RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex HtmlCommentRegex = new Regex(
+            @"<!--.*?-->",
+            RegexOptions.Singleline | RegexOptions.Compiled);
+
+        private static readonly Regex TagRegex = new Regex(
+            @"<[^>]+>",
+            RegexOptions.Compiled);
+
+        private static readonly Regex WhitespaceRegex = new Regex(
+            @"\s+",
+            RegexOptions.Compiled);
+
         private readonly List<SearchDocument> _documents = new List<SearchDocument>();
 
-        public void AddDocument(string path, string title, string content)
+        public void AddDocument(string path, string title, string html, string description = null, string[] tags = null)
         {
-            // Simple text extraction (stripping HTML tags would be better, but basic for now)
-            // Content passed here is raw markdown? Or Parsed HTML?
-            // MarkdownParser returns ParsedDocument.
+            var text = HtmlToText(html);
 
-            // We should use text content.
-            // For now, let's just index title and a snippet or full content if clean.
+            var combined = new StringBuilder();
+            if (!string.IsNullOrWhiteSpace(description))
+            {
+                combined.Append(description).Append(' ');
+            }
+            if (tags != null && tags.Length > 0)
+            {
+                combined.Append(string.Join(' ', tags)).Append(' ');
+            }
+            combined.Append(text);
 
             _documents.Add(new SearchDocument
             {
                 Id = path,
                 Title = title,
-                Content = content // TODO: Strip markdown/HTML
+                Content = combined.ToString().Trim()
             });
         }
 
         public async Task WriteIndexAsync(string outputDir)
         {
-            // MiniSearch expects a JSON array of documents
-            // We can just dump the list as JSON and let the client load and index it.
-            // "Automatically generate the required json and fetch it when searching for the first time."
-
             var json = JsonSerializer.Serialize(_documents, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
 
             await File.WriteAllTextAsync(Path.Combine(outputDir, "search.json"), json);
+        }
+
+        public static string HtmlToText(string html)
+        {
+            if (string.IsNullOrWhiteSpace(html)) return string.Empty;
+
+            var stripped = ScriptOrStyleRegex.Replace(html, " ");
+            stripped = HtmlCommentRegex.Replace(stripped, " ");
+            stripped = TagRegex.Replace(stripped, " ");
+            stripped = WebUtility.HtmlDecode(stripped);
+            stripped = WhitespaceRegex.Replace(stripped, " ");
+            return stripped.Trim();
         }
     }
 
