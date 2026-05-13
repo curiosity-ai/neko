@@ -330,7 +330,26 @@ namespace Neko.Builder
 
                     await File.WriteAllTextAsync(outputPath, html);
 
-                    searchIndexer.AddDocument(htmlFileName, item.Doc.FrontMatter.Title ?? Path.GetFileNameWithoutExtension(item.FilePath), item.Markdown);
+                    // Index only pages whose content is publicly visible. Pages with a
+                    // per-page password (or a site-wide password without `password: none`)
+                    // would otherwise leak plaintext into search.json.
+                    var pagePassword = item.Doc.FrontMatter.Password;
+                    var isPageOptedOut = !string.IsNullOrEmpty(pagePassword)
+                        && pagePassword.Equals("none", StringComparison.OrdinalIgnoreCase);
+                    var isProtected = !string.IsNullOrEmpty(pagePassword) && !isPageOptedOut
+                        || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password);
+
+                    if (!isProtected)
+                    {
+                        var indexableContent = generator.BuildIndexableContent(item.Doc, blogPosts, changelogEntries, relativeUrl);
+                        var indexTitle = item.Doc.FrontMatter.Title ?? Path.GetFileNameWithoutExtension(item.FilePath);
+                        searchIndexer.AddDocument(
+                            htmlFileName,
+                            indexTitle,
+                            indexableContent,
+                            item.Doc.FrontMatter.Description,
+                            item.Doc.FrontMatter.Tags);
+                    }
                 }
 
                 await searchIndexer.WriteIndexAsync(OutputDirectory);

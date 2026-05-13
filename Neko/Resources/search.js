@@ -3,18 +3,26 @@
     let miniSearch = null;
     let isSearchOpen = false;
 
+    function getRoutePrefix() {
+        let prefix = window.NEKO_ROUTE_PREFIX || '';
+        if (prefix && !prefix.startsWith('/')) prefix = '/' + prefix;
+        if (prefix.endsWith('/')) prefix = prefix.slice(0, -1);
+        return prefix;
+    }
+
     // Load search index
     async function loadSearchIndex() {
         if (miniSearch) return;
         try {
-            const response = await fetch('/search.json');
+            const response = await fetch(getRoutePrefix() + '/search.json');
             const data = await response.json();
             miniSearch = new MiniSearch({
                 fields: ['title', 'content'], // fields to index for full-text search
-                storeFields: ['title', 'id'], // fields to return with search results
+                storeFields: ['title'], // fields to return with search results (id is stored by default)
                 searchOptions: {
                     boost: { title: 2 },
-                    fuzzy: 0.2
+                    fuzzy: 0.2,
+                    prefix: true
                 }
             });
             miniSearch.addAll(data);
@@ -127,10 +135,12 @@
             return;
         }
 
+        const prefix = getRoutePrefix();
         container.innerHTML = results.map((result, index) => {
-            // Ensure path is absolute and uses forward slashes
+            // Ensure path is absolute, uses forward slashes, and includes route prefix
             let href = result.id.replace(/\\/g, '/');
             if (!href.startsWith('/')) href = '/' + href;
+            href = prefix + href;
 
             return `
             <a href="${href}" class="block px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700/50 group">
@@ -138,7 +148,7 @@
                     ${result.title}
                 </div>
                 <div class="text-xs text-gray-500 truncate">
-                    ${result.id}
+                    ${href}
                 </div>
             </a>
         `}).join('');
