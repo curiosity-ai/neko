@@ -10,7 +10,7 @@
   "neko-alert-success": "!!! success\nSuccess message\n!!!",
   "neko-tabs": "+++\n## Tab 1\nTab 1 content\n===\n## Tab 2\nTab 2 content\n+++",
   "neko-columns": "|||\nColumn 1 content\n===\nColumn 2 content\n|||",
-  "neko-steps": ">>>\nStep 1 content\n===\nStep 2 content\n>>>",
+  "neko-steps": ">>> Step 1\nStep 1 content\n\n>>> Step 2\nStep 2 content\n\n>>>",
   "neko-colorchip": "[!colorchip color=\"#ff0000\"]",
   "neko-embed": "[!embed url=\"\"]",
   "neko-file": "[!file path=\"\"]",
