@@ -40,13 +40,20 @@ namespace Neko.Extensions
 
             // We expect alphanumeric, _, -, +
             var nameStart = slice.Start;
+            var hasAlphaNumeric = false;
             while (slice.CurrentChar.IsAlphaNumeric() || slice.CurrentChar == '-' || slice.CurrentChar == '_' || slice.CurrentChar == '+')
             {
+                if (slice.CurrentChar.IsAlphaNumeric())
+                {
+                    hasAlphaNumeric = true;
+                }
                 slice.NextChar();
             }
             var nameLength = slice.Start - nameStart;
 
-            if (nameLength == 0)
+            // Require at least one alphanumeric character to avoid swallowing things
+            // like pipe-table alignment markers (`:---:`, `:--:`) as emoji names.
+            if (nameLength == 0 || !hasAlphaNumeric)
             {
                 slice = saved;
                 return false;
