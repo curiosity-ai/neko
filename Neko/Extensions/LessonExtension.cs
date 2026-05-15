@@ -379,6 +379,55 @@ namespace Neko.Extensions
                 .ToList();
         }
 
+        /// <summary>
+        /// If <paramref name="filePath"/> is a child page of a lesson folder
+        /// (a folder whose index.md/README.md uses the [!lesson] component),
+        /// returns the previous and next steps in the same order produced by
+        /// <see cref="DiscoverSteps"/>. Returns (null, null) otherwise.
+        /// </summary>
+        public static (Step Prev, Step Next) GetLessonStepNavigation(string filePath, string rootDirectory)
+        {
+            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) return (null, null);
+
+            var fileName = Path.GetFileName(filePath);
+            if (string.Equals(fileName, "index.md", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(fileName, "README.md", StringComparison.OrdinalIgnoreCase))
+            {
+                return (null, null);
+            }
+
+            var dir = Path.GetDirectoryName(filePath);
+            if (string.IsNullOrEmpty(dir)) return (null, null);
+
+            string parentPath = null;
+            var indexPath = Path.Combine(dir, "index.md");
+            var readmePath = Path.Combine(dir, "README.md");
+            if (File.Exists(indexPath)) parentPath = indexPath;
+            else if (File.Exists(readmePath)) parentPath = readmePath;
+            if (parentPath == null) return (null, null);
+
+            try
+            {
+                var content = File.ReadAllText(parentPath);
+                if (content.IndexOf("[!lesson", StringComparison.OrdinalIgnoreCase) < 0) return (null, null);
+            }
+            catch
+            {
+                return (null, null);
+            }
+
+            var steps = DiscoverSteps(parentPath, rootDirectory);
+            if (steps.Count == 0) return (null, null);
+
+            var slug = Path.GetFileNameWithoutExtension(filePath).ToLowerInvariant();
+            var idx = steps.FindIndex(s => string.Equals(s.Slug, slug, StringComparison.OrdinalIgnoreCase));
+            if (idx < 0) return (null, null);
+
+            var prev = idx > 0 ? steps[idx - 1] : null;
+            var next = idx < steps.Count - 1 ? steps[idx + 1] : null;
+            return (prev, next);
+        }
+
         private static string ResolveUrlFromPath(string filePath, string rootDirectory)
         {
             var rel = !string.IsNullOrEmpty(rootDirectory)

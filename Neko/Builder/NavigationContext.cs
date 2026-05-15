@@ -7,6 +7,9 @@ namespace Neko.Builder
         public List<NavigationItem> Breadcrumbs { get; set; } = new List<NavigationItem>();
         public NavigationItem Prev { get; set; }
         public NavigationItem Next { get; set; }
+        public NavigationItem LessonPrev { get; set; }
+        public NavigationItem LessonNext { get; set; }
+        public bool IsLessonStep { get; set; }
     }
 
     public class NavigationItem

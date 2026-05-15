@@ -467,8 +467,42 @@ namespace Neko.Builder
                 sb.AppendLine(htmlContent);
             }
 
-            // Prev/Next Navigation
-            if (navContext != null && (navContext.Prev != null || navContext.Next != null))
+            // Lesson-step navigation: rendered on pages inside a [!lesson] folder,
+            // ordered by the curriculum (frontmatter `order`, then title) defined
+            // by the parent lesson page. Replaces the generic Prev/Next on these
+            // pages so the labels are tailored to the learning flow.
+            if (navContext != null && navContext.IsLessonStep && (navContext.LessonPrev != null || navContext.LessonNext != null))
+            {
+                sb.AppendLine("                    <div class=\"grid grid-cols-1 md:grid-cols-2 gap-4 mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 not-prose\">");
+
+                if (navContext.LessonPrev != null)
+                {
+                    sb.AppendLine($"                        <a href=\"{navContext.LessonPrev.Url}\" class=\"flex flex-col p-4 rounded border border-gray-200 dark:border-gray-700 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all group\">");
+                    sb.AppendLine("                            <span class=\"text-xs text-gray-500 dark:text-gray-400 mb-1 group-hover:text-primary-600 dark:group-hover:text-primary-400\">Go back</span>");
+                    sb.AppendLine($"                            <span class=\"font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2\"><i class=\"fi fi-rr-angle-small-left transition-transform group-hover:-translate-x-1\"></i> {navContext.LessonPrev.Title}</span>");
+                    sb.AppendLine("                        </a>");
+                }
+                else
+                {
+                    sb.AppendLine("                        <div></div>");
+                }
+
+                if (navContext.LessonNext != null)
+                {
+                    sb.AppendLine($"                        <a href=\"{navContext.LessonNext.Url}\" class=\"flex flex-col items-end p-4 rounded border border-gray-200 dark:border-gray-700 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all group text-right\">");
+                    sb.AppendLine("                            <span class=\"text-xs text-gray-500 dark:text-gray-400 mb-1 group-hover:text-primary-600 dark:group-hover:text-primary-400\">Next step</span>");
+                    sb.AppendLine($"                            <span class=\"font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2\">{navContext.LessonNext.Title} <i class=\"fi fi-rr-angle-small-right transition-transform group-hover:translate-x-1\"></i></span>");
+                    sb.AppendLine("                        </a>");
+                }
+                else
+                {
+                    sb.AppendLine("                        <div></div>");
+                }
+
+                sb.AppendLine("                    </div>");
+            }
+            // Standard Prev/Next Navigation (suppressed on lesson step pages — see above).
+            else if (navContext != null && (navContext.Prev != null || navContext.Next != null))
             {
                 sb.AppendLine("                    <div class=\"grid grid-cols-1 md:grid-cols-2 gap-4 mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 not-prose\">");
 

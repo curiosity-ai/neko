@@ -45,6 +45,10 @@ duration: 5 min
 
 Steps are sorted by `order`, then by title.
 
+## Step navigation
+
+Every step page automatically gets a **Go back / Next step** navigation block at the bottom, linking to its previous and next siblings in the same order shown in the curriculum on the index page. Nothing to configure — Neko detects the parent `[!lesson]` and wires the links up at build time.
+
 ## Attributes
 
 | Attribute | Description |
