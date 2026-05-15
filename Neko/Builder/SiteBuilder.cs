@@ -317,6 +317,16 @@ namespace Neko.Builder
                         }
                     }
 
+                    // Lesson-step navigation: if this page lives inside a [!lesson] folder,
+                    // expose prev/next siblings in the curriculum's own order.
+                    var (lessonPrev, lessonNext) = Neko.Extensions.LessonExtension.GetLessonStepNavigation(item.FilePath, _inputDirectory);
+                    if (lessonPrev != null || lessonNext != null)
+                    {
+                        navContext.IsLessonStep = true;
+                        if (lessonPrev != null) navContext.LessonPrev = new NavigationItem { Title = lessonPrev.Title, Url = lessonPrev.Url };
+                        if (lessonNext != null) navContext.LessonNext = new NavigationItem { Title = lessonNext.Title, Url = lessonNext.Url };
+                    }
+
                     var html = generator.Generate(item.Doc, backlinks, navContext, sidebarLinks, blogPosts, changelogEntries, relativeUrl);
 
                     var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html");

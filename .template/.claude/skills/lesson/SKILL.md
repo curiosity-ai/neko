@@ -50,6 +50,11 @@ guides/
 The order of steps follows the same rules as the sidebar
 (`order:` in each step's frontmatter, then alphabetical).
 
+Each generated step page automatically gets a **"Go back: …"** /
+**"Next step: …"** navigation block at the bottom, linking to its siblings in
+the same curriculum order. No configuration needed — it appears whenever the
+folder's `index.md`/`README.md` contains `[!lesson …]`.
+
 ## Example
 
 ```markdown
