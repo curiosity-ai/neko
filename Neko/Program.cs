@@ -279,11 +279,27 @@ namespace Neko
                 Environment.ExitCode = exitCode;
             }, newPathOption, newForceOption);
 
+            // Update-Skills Command — refresh the Neko-managed skills under
+            // an existing project's .claude/skills/ folder, leaving custom
+            // (non-Neko) skills untouched.
+            var updateSkillsCommand = new Command("update-skills", "Update Neko-managed skills under a target project's .claude/skills/ folder");
+            var updateSkillsPathOption = new Option<string?>(new[] { "--path", "-p" }, "Target project directory (default: current directory)");
+            var updateSkillsDryRunOption = new Option<bool>(new[] { "--dry-run" }, () => false, "List the changes that would be made without writing files");
+            updateSkillsCommand.AddOption(updateSkillsPathOption);
+            updateSkillsCommand.AddOption(updateSkillsDryRunOption);
+
+            updateSkillsCommand.SetHandler((string? updatePath, bool dryRun) =>
+            {
+                var exitCode = Neko.Builder.UpdateSkillsCommand.Run(updatePath, dryRun);
+                Environment.ExitCode = exitCode;
+            }, updateSkillsPathOption, updateSkillsDryRunOption);
+
             rootCommand.AddCommand(buildCommand);
             rootCommand.AddCommand(watchCommand);
             rootCommand.AddCommand(snapCommand);
             rootCommand.AddCommand(genImagesCommand);
             rootCommand.AddCommand(newCommand);
+            rootCommand.AddCommand(updateSkillsCommand);
 
             return await rootCommand.InvokeAsync(args);
         }
