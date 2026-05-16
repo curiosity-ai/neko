@@ -242,9 +242,9 @@ component. The set covers:
 alert · backlinks · badge · banner · button · callout · cards · code-block ·
 code-snippet · color-chip · column · command-example · comments · container ·
 csharp-docs · embed · emoji · example · file · file-download · force-graph ·
-icon · image · lesson · list · math · math-formulas · mermaid · panel · pdf ·
-reference-link · snapframe · steps · tab · table · tesserae · workflow ·
-youtube · frontmatter · neko-yml · folder-index.
+icon · image · img-gen · lesson · list · math · math-formulas · mermaid ·
+panel · pdf · reference-link · snapframe · steps · tab · table · tesserae ·
+workflow · youtube · frontmatter · neko-yml · folder-index.
 
 When you add a new component to Neko or change a component's syntax, **update
 the matching skill** so this template stays in sync with the engine.

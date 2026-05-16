@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <PackageReference Include="h5.Compiler.Service" Version="26.3.64893" />
+    <PackageReference Include="LlmTornado" Version="3.8.56" />
     <PackageReference Include="Markdig" Version="1.1.0" />
     <PackageReference Include="Microsoft.Build.Locator" Version="1.11.2" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />

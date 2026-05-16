@@ -99,6 +99,7 @@ namespace Neko.Builder
                 .Use<CustomImageExtension>()
                 .Use<PdfExtension>()
                 .Use<SnapFrameExtension>()
+                .Use<ImageGenExtension>()
                 .Use<LessonExtension>();
 
             pipelineBuilder.Extensions.Add(customContainerExtension);
