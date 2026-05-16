@@ -28,7 +28,7 @@ The following sample demonstrates a very basic `sample.md` page sample with a pa
 This is a paragraph.
 ```
 
-We can build on the above sample by adding more content and formatting, such as **bold** text, images, and lists.
+We can build on the above sample by adding more content and formatting, such as **bold** text, `inline code`, images, and lists.
 
 ```md
 {{ include "snippets/markdown-sample" }}
@@ -64,6 +64,22 @@ The default files can be used inside any folder of the project. Given the follow
 !!!
 If your home page is the Neko generated **Welcome** page, add a default page to the root of your project. The home page file can be named `readme.md`, `index.md`, `default.md`, `welcome.md` or `home.md`.
 !!!
+
+---
+
+## Inline code
+
+Wrap text in single backticks to render it as inline code. This is useful for referencing variable names, function calls, file paths, or any short snippet that should stand out from surrounding prose.
+
+```md
+Use `scope.Graph` for graph access and `scope.CurrentUser` for the current user.
+```
+
+Renders as:
+
+Use `scope.Graph` for graph access and `scope.CurrentUser` for the current user.
+
+For multi-line or syntax-highlighted code, use a fenced [code block](/components/code-block.md) instead.
 
 ---
 
