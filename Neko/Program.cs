@@ -238,6 +238,33 @@ namespace Neko
                 }
             });
 
+            // Gen-Images Command — find every [!img-gen ...] directive, ask the
+            // chosen LLM for a slug + alt text, generate the image via the
+            // chosen image model, save the PNG into the page's assets/img-gen/
+            // folder, and rewrite the directive to a real Markdown image with
+            // the original directive preserved as an HTML comment.
+            var genImagesCommand = new Command("gen-images", "Generate images for every [!img-gen ...] directive using OpenAI");
+            var genInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
+            var genApiKeyOption = new Option<string?>(new[] { "--api-key" }, "OpenAI API key (defaults to the OPENAI_API_KEY environment variable)");
+            var genImageModelOption = new Option<string>(new[] { "--image-model" }, () => "gpt-image-1", "OpenAI image model to use");
+            var genLlmModelOption = new Option<string>(new[] { "--llm-model" }, () => "gpt-4o-mini", "OpenAI chat model used to generate filename and alt text");
+            genImagesCommand.AddOption(genInputOption);
+            genImagesCommand.AddOption(genApiKeyOption);
+            genImagesCommand.AddOption(genImageModelOption);
+            genImagesCommand.AddOption(genLlmModelOption);
+
+            genImagesCommand.SetHandler(async (string input, string? apiKey, string imageModel, string llmModel) =>
+            {
+                var inputFullPath = Path.GetFullPath(input);
+                var key = apiKey;
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    key = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+                }
+                var cmd = new Neko.Builder.ImageGenCommand(inputFullPath, key ?? "", imageModel, llmModel);
+                Environment.ExitCode = await cmd.RunAsync();
+            }, genInputOption, genApiKeyOption, genImageModelOption, genLlmModelOption);
+
             // New Command — scaffold a new documentation project from the
             // embedded .template/ starter zip.
             var newCommand = new Command("new", "Initialize a new Neko documentation project from the built-in template");
@@ -255,6 +282,7 @@ namespace Neko
             rootCommand.AddCommand(buildCommand);
             rootCommand.AddCommand(watchCommand);
             rootCommand.AddCommand(snapCommand);
+            rootCommand.AddCommand(genImagesCommand);
             rootCommand.AddCommand(newCommand);
 
             return await rootCommand.InvokeAsync(args);

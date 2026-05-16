@@ -22,5 +22,5 @@ Neko Flavored [Markdown](/guides/formatting.md) (RFM) supports custom **Componen
 | [:icon-table: Table](table.md) | [:icon-download: File Download](file-download.md) | [:icon-info: Callout](callout.md)
 |  | [:icon-video-camera: YouTube](youtube.md) | [:icon-link: Reference Link](reference-link.md)
 |  | [:icon-clipboard-check: Embed](embed.md) | [:icon-refresh: Backlinks](backlinks.md)
-|  |  | [:icon-terminal: Command Example](command-example.md)
-|  |  | [:icon-route: Roadmap](roadmap.md)
+|  | [:icon-camera: SnapFrame](snapframe.md) | [:icon-terminal: Command Example](command-example.md)
+|  | [:icon-wand-magic-sparkles: Image Generation](img-gen.md) | [:icon-route: Roadmap](roadmap.md)

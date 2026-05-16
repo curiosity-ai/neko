@@ -32,6 +32,8 @@
   "neko-example": "::: example\nDescription of the example goes here.\n\n```csharp\n// Code goes here\n```\n:::",
   "neko-mermaid": "```mermaid\ngraph LR\n    A[Hard edge] -->|Link text| B(Round edge)\n    B --> C{Decision}\n    C -->|One| D[Result one]\n```",
   "neko-snapframe": "[!snapframe https://example.com]\n![Screenshot](/assets/screenshot.png)",
+  "neko-img-gen": "[!img-gen\nDescribe the image you want here\n]",
+  "neko-img-gen-options": "[!img-gen size=1024x1024 quality=high\nDescribe the image you want here\n]",
   "neko-workflow": "```workflow\nnode1: Start | play\nnode2: Process | gear\nnode3: End | flag\n\nnode1 --> node2\nnode2 --> node3\n```",
   "neko-front-matter": "---\ntitle: \"\"\nlabel: \"\"\nicon: \"\"\norder: \ntags: []\ndescription: \"\"\npassword: \"\"\nauthor: \"\"\nauthorImage: \"\"\ndate: \"\"\ncover: \"\"\nlayout: \"\"\n---\n",
   "neko-pdf": "![${1:caption}](${2:url.pdf}){$3}",
