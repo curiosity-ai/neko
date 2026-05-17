@@ -88,8 +88,19 @@ namespace Neko.Extensions
             string prompt;
             if (firstNewline >= 0)
             {
-                optionsLine = trimmed.Substring(0, firstNewline).Trim();
-                prompt = trimmed.Substring(firstNewline).Trim();
+                // The first line is only an attributes line if every token is key=value.
+                // Otherwise the whole body — including the first line — is the prompt.
+                var firstLine = trimmed.Substring(0, firstNewline).Trim();
+                if (LooksLikeAttributes(firstLine))
+                {
+                    optionsLine = firstLine;
+                    prompt = trimmed.Substring(firstNewline).Trim();
+                }
+                else
+                {
+                    optionsLine = "";
+                    prompt = trimmed.Trim();
+                }
             }
             else
             {
