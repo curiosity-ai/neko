@@ -261,7 +261,11 @@ namespace Neko
                 {
                     key = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
                 }
-                var cmd = new Neko.Builder.ImageGenCommand(inputFullPath, key ?? "", imageModel, llmModel);
+                var configPath = Path.Combine(inputFullPath, "neko.yml");
+                var nekoConfig = File.Exists(configPath)
+                    ? Neko.Configuration.ConfigParser.Parse(configPath)
+                    : new Neko.Configuration.NekoConfig();
+                var cmd = new Neko.Builder.ImageGenCommand(inputFullPath, key ?? "", imageModel, llmModel, nekoConfig.ImageGen);
                 Environment.ExitCode = await cmd.RunAsync();
             }, genInputOption, genApiKeyOption, genImageModelOption, genLlmModelOption);
 

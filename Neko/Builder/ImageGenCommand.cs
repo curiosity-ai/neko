@@ -13,6 +13,7 @@ using LlmTornado.Chat.Models;
 using LlmTornado.Code;
 using LlmTornado.Images;
 using LlmTornado.Images.Models;
+using Neko.Configuration;
 
 namespace Neko.Builder
 {
@@ -29,13 +30,15 @@ namespace Neko.Builder
         private readonly string _apiKey;
         private readonly string _imageModel;
         private readonly string _llmModel;
+        private readonly ImageGenConfig _imageGenConfig;
 
-        public ImageGenCommand(string inputDirectory, string apiKey, string imageModel, string llmModel)
+        public ImageGenCommand(string inputDirectory, string apiKey, string imageModel, string llmModel, ImageGenConfig imageGenConfig = null)
         {
             _inputDirectory = inputDirectory;
             _apiKey = apiKey;
             _imageModel = imageModel;
             _llmModel = llmModel;
+            _imageGenConfig = imageGenConfig ?? new ImageGenConfig();
         }
 
         public async Task<int> RunAsync()
@@ -112,13 +115,18 @@ namespace Neko.Builder
                     usedNames.Add(filename);
 
                     Directory.CreateDirectory(assetsDir);
-                    var imagePath = Path.Combine(assetsDir, filename + ".png");
+                    var lightPath = Path.Combine(assetsDir, filename + ".png");
+
+                    var wantsLight = WantsLightMode(parsed.Options);
+                    var wantsDark  = WantsDarkMode(parsed.Options);
 
                     Console.WriteLine($"[img-gen]   generating '{filename}.png' ({alt})...");
 
+                    byte[] lightBytes;
                     try
                     {
-                        await GenerateImageAsync(api, parsed, imagePath);
+                        lightBytes = await GenerateImageAsync(api, parsed, wantsLight);
+                        File.WriteAllBytes(lightPath, lightBytes);
                     }
                     catch (Exception ex)
                     {
@@ -127,7 +135,27 @@ namespace Neko.Builder
                         continue;
                     }
 
-                    var imageMarkdown = $"![{EscapeAlt(alt)}](assets/img-gen/{filename}.png)";
+                    string darkRelative = null;
+                    if (wantsDark)
+                    {
+                        var darkFilename = filename + "-dark";
+                        var darkPath = Path.Combine(assetsDir, darkFilename + ".png");
+                        Console.WriteLine($"[img-gen]   generating dark-mode variant '{darkFilename}.png'...");
+                        try
+                        {
+                            var darkBytes = await GenerateDarkVariantAsync(api, parsed, lightBytes);
+                            File.WriteAllBytes(darkPath, darkBytes);
+                            darkRelative = $"assets/img-gen/{darkFilename}.png";
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[img-gen]   dark-mode variant failed (keeping light only): {ex.Message}");
+                        }
+                    }
+
+                    var imageMarkdown = darkRelative != null
+                        ? $"![{EscapeAlt(alt)}](assets/img-gen/{filename}.png){{src-dark=\"{darkRelative}\"}}"
+                        : $"![{EscapeAlt(alt)}](assets/img-gen/{filename}.png)";
                     var replacement = $"<!--\n{directive}\n-->\n{imageMarkdown}";
                     newContent = newContent.Substring(0, match.Index) + replacement + newContent.Substring(match.Index + match.Length);
                     generated++;
@@ -141,6 +169,18 @@ namespace Neko.Builder
 
             Console.WriteLine($"[img-gen] Done. Generated {generated} image(s){(failed > 0 ? $", {failed} failed" : "")}.");
             return failed > 0 ? 1 : 0;
+        }
+
+        private bool WantsLightMode(Dictionary<string, string> opts)
+        {
+            if (opts.TryGetValue("light", out var v) && bool.TryParse(v, out var b)) return b;
+            return _imageGenConfig.LightMode;
+        }
+
+        private bool WantsDarkMode(Dictionary<string, string> opts)
+        {
+            if (opts.TryGetValue("dark", out var v) && bool.TryParse(v, out var b)) return b;
+            return _imageGenConfig.DarkMode;
         }
 
         private static (string Prompt, Dictionary<string, string> Options, string Raw) ParseDirective(string body)
@@ -348,19 +388,35 @@ namespace Neko.Builder
             return (s ?? "").Replace("]", "\\]").Replace("[", "\\[");
         }
 
-        private async Task GenerateImageAsync(TornadoApi api, (string Prompt, Dictionary<string, string> Options, string Raw) parsed, string targetPath)
+        private string ComposePrompt(string userPrompt, bool appendLightModeHint)
+        {
+            var parts = new List<string> { userPrompt.Trim() };
+            if (!string.IsNullOrWhiteSpace(_imageGenConfig.SystemPrompt))
+            {
+                parts.Add(_imageGenConfig.SystemPrompt.Trim());
+            }
+            if (appendLightModeHint && !string.IsNullOrWhiteSpace(_imageGenConfig.LightModePrompt))
+            {
+                parts.Add(_imageGenConfig.LightModePrompt.Trim());
+            }
+            return string.Join("\n\n", parts);
+        }
+
+        private async Task<byte[]> GenerateImageAsync(TornadoApi api, (string Prompt, Dictionary<string, string> Options, string Raw) parsed, bool appendLightModeHint)
         {
             var request = new ImageGenerationRequest
             {
                 Model = new ImageModel(_imageModel, LLmProviders.OpenAi),
-                Prompt = parsed.Prompt,
+                Prompt = ComposePrompt(parsed.Prompt, appendLightModeHint),
                 NumOfImages = 1,
             };
 
-            if (parsed.Options.TryGetValue("size", out var size))
-            {
-                request.Size = ParseSize(size);
-            }
+            // Size: per-directive override > config default.
+            var sizeStr = parsed.Options.TryGetValue("size", out var s) && !string.IsNullOrWhiteSpace(s)
+                ? s
+                : _imageGenConfig.Size;
+            ApplySize(request, sizeStr);
+
             if (parsed.Options.TryGetValue("quality", out var quality))
             {
                 request.Quality = ParseQuality(quality);
@@ -383,40 +439,123 @@ namespace Neko.Builder
                 throw new InvalidOperationException("Image generation returned no data.");
             }
 
-            var image = result.Data[0];
-            byte[] bytes;
-            if (!string.IsNullOrEmpty(image.Base64))
-            {
-                bytes = Convert.FromBase64String(image.Base64);
-            }
-            else if (!string.IsNullOrEmpty(image.Url))
-            {
-                using var http = new HttpClient();
-                bytes = await http.GetByteArrayAsync(image.Url);
-            }
-            else
-            {
-                throw new InvalidOperationException("Image generation response had neither base64 nor URL.");
-            }
-
-            File.WriteAllBytes(targetPath, bytes);
+            return await DownloadAsync(result.Data[0]);
         }
 
-        private static TornadoImageSizes? ParseSize(string s)
+        private async Task<byte[]> GenerateDarkVariantAsync(TornadoApi api, (string Prompt, Dictionary<string, string> Options, string Raw) parsed, byte[] lightBytes)
+        {
+            var darkPrompt = string.IsNullOrWhiteSpace(_imageGenConfig.DarkModePrompt)
+                ? ImageGenConfig.DefaultDarkModePrompt
+                : _imageGenConfig.DarkModePrompt;
+
+            var request = new ImageEditRequest
+            {
+                Model = new ImageModel(_imageModel, LLmProviders.OpenAi),
+                Prompt = darkPrompt,
+                NumOfImages = 1,
+                Image = new TornadoInputFile
+                {
+                    Base64 = Convert.ToBase64String(lightBytes),
+                    MimeType = "image/png",
+                },
+                ResponseFormat = TornadoImageResponseFormats.Base64,
+            };
+
+            // Match the size used for the light image so the pair lines up visually.
+            var sizeStr = parsed.Options.TryGetValue("size", out var s) && !string.IsNullOrWhiteSpace(s)
+                ? s
+                : _imageGenConfig.Size;
+            ApplyEditSize(request, sizeStr);
+
+            var result = await api.ImageEdit.EditImage(request);
+            if (result?.Data == null || result.Data.Count == 0)
+            {
+                throw new InvalidOperationException("Image edit returned no data.");
+            }
+            return await DownloadAsync(result.Data[0]);
+        }
+
+        private static async Task<byte[]> DownloadAsync(TornadoGeneratedImage image)
+        {
+            if (!string.IsNullOrEmpty(image.Base64))
+            {
+                return Convert.FromBase64String(image.Base64);
+            }
+            if (!string.IsNullOrEmpty(image.Url))
+            {
+                using var http = new HttpClient();
+                return await http.GetByteArrayAsync(image.Url);
+            }
+            throw new InvalidOperationException("Image response had neither base64 nor URL.");
+        }
+
+        private static void ApplySize(ImageGenerationRequest request, string sizeStr)
+        {
+            var (size, width, height) = ParseSize(sizeStr);
+            if (size.HasValue)
+            {
+                request.Size = size.Value;
+                if (size.Value == TornadoImageSizes.Custom)
+                {
+                    request.Width = width;
+                    request.Height = height;
+                }
+            }
+        }
+
+        private static void ApplyEditSize(ImageEditRequest request, string sizeStr)
+        {
+            var (size, _, _) = ParseSize(sizeStr);
+            // ImageEditRequest doesn't expose Width/Height for Custom; fall back to Auto in that case.
+            if (size.HasValue && size.Value != TornadoImageSizes.Custom)
+            {
+                request.Size = size.Value;
+            }
+            else if (size.HasValue)
+            {
+                request.Size = TornadoImageSizes.Auto;
+            }
+        }
+
+        // Parses every popular size string used in OpenAI / LLM Tornado, plus the
+        // 2K and 4K resolutions (which go through `TornadoImageSizes.Custom` with
+        // explicit Width/Height).
+        private static (TornadoImageSizes? Size, int? Width, int? Height) ParseSize(string s)
         {
             s = s?.Trim().ToLowerInvariant() ?? "";
             return s switch
             {
-                "auto"        => TornadoImageSizes.Auto,
-                "256x256"     => TornadoImageSizes.Size256x256,
-                "512x512"     => TornadoImageSizes.Size512x512,
-                "1024x1024"   => TornadoImageSizes.Size1024x1024,
-                "1024x1536"   => TornadoImageSizes.Size1024x1536,
-                "1536x1024"   => TornadoImageSizes.Size1536x1024,
-                "1024x1792"   => TornadoImageSizes.Size1024x1792,
-                "1792x1024"   => TornadoImageSizes.Size1792x1024,
-                _             => null,
+                ""           => (null, null, null),
+                "auto"       => (TornadoImageSizes.Auto, null, null),
+                "256x256"    => (TornadoImageSizes.Size256x256, null, null),
+                "512x512"    => (TornadoImageSizes.Size512x512, null, null),
+                "1024x1024"  => (TornadoImageSizes.Size1024x1024, null, null),
+                "1024x1536"  => (TornadoImageSizes.Size1024x1536, null, null),
+                "1536x1024"  => (TornadoImageSizes.Size1536x1024, null, null),
+                "1024x1792"  => (TornadoImageSizes.Size1024x1792, null, null),
+                "1792x1024"  => (TornadoImageSizes.Size1792x1024, null, null),
+                "768x1408"   => (TornadoImageSizes.Size768x1408, null, null),
+                "1408x768"   => (TornadoImageSizes.Size1408x768, null, null),
+                "896x1280"   => (TornadoImageSizes.Size896x1280, null, null),
+                "1280x896"   => (TornadoImageSizes.Size1280x896, null, null),
+                "2048x2048"  => (TornadoImageSizes.Custom, 2048, 2048),
+                "2048x1152"  => (TornadoImageSizes.Custom, 2048, 1152),
+                "3840x2160"  => (TornadoImageSizes.Custom, 3840, 2160),
+                "2160x3840"  => (TornadoImageSizes.Custom, 2160, 3840),
+                _            => TryParseCustom(s),
             };
+        }
+
+        // Accepts any "<width>x<height>" size as a custom dimension.
+        private static (TornadoImageSizes? Size, int? Width, int? Height) TryParseCustom(string s)
+        {
+            var m = Regex.Match(s, @"^(\d{2,5})x(\d{2,5})$");
+            if (!m.Success) return (null, null, null);
+            if (int.TryParse(m.Groups[1].Value, out var w) && int.TryParse(m.Groups[2].Value, out var h))
+            {
+                return (TornadoImageSizes.Custom, w, h);
+            }
+            return (null, null, null);
         }
 
         private static TornadoImageQualities? ParseQuality(string s)

@@ -23,6 +23,7 @@ namespace Neko.Extensions
             {
                 var attributes = link.GetAttributes();
                 var properties = attributes.Properties?.ToList();
+                string darkSrc = null;
                 if (properties != null)
                 {
                     var styleParts = new List<string>();
@@ -36,14 +37,20 @@ namespace Neko.Extensions
                             styleParts.Add($"{prop.Key}: {prop.Value}");
                             propsToRemove.Add(prop);
                         }
+                        else if (prop.Key == "src-dark" || prop.Key == "srcDark")
+                        {
+                            darkSrc = prop.Value;
+                            propsToRemove.Add(prop);
+                        }
+                    }
+
+                    foreach (var prop in propsToRemove)
+                    {
+                        attributes.Properties?.Remove(prop);
                     }
 
                     if (styleParts.Count > 0)
                     {
-                        foreach (var prop in propsToRemove)
-                        {
-                            attributes.Properties?.Remove(prop);
-                        }
                         var existingStyle = properties.FirstOrDefault(p => p.Key == "style").Value;
                         var newStyle = string.Join("; ", styleParts);
                         if (!string.IsNullOrEmpty(existingStyle))
@@ -54,9 +61,40 @@ namespace Neko.Extensions
                         attributes.Properties?.Add(new KeyValuePair<string, string?>("style", newStyle));
                     }
                 }
+
+                if (!string.IsNullOrEmpty(darkSrc))
+                {
+                    // Emit two <img> tags so the active theme picks the right one.
+                    // The light image keeps every original attribute (including any
+                    // alignment classes from ImageAlignmentRenderer) and is hidden
+                    // in dark mode; the dark image mirrors those classes but with
+                    // the visibility swap so it inherits the same layout.
+                    attributes.AddClass("dark:hidden");
+                    _originalRenderer.Write(renderer, link);
+
+                    var altText = ExtractAltText(link);
+                    var titleAttr = string.IsNullOrEmpty(link.Title) ? "" : $" title=\"{System.Net.WebUtility.HtmlEncode(link.Title)}\"";
+                    var sharedClasses = string.Join(" ", (attributes.Classes ?? new List<string>())
+                        .Where(c => c != "dark:hidden"));
+                    var darkClasses = string.IsNullOrEmpty(sharedClasses)
+                        ? "hidden dark:block"
+                        : sharedClasses + " hidden dark:block";
+                    renderer.Write($"<img src=\"{System.Net.WebUtility.HtmlEncode(darkSrc)}\" alt=\"{System.Net.WebUtility.HtmlEncode(altText)}\"{titleAttr} class=\"{darkClasses}\" />");
+                    return;
+                }
             }
 
             _originalRenderer.Write(renderer, link);
+        }
+
+        private static string ExtractAltText(LinkInline link)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var child in link)
+            {
+                if (child is LiteralInline lit) sb.Append(lit.Content.ToString());
+            }
+            return sb.ToString();
         }
     }
 

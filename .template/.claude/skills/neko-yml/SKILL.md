@@ -46,6 +46,7 @@ links:
 | `backlinks` | Default inbound-link block behaviour.                                      |
 | `start`     | Dev-server tweaks (`pro: true`, ports).                                    |
 | `snippets`  | Map of template variables substituted into pages.                          |
+| `imageGen`  | Defaults for the `[!img-gen]` component (system prompt, size, light/dark). |
 
 ## Branding
 
@@ -115,6 +116,24 @@ links:
 footer:
   copyright: "&copy; Copyright {{ year }}. All rights reserved."
 ```
+
+## Image generation defaults
+
+Sets global behaviour for the `[!img-gen]` component (run with
+`neko gen-images`). Each key is optional.
+
+```yml
+imageGen:
+  systemPrompt: "Use a flat illustration style with thin strokes."
+  size: 1536x1024            # default landscape, used when a directive omits `size`
+  lightMode: true            # append a light-theme instruction to every prompt
+  darkMode: true             # also generate a paired *-dark.png variant
+  lightModePrompt: "Render this in light mode: bright background..."
+  darkModePrompt: "Recreate this image in dark mode: dark background..."
+```
+
+See the `img-gen` skill for per-directive overrides (`size=`, `light=`,
+`dark=`).
 
 ## Multi-repo
 

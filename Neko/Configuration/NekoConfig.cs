@@ -51,6 +51,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "ignore")]
         public string[] Ignore { get; set; } = Array.Empty<string>();
 
+        [YamlMember(Alias = "imageGen")]
+        public ImageGenConfig ImageGen { get; set; } = new ImageGenConfig();
+
         public void MergeWith(NekoConfig parent)
         {
             if (parent == null) return;
@@ -103,7 +106,45 @@ namespace Neko.Configuration
             {
                 Ignore = (string[])parent.Ignore.Clone();
             }
+
+            // Inherit ImageGen settings (per-field, only when the child left the default)
+            if (ImageGen == null) ImageGen = new ImageGenConfig();
+            if (parent.ImageGen != null)
+            {
+                if (string.IsNullOrEmpty(ImageGen.SystemPrompt))   ImageGen.SystemPrompt   = parent.ImageGen.SystemPrompt;
+                if (string.IsNullOrEmpty(ImageGen.LightModePrompt) || ImageGen.LightModePrompt == ImageGenConfig.DefaultLightModePrompt)
+                    ImageGen.LightModePrompt = parent.ImageGen.LightModePrompt;
+                if (string.IsNullOrEmpty(ImageGen.DarkModePrompt)  || ImageGen.DarkModePrompt  == ImageGenConfig.DefaultDarkModePrompt)
+                    ImageGen.DarkModePrompt  = parent.ImageGen.DarkModePrompt;
+                if (string.IsNullOrEmpty(ImageGen.Size) || ImageGen.Size == ImageGenConfig.DefaultSize)
+                    ImageGen.Size = parent.ImageGen.Size;
+            }
         }
+    }
+
+    public class ImageGenConfig
+    {
+        public const string DefaultSize = "1536x1024";
+        public const string DefaultLightModePrompt = "Render this in light mode: use a clean white or very light background and colors suitable for display on a light/white theme.";
+        public const string DefaultDarkModePrompt = "Recreate this exact same image, preserving the composition, subjects, layout and details, but adapted for dark mode: use a dark background (near-black or deep neutral) and adjust foreground colors so the image reads clearly on a dark/black theme.";
+
+        [YamlMember(Alias = "systemPrompt")]
+        public string SystemPrompt { get; set; }
+
+        [YamlMember(Alias = "size")]
+        public string Size { get; set; } = DefaultSize;
+
+        [YamlMember(Alias = "lightMode")]
+        public bool LightMode { get; set; } = true;
+
+        [YamlMember(Alias = "darkMode")]
+        public bool DarkMode { get; set; } = true;
+
+        [YamlMember(Alias = "lightModePrompt")]
+        public string LightModePrompt { get; set; } = DefaultLightModePrompt;
+
+        [YamlMember(Alias = "darkModePrompt")]
+        public string DarkModePrompt { get; set; } = DefaultDarkModePrompt;
     }
 
     public class LayoutConfig

@@ -218,5 +218,79 @@ namespace Neko.Tests
             var exit = cmd.RunAsync().GetAwaiter().GetResult();
             Assert.That(exit, Is.EqualTo(1));
         }
+
+        [Test]
+        public void ImageGenConfigHasLandscapeDefault()
+        {
+            var cfg = new Neko.Configuration.ImageGenConfig();
+            Assert.That(cfg.Size, Is.EqualTo("1536x1024"));
+            Assert.That(cfg.LightMode, Is.True);
+            Assert.That(cfg.DarkMode, Is.True);
+            Assert.That(cfg.LightModePrompt, Does.Contain("light"));
+            Assert.That(cfg.DarkModePrompt, Does.Contain("dark"));
+        }
+
+        [Test]
+        public void NekoConfigParsesImageGenSection()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "neko_imggen_yml_" + System.Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+            try
+            {
+                var yml = @"input: ./
+output: .neko
+imageGen:
+  systemPrompt: 'Use a flat illustration style with thin strokes.'
+  size: 2048x1152
+  lightMode: true
+  darkMode: false
+";
+                var path = Path.Combine(tempDir, "neko.yml");
+                File.WriteAllText(path, yml);
+                var cfg = Neko.Configuration.ConfigParser.Parse(path);
+                Assert.That(cfg.ImageGen, Is.Not.Null);
+                Assert.That(cfg.ImageGen.SystemPrompt, Is.EqualTo("Use a flat illustration style with thin strokes."));
+                Assert.That(cfg.ImageGen.Size, Is.EqualTo("2048x1152"));
+                Assert.That(cfg.ImageGen.LightMode, Is.True);
+                Assert.That(cfg.ImageGen.DarkMode, Is.False);
+            }
+            finally
+            {
+                try { Directory.Delete(tempDir, recursive: true); } catch { }
+            }
+        }
+
+        [Test]
+        public void NekoConfigDefaultsImageGenWhenSectionMissing()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "neko_imggen_default_" + System.Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+            try
+            {
+                var yml = "input: ./\noutput: .neko\n";
+                var path = Path.Combine(tempDir, "neko.yml");
+                File.WriteAllText(path, yml);
+                var cfg = Neko.Configuration.ConfigParser.Parse(path);
+                Assert.That(cfg.ImageGen, Is.Not.Null);
+                Assert.That(cfg.ImageGen.Size, Is.EqualTo("1536x1024"));
+                Assert.That(cfg.ImageGen.LightMode, Is.True);
+                Assert.That(cfg.ImageGen.DarkMode, Is.True);
+            }
+            finally
+            {
+                try { Directory.Delete(tempDir, recursive: true); } catch { }
+            }
+        }
+
+        [Test]
+        public void DarkSrcImageRendersTwoTags()
+        {
+            var markdown = "![A diagram](assets/img-gen/foo.png){src-dark=\"assets/img-gen/foo-dark.png\"}";
+            var doc = _parser.Parse(markdown);
+            Assert.That(doc.Html, Does.Contain("src=\"assets/img-gen/foo.png\""));
+            Assert.That(doc.Html, Does.Contain("dark:hidden"));
+            Assert.That(doc.Html, Does.Contain("src=\"assets/img-gen/foo-dark.png\""));
+            Assert.That(doc.Html, Does.Contain("hidden dark:block"));
+        }
     }
 }
