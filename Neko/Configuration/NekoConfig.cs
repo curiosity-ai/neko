@@ -54,6 +54,26 @@ namespace Neko.Configuration
         [YamlMember(Alias = "imageGen")]
         public ImageGenConfig ImageGen { get; set; } = new ImageGenConfig();
 
+        public void NormalizeLinks()
+        {
+            if (Banner != null)
+            {
+                Banner.Link = LinkNormalizer.Normalize(Banner.Link);
+            }
+            NormalizeLinkList(Links);
+        }
+
+        private static void NormalizeLinkList(List<LinkConfig> links)
+        {
+            if (links == null) return;
+            foreach (var link in links)
+            {
+                link.Link = LinkNormalizer.Normalize(link.Link);
+                NormalizeLinkList(link.Items);
+                NormalizeLinkList(link.FooterItems);
+            }
+        }
+
         public void MergeWith(NekoConfig parent)
         {
             if (parent == null) return;
