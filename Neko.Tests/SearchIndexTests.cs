@@ -84,6 +84,14 @@ title: Deep Internal
 # Deep
 This nested-excluded-canary should not appear in search results either.
 ");
+
+            File.WriteAllText(Path.Combine(_sampleDir, "untitled-page.md"), @"# Heading From Markdown
+
+Body text for the untitled page.
+");
+
+            File.WriteAllText(Path.Combine(_sampleDir, "no-heading.md"), @"Just some body text without a heading.
+");
         }
 
         [Test]
@@ -154,6 +162,26 @@ This nested-excluded-canary should not appear in search results either.
 
             Assert.That(ids, Does.Contain("index.html"),
                 "Non-excluded pages must still be indexed");
+        }
+
+        [Test]
+        public async Task SearchIndex_FallsBackToFirstH1_WhenFrontmatterTitleMissing()
+        {
+            var builder = new SiteBuilder(_sampleDir);
+            await builder.BuildAsync();
+
+            var indexPath = Path.Combine(builder.OutputDirectory, "search.json");
+            var json = await File.ReadAllTextAsync(indexPath);
+            using var doc = JsonDocument.Parse(json);
+            var docs = doc.RootElement.EnumerateArray().ToList();
+
+            var untitled = docs.First(d => d.GetProperty("id").GetString() == "untitled-page.html");
+            Assert.That(untitled.GetProperty("title").GetString(), Is.EqualTo("Heading From Markdown"),
+                "Pages without a frontmatter title should use the first H1 heading");
+
+            var noHeading = docs.First(d => d.GetProperty("id").GetString() == "no-heading.html");
+            Assert.That(noHeading.GetProperty("title").GetString(), Is.EqualTo("no-heading"),
+                "Pages without a frontmatter title or H1 should fall back to the filename");
         }
 
         [Test]
