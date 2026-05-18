@@ -799,6 +799,26 @@ See [permalink](#permalink).
 
 ---
 
+## searchExclude
+
+=== searchExclude : `boolean`
+
+Exclude this page from the generated `search.json` index. Default is `false`.
+
+```yml
+---
+searchExclude: true
+---
+```
+
+The page is still built and reachable by direct link or navigation — it just will not appear in the in-site search results.
+
+Set `searchExclude: true` in a folder's [`index.yml`](folder.md#searchexclude) to exclude every page within that folder (recursively) from search.
+
+===
+
+---
+
 ## tags
 
 === tags : `list`
