@@ -35,6 +35,7 @@ links:
 | `output`    | Where to write the built site. Default `.neko`.                            |
 | `url`       | Public hostname (no scheme). Used in canonical URLs and sitemap.           |
 | `cname`     | Value written to `CNAME` for GitHub Pages.                                 |
+| `sitemap`   | Generate `sitemap.xml`. Default `true`; skipped when `url` is unset.       |
 | `branding`  | Logo, title, label, colours.                                               |
 | `theme`     | Theme name and overrides.                                                  |
 | `meta`      | Default `<meta>` tags (description, keywords, author, image, og:type).     |

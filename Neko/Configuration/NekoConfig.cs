@@ -22,7 +22,7 @@ namespace Neko.Configuration
         public string Password { get; set; }
 
         [YamlMember(Alias = "sitemap")]
-        public bool Sitemap { get; set; } = false;
+        public bool Sitemap { get; set; } = true;
 
         [YamlMember(Alias = "branding")]
         public BrandingConfig Branding { get; set; } = new BrandingConfig();
