@@ -14,6 +14,7 @@ namespace Neko.Configuration
             {
                 config.Input = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(configPath), config.Input));
             }
+            config.NormalizeLinks();
             return config;
         }
 

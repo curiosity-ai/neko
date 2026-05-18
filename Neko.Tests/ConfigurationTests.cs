@@ -16,6 +16,79 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void TestLinkNormalizerStripsMdExtension()
+        {
+            Assert.That(LinkNormalizer.Normalize("/workspace/core-concepts/graph-model.md"),
+                Is.EqualTo("/workspace/core-concepts/graph-model"));
+            Assert.That(LinkNormalizer.Normalize("about.md"), Is.EqualTo("about"));
+            Assert.That(LinkNormalizer.Normalize("page.html"), Is.EqualTo("page"));
+        }
+
+        [Test]
+        public void TestLinkNormalizerPreservesFragmentsAndQueries()
+        {
+            Assert.That(LinkNormalizer.Normalize("/docs/page.md#section"),
+                Is.EqualTo("/docs/page#section"));
+            Assert.That(LinkNormalizer.Normalize("/docs/page.md?x=1"),
+                Is.EqualTo("/docs/page?x=1"));
+            Assert.That(LinkNormalizer.Normalize("/docs/page.md?x=1#section"),
+                Is.EqualTo("/docs/page?x=1#section"));
+        }
+
+        [Test]
+        public void TestLinkNormalizerLeavesExternalAndSpecialLinksAlone()
+        {
+            Assert.That(LinkNormalizer.Normalize("https://example.com/page.md"),
+                Is.EqualTo("https://example.com/page.md"));
+            Assert.That(LinkNormalizer.Normalize("mailto:foo@example.com"),
+                Is.EqualTo("mailto:foo@example.com"));
+            Assert.That(LinkNormalizer.Normalize("#anchor"), Is.EqualTo("#anchor"));
+            Assert.That(LinkNormalizer.Normalize("/already/clean"), Is.EqualTo("/already/clean"));
+            Assert.That(LinkNormalizer.Normalize(null), Is.Null);
+            Assert.That(LinkNormalizer.Normalize(""), Is.EqualTo(""));
+        }
+
+        [Test]
+        public void TestConfigParserNormalizesYamlLinks()
+        {
+            var yaml = @"
+input: ./docs
+links:
+  - text: Graph
+    link: /workspace/core-concepts/graph-model.md
+    icon: code-branch
+  - text: Guides
+    items:
+      - text: Getting started
+        link: /guides/start.md
+      - text: External
+        link: https://example.com/page.md
+    footerItems:
+      - text: About
+        link: about.html
+banner:
+  text: Hello
+  link: /promo/announce.md
+";
+            var tempFile = Path.GetTempFileName();
+            File.WriteAllText(tempFile, yaml);
+
+            try
+            {
+                var config = ConfigParser.Parse(tempFile);
+                Assert.That(config.Links[0].Link, Is.EqualTo("/workspace/core-concepts/graph-model"));
+                Assert.That(config.Links[1].Items[0].Link, Is.EqualTo("/guides/start"));
+                Assert.That(config.Links[1].Items[1].Link, Is.EqualTo("https://example.com/page.md"));
+                Assert.That(config.Links[1].FooterItems[0].Link, Is.EqualTo("about"));
+                Assert.That(config.Banner.Link, Is.EqualTo("/promo/announce"));
+            }
+            finally
+            {
+                File.Delete(tempFile);
+            }
+        }
+
+        [Test]
         public void TestParseSampleConfig()
         {
             var yaml = @"
