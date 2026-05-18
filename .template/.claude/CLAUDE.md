@@ -240,7 +240,7 @@ just `SKILL.md` files; load them on demand when you need precise syntax for a
 component. The set covers:
 
 alert · backlinks · badge · banner · button · callout · cards · code-block ·
-code-snippet · color-chip · column · command-example · comments · container ·
+code-inline · code-snippet · color-chip · column · command-example · comments · container ·
 csharp-docs · embed · emoji · example · file · file-download · force-graph ·
 icon · image · img-gen · lesson · list · math · math-formulas · mermaid ·
 panel · pdf · reference-link · snapframe · steps · tab · table · tesserae ·
