@@ -171,6 +171,179 @@ namespace Neko.Builder
             return failed > 0 ? 1 : 0;
         }
 
+        // Matches a Markdown image whose URL points into `assets/img-gen/`.
+        // Captures any attribute block `{...}` already attached so we can detect
+        // (and preserve) existing attributes when rewriting.
+        private static readonly Regex BackfillImgRegex = new(
+            @"!\[(?<alt>[^\]]*)\]\((?<url>assets/img-gen/[^)\s]+\.png)\)(?<attrs>\{[^}]*\})?",
+            RegexOptions.Compiled);
+
+        public async Task<int> BackfillDarkImagesAsync()
+        {
+            if (!Directory.Exists(_inputDirectory))
+            {
+                Console.WriteLine($"[dark-fill] Input directory not found: {_inputDirectory}");
+                return 1;
+            }
+
+            if (string.IsNullOrWhiteSpace(_apiKey))
+            {
+                Console.WriteLine("[dark-fill] No OpenAI API key provided. Pass --api-key or set OPENAI_API_KEY.");
+                return 1;
+            }
+
+            var markdownFiles = Directory.GetFiles(_inputDirectory, "*.md", SearchOption.AllDirectories);
+            Console.WriteLine($"[dark-fill] Scanning {markdownFiles.Length} markdown file(s) in {_inputDirectory}...");
+
+            var api = new TornadoApi(LLmProviders.OpenAi, _apiKey);
+            int generated = 0, failed = 0, skipped = 0;
+
+            foreach (var file in markdownFiles)
+            {
+                string content;
+                try { content = File.ReadAllText(file); }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[dark-fill] Could not read {file}: {ex.Message}");
+                    continue;
+                }
+
+                var matches = BackfillImgRegex.Matches(content);
+                if (matches.Count == 0) continue;
+
+                var fileDir = Path.GetDirectoryName(file) ?? _inputDirectory;
+                var relFile = Path.GetRelativePath(_inputDirectory, file);
+
+                // Rewrite from the end so earlier match indices stay valid.
+                var ordered = matches.Cast<Match>().OrderByDescending(m => m.Index).ToList();
+                var newContent = content;
+
+                foreach (var match in ordered)
+                {
+                    var alt = match.Groups["alt"].Value;
+                    var url = match.Groups["url"].Value;
+                    var attrs = match.Groups["attrs"].Success ? match.Groups["attrs"].Value : "";
+
+                    if (attrs.IndexOf("src-dark", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        // Already has a dark variant linked — nothing to do.
+                        skipped++;
+                        continue;
+                    }
+
+                    var filenameNoExt = Path.GetFileNameWithoutExtension(url);
+                    if (filenameNoExt.EndsWith("-dark", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // This *is* a dark variant; skip.
+                        skipped++;
+                        continue;
+                    }
+
+                    var lightPath = Path.Combine(fileDir, url.Replace('/', Path.DirectorySeparatorChar));
+                    if (!File.Exists(lightPath))
+                    {
+                        Console.WriteLine($"[dark-fill]   {relFile}: skipping '{url}' — source file not found at {lightPath}");
+                        skipped++;
+                        continue;
+                    }
+
+                    var lastSlash = url.LastIndexOf('/');
+                    var urlDir = lastSlash >= 0 ? url.Substring(0, lastSlash + 1) : "";
+                    var darkUrl = urlDir + filenameNoExt + "-dark.png";
+                    var darkPath = Path.Combine(fileDir, darkUrl.Replace('/', Path.DirectorySeparatorChar));
+
+                    if (!File.Exists(darkPath))
+                    {
+                        Console.WriteLine($"[dark-fill]   {relFile}: generating dark variant for '{filenameNoExt}.png'...");
+                        byte[] lightBytes;
+                        try { lightBytes = File.ReadAllBytes(lightPath); }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[dark-fill]   could not read source: {ex.Message}");
+                            failed++;
+                            continue;
+                        }
+
+                        // Try to match the size of the source PNG so the pair lines
+                        // up visually; fall back to the configured default if the
+                        // header can't be read.
+                        string sizeStr = _imageGenConfig.Size;
+                        try
+                        {
+                            var (w, h) = ReadPngDimensions(lightBytes);
+                            sizeStr = $"{w}x{h}";
+                        }
+                        catch { /* fall back to config default */ }
+
+                        try
+                        {
+                            var darkBytes = await EditImageToDarkAsync(api, lightBytes, sizeStr);
+                            File.WriteAllBytes(darkPath, darkBytes);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[dark-fill]   generation failed: {ex.Message}");
+                            failed++;
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[dark-fill]   {relFile}: dark variant '{filenameNoExt}-dark.png' already on disk — relinking only.");
+                    }
+
+                    var newAttrs = MergeSrcDarkAttribute(attrs, darkUrl);
+                    var replacement = $"![{alt}]({url}){newAttrs}";
+                    newContent = newContent.Substring(0, match.Index) + replacement + newContent.Substring(match.Index + match.Length);
+                    generated++;
+                }
+
+                if (!ReferenceEquals(newContent, content) && newContent != content)
+                {
+                    File.WriteAllText(file, newContent);
+                }
+            }
+
+            Console.WriteLine($"[dark-fill] Done. Updated {generated} image(s){(skipped > 0 ? $", {skipped} skipped" : "")}{(failed > 0 ? $", {failed} failed" : "")}.");
+            return failed > 0 ? 1 : 0;
+        }
+
+        // Inserts (or appends) a `src-dark="..."` attribute into an existing
+        // `{...}` attribute block, preserving any other attributes that were
+        // already there.
+        public static string MergeSrcDarkAttribute(string existingAttrs, string darkUrl)
+        {
+            if (string.IsNullOrEmpty(existingAttrs))
+            {
+                return $"{{src-dark=\"{darkUrl}\"}}";
+            }
+            var inner = existingAttrs.Trim();
+            if (inner.StartsWith("{")) inner = inner.Substring(1);
+            if (inner.EndsWith("}")) inner = inner.Substring(0, inner.Length - 1);
+            inner = inner.Trim();
+            return inner.Length == 0
+                ? $"{{src-dark=\"{darkUrl}\"}}"
+                : $"{{{inner} src-dark=\"{darkUrl}\"}}";
+        }
+
+        // Reads width/height out of the PNG IHDR chunk (bytes 16-23 of a valid
+        // PNG file). Throws if the byte stream isn't a PNG.
+        public static (int Width, int Height) ReadPngDimensions(byte[] bytes)
+        {
+            if (bytes == null || bytes.Length < 24)
+            {
+                throw new InvalidOperationException("File too small to be a PNG.");
+            }
+            if (bytes[0] != 0x89 || bytes[1] != 0x50 || bytes[2] != 0x4E || bytes[3] != 0x47 ||
+                bytes[4] != 0x0D || bytes[5] != 0x0A || bytes[6] != 0x1A || bytes[7] != 0x0A)
+            {
+                throw new InvalidOperationException("Not a PNG signature.");
+            }
+            int w = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+            int h = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+            return (w, h);
+        }
+
         private bool WantsLightMode(Dictionary<string, string> opts)
         {
             if (opts.TryGetValue("light", out var v) && bool.TryParse(v, out var b)) return b;
@@ -444,6 +617,15 @@ namespace Neko.Builder
 
         private async Task<byte[]> GenerateDarkVariantAsync(TornadoApi api, (string Prompt, Dictionary<string, string> Options, string Raw) parsed, byte[] lightBytes)
         {
+            // Match the size used for the light image so the pair lines up visually.
+            var sizeStr = parsed.Options.TryGetValue("size", out var s) && !string.IsNullOrWhiteSpace(s)
+                ? s
+                : _imageGenConfig.Size;
+            return await EditImageToDarkAsync(api, lightBytes, sizeStr);
+        }
+
+        private async Task<byte[]> EditImageToDarkAsync(TornadoApi api, byte[] lightBytes, string sizeStr)
+        {
             var darkPrompt = string.IsNullOrWhiteSpace(_imageGenConfig.DarkModePrompt)
                 ? ImageGenConfig.DefaultDarkModePrompt
                 : _imageGenConfig.DarkModePrompt;
@@ -460,11 +642,6 @@ namespace Neko.Builder
                 },
                 ResponseFormat = TornadoImageResponseFormats.Base64,
             };
-
-            // Match the size used for the light image so the pair lines up visually.
-            var sizeStr = parsed.Options.TryGetValue("size", out var s) && !string.IsNullOrWhiteSpace(s)
-                ? s
-                : _imageGenConfig.Size;
             ApplyEditSize(request, sizeStr);
 
             var result = await api.ImageEdit.EditImage(request);

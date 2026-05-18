@@ -94,6 +94,23 @@ neko gen-images \
 If `--api-key` is omitted, Neko reads `OPENAI_API_KEY` from the
 environment.
 
+## Backfilling dark variants
+
+If you have existing `![alt](assets/img-gen/foo.png)` references that don't
+yet have a paired dark image (older runs, or hand-authored references), run:
+
+```bash
+neko gen-dark-images --api-key sk-... --input .
+```
+
+It walks every Markdown file, finds `assets/img-gen/*.png` references
+without a `{src-dark="…"}` attribute, asks the OpenAI image-edit endpoint
+to recreate each in dark mode using `imageGen.darkModePrompt`, saves the
+new file as `<name>-dark.png`, and rewrites the Markdown attribute — preserving
+any other attributes already on the image. Idempotent: paired images are
+skipped, and `<name>-dark.png` files already on disk are relinked without a
+second API call.
+
 ## What the rewrite looks like
 
 Before:

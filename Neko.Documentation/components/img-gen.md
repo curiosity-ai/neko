@@ -117,6 +117,40 @@ imageGen:
 | `--image-model`  | `gpt-image-1`    | OpenAI image model to call. Pass `dall-e-3` if you prefer DALL·E-3.                            |
 | `--llm-model`    | `gpt-4o-mini`    | OpenAI chat model used to pick a filename and alt-text from the prompt.                        |
 
+## Backfilling dark variants for existing images
+
+If your repository already contains generated images that don't yet have a
+paired dark version — for instance, pages rewritten by an older version of
+`neko gen-images`, or images authored manually but living under
+`assets/img-gen/` — run `neko gen-dark-images` to fill in the gaps without
+re-generating the light originals.
+
+```bash
+neko gen-dark-images --api-key sk-... --input .
+```
+
+The command walks every `.md` file under `--input`, finds image references
+of the form `![alt](assets/img-gen/<name>.png)` that don't already carry a
+`{src-dark="…"}` attribute, reads the existing PNG, asks the OpenAI
+image-**edit** endpoint to recreate it in dark mode (using `imageGen.darkModePrompt`
+from `neko.yml`), saves the result as `<name>-dark.png` next to the
+original, and rewrites the Markdown to add the `src-dark="…"` attribute —
+preserving any other attributes already on the image. Images whose dimensions
+can be read from the PNG header are regenerated at the same size as the
+original; everything else falls back to `imageGen.size`.
+
+| Flag             | Default          | Description                                                                |
+| ---              | ---              | ---                                                                        |
+| `--input`, `-i`  | `.`              | Directory to scan recursively for `.md` files.                             |
+| `--api-key`      | `OPENAI_API_KEY` | OpenAI API key. If omitted, the env var is used.                           |
+| `--image-model`  | `gpt-image-1`    | OpenAI image model used for the edit call.                                 |
+
+The command is idempotent: images that already carry `src-dark="…"`, or that
+are themselves `<name>-dark.png` files, are skipped. Running it twice never
+re-spends tokens. If a `<name>-dark.png` already exists on disk but the
+Markdown doesn't reference it, the command relinks the Markdown without
+making a second API call.
+
 ## How filenames and alt text are chosen
 
 For every directive, Neko sends the prompt and the page name to the configured
