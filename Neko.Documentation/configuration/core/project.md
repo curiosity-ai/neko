@@ -2176,12 +2176,14 @@ url: companyx.github.io/docs
 
 === sitemap : `boolean`
 
-Set to `true` to enable the generation of a `sitemap.xml` file in the output directory. The sitemap will include all generated pages using the `url` property as the base URL. If no `url` is provided, it defaults to `localhost`.
+Controls whether a `sitemap.xml` file is generated in the output directory. When enabled, the sitemap lists every public page with its clean URL (`<loc>`) and the file's last-modified date (`<lastmod>`), using the `url` property as the base URL.
 
-The default is `false`.
+The default is `true`. Set to `false` to disable.
+
+Generation is skipped automatically when `url` is unset (or left at the placeholder `localhost`), since the resulting sitemap would not contain valid absolute URLs. Password-protected pages are also excluded.
 
 ```yml
-sitemap: true
+sitemap: true        # default
 url: https://example.com/docs
 ```
 

@@ -83,8 +83,9 @@ AlertContent
             var sitemapPath = Path.Combine(outputDir, "sitemap.xml");
             Assert.That(File.Exists(sitemapPath), Is.True, "sitemap.xml should exist");
             var sitemapContent = await File.ReadAllTextAsync(sitemapPath);
-            Assert.That(sitemapContent, Contains.Substring("<loc>https://example.com/index.html</loc>"));
-            Assert.That(sitemapContent, Contains.Substring("<loc>https://example.com/components.html</loc>"));
+            Assert.That(sitemapContent, Contains.Substring("<loc>https://example.com/</loc>"));
+            Assert.That(sitemapContent, Contains.Substring("<loc>https://example.com/components</loc>"));
+            Assert.That(sitemapContent, Contains.Substring("<lastmod>"));
         }
     }
 }

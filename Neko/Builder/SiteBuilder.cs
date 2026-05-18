@@ -392,41 +392,69 @@ namespace Neko.Builder
 
                 await searchIndexer.WriteIndexAsync(OutputDirectory);
 
-                // Generate Sitemap
-                if (_config.Sitemap)
+                // Generate Sitemap (root project only; sub-projects share the output dir
+                // and would otherwise clobber each other's sitemap.xml).
+                if (_config.Sitemap && string.IsNullOrEmpty(_routePrefix))
                 {
-                    Console.WriteLine("Generating sitemap.xml...");
-                    string baseUrl = string.IsNullOrWhiteSpace(_config.Url) ? "localhost" : _config.Url;
-                    if (!baseUrl.StartsWith("http://") && !baseUrl.StartsWith("https://"))
+                    var rawUrl = _config.Url;
+                    var isPlaceholderUrl = string.IsNullOrWhiteSpace(rawUrl)
+                        || rawUrl.Equals("localhost", StringComparison.OrdinalIgnoreCase);
+
+                    if (isPlaceholderUrl)
                     {
-                        baseUrl = "https://" + baseUrl;
+                        Console.WriteLine("Skipping sitemap.xml: `url` is not configured in neko.yml.");
                     }
-                    baseUrl = baseUrl.TrimEnd('/');
-
-                    var sitemapContent = new System.Text.StringBuilder();
-                    sitemapContent.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-                    sitemapContent.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
-
-                    foreach (var item in parsedDocs)
+                    else
                     {
-                        var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html").Replace("\\", "/");
-
-                        // We will allow index.html to be included as is,
-                        // or we could strip it to directory path, but let's leave it as relative .html file path for simplicity
-                        // and standard compatibility. Many sites use /index.html in sitemaps.
-                        // Wait, it is cleaner to just use the path as generated
-                        if (!htmlFileName.StartsWith("/"))
+                        Console.WriteLine("Generating sitemap.xml...");
+                        var baseUrl = rawUrl;
+                        if (!baseUrl.StartsWith("http://") && !baseUrl.StartsWith("https://"))
                         {
-                            htmlFileName = "/" + htmlFileName;
+                            baseUrl = "https://" + baseUrl;
+                        }
+                        baseUrl = baseUrl.TrimEnd('/');
+
+                        var sitemapContent = new System.Text.StringBuilder();
+                        sitemapContent.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+                        sitemapContent.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+
+                        foreach (var item in parsedDocs)
+                        {
+                            // Skip password-protected pages — their URLs render an unlock prompt,
+                            // so there's no reason to advertise them to crawlers.
+                            var pagePassword = item.Doc.FrontMatter.Password;
+                            var isPageOptedOut = !string.IsNullOrEmpty(pagePassword)
+                                && pagePassword.Equals("none", StringComparison.OrdinalIgnoreCase);
+                            var isProtected = !string.IsNullOrEmpty(pagePassword) && !isPageOptedOut
+                                || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password);
+                            if (isProtected) continue;
+
+                            // Build a clean, extensionless URL (matching the rest of the site).
+                            var path = "/" + item.RelativePath.Replace("\\", "/");
+                            if (path.EndsWith(".md")) path = path.Substring(0, path.Length - 3);
+                            if (path.EndsWith("/index")) path = path.Substring(0, path.Length - "index".Length);
+
+                            var loc = System.Security.SecurityElement.Escape(baseUrl + path);
+
+                            string lastmod;
+                            try
+                            {
+                                lastmod = File.GetLastWriteTimeUtc(item.FilePath).ToString("yyyy-MM-dd");
+                            }
+                            catch
+                            {
+                                lastmod = DateTime.UtcNow.ToString("yyyy-MM-dd");
+                            }
+
+                            sitemapContent.AppendLine("  <url>");
+                            sitemapContent.AppendLine($"    <loc>{loc}</loc>");
+                            sitemapContent.AppendLine($"    <lastmod>{lastmod}</lastmod>");
+                            sitemapContent.AppendLine("  </url>");
                         }
 
-                        sitemapContent.AppendLine($"  <url>");
-                        sitemapContent.AppendLine($"    <loc>{baseUrl}{htmlFileName}</loc>");
-                        sitemapContent.AppendLine($"  </url>");
+                        sitemapContent.AppendLine("</urlset>");
+                        await File.WriteAllTextAsync(Path.Combine(OutputDirectory, "sitemap.xml"), sitemapContent.ToString());
                     }
-
-                    sitemapContent.AppendLine("</urlset>");
-                    await File.WriteAllTextAsync(Path.Combine(OutputDirectory, "sitemap.xml"), sitemapContent.ToString());
                 }
 
                 // Generate 404 Page
