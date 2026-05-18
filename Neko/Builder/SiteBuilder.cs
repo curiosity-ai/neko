@@ -150,6 +150,23 @@ namespace Neko.Builder
                 var generator = new HtmlGenerator(_config, _isWatchMode, headIncludes);
                 var searchIndexer = new SearchIndexGenerator();
 
+                // Collect folders whose root yml opts the folder out of search indexing.
+                var searchExcludedFolders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (Directory.Exists(_inputDirectory))
+                {
+                    foreach (var dir in Directory.GetDirectories(_inputDirectory, "*", SearchOption.AllDirectories))
+                    {
+                        var folderConfig = FolderConfig.LoadFromDirectory(dir);
+                        if (folderConfig.SearchExclude)
+                        {
+                            var dirPath = Path.GetFullPath(dir);
+                            if (!dirPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                                dirPath += Path.DirectorySeparatorChar;
+                            searchExcludedFolders.Add(dirPath);
+                        }
+                    }
+                }
+
                 // 4. Process Files
                 var parsedDocs = new List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)>();
 
@@ -349,10 +366,21 @@ namespace Neko.Builder
                     var isProtected = !string.IsNullOrEmpty(pagePassword) && !isPageOptedOut
                         || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password);
 
-                    if (!isProtected)
+                    var isSearchExcluded = item.Doc.FrontMatter.SearchExclude
+                        || IsInSearchExcludedFolder(item.FilePath, searchExcludedFolders);
+
+                    if (!isProtected && !isSearchExcluded)
                     {
                         var indexableContent = generator.BuildIndexableContent(item.Doc, blogPosts, changelogEntries, relativeUrl);
-                        var indexTitle = item.Doc.FrontMatter.Title ?? Path.GetFileNameWithoutExtension(item.FilePath);
+                        var indexTitle = item.Doc.FrontMatter.Title;
+                        if (string.IsNullOrWhiteSpace(indexTitle))
+                        {
+                            indexTitle = item.Doc.Toc.FirstOrDefault(x => x.Level == 1)?.Title;
+                        }
+                        if (string.IsNullOrWhiteSpace(indexTitle))
+                        {
+                            indexTitle = Path.GetFileNameWithoutExtension(item.FilePath);
+                        }
                         searchIndexer.AddDocument(
                             htmlFileName,
                             indexTitle,
@@ -461,6 +489,18 @@ namespace Neko.Builder
                 _singleBuild.Release();
                 Environment.CurrentDirectory = curDir;
             }
+        }
+
+        private static bool IsInSearchExcludedFolder(string filePath, HashSet<string> excludedFolders)
+        {
+            if (excludedFolders.Count == 0) return false;
+            var fullPath = Path.GetFullPath(filePath);
+            foreach (var folder in excludedFolders)
+            {
+                if (fullPath.StartsWith(folder, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
         }
 
         private List<(string Url, string Title, List<NavigationItem> Breadcrumbs)> BuildNavigationMap(List<LinkConfig> links)

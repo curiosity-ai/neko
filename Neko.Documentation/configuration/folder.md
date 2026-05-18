@@ -100,6 +100,18 @@ permalink: /tutorials
 
 ---
 
+## searchExclude
+
+Exclude every page in this folder (and its subfolders) from the in-site search index.
+
+```yml index.yml
+searchExclude: true
+```
+
+Pages inside the folder are still built and reachable, but they will not appear in the search results. See the page-level [`searchExclude`](page.md#searchexclude) config to exclude a single page.
+
+---
+
 ## visibility
 
 Hide a folder by setting the [visibility](/configuration/page.md#visibility) configuration.

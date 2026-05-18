@@ -66,6 +66,9 @@ namespace Neko.Builder
 
         [YamlMember(Alias = "layout")]
         public string Layout { get; set; }
+
+        [YamlMember(Alias = "searchExclude")]
+        public bool SearchExclude { get; set; }
     }
 
     public class MarkdownParser
@@ -99,6 +102,7 @@ namespace Neko.Builder
                 .Use<CustomImageExtension>()
                 .Use<PdfExtension>()
                 .Use<SnapFrameExtension>()
+                .Use<ImageGenExtension>()
                 .Use<LessonExtension>();
 
             pipelineBuilder.Extensions.Add(customContainerExtension);

@@ -34,6 +34,7 @@ visibility: public
 | `layout`         | `default`, `page`, `central`, `blog`                | Page chrome variant. |
 | `visibility`     | `public`, `hidden`, `protected`, `private`          | Navigation & search behaviour; password gating. |
 | `password`       | string                                              | Per-page encryption. Pair with `--password` at build. |
+| `searchExclude`  | boolean                                             | `true` to omit the page from `search.json`. Folder-level: set the same key in `index.yml`. |
 | `permalink`      | string                                              | Custom URL. Wins over the file path. |
 | `redirect`       | string                                              | Redirect this slug to another page or URL. |
 | `target`         | `blank`, `self`, `parent`, `top`                    | How sidebar link opens. |
