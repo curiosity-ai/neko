@@ -372,7 +372,15 @@ namespace Neko.Builder
                     if (!isProtected && !isSearchExcluded)
                     {
                         var indexableContent = generator.BuildIndexableContent(item.Doc, blogPosts, changelogEntries, relativeUrl);
-                        var indexTitle = item.Doc.FrontMatter.Title ?? Path.GetFileNameWithoutExtension(item.FilePath);
+                        var indexTitle = item.Doc.FrontMatter.Title;
+                        if (string.IsNullOrWhiteSpace(indexTitle))
+                        {
+                            indexTitle = item.Doc.Toc.FirstOrDefault(x => x.Level == 1)?.Title;
+                        }
+                        if (string.IsNullOrWhiteSpace(indexTitle))
+                        {
+                            indexTitle = Path.GetFileNameWithoutExtension(item.FilePath);
+                        }
                         searchIndexer.AddDocument(
                             htmlFileName,
                             indexTitle,
