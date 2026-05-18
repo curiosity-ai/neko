@@ -26,6 +26,7 @@ expanded: true
 | `order`         | Same rules as pages (higher number = higher position).               |
 | `expanded`      | `true` to expand the folder on initial load.                         |
 | `visibility`    | `public` (default), `hidden`, `protected`, `private`.                |
+| `searchExclude` | `true` to exclude every page in this folder (recursively) from the search index. |
 | `permalink`     | Base URL for everything under this folder.                           |
 | `nextprev.mode` | `show`, `hide`, `exclude` for the whole folder.                      |
 | `nav.mode`      | `default`, `stack` (per top-level folder).                           |
@@ -56,6 +57,12 @@ Protect a whole folder with the project password:
 
 ```yml
 visibility: protected
+```
+
+Exclude every page in a folder from the search index:
+
+```yml
+searchExclude: true
 ```
 
 ## Alternatives

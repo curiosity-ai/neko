@@ -21,6 +21,37 @@ namespace Neko.Builder
 
         [YamlMember(Alias = "expanded")]
         public bool Expanded { get; set; } = false;
+
+        [YamlMember(Alias = "searchExclude")]
+        public bool SearchExclude { get; set; }
+
+        public static FolderConfig LoadFromDirectory(string directory)
+        {
+            var dirName = Path.GetFileName(directory);
+            var possibleFiles = new[] { Path.Combine(directory, "index.yml"), Path.Combine(directory, $"{dirName}.yml") };
+
+            foreach (var file in possibleFiles)
+            {
+                if (File.Exists(file))
+                {
+                    try
+                    {
+                        var yaml = File.ReadAllText(file);
+                        var deserializer = new DeserializerBuilder()
+                            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                            .IgnoreUnmatchedProperties()
+                            .Build();
+                        return deserializer.Deserialize<FolderConfig>(yaml) ?? new FolderConfig();
+                    }
+                    catch
+                    {
+                        // ignore error
+                    }
+                }
+            }
+
+            return new FolderConfig();
+        }
     }
 
     public class SidebarGenerator
@@ -185,33 +216,7 @@ namespace Neko.Builder
             return sortedItems;
         }
 
-        private FolderConfig GetFolderConfig(string directory)
-        {
-            var dirName = Path.GetFileName(directory);
-            var possibleFiles = new[] { Path.Combine(directory, "index.yml"), Path.Combine(directory, $"{dirName}.yml") };
-
-            foreach (var file in possibleFiles)
-            {
-                if (File.Exists(file))
-                {
-                    try
-                    {
-                        var yaml = File.ReadAllText(file);
-                        var deserializer = new DeserializerBuilder()
-                            .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                            .IgnoreUnmatchedProperties()
-                            .Build();
-                        return deserializer.Deserialize<FolderConfig>(yaml) ?? new FolderConfig();
-                    }
-                    catch
-                    {
-                        // ignore error
-                    }
-                }
-            }
-
-            return new FolderConfig();
-        }
+        private FolderConfig GetFolderConfig(string directory) => FolderConfig.LoadFromDirectory(directory);
 
         private string ToTitleCase(string str)
         {
