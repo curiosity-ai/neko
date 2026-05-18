@@ -261,9 +261,42 @@ namespace Neko
                 {
                     key = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
                 }
-                var cmd = new Neko.Builder.ImageGenCommand(inputFullPath, key ?? "", imageModel, llmModel);
+                var configPath = Path.Combine(inputFullPath, "neko.yml");
+                var nekoConfig = File.Exists(configPath)
+                    ? Neko.Configuration.ConfigParser.Parse(configPath)
+                    : new Neko.Configuration.NekoConfig();
+                var cmd = new Neko.Builder.ImageGenCommand(inputFullPath, key ?? "", imageModel, llmModel, nekoConfig.ImageGen);
                 Environment.ExitCode = await cmd.RunAsync();
             }, genInputOption, genApiKeyOption, genImageModelOption, genLlmModelOption);
+
+            // Gen-Dark-Images Command — walk every `assets/img-gen/*.png`
+            // reference in the input tree and, for any image that doesn't yet
+            // have a `src-dark="…"` companion attribute, generate a paired
+            // dark-mode variant via the OpenAI image-edit endpoint and rewrite
+            // the Markdown to point at both files.
+            var darkImagesCommand = new Command("gen-dark-images", "Generate missing dark-mode variants for images previously created by [!img-gen]");
+            var darkInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
+            var darkApiKeyOption = new Option<string?>(new[] { "--api-key" }, "OpenAI API key (defaults to the OPENAI_API_KEY environment variable)");
+            var darkImageModelOption = new Option<string>(new[] { "--image-model" }, () => "gpt-image-1", "OpenAI image model to use");
+            darkImagesCommand.AddOption(darkInputOption);
+            darkImagesCommand.AddOption(darkApiKeyOption);
+            darkImagesCommand.AddOption(darkImageModelOption);
+
+            darkImagesCommand.SetHandler(async (string input, string? apiKey, string imageModel) =>
+            {
+                var inputFullPath = Path.GetFullPath(input);
+                var key = apiKey;
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    key = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+                }
+                var configPath = Path.Combine(inputFullPath, "neko.yml");
+                var nekoConfig = File.Exists(configPath)
+                    ? Neko.Configuration.ConfigParser.Parse(configPath)
+                    : new Neko.Configuration.NekoConfig();
+                var cmd = new Neko.Builder.ImageGenCommand(inputFullPath, key ?? "", imageModel, llmModel: "gpt-4o-mini", nekoConfig.ImageGen);
+                Environment.ExitCode = await cmd.BackfillDarkImagesAsync();
+            }, darkInputOption, darkApiKeyOption, darkImageModelOption);
 
             // New Command — scaffold a new documentation project from the
             // embedded .template/ starter zip.
@@ -298,6 +331,7 @@ namespace Neko
             rootCommand.AddCommand(watchCommand);
             rootCommand.AddCommand(snapCommand);
             rootCommand.AddCommand(genImagesCommand);
+            rootCommand.AddCommand(darkImagesCommand);
             rootCommand.AddCommand(newCommand);
             rootCommand.AddCommand(updateSkillsCommand);
 
