@@ -1579,9 +1579,9 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
             sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
             sb.AppendLine("    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>");
 
-            // Flaticon UIcons
-            sb.AppendLine("    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css'>");
-            sb.AppendLine("    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-brands/css/uicons-brands.css'>");
+            // Flaticon UIcons (self-hosted v4 — see Neko.Tools.UIcons)
+            sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/uicons-regular-rounded.css\">");
+            sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/uicons-brands.css\">");
 
             // Emoji CSS
             sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/emoji.css\">");
