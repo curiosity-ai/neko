@@ -48,6 +48,99 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void TestPageLinksRenderedAboveToc()
+        {
+            _config.Url = "docs.example.com";
+            _config.PageLinks = new System.Collections.Generic.List<PageLinkConfig>
+            {
+                new PageLinkConfig
+                {
+                    Label = "Report an issue",
+                    Icon = "bug",
+                    Url = "https://github.com/curiosity-ai/neko/issues/new?title=Issue%20on%20page%20${url}",
+                    Target = "blank"
+                }
+            };
+            var generator = new HtmlGenerator(_config);
+
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Content</p>",
+                FrontMatter = new FrontMatter { Title = "Page Title" },
+                Toc = new System.Collections.Generic.List<TocItem>
+                {
+                    new TocItem { Id = "section", Title = "Section", Level = 2 }
+                }
+            };
+
+            var html = generator.Generate(doc, currentUrl: "/guides/install");
+
+            Assert.That(html, Contains.Substring("class=\"neko-page-links"));
+            Assert.That(html, Contains.Substring("neko-page-link"));
+            Assert.That(html, Contains.Substring("fi-rr-bug"));
+            Assert.That(html, Contains.Substring(">Report an issue<"));
+            // ${url} substituted with URL-encoded absolute URL in the fallback href.
+            Assert.That(html, Contains.Substring("https%3A%2F%2Fdocs.example.com%2Fguides%2Finstall"));
+            // Template preserved verbatim for click-time resolution.
+            Assert.That(html, Contains.Substring("data-neko-link-template=\"https://github.com/curiosity-ai/neko/issues/new?title=Issue%20on%20page%20${url}\""));
+            Assert.That(html, Contains.Substring("target=\"_blank\""));
+            // Page-link list should sit above the "On this page" heading.
+            var pageLinksIdx = html.IndexOf("neko-page-links", System.StringComparison.Ordinal);
+            var headingIdx = html.IndexOf("On this page", System.StringComparison.Ordinal);
+            Assert.That(pageLinksIdx, Is.GreaterThan(-1));
+            Assert.That(headingIdx, Is.GreaterThan(pageLinksIdx));
+        }
+
+        [Test]
+        public void TestPageLinksHiddenWithoutToc()
+        {
+            _config.PageLinks = new System.Collections.Generic.List<PageLinkConfig>
+            {
+                new PageLinkConfig { Label = "Report an issue", Url = "https://example.com" }
+            };
+            var generator = new HtmlGenerator(_config);
+
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Content</p>",
+                FrontMatter = new FrontMatter { Title = "Page Title" }
+            };
+
+            var html = generator.Generate(doc, currentUrl: "/no-toc");
+
+            Assert.That(html, Does.Not.Contain("neko-page-links"));
+        }
+
+        [Test]
+        public void TestPageLinksConfigParsing()
+        {
+            var yaml = @"
+pageLinks:
+  - label: Report an issue
+    icon: bug
+    url: ""https://github.com/o/r/issues/new?title=${page}&body=${selection}&page=${url}""
+    target: blank
+";
+            var tempFile = System.IO.Path.GetTempFileName();
+            System.IO.File.WriteAllText(tempFile, yaml);
+            try
+            {
+                var config = ConfigParser.Parse(tempFile);
+                Assert.That(config.PageLinks, Has.Count.EqualTo(1));
+                Assert.That(config.PageLinks[0].Label, Is.EqualTo("Report an issue"));
+                Assert.That(config.PageLinks[0].Icon, Is.EqualTo("bug"));
+                Assert.That(config.PageLinks[0].Url, Contains.Substring("${page}"));
+                Assert.That(config.PageLinks[0].Url, Contains.Substring("${selection}"));
+                Assert.That(config.PageLinks[0].Url, Contains.Substring("${url}"));
+                Assert.That(config.PageLinks[0].Target, Is.EqualTo("blank"));
+            }
+            finally
+            {
+                System.IO.File.Delete(tempFile);
+            }
+        }
+
+        [Test]
         public void TestSidebarIcons()
         {
             var doc = new ParsedDocument

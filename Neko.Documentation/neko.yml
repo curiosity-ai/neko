@@ -51,6 +51,12 @@ links:
         link: https://github.com/curiosity-ai/neko
         icon: brands-github
 
+pageLinks:
+  - label: Report an issue
+    icon: bug
+    url: "https://github.com/curiosity-ai/neko/issues/new?title=Issue%20on%20page%20${url}"
+    target: blank
+
 banner:
   text: "Welcome to Neko! Check out our new banner feature."
   link: /components/banner
