@@ -11,7 +11,7 @@ namespace Neko.Tools.UIcons
 {
     class Program
     {
-        private const string MIN_Version = "3.0.0";
+        private const string MIN_Version = "4.0.0";
 
         static async Task<string> FetchVersion()
         {
@@ -35,7 +35,7 @@ namespace Neko.Tools.UIcons
             }
 
             // Fallback version if parsing fails
-            return "3.0.0";
+            return "4.0.0";
         }
 
 
