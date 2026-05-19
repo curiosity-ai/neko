@@ -570,6 +570,7 @@ namespace Neko.Builder
             {
                 sb.AppendLine("            <aside id=\"toc-sidebar\" class=\"w-64 hidden xl:block shrink-0 overflow-y-auto border-l border-gray-200 dark:border-gray-800 p-6\">");
                 sb.AppendLine("                <div class=\"sticky top-0\">");
+                RenderPageLinks(sb, document, currentUrl);
                 sb.AppendLine("                    <h5 class=\"text-xs font-semibold mb-4 text-gray-900 dark:text-gray-100 uppercase tracking-wider\">On this page</h5>");
                 sb.AppendLine("                    <ul class=\"space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800 relative\" id=\"toc-list\">");
                 sb.AppendLine("                        <div id=\"toc-highlight\" class=\"absolute left-0 border-l-2 border-primary-600 dark:border-primary-400 transition-all duration-200 ease-in-out -ml-px\" style=\"top: 0; height: 0; opacity: 0;\"></div>");
@@ -1365,12 +1366,126 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
             sb.AppendLine("                }");
             sb.AppendLine("            });");
             sb.AppendLine("        });");
+
+            // Page links: resolve ${page}, ${url}, ${selection} variables at click time
+            sb.AppendLine("        document.querySelectorAll('.neko-page-link').forEach(function(el) {");
+            sb.AppendLine("            el.addEventListener('click', function(e) {");
+            sb.AppendLine("                var template = el.getAttribute('data-neko-link-template');");
+            sb.AppendLine("                if (!template) return;");
+            sb.AppendLine("                e.preventDefault();");
+            sb.AppendLine("                var page = encodeURIComponent(el.getAttribute('data-neko-page') || '');");
+            sb.AppendLine("                var url = encodeURIComponent(el.getAttribute('data-neko-url') || '');");
+            sb.AppendLine("                var sel = '';");
+            sb.AppendLine("                try { sel = window.getSelection ? (window.getSelection().toString() || '') : ''; } catch (_) { sel = ''; }");
+            sb.AppendLine("                var selection = encodeURIComponent(sel);");
+            sb.AppendLine("                var finalUrl = template.split('${page}').join(page).split('${url}').join(url).split('${selection}').join(selection);");
+            sb.AppendLine("                var target = el.getAttribute('target');");
+            sb.AppendLine("                if (target && target !== '_self') { window.open(finalUrl, target); } else { window.location.href = finalUrl; }");
+            sb.AppendLine("            });");
+            sb.AppendLine("        });");
+
             sb.AppendLine("    </script>");
 
             sb.AppendLine("</body>");
             sb.AppendLine("</html>");
 
             return sb.ToString();
+        }
+
+        private static string EscapeHtmlAttr(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return string.Empty;
+            return value.Replace("&", "&amp;").Replace("\"", "&quot;").Replace("<", "&lt;").Replace(">", "&gt;");
+        }
+
+        private static string NormalizeTarget(string target)
+        {
+            if (string.IsNullOrEmpty(target)) return null;
+            var t = target.Trim();
+            if (t.StartsWith("_")) return t;
+            if (t.Equals("blank", System.StringComparison.OrdinalIgnoreCase)
+                || t.Equals("self", System.StringComparison.OrdinalIgnoreCase)
+                || t.Equals("parent", System.StringComparison.OrdinalIgnoreCase)
+                || t.Equals("top", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return "_" + t.ToLowerInvariant();
+            }
+            return t;
+        }
+
+        private string ResolvePageAbsoluteUrl(string currentUrl)
+        {
+            var relative = currentUrl ?? string.Empty;
+            var baseUrl = _config?.Url;
+            var isPlaceholder = string.IsNullOrWhiteSpace(baseUrl)
+                || baseUrl.Equals("localhost", System.StringComparison.OrdinalIgnoreCase);
+            if (isPlaceholder) return relative;
+
+            if (!baseUrl.StartsWith("http://") && !baseUrl.StartsWith("https://"))
+            {
+                baseUrl = "https://" + baseUrl;
+            }
+            baseUrl = baseUrl.TrimEnd('/');
+            if (string.IsNullOrEmpty(relative)) return baseUrl;
+            if (!relative.StartsWith("/")) relative = "/" + relative;
+            return baseUrl + relative;
+        }
+
+        private void RenderPageLinks(StringBuilder sb, ParsedDocument document, string currentUrl)
+        {
+            var pageLinks = _config?.PageLinks;
+            if (pageLinks == null || pageLinks.Count == 0) return;
+
+            var pageTitle = document?.FrontMatter?.Title;
+            if (string.IsNullOrEmpty(pageTitle) && document?.Toc != null)
+            {
+                foreach (var item in document.Toc)
+                {
+                    if (item.Level == 1 && !string.IsNullOrEmpty(item.Title))
+                    {
+                        pageTitle = item.Title;
+                        break;
+                    }
+                }
+            }
+            pageTitle ??= string.Empty;
+            var pageUrl = ResolvePageAbsoluteUrl(currentUrl);
+            var encodedPage = System.Uri.EscapeDataString(pageTitle);
+            var encodedUrl = System.Uri.EscapeDataString(pageUrl);
+
+            sb.AppendLine("                    <ul class=\"neko-page-links mb-6 space-y-2 text-sm text-gray-500 dark:text-gray-400\">");
+            foreach (var link in pageLinks)
+            {
+                if (link == null || string.IsNullOrEmpty(link.Url)) continue;
+
+                var template = link.Url;
+                var fallback = template
+                    .Replace("${page}", encodedPage)
+                    .Replace("${url}", encodedUrl)
+                    .Replace("${selection}", string.Empty);
+
+                var target = NormalizeTarget(link.Target);
+                var targetAttr = string.IsNullOrEmpty(target) ? string.Empty : $" target=\"{EscapeHtmlAttr(target)}\"";
+                var relAttr = target == "_blank" ? " rel=\"noopener noreferrer\"" : string.Empty;
+
+                var iconHtml = string.Empty;
+                if (!string.IsNullOrEmpty(link.Icon))
+                {
+                    iconHtml = $"<i class=\"{IconHelper.GetIconClass(link.Icon)} text-base\"></i>";
+                }
+
+                var label = EscapeHtmlAttr(link.Label ?? string.Empty);
+
+                sb.AppendLine(
+                    $"                        <li><a class=\"neko-page-link flex items-center gap-2 hover:text-primary-600 dark:hover:text-primary-400 transition-colors\" " +
+                    $"href=\"{EscapeHtmlAttr(fallback)}\" " +
+                    $"data-neko-link-template=\"{EscapeHtmlAttr(template)}\" " +
+                    $"data-neko-page=\"{EscapeHtmlAttr(pageTitle)}\" " +
+                    $"data-neko-url=\"{EscapeHtmlAttr(pageUrl)}\"" +
+                    $"{targetAttr}{relAttr}>" +
+                    $"{iconHtml}<span>{label}</span></a></li>");
+            }
+            sb.AppendLine("                    </ul>");
         }
 
         private void GenerateHead(StringBuilder sb, string title, string description)

@@ -30,6 +30,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "links")]
         public List<LinkConfig> Links { get; set; } = new List<LinkConfig>();
 
+        [YamlMember(Alias = "pageLinks")]
+        public List<PageLinkConfig> PageLinks { get; set; } = new List<PageLinkConfig>();
+
         [YamlMember(Alias = "meta")]
         public MetaConfig Meta { get; set; } = new MetaConfig();
 
@@ -119,6 +122,12 @@ namespace Neko.Configuration
             if (Snippets.LineNumbers.Count == 0 && parent.Snippets.LineNumbers.Count > 0)
             {
                 Snippets.LineNumbers = new List<string>(parent.Snippets.LineNumbers);
+            }
+
+            // Inherit PageLinks: only when the child defined none of its own.
+            if ((PageLinks == null || PageLinks.Count == 0) && parent.PageLinks != null && parent.PageLinks.Count > 0)
+            {
+                PageLinks = new List<PageLinkConfig>(parent.PageLinks);
             }
 
             // Inherit Ignore settings
@@ -261,6 +270,21 @@ namespace Neko.Configuration
 
         [YamlIgnore]
         public string Password { get; set; }
+    }
+
+    public class PageLinkConfig
+    {
+        [YamlMember(Alias = "label")]
+        public string Label { get; set; }
+
+        [YamlMember(Alias = "url")]
+        public string Url { get; set; }
+
+        [YamlMember(Alias = "icon")]
+        public string Icon { get; set; }
+
+        [YamlMember(Alias = "target")]
+        public string Target { get; set; }
     }
 
     public class MetaConfig

@@ -40,6 +40,7 @@ links:
 | `theme`     | Theme name and overrides.                                                  |
 | `meta`      | Default `<meta>` tags (description, keywords, author, image, og:type).     |
 | `links`     | Header navigation.                                                         |
+| `pageLinks` | Site-wide links rendered on top of every page's "On this page" TOC.        |
 | `banner`    | Site-wide announcement bar. See [`banner`](../banner/SKILL.md).            |
 | `footer`    | Footer content (`copyright`, custom links).                                |
 | `nav`       | Project-wide nav settings (e.g. `mode: stack`).                            |
@@ -110,6 +111,34 @@ links:
     link: https://github.com/...
     icon: brands-github
 ```
+
+## Page links (`pageLinks:`)
+
+Site-wide links rendered above the right-sidebar "On this page" TOC. Use for
+actions that should be one click away from every page — *Report an issue*,
+*Suggest an edit*, *Quote this page* in an email, etc.
+
+Each entry takes a `label`, an `icon`, a `url` template, and an optional
+`target`. Three placeholders in the `url` template are URL-encoded and
+substituted at click time:
+
+- `${page}` — the current page title.
+- `${url}` — the absolute URL of the current page.
+- `${selection}` — the visitor's current text selection (empty if none).
+
+```yml
+pageLinks:
+  - label: Report an issue
+    icon: bug
+    url: "https://github.com/owner/repo/issues/new?title=Issue%20on%20page%20${url}"
+    target: blank
+  - label: Quote this page
+    icon: quote-right
+    url: "mailto:editor@example.com?subject=${page}&body=${selection}"
+```
+
+`pageLinks` only render when the page has a TOC; pages with `toc: false`
+hide them.
 
 ## Footer
 

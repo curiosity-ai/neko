@@ -1486,6 +1486,100 @@ If any item is added to the `include` list, by default, all other paths will be 
 
 ---
 
+## pageLinks
+
+The `pageLinks` configuration adds a list of site-wide links to the top of the [`On this page`](#toc) navigation column. These links appear on every page that renders the right-side TOC, making them useful for actions that should always be one click away — for example, a `Report an issue` link that opens a pre-filled GitHub issue for the page the visitor is viewing.
+
+Each entry has a `label`, an `icon`, and a `url` template. A `target` may optionally be set (e.g. `blank` to open in a new tab).
+
+```yml
+pageLinks:
+  - label: Report an issue
+    icon: bug
+    url: "https://github.com/your-org/your-repo/issues/new?title=Issue%20on%20page%20${url}"
+    target: blank
+  - label: Suggest an edit
+    icon: edit
+    url: "https://github.com/your-org/your-repo/edit/main/${url}.md"
+    target: blank
+```
+
+The list may contain zero or more entries — when empty (the default), no link block is rendered.
+
+### Variables
+
+Three placeholders are available in the `url` template and resolved at click time. All three are **URL-encoded** before substitution, so they are safe to drop directly into a query string.
+
+| Variable       | Resolves to                                                                                  |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| `${page}`      | The current page title (from the page H1 or `title:` frontmatter).                           |
+| `${url}`       | The absolute URL of the current page (or the relative path when [`url`](#url) is unset).     |
+| `${selection}` | The text the visitor has selected on the page; empty string if no selection is active.       |
+
+Because the variables are URL-encoded, the example above turns into something like:
+
+```
+https://github.com/your-org/your-repo/issues/new?title=Issue%20on%20page%20https%3A%2F%2Fdocs.example.com%2Fguides%2Finstall
+```
+
+### label
+
+=== label : `string`
+
+The text displayed for the link.
+
+```yml
+pageLinks:
+  - label: Report an issue
+    url: "https://example.com/feedback?page=${url}"
+```
+===
+
+### icon
+
+=== icon : `string`
+
+A [UIcon](/components/icon.md) name to display next to the label. Accepts the same values as [`links.icon`](#icon).
+
+```yml
+pageLinks:
+  - label: Report an issue
+    icon: bug
+    url: "https://example.com/issues/new?page=${url}"
+```
+===
+
+### url
+
+=== url : `string`
+
+The link template. May contain the `${page}`, `${url}`, and `${selection}` variables described above. The result of the substitution is the navigation target.
+
+```yml
+pageLinks:
+  - label: Quote this page
+    icon: quote-right
+    url: "mailto:editor@example.com?subject=${page}&body=${selection}"
+```
+===
+
+### target
+
+=== target : `string`
+
+Sets the `target` attribute of the resulting hyperlink. Accepts the same values as [`links.target`](#target). When omitted, the link opens in the same tab.
+
+```yml
+pageLinks:
+  - label: Report an issue
+    icon: bug
+    url: "https://example.com/issues/new?page=${url}"
+    target: blank
+```
+===
+
+---
+
 ## output
 
 === output : `string`
