@@ -46,6 +46,16 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void TestFaviconHrefIsHtmlEscaped()
+        {
+            _config.Branding.Favicon = "/favicon.ico?v=1&cache=2";
+            var doc = new ParsedDocument { Html = "<p>Content</p>", FrontMatter = new FrontMatter { Title = "Page" } };
+            var html = _generator.Generate(doc);
+            Assert.That(html, Contains.Substring("<link rel=\"icon\" href=\"/favicon.ico?v=1&amp;cache=2\">"));
+            Assert.That(html, Does.Not.Contain("/favicon.ico?v=1&cache=2\">"));
+        }
+
+        [Test]
         public void TestMetaTags()
         {
             var doc = new ParsedDocument { Html = "<p>Content</p>", FrontMatter = new FrontMatter { Title = "Page" } };
