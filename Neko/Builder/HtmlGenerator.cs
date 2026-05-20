@@ -1500,7 +1500,7 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
 
             if (!string.IsNullOrEmpty(_config.Branding.Favicon))
             {
-                sb.AppendLine($"    <link rel=\"icon\" href=\"{_config.Branding.Favicon}\">");
+                sb.AppendLine($"    <link rel=\"icon\" href=\"{EscapeHtmlAttr(_config.Branding.Favicon)}\">");
             }
 
             if (!string.IsNullOrEmpty(description))

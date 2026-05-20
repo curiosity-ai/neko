@@ -105,8 +105,21 @@ namespace Neko.Builder
                     }
                 }
                 Directory.CreateDirectory(OutputDirectory);
-                
-                Environment.CurrentDirectory = OutputDirectory; 
+
+                Environment.CurrentDirectory = OutputDirectory;
+
+                // Auto-detect favicon at the input root if not explicitly configured.
+                if (string.IsNullOrEmpty(_config.Branding.Favicon))
+                {
+                    foreach (var candidate in new[] { "favicon.ico", "favicon.png" })
+                    {
+                        if (File.Exists(Path.Combine(_inputDirectory, candidate)))
+                        {
+                            _config.Branding.Favicon = "/" + candidate;
+                            break;
+                        }
+                    }
+                }
 
                 var excludedDirs = new HashSet<string>();
                 if (Directory.Exists(_inputDirectory))
@@ -701,6 +714,24 @@ namespace Neko.Builder
             catch (Exception ex)
             {
                 Console.WriteLine($"Warning: Error copying user assets: {ex.Message}");
+            }
+
+            // Copy a root-level favicon if present, so the default auto-detected
+            // path resolves in the generated site.
+            foreach (var candidate in new[] { "favicon.ico", "favicon.png" })
+            {
+                var src = Path.Combine(_inputDirectory, candidate);
+                if (File.Exists(src))
+                {
+                    try
+                    {
+                        File.Copy(src, Path.Combine(outputDir, candidate), true);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Warning: Error copying {candidate}: {ex.Message}");
+                    }
+                }
             }
         }
     }

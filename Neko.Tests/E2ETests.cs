@@ -87,5 +87,24 @@ AlertContent
             Assert.That(sitemapContent, Contains.Substring("<loc>https://example.com/components</loc>"));
             Assert.That(sitemapContent, Contains.Substring("<lastmod>"));
         }
+
+        [Test]
+        public async Task TestFaviconAutoDetectedFromInputRoot()
+        {
+            // Drop a favicon.ico at the input root. No `branding.favicon` is set in neko.yml.
+            File.WriteAllBytes(Path.Combine(_sampleDir, "favicon.ico"), new byte[] { 0x00, 0x00, 0x01, 0x00 });
+
+            var builder = new SiteBuilder(_sampleDir);
+            await builder.BuildAsync();
+
+            var outputDir = builder.OutputDirectory;
+
+            // File copied to output root.
+            Assert.That(File.Exists(Path.Combine(outputDir, "favicon.ico")), Is.True, "favicon.ico should be copied to output");
+
+            // Link injected into generated HTML.
+            var indexContent = await File.ReadAllTextAsync(Path.Combine(outputDir, "index.html"));
+            Assert.That(indexContent, Contains.Substring("<link rel=\"icon\" href=\"/favicon.ico\">"));
+        }
     }
 }
