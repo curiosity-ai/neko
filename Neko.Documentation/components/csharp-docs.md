@@ -5,9 +5,20 @@ icon: file-code
 ---
 # C# Documentation Block
 
-Neko supports an automated way to document your C# APIs directly within your Markdown using a special `csharp-docs` code block modifier. This allows you to generate beautiful, DocFx-like layouts for your C# classes, methods, properties, and more, all from a standard code block.
+Neko supports an automated way to document your C# APIs directly within your Markdown using a special `csharp-docs` code block modifier. This allows you to generate DocFx-like layouts for your C# classes, methods, properties, and more, all from a standard C# code block.
 
 Neko uses Roslyn to parse your code and extracts standard XML documentation tags like `<summary>`, `<param>`, `<returns>`, `<remarks>`, `<typeparam>`, and `<exception>`.
+
+## Layout
+
+When the block contains an enclosing type declaration (class / struct / interface / record / enum), Neko renders:
+
+1. A **sticky header** with the type kind (class, interface, …), the type name, its signature, and its summary. The header stays pinned to the top of the `csharp-docs` area as the visitor scrolls through the rest of the section.
+2. The type's documented members grouped by kind, in this order: **Constructors → Properties → Methods → Events → Fields**. Each member is prefixed with a small kind badge (Constructor, Method, Property, …) and its name is qualified with the parent type (e.g. `DetailsList.OnColumnClick`).
+
+Permalink anchors are rendered as a small link icon *after* each name. Signature whitespace is normalized at render time, so column-aligned source code (`public void        OnColumnClick()`) is shown collapsed to a single space.
+
+For fragments without an enclosing type (e.g. the single-method example below), members are rendered inline in source order.
 
 ## Usage
 

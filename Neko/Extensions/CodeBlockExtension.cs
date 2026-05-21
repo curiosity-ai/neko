@@ -2,10 +2,14 @@ using Markdig;
 using Markdig.Renderers;
 using Markdig.Renderers.Html;
 using Markdig.Syntax;
-using System.Text.RegularExpressions;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Neko.Extensions
 {
@@ -106,7 +110,7 @@ namespace Neko.Extensions
                 if (leafBlock != null)
                 {
                     var slices = leafBlock.Lines;
-                    var csharpCode = new System.Text.StringBuilder();
+                    var csharpCode = new StringBuilder();
                     for (int i = 0; i < slices.Count; i++)
                     {
                         var slice = slices.Lines[i].Slice;
@@ -115,169 +119,43 @@ namespace Neko.Extensions
                     }
 
                     var codeString = csharpCode.ToString();
-                    var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(codeString);
+                    // Script mode lets bare members (methods, properties) at the file root
+                    // parse as proper MemberDeclarationSyntax instead of being wrapped in
+                    // GlobalStatementSyntax/LocalFunctionStatementSyntax.
+                    var parseOptions = new CSharpParseOptions(kind: SourceCodeKind.Script);
+                    var tree = CSharpSyntaxTree.ParseText(codeString, parseOptions);
                     var root = tree.GetRoot();
 
                     renderer.Write("<div class=\"csharp-docs my-8\">");
 
-                    foreach (var node in root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MemberDeclarationSyntax>())
+                    // Collect top-level members: types and standalone declarations,
+                    // unwrapping namespace declarations.
+                    var topLevel = new List<MemberDeclarationSyntax>();
+                    void Collect(SyntaxNode container)
                     {
-                        var xml = node.GetLeadingTrivia()
-                            .Select(i => i.GetStructure())
-                            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.DocumentationCommentTriviaSyntax>()
-                            .FirstOrDefault();
-
-                        if (xml != null)
+                        foreach (var child in container.ChildNodes())
                         {
-                            var summary = xml.ChildNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlElementSyntax>().FirstOrDefault(e => e.StartTag.Name.ToString() == "summary");
-                            var summaryText = summary != null ? string.Join("", summary.Content.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlTextSyntax>().SelectMany(t => t.TextTokens.Select(tk => tk.ValueText))).Trim() : "";
-
-                            var paramsDict = xml.ChildNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlElementSyntax>().Where(e => e.StartTag.Name.ToString() == "param")
-                                .Select(e => new {
-                                    Name = e.StartTag.Attributes.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText,
-                                    Text = string.Join("", e.Content.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlTextSyntax>().SelectMany(t => t.TextTokens.Select(tk => tk.ValueText))).Trim()
-                                }).ToList();
-
-                            var returns = xml.ChildNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlElementSyntax>().FirstOrDefault(e => e.StartTag.Name.ToString() == "returns");
-                            var returnsText = returns != null ? string.Join("", returns.Content.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlTextSyntax>().SelectMany(t => t.TextTokens.Select(tk => tk.ValueText))).Trim() : "";
-
-                            var remarks = xml.ChildNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlElementSyntax>().FirstOrDefault(e => e.StartTag.Name.ToString() == "remarks");
-                            var remarksText = remarks != null ? string.Join("", remarks.Content.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlTextSyntax>().SelectMany(t => t.TextTokens.Select(tk => tk.ValueText))).Trim() : "";
-
-                            var typeparamsDict = xml.ChildNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlElementSyntax>().Where(e => e.StartTag.Name.ToString() == "typeparam")
-                                .Select(e => new {
-                                    Name = e.StartTag.Attributes.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText,
-                                    Text = string.Join("", e.Content.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlTextSyntax>().SelectMany(t => t.TextTokens.Select(tk => tk.ValueText))).Trim()
-                                }).ToList();
-
-                            var exceptionsDict = xml.ChildNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlElementSyntax>().Where(e => e.StartTag.Name.ToString() == "exception")
-                                .Select(e => new {
-                                    Name = e.StartTag.Attributes.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlCrefAttributeSyntax>().FirstOrDefault()?.Cref.ToFullString().Trim() ??
-                                           e.StartTag.Attributes.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText,
-                                    Text = string.Join("", e.Content.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.XmlTextSyntax>().SelectMany(t => t.TextTokens.Select(tk => tk.ValueText))).Trim()
-                                }).ToList();
-
-                            var signature = "";
-                            var name = "";
-
-                            if (node is Microsoft.CodeAnalysis.CSharp.Syntax.BaseMethodDeclarationSyntax methodLikeNode)
+                            if (child is NamespaceDeclarationSyntax || child is FileScopedNamespaceDeclarationSyntax)
                             {
-                                var sigNode = methodLikeNode.WithBody(null).WithExpressionBody(null).WithSemicolonToken(Microsoft.CodeAnalysis.CSharp.SyntaxFactory.Token(Microsoft.CodeAnalysis.CSharp.SyntaxKind.None));
-                                signature = Microsoft.CodeAnalysis.SyntaxNodeExtensions.WithoutTrivia(sigNode).ToFullString().Trim();
+                                Collect(child);
                             }
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax propNode)
+                            else if (child is MemberDeclarationSyntax m)
                             {
-                                var sigNode = propNode.WithAccessorList(null).WithExpressionBody(null).WithSemicolonToken(Microsoft.CodeAnalysis.CSharp.SyntaxFactory.Token(Microsoft.CodeAnalysis.CSharp.SyntaxKind.None));
-                                signature = Microsoft.CodeAnalysis.SyntaxNodeExtensions.WithoutTrivia(sigNode).ToFullString().Trim();
+                                topLevel.Add(m);
                             }
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.TypeDeclarationSyntax typeNode)
-                            {
-                                var sigNode = typeNode.WithOpenBraceToken(Microsoft.CodeAnalysis.CSharp.SyntaxFactory.Token(Microsoft.CodeAnalysis.CSharp.SyntaxKind.None)).WithCloseBraceToken(Microsoft.CodeAnalysis.CSharp.SyntaxFactory.Token(Microsoft.CodeAnalysis.CSharp.SyntaxKind.None));
-                                signature = Microsoft.CodeAnalysis.SyntaxNodeExtensions.WithoutTrivia(sigNode).ToFullString().Trim();
-                                if (signature.Contains("{")) signature = signature.Substring(0, signature.IndexOf("{")).Trim();
-                            }
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.EnumDeclarationSyntax enumNode)
-                            {
-                                var sigNode = enumNode.WithOpenBraceToken(Microsoft.CodeAnalysis.CSharp.SyntaxFactory.Token(Microsoft.CodeAnalysis.CSharp.SyntaxKind.None)).WithCloseBraceToken(Microsoft.CodeAnalysis.CSharp.SyntaxFactory.Token(Microsoft.CodeAnalysis.CSharp.SyntaxKind.None));
-                                signature = Microsoft.CodeAnalysis.SyntaxNodeExtensions.WithoutTrivia(sigNode).ToFullString().Trim();
-                                if (signature.Contains("{")) signature = signature.Substring(0, signature.IndexOf("{")).Trim();
-                            }
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.DelegateDeclarationSyntax delegateNode)
-                            {
-                                signature = Microsoft.CodeAnalysis.SyntaxNodeExtensions.WithoutTrivia(delegateNode).ToFullString().Trim();
-                            }
-                            else
-                            {
-                                signature = Microsoft.CodeAnalysis.SyntaxNodeExtensions.WithoutTrivia(node).ToFullString().Trim();
-                                if (signature.Contains("{")) signature = signature.Substring(0, signature.IndexOf("{")).Trim();
-                            }
+                        }
+                    }
+                    Collect(root);
 
-                            if (node is Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax classNode) name = classNode.Identifier.Text;
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax interfaceNode) name = interfaceNode.Identifier.Text;
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.StructDeclarationSyntax structNode) name = structNode.Identifier.Text;
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.RecordDeclarationSyntax recordNode) name = recordNode.Identifier.Text;
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.EnumDeclarationSyntax enumNode2) name = enumNode2.Identifier.Text;
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.DelegateDeclarationSyntax delegateNode2) name = delegateNode2.Identifier.Text;
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax methodNode) name = methodNode.Identifier.Text;
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax propNode2) name = propNode2.Identifier.Text;
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.FieldDeclarationSyntax fieldNode) name = string.Join(", ", fieldNode.Declaration.Variables.Select(v => v.Identifier.Text));
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.EventDeclarationSyntax eventNode) name = eventNode.Identifier.Text;
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.ConstructorDeclarationSyntax ctorNode) name = ctorNode.Identifier.Text;
-                            else if (node is Microsoft.CodeAnalysis.CSharp.Syntax.EnumMemberDeclarationSyntax enumMember) name = enumMember.Identifier.Text;
-
-                            var encodedName = System.Net.WebUtility.HtmlEncode(name);
-                            var encodedSignature = System.Net.WebUtility.HtmlEncode(signature);
-                            var encodedSummary = System.Net.WebUtility.HtmlEncode(summaryText);
-                            var encodedReturns = System.Net.WebUtility.HtmlEncode(returnsText);
-                            var encodedRemarks = System.Net.WebUtility.HtmlEncode(remarksText);
-
-                            renderer.Write($"<div class=\"csharp-member-doc mb-12\" id=\"{encodedName}\">");
-                            if (!string.IsNullOrEmpty(encodedName))
-                            {
-                                renderer.Write($"<h3 class=\"text-2xl font-semibold mt-8 mb-4 text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-2\"><a href=\"#{encodedName}\" class=\"header-anchor text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 mr-2\"><i class=\"fi fi-rr-link\"></i></a>{encodedName}</h3>");
-                            }
-
-                            renderer.Write($"<div class=\"bg-gray-50 dark:bg-[#1a1a1a] rounded-md p-4 font-mono text-sm text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-white/10 overflow-x-auto my-4\">");
-                            renderer.Write($"<pre class=\"!m-0 !p-0 !bg-transparent !border-0\"><code>{encodedSignature}</code></pre>");
-                            renderer.Write("</div>");
-
-                            if (!string.IsNullOrEmpty(encodedSummary))
-                            {
-                                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-4 leading-relaxed\">{encodedSummary}</p>");
-                            }
-
-                            if (typeparamsDict.Any())
-                            {
-                                renderer.Write("<h4 class=\"font-semibold text-lg mt-6 mb-2 text-gray-900 dark:text-gray-100\">Type Parameters</h4>");
-                                renderer.Write("<dl class=\"mt-2 mb-4 space-y-4\">");
-                                foreach (var p in typeparamsDict)
-                                {
-                                    var encodedPName = System.Net.WebUtility.HtmlEncode(p.Name);
-                                    var encodedPText = System.Net.WebUtility.HtmlEncode(p.Text);
-                                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-2 sm:gap-4\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{encodedPName}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{encodedPText}</dd></div>");
-                                }
-                                renderer.Write("</dl>");
-                            }
-
-                            if (paramsDict.Any())
-                            {
-                                renderer.Write("<h4 class=\"font-semibold text-lg mt-6 mb-2 text-gray-900 dark:text-gray-100\">Parameters</h4>");
-                                renderer.Write("<dl class=\"mt-2 mb-4 space-y-4\">");
-                                foreach (var p in paramsDict)
-                                {
-                                    var encodedPName = System.Net.WebUtility.HtmlEncode(p.Name);
-                                    var encodedPText = System.Net.WebUtility.HtmlEncode(p.Text);
-                                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-2 sm:gap-4\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{encodedPName}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{encodedPText}</dd></div>");
-                                }
-                                renderer.Write("</dl>");
-                            }
-
-                            if (!string.IsNullOrEmpty(encodedReturns))
-                            {
-                                renderer.Write("<h4 class=\"font-semibold text-lg mt-6 mb-2 text-gray-900 dark:text-gray-100\">Returns</h4>");
-                                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mb-4\">{encodedReturns}</p>");
-                            }
-
-                            if (exceptionsDict.Any())
-                            {
-                                renderer.Write("<h4 class=\"font-semibold text-lg mt-6 mb-2 text-gray-900 dark:text-gray-100\">Exceptions</h4>");
-                                renderer.Write("<dl class=\"mt-2 mb-4 space-y-4\">");
-                                foreach (var p in exceptionsDict)
-                                {
-                                    var encodedPName = System.Net.WebUtility.HtmlEncode(p.Name);
-                                    var encodedPText = System.Net.WebUtility.HtmlEncode(p.Text);
-                                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-2 sm:gap-4\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{encodedPName}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{encodedPText}</dd></div>");
-                                }
-                                renderer.Write("</dl>");
-                            }
-
-                            if (!string.IsNullOrEmpty(encodedRemarks))
-                            {
-                                renderer.Write("<h4 class=\"font-semibold text-lg mt-6 mb-2 text-gray-900 dark:text-gray-100\">Remarks</h4>");
-                                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mb-4\">{encodedRemarks}</p>");
-                            }
-
-                            renderer.Write("</div>"); // Close csharp-member-doc
+                    foreach (var member in topLevel)
+                    {
+                        if (member is BaseTypeDeclarationSyntax typeDecl)
+                        {
+                            RenderCSharpType(renderer, typeDecl);
+                        }
+                        else if (HasXmlDoc(member))
+                        {
+                            RenderCSharpMember(renderer, member, classPrefix: null);
                         }
                     }
 
@@ -735,6 +613,424 @@ namespace Neko.Extensions
                 renderer.Write("</div>"); // Close tab-content
                 renderer.Write("</div>"); // Close p-4
                 renderer.Write("</div>"); // Close outer my-4 border
+            }
+        }
+
+        // ---- csharp-docs helpers ----
+
+        private sealed class CSharpXmlDoc
+        {
+            public string Summary = "";
+            public string Returns = "";
+            public string Remarks = "";
+            public readonly List<(string Name, string Text)> Params = new();
+            public readonly List<(string Name, string Text)> TypeParams = new();
+            public readonly List<(string Name, string Text)> Exceptions = new();
+        }
+
+        private static bool HasXmlDoc(SyntaxNode node) => GetXmlDoc(node) != null;
+
+        private static DocumentationCommentTriviaSyntax GetXmlDoc(SyntaxNode node)
+        {
+            return node.GetLeadingTrivia()
+                .Select(i => i.GetStructure())
+                .OfType<DocumentationCommentTriviaSyntax>()
+                .FirstOrDefault();
+        }
+
+        private static string ReadElementText(XmlElementSyntax el)
+        {
+            return string.Join("", el.Content
+                .OfType<XmlTextSyntax>()
+                .SelectMany(t => t.TextTokens.Select(tk => tk.ValueText))).Trim();
+        }
+
+        private static CSharpXmlDoc ParseXmlDoc(DocumentationCommentTriviaSyntax xml)
+        {
+            var doc = new CSharpXmlDoc();
+            if (xml == null) return doc;
+
+            foreach (var el in xml.ChildNodes().OfType<XmlElementSyntax>())
+            {
+                var tag = el.StartTag.Name.ToString();
+                switch (tag)
+                {
+                    case "summary": doc.Summary = ReadElementText(el); break;
+                    case "returns": doc.Returns = ReadElementText(el); break;
+                    case "remarks": doc.Remarks = ReadElementText(el); break;
+                    case "param":
+                    {
+                        var name = el.StartTag.Attributes.OfType<XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText ?? "";
+                        doc.Params.Add((name, ReadElementText(el)));
+                        break;
+                    }
+                    case "typeparam":
+                    {
+                        var name = el.StartTag.Attributes.OfType<XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText ?? "";
+                        doc.TypeParams.Add((name, ReadElementText(el)));
+                        break;
+                    }
+                    case "exception":
+                    {
+                        var name = el.StartTag.Attributes.OfType<XmlCrefAttributeSyntax>().FirstOrDefault()?.Cref.ToFullString().Trim()
+                                 ?? el.StartTag.Attributes.OfType<XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText
+                                 ?? "";
+                        doc.Exceptions.Add((name, ReadElementText(el)));
+                        break;
+                    }
+                }
+            }
+            return doc;
+        }
+
+        private static string NormalizeSignatureWhitespace(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return "";
+            s = Regex.Replace(s, @"\s+", " ").Trim();
+            // Drop a trailing semicolon left over from declarations without a body.
+            while (s.EndsWith(";")) s = s.Substring(0, s.Length - 1).TrimEnd();
+            return s;
+        }
+
+        private static string GetTypeName(BaseTypeDeclarationSyntax type)
+        {
+            var name = type.Identifier.Text;
+            if (type is TypeDeclarationSyntax t && t.TypeParameterList != null)
+            {
+                name += t.TypeParameterList.ToString();
+            }
+            return name;
+        }
+
+        private static string GetTypeKindLabel(BaseTypeDeclarationSyntax type) => type switch
+        {
+            InterfaceDeclarationSyntax => "interface",
+            StructDeclarationSyntax => "struct",
+            RecordDeclarationSyntax r => r.ClassOrStructKeyword.IsKind(SyntaxKind.StructKeyword) ? "record struct" : "record",
+            EnumDeclarationSyntax => "enum",
+            ClassDeclarationSyntax => "class",
+            _ => "type",
+        };
+
+        private static string BuildTypeSignature(BaseTypeDeclarationSyntax type)
+        {
+            var sb = new StringBuilder();
+            // Modifiers
+            foreach (var mod in type.Modifiers)
+            {
+                sb.Append(mod.Text).Append(' ');
+            }
+            // Keyword (class/struct/interface/record/enum)
+            if (type is TypeDeclarationSyntax td)
+            {
+                if (type is RecordDeclarationSyntax rec && !rec.ClassOrStructKeyword.IsKind(SyntaxKind.None))
+                {
+                    sb.Append(td.Keyword.Text).Append(' ').Append(rec.ClassOrStructKeyword.Text).Append(' ');
+                }
+                else
+                {
+                    sb.Append(td.Keyword.Text).Append(' ');
+                }
+                sb.Append(td.Identifier.Text);
+                if (td.TypeParameterList != null) sb.Append(td.TypeParameterList.ToString());
+                if (td.BaseList != null) sb.Append(' ').Append(td.BaseList.ToString());
+                foreach (var c in td.ConstraintClauses) sb.Append(' ').Append(c.ToString());
+            }
+            else if (type is EnumDeclarationSyntax en)
+            {
+                sb.Append(en.EnumKeyword.Text).Append(' ').Append(en.Identifier.Text);
+                if (en.BaseList != null) sb.Append(' ').Append(en.BaseList.ToString());
+            }
+            else
+            {
+                sb.Append(type.Identifier.Text);
+            }
+            return NormalizeSignatureWhitespace(sb.ToString());
+        }
+
+        private static string BuildMemberSignature(MemberDeclarationSyntax node)
+        {
+            MemberDeclarationSyntax sig = node;
+            if (node is BaseMethodDeclarationSyntax method)
+            {
+                sig = method
+                    .WithBody(null)
+                    .WithExpressionBody(null)
+                    .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.None))
+                    .WithAttributeLists(default);
+            }
+            else if (node is PropertyDeclarationSyntax prop)
+            {
+                sig = prop
+                    .WithAccessorList(null)
+                    .WithExpressionBody(null)
+                    .WithInitializer(null)
+                    .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.None))
+                    .WithAttributeLists(default);
+            }
+            else if (node is IndexerDeclarationSyntax indexer)
+            {
+                sig = indexer
+                    .WithAccessorList(null)
+                    .WithExpressionBody(null)
+                    .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.None))
+                    .WithAttributeLists(default);
+            }
+            else if (node is EventDeclarationSyntax evt)
+            {
+                sig = evt
+                    .WithAccessorList(null)
+                    .WithAttributeLists(default);
+            }
+            else if (node is EventFieldDeclarationSyntax evtField)
+            {
+                sig = evtField.WithAttributeLists(default);
+            }
+            else if (node is FieldDeclarationSyntax field)
+            {
+                sig = field.WithAttributeLists(default);
+            }
+            else if (node is DelegateDeclarationSyntax del)
+            {
+                sig = del.WithAttributeLists(default);
+            }
+            else if (node is EnumMemberDeclarationSyntax em)
+            {
+                sig = em.WithAttributeLists(default);
+            }
+
+            var raw = sig.WithoutTrivia().ToFullString();
+            return NormalizeSignatureWhitespace(raw);
+        }
+
+        private static string GetMemberName(MemberDeclarationSyntax node) => node switch
+        {
+            ConstructorDeclarationSyntax c => c.Identifier.Text,
+            DestructorDeclarationSyntax d => "~" + d.Identifier.Text,
+            MethodDeclarationSyntax m => m.Identifier.Text + (m.TypeParameterList?.ToString() ?? ""),
+            PropertyDeclarationSyntax p => p.Identifier.Text,
+            IndexerDeclarationSyntax i => "this[" + string.Join(", ", i.ParameterList.Parameters.Select(p => p.Type?.ToString() ?? "")) + "]",
+            EventDeclarationSyntax e => e.Identifier.Text,
+            EventFieldDeclarationSyntax ef => string.Join(", ", ef.Declaration.Variables.Select(v => v.Identifier.Text)),
+            FieldDeclarationSyntax f => string.Join(", ", f.Declaration.Variables.Select(v => v.Identifier.Text)),
+            DelegateDeclarationSyntax d => d.Identifier.Text + (d.TypeParameterList?.ToString() ?? ""),
+            EnumMemberDeclarationSyntax em => em.Identifier.Text,
+            OperatorDeclarationSyntax op => "operator " + op.OperatorToken.Text,
+            ConversionOperatorDeclarationSyntax conv => conv.ImplicitOrExplicitKeyword.Text + " operator " + (conv.Type?.ToString() ?? ""),
+            _ => "",
+        };
+
+        private static (string Group, string Badge) GetMemberKind(MemberDeclarationSyntax node) => node switch
+        {
+            ConstructorDeclarationSyntax => ("constructors", "Constructor"),
+            DestructorDeclarationSyntax => ("constructors", "Destructor"),
+            PropertyDeclarationSyntax => ("properties", "Property"),
+            IndexerDeclarationSyntax => ("properties", "Indexer"),
+            FieldDeclarationSyntax => ("fields", "Field"),
+            EventDeclarationSyntax => ("events", "Event"),
+            EventFieldDeclarationSyntax => ("events", "Event"),
+            EnumMemberDeclarationSyntax => ("fields", "Value"),
+            OperatorDeclarationSyntax => ("methods", "Operator"),
+            ConversionOperatorDeclarationSyntax => ("methods", "Conversion"),
+            MethodDeclarationSyntax => ("methods", "Method"),
+            DelegateDeclarationSyntax => ("methods", "Delegate"),
+            _ => ("methods", "Member"),
+        };
+
+        private static string SlugifyId(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return "";
+            var sb = new StringBuilder(s.Length);
+            foreach (var ch in s)
+            {
+                if (char.IsLetterOrDigit(ch) || ch == '-' || ch == '_' || ch == '.') sb.Append(ch);
+                else if (ch == ' ') sb.Append('-');
+            }
+            return sb.ToString();
+        }
+
+        private static void RenderCSharpType(HtmlRenderer renderer, BaseTypeDeclarationSyntax type)
+        {
+            var xml = GetXmlDoc(type);
+            var doc = ParseXmlDoc(xml);
+            var typeName = GetTypeName(type);
+            var simpleName = type.Identifier.Text;
+            var kindLabel = GetTypeKindLabel(type);
+            var signature = BuildTypeSignature(type);
+            var anchor = SlugifyId(simpleName);
+
+            renderer.Write($"<section class=\"csharp-type mb-12\" id=\"{System.Net.WebUtility.HtmlEncode(anchor)}\">");
+
+            // Sticky type header
+            renderer.Write("<header class=\"csharp-type-header sticky top-0 z-10 -mx-2 px-2 pt-4 pb-3 mb-6 bg-white/95 dark:bg-gray-900/95 backdrop-blur border-b border-gray-200 dark:border-gray-700\">");
+
+            renderer.Write("<div class=\"flex items-center gap-2 flex-wrap\">");
+            renderer.Write($"<span class=\"csharp-kind-badge inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300\">{System.Net.WebUtility.HtmlEncode(kindLabel)}</span>");
+            renderer.Write($"<h3 class=\"text-2xl font-semibold m-0 text-gray-900 dark:text-gray-100\">{System.Net.WebUtility.HtmlEncode(typeName)}");
+            renderer.Write($"<a href=\"#{System.Net.WebUtility.HtmlEncode(anchor)}\" class=\"csharp-anchor no-underline text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-2 text-xs align-middle\" aria-label=\"Permalink\"><i class=\"fi fi-rr-link\"></i></a>");
+            renderer.Write("</h3>");
+            renderer.Write("</div>");
+
+            if (!string.IsNullOrEmpty(signature))
+            {
+                renderer.Write("<div class=\"bg-gray-50 dark:bg-[#1a1a1a] rounded-md p-3 font-mono text-sm text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-white/10 overflow-x-auto mt-3\">");
+                renderer.Write($"<pre class=\"!m-0 !p-0 !bg-transparent !border-0\"><code>{System.Net.WebUtility.HtmlEncode(signature)}</code></pre>");
+                renderer.Write("</div>");
+            }
+
+            if (!string.IsNullOrEmpty(doc.Summary))
+            {
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mt-3 mb-0 leading-relaxed\">{System.Net.WebUtility.HtmlEncode(doc.Summary)}</p>");
+            }
+
+            RenderXmlDocDetails(renderer, doc, includeSummary: false, includeReturns: false, compact: true);
+
+            renderer.Write("</header>");
+
+            // Group child members by kind
+            if (type is TypeDeclarationSyntax td)
+            {
+                var groups = new[]
+                {
+                    ("constructors", "Constructors"),
+                    ("properties", "Properties"),
+                    ("methods", "Methods"),
+                    ("events", "Events"),
+                    ("fields", "Fields"),
+                };
+
+                var members = td.Members
+                    .Where(HasXmlDoc)
+                    .Where(m => !(m is BaseTypeDeclarationSyntax))
+                    .ToList();
+
+                foreach (var (groupKey, groupLabel) in groups)
+                {
+                    var inGroup = members.Where(m => GetMemberKind(m).Group == groupKey).ToList();
+                    if (inGroup.Count == 0) continue;
+
+                    renderer.Write("<div class=\"csharp-member-group mt-8\">");
+                    renderer.Write($"<h4 class=\"text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100\">{groupLabel}</h4>");
+                    foreach (var m in inGroup)
+                    {
+                        RenderCSharpMember(renderer, m, classPrefix: simpleName);
+                    }
+                    renderer.Write("</div>");
+                }
+            }
+            else if (type is EnumDeclarationSyntax en)
+            {
+                var values = en.Members.Where(HasXmlDoc).ToList();
+                if (values.Count > 0)
+                {
+                    renderer.Write("<div class=\"csharp-member-group mt-8\">");
+                    renderer.Write("<h4 class=\"text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100\">Values</h4>");
+                    foreach (var v in values)
+                    {
+                        RenderCSharpMember(renderer, v, classPrefix: simpleName);
+                    }
+                    renderer.Write("</div>");
+                }
+            }
+
+            renderer.Write("</section>");
+        }
+
+        private static void RenderCSharpMember(HtmlRenderer renderer, MemberDeclarationSyntax node, string classPrefix)
+        {
+            var xml = GetXmlDoc(node);
+            if (xml == null) return;
+            var doc = ParseXmlDoc(xml);
+
+            var memberName = GetMemberName(node);
+            var (_, badge) = GetMemberKind(node);
+            var signature = BuildMemberSignature(node);
+            var displayName = !string.IsNullOrEmpty(classPrefix) && !(node is ConstructorDeclarationSyntax)
+                ? $"{classPrefix}.{memberName}"
+                : memberName;
+            // For constructors, display class name (which matches the constructor identifier).
+            var anchor = SlugifyId(!string.IsNullOrEmpty(classPrefix) ? $"{classPrefix}.{memberName}" : memberName);
+
+            renderer.Write($"<div class=\"csharp-member-doc mb-8\" id=\"{System.Net.WebUtility.HtmlEncode(anchor)}\">");
+
+            renderer.Write("<div class=\"flex items-center gap-2 flex-wrap mb-2\">");
+            renderer.Write($"<span class=\"csharp-kind-badge inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(badge)}</span>");
+            renderer.Write($"<h5 class=\"text-lg font-semibold m-0 text-gray-900 dark:text-gray-100\">{System.Net.WebUtility.HtmlEncode(displayName)}");
+            renderer.Write($"<a href=\"#{System.Net.WebUtility.HtmlEncode(anchor)}\" class=\"csharp-anchor no-underline text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-2 text-xs align-middle\" aria-label=\"Permalink\"><i class=\"fi fi-rr-link\"></i></a>");
+            renderer.Write("</h5>");
+            renderer.Write("</div>");
+
+            if (!string.IsNullOrEmpty(signature))
+            {
+                renderer.Write("<div class=\"bg-gray-50 dark:bg-[#1a1a1a] rounded-md p-3 font-mono text-sm text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-white/10 overflow-x-auto my-3\">");
+                renderer.Write($"<pre class=\"!m-0 !p-0 !bg-transparent !border-0\"><code>{System.Net.WebUtility.HtmlEncode(signature)}</code></pre>");
+                renderer.Write("</div>");
+            }
+
+            if (!string.IsNullOrEmpty(doc.Summary))
+            {
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{System.Net.WebUtility.HtmlEncode(doc.Summary)}</p>");
+            }
+
+            RenderXmlDocDetails(renderer, doc, includeSummary: false, includeReturns: true, compact: false);
+
+            renderer.Write("</div>");
+        }
+
+        private static void RenderXmlDocDetails(HtmlRenderer renderer, CSharpXmlDoc doc, bool includeSummary, bool includeReturns, bool compact)
+        {
+            string h4 = compact
+                ? "font-semibold text-sm uppercase tracking-wide mt-3 mb-1 text-gray-500 dark:text-gray-400"
+                : "font-semibold text-base mt-4 mb-2 text-gray-900 dark:text-gray-100";
+
+            if (includeSummary && !string.IsNullOrEmpty(doc.Summary))
+            {
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{System.Net.WebUtility.HtmlEncode(doc.Summary)}</p>");
+            }
+
+            if (doc.TypeParams.Any())
+            {
+                renderer.Write($"<h4 class=\"{h4}\">Type Parameters</h4>");
+                renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
+                foreach (var p in doc.TypeParams)
+                {
+                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(p.Text)}</dd></div>");
+                }
+                renderer.Write("</dl>");
+            }
+
+            if (doc.Params.Any())
+            {
+                renderer.Write($"<h4 class=\"{h4}\">Parameters</h4>");
+                renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
+                foreach (var p in doc.Params)
+                {
+                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(p.Text)}</dd></div>");
+                }
+                renderer.Write("</dl>");
+            }
+
+            if (includeReturns && !string.IsNullOrEmpty(doc.Returns))
+            {
+                renderer.Write($"<h4 class=\"{h4}\">Returns</h4>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mb-3\">{System.Net.WebUtility.HtmlEncode(doc.Returns)}</p>");
+            }
+
+            if (doc.Exceptions.Any())
+            {
+                renderer.Write($"<h4 class=\"{h4}\">Exceptions</h4>");
+                renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
+                foreach (var p in doc.Exceptions)
+                {
+                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(p.Text)}</dd></div>");
+                }
+                renderer.Write("</dl>");
+            }
+
+            if (!string.IsNullOrEmpty(doc.Remarks))
+            {
+                renderer.Write($"<h4 class=\"{h4}\">Remarks</h4>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mb-3\">{System.Net.WebUtility.HtmlEncode(doc.Remarks)}</p>");
             }
         }
     }
