@@ -762,7 +762,7 @@ namespace Neko.Extensions
             else if (node is PropertyDeclarationSyntax prop)
             {
                 sig = prop
-                    .WithAccessorList(null)
+                    .WithAccessorList(StripAccessorBodies(prop.AccessorList))
                     .WithExpressionBody(null)
                     .WithInitializer(null)
                     .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.None))
@@ -771,7 +771,7 @@ namespace Neko.Extensions
             else if (node is IndexerDeclarationSyntax indexer)
             {
                 sig = indexer
-                    .WithAccessorList(null)
+                    .WithAccessorList(StripAccessorBodies(indexer.AccessorList))
                     .WithExpressionBody(null)
                     .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.None))
                     .WithAttributeLists(default);
@@ -800,7 +800,23 @@ namespace Neko.Extensions
             }
 
             var raw = sig.WithoutTrivia().ToFullString();
-            return NormalizeSignatureWhitespace(raw);
+            var normalized = NormalizeSignatureWhitespace(raw);
+            if (node is PropertyDeclarationSyntax || node is IndexerDeclarationSyntax)
+            {
+                normalized = Regex.Replace(normalized, @";(?=\S)", "; ");
+            }
+            return normalized;
+        }
+
+        private static AccessorListSyntax StripAccessorBodies(AccessorListSyntax accessors)
+        {
+            if (accessors == null) return null;
+            var stripped = accessors.Accessors.Select(a => a
+                .WithAttributeLists(default)
+                .WithBody(null)
+                .WithExpressionBody(null)
+                .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)));
+            return accessors.WithAccessors(SyntaxFactory.List(stripped));
         }
 
         private static string GetMemberName(MemberDeclarationSyntax node) => node switch
