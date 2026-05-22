@@ -156,10 +156,18 @@ namespace Neko.Builder
                         currentDir = System.IO.Path.GetDirectoryName(fullUrlPath) ?? inputDir;
                     }
 
+                    string WithRoutePrefix(string rootRelative)
+                    {
+                        var prefix = SiteBuilder.CurrentRoutePrefix;
+                        if (string.IsNullOrEmpty(prefix)) return rootRelative;
+                        if (rootRelative.StartsWith(prefix + "/", System.StringComparison.Ordinal) || rootRelative == prefix) return rootRelative;
+                        return prefix + rootRelative;
+                    }
+
                     var trimmedLogo = logo.TrimStart('/');
                     var targetPath = System.IO.Path.Combine(currentDir, trimmedLogo);
 
-                    if (System.IO.File.Exists(targetPath)) return "/" + System.IO.Path.GetRelativePath(inputDir, targetPath).Replace("\\", "/");
+                    if (System.IO.File.Exists(targetPath)) return WithRoutePrefix("/" + System.IO.Path.GetRelativePath(inputDir, targetPath).Replace("\\", "/"));
 
                     var fileName = System.IO.Path.GetFileName(trimmedLogo);
                     var urlDir = System.IO.Path.GetDirectoryName(trimmedLogo)?.Replace('\\', '/');
@@ -185,7 +193,7 @@ namespace Neko.Builder
 
                     if (foundPath != null)
                     {
-                        return "/" + System.IO.Path.GetRelativePath(inputDir, foundPath).Replace("\\", "/");
+                        return WithRoutePrefix("/" + System.IO.Path.GetRelativePath(inputDir, foundPath).Replace("\\", "/"));
                     }
 
                     return logo;

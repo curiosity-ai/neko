@@ -151,6 +151,30 @@ namespace Tesserae
         }
 
         [Test]
+        public void PropertySignatureShowsAccessors()
+        {
+            const string source = @"```csharp-docs
+namespace Tesserae
+{
+    public class Sample
+    {
+        /// <summary>Read-only.</summary>
+        public string ReadOnly { get; }
+        /// <summary>Read-write.</summary>
+        public int ReadWrite { get; set; }
+        /// <summary>Init-only.</summary>
+        public string InitOnly { get; init; }
+    }
+}
+```";
+            var doc = _parser.Parse(source);
+            var html = doc.Html;
+            Assert.That(html, Contains.Substring("public string ReadOnly { get; }"));
+            Assert.That(html, Contains.Substring("public int ReadWrite { get; set; }"));
+            Assert.That(html, Contains.Substring("public string InitOnly { get; init; }"));
+        }
+
+        [Test]
         public void StandaloneMemberStillRenders()
         {
             const string source = @"```csharp-docs
