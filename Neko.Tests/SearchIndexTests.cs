@@ -191,5 +191,149 @@ Body text for the untitled page.
             var text = SearchIndexGenerator.HtmlToText(html);
             Assert.That(text, Is.EqualTo("Hello world &done"));
         }
+
+        [Test]
+        public async Task SearchIndex_IncludesSlugSoFilenameQueriesMatch()
+        {
+            var builder = new SiteBuilder(_sampleDir);
+            await builder.BuildAsync();
+
+            var indexPath = Path.Combine(builder.OutputDirectory, "search.json");
+            var json = await File.ReadAllTextAsync(indexPath);
+            using var doc = JsonDocument.Parse(json);
+            var docs = doc.RootElement.EnumerateArray().ToList();
+
+            var index = docs.First(d => d.GetProperty("id").GetString() == "index.html");
+            Assert.That(index.TryGetProperty("slug", out var slug), Is.True,
+                "Page documents should expose a `slug` field so filename queries match");
+            Assert.That(slug.GetString(), Is.EqualTo("index"),
+                "Root index.md should produce slug 'index' so a search for 'index' surfaces it");
+
+            var blogIndex = docs.First(d => d.GetProperty("id").GetString() == "blog/index.html");
+            Assert.That(blogIndex.GetProperty("slug").GetString(), Is.EqualTo("blog index"),
+                "Nested files should split each path segment into a separate slug token");
+        }
+
+        [Test]
+        public async Task SearchIndex_EmitsPageType_ForPageLevelDocuments()
+        {
+            var builder = new SiteBuilder(_sampleDir);
+            await builder.BuildAsync();
+
+            var indexPath = Path.Combine(builder.OutputDirectory, "search.json");
+            var json = await File.ReadAllTextAsync(indexPath);
+            using var doc = JsonDocument.Parse(json);
+            var docs = doc.RootElement.EnumerateArray().ToList();
+
+            var index = docs.First(d => d.GetProperty("id").GetString() == "index.html");
+            Assert.That(index.GetProperty("type").GetString(), Is.EqualTo("page"));
+        }
+
+        [Test]
+        public void ExtractSections_SlicesHtmlAtHeadingBoundaries()
+        {
+            const string html =
+                "<h1 id=\"top\">Top</h1>" +
+                "<p>Intro paragraph.</p>" +
+                "<h2 id=\"alpha\">Alpha</h2>" +
+                "<p>Alpha body.</p>" +
+                "<h3 id=\"alpha-1\">Alpha One</h3>" +
+                "<p>Alpha one body.</p>" +
+                "<h2 id=\"beta\">Beta</h2>" +
+                "<p>Beta body.</p>";
+
+            var sections = SearchIndexGenerator.ExtractSections(html);
+            Assert.That(sections.Count, Is.EqualTo(4));
+
+            Assert.That(sections[0].Level, Is.EqualTo(1));
+            Assert.That(sections[0].Anchor, Is.EqualTo("top"));
+
+            var alpha = sections.First(s => s.Anchor == "alpha");
+            var alphaText = SearchIndexGenerator.HtmlToText(alpha.BodyHtml);
+            Assert.That(alphaText, Does.Contain("Alpha body"));
+            Assert.That(alphaText, Does.Not.Contain("Beta body"),
+                "H2 section body must stop at the next H2");
+
+            var beta = sections.First(s => s.Anchor == "beta");
+            var betaText = SearchIndexGenerator.HtmlToText(beta.BodyHtml);
+            Assert.That(betaText, Does.Contain("Beta body"));
+            Assert.That(betaText, Does.Not.Contain("Alpha body"));
+        }
+
+        [Test]
+        public async Task SearchIndex_EmitsSectionDocuments_WithAnchorIds()
+        {
+            var sectioned = Path.Combine(_sampleDir, "sectioned.md");
+            await File.WriteAllTextAsync(sectioned, @"---
+title: Sectioned
+---
+# Sectioned
+
+Intro text.
+
+## First Section
+
+Content under the first section.
+
+## Second Section
+
+Content under the second section.
+");
+
+            var builder = new SiteBuilder(_sampleDir);
+            await builder.BuildAsync();
+
+            var indexPath = Path.Combine(builder.OutputDirectory, "search.json");
+            var json = await File.ReadAllTextAsync(indexPath);
+            using var jdoc = JsonDocument.Parse(json);
+            var docs = jdoc.RootElement.EnumerateArray().ToList();
+
+            var sectionDocs = docs
+                .Where(d => d.GetProperty("id").GetString()!.StartsWith("sectioned.html#"))
+                .ToList();
+
+            Assert.That(sectionDocs.Count, Is.GreaterThanOrEqualTo(2),
+                "Each H2 should produce a section-level document for deep-linking");
+
+            var first = sectionDocs.First(d => d.GetProperty("id").GetString() == "sectioned.html#first-section");
+            Assert.That(first.GetProperty("type").GetString(), Is.EqualTo("section"));
+            Assert.That(first.GetProperty("title").GetString(), Is.EqualTo("First Section"));
+            Assert.That(first.GetProperty("parentTitle").GetString(), Is.EqualTo("Sectioned"));
+            Assert.That(first.GetProperty("parentId").GetString(), Is.EqualTo("sectioned.html"));
+            Assert.That(first.GetProperty("content").GetString(),
+                Does.Contain("Content under the first section"));
+            Assert.That(first.GetProperty("content").GetString(),
+                Does.Not.Contain("Content under the second section"));
+        }
+
+        [Test]
+        public async Task SearchIndex_PageHeadingsField_AggregatesHeadingText()
+        {
+            var sectioned = Path.Combine(_sampleDir, "withheadings.md");
+            await File.WriteAllTextAsync(sectioned, @"---
+title: With Headings
+---
+# Outer
+
+## Configuration
+
+## Deployment
+");
+
+            var builder = new SiteBuilder(_sampleDir);
+            await builder.BuildAsync();
+
+            var indexPath = Path.Combine(builder.OutputDirectory, "search.json");
+            var json = await File.ReadAllTextAsync(indexPath);
+            using var jdoc = JsonDocument.Parse(json);
+            var docs = jdoc.RootElement.EnumerateArray().ToList();
+
+            var page = docs.First(d => d.GetProperty("id").GetString() == "withheadings.html");
+            Assert.That(page.TryGetProperty("headings", out var headings), Is.True,
+                "Page documents should expose an aggregated `headings` field");
+            var headingsText = headings.GetString() ?? string.Empty;
+            Assert.That(headingsText, Does.Contain("Configuration"));
+            Assert.That(headingsText, Does.Contain("Deployment"));
+        }
     }
 }
