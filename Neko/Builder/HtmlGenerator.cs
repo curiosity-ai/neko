@@ -1755,6 +1755,14 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
             sb.AppendLine("    <script src=\"/assets/highlight/highlight.min.js\"></script>");
             sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js\"></script>");
             sb.AppendLine("    <style>");
+            sb.AppendLine("        /* Inline code (Tailwind Typography overrides) */");
+            sb.AppendLine("        /* Remove the backtick quotes that prose adds via ::before/::after */");
+            sb.AppendLine("        .prose :where(code):not(:where([class~=\"not-prose\"] *))::before,");
+            sb.AppendLine("        .prose :where(code):not(:where([class~=\"not-prose\"] *))::after { content: none !important; }");
+            sb.AppendLine("        /* Give inline code (not inside <pre>) a visible background and padding */");
+            sb.AppendLine("        .prose :not(pre) > code { background-color: rgba(148, 163, 184, 0.18); color: inherit; padding: 0.15em 0.4em; border-radius: 0.25rem; font-weight: 500; font-size: 0.875em; }");
+            sb.AppendLine("        .dark .prose :not(pre) > code { background-color: rgba(148, 163, 184, 0.22); }");
+            sb.AppendLine("");
             sb.AppendLine("        /* Highlight.js Line Numbers CSS */");
             sb.AppendLine("        .prose table.hljs-ln tr { border: none !important; }");
             sb.AppendLine("        .prose table.hljs-ln td { padding: 0 !important; }");
