@@ -388,7 +388,16 @@ namespace Neko.Builder
                         var indexTitle = item.Doc.FrontMatter.Title;
                         if (string.IsNullOrWhiteSpace(indexTitle))
                         {
-                            indexTitle = item.Doc.Toc.FirstOrDefault(x => x.Level == 1)?.Title;
+                            indexTitle = item.Doc.FrontMatter.Label;
+                        }
+                        if (string.IsNullOrWhiteSpace(indexTitle))
+                        {
+                            // Prefer an H1, but accept the first heading at any level —
+                            // some pages open with `## Title` (e.g. when the sidebar
+                            // already shows the label) and would otherwise fall through
+                            // to the bare filename.
+                            indexTitle = item.Doc.Toc.FirstOrDefault(x => x.Level == 1)?.Title
+                                ?? item.Doc.Toc.FirstOrDefault()?.Title;
                         }
                         if (string.IsNullOrWhiteSpace(indexTitle))
                         {
