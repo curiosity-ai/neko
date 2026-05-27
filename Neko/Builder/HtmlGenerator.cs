@@ -1338,7 +1338,11 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
             sb.AppendLine("                    heading.classList.add('group', 'relative');");
             sb.AppendLine("                    const link = document.createElement('a');");
             sb.AppendLine("                    link.href = '#' + heading.id;");
-            sb.AppendLine("                    link.className = 'absolute -left-6 top-0 bottom-0 flex items-center justify-center text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 no-underline';");
+            sb.AppendLine("                    // Anchor sits entirely to the left of the heading: `-translate-x-full`");
+            sb.AppendLine("                    // aligns its right edge with the heading's left edge, and `pr-2`");
+            sb.AppendLine("                    // adds a fixed gap so the icon never abuts the text — independent");
+            sb.AppendLine("                    // of how large the heading (and therefore the icon) is.");
+            sb.AppendLine("                    link.className = 'absolute left-0 top-0 bottom-0 -translate-x-full flex items-center justify-center text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity pr-2 no-underline';");
             sb.AppendLine("                    link.innerHTML = '<i class=\"fi fi-rr-hashtag\"></i>';");
             sb.AppendLine("                    link.setAttribute('aria-label', 'Anchor');");
             sb.AppendLine("                    heading.prepend(link);");
