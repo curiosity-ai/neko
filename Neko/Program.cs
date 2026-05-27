@@ -42,6 +42,8 @@ namespace Neko
                 if (isMultiRepo)
                 {
                     Console.WriteLine($"Building in Multi-Repo Mode...");
+                    var subProjectOutputs = new List<string>();
+                    string rootOutput = null;
                     foreach (var configFile in configFiles)
                     {
                         var subDir = Path.GetDirectoryName(configFile);
@@ -56,6 +58,19 @@ namespace Neko
 
                         var builder = new SiteBuilder(subDir, siteOutput, false, isRoot ? null : routePrefix);
                         await builder.BuildAsync();
+
+                        if (isRoot) rootOutput = builder.OutputDirectory;
+                        subProjectOutputs.Add(builder.OutputDirectory);
+                    }
+
+                    // Aggregate every sub-project's search.json into a single
+                    // index at the root output, so the client can issue one
+                    // cross-project search instead of being scoped to whichever
+                    // sub-site the user happens to be on.
+                    if (rootOutput != null)
+                    {
+                        Console.WriteLine("Aggregating search indexes across sub-projects...");
+                        await Neko.Builder.SearchIndexGenerator.AggregateAsync(rootOutput, subProjectOutputs);
                     }
                 }
                 else
@@ -125,6 +140,8 @@ namespace Neko
                     {
                         if (Directory.Exists(inputFullPath))
                         {
+                            string rootOutputW = null;
+                            var subProjectOutputsW = new List<string>();
                             foreach (var configFile in configFiles)
                             {
                                 var subDir = Path.GetDirectoryName(configFile);
@@ -149,6 +166,13 @@ namespace Neko
 
                                 sites.Add(siteInfo);
                                 builders[subDir] = builder;
+                                if (isRoot) rootOutputW = builder.OutputDirectory;
+                                subProjectOutputsW.Add(builder.OutputDirectory);
+                            }
+
+                            if (rootOutputW != null)
+                            {
+                                await Neko.Builder.SearchIndexGenerator.AggregateAsync(rootOutputW, subProjectOutputsW);
                             }
                         }
 

@@ -7,13 +7,6 @@
     const RECENT_KEY = 'neko-search-recent';
     const RECENT_LIMIT = 5;
 
-    function getRoutePrefix() {
-        let prefix = window.NEKO_ROUTE_PREFIX || '';
-        if (prefix && !prefix.startsWith('/')) prefix = '/' + prefix;
-        if (prefix.endsWith('/')) prefix = prefix.slice(0, -1);
-        return prefix;
-    }
-
     function escapeHtml(s) {
         if (s == null) return '';
         return String(s)
@@ -54,17 +47,44 @@
         if (indexLoadPromise) return indexLoadPromise;
         indexLoadPromise = (async () => {
             try {
-                const response = await fetch(getRoutePrefix() + '/search.json');
+                // Always fetch the aggregated index from the root, not the
+                // sub-project copy at <prefix>/search.json. In a multi-repo
+                // build the root output contains every sub-project's entries
+                // (with route-prefixed ids), so a search from any sub-site can
+                // find pages anywhere on the site.
+                const response = await fetch('/search.json');
                 const data = await response.json();
+
+                // Normalize the current sub-site's route prefix to the same
+                // shape document ids use ("workspace", no leading slash) so we
+                // can cheaply test `id.startsWith(currentPrefix + "/")`. If the
+                // visitor is on the root project the prefix is empty and the
+                // sub-site boost is skipped entirely.
+                let currentPrefix = (window.NEKO_ROUTE_PREFIX || '').replace(/\\/g, '/');
+                while (currentPrefix.startsWith('/')) currentPrefix = currentPrefix.slice(1);
+                while (currentPrefix.endsWith('/'))   currentPrefix = currentPrefix.slice(0, -1);
+                const currentPrefixSegment = currentPrefix ? currentPrefix + '/' : '';
+
                 const ms = new MiniSearch({
                     fields: ['title', 'content', 'headings', 'slug'],
                     storeFields: ['title', 'content', 'parentTitle', 'parentId', 'type', 'slug'],
                     searchOptions: {
                         boost: { title: 3, slug: 4, headings: 2 },
-                        // Tiny tilt toward page-level docs so a page wins over its own
-                        // sections when scores are close — feels right when typing a
-                        // page name (e.g. "index", "roadmap") rather than a phrase.
-                        boostDocument: (_id, _term, stored) => stored && stored.type === 'page' ? 1.15 : 1,
+                        boostDocument: (id, _term, stored) => {
+                            // Tiny tilt toward page-level docs so a page wins over its own
+                            // sections when scores are close — feels right when typing a
+                            // page name (e.g. "index", "roadmap") rather than a phrase.
+                            let factor = stored && stored.type === 'page' ? 1.15 : 1;
+                            // Substantial boost for results that live under the
+                            // sub-site the visitor is currently browsing. Other
+                            // sub-sites stay reachable but rank below the local
+                            // match, which matches how people use search — they
+                            // expect "their" section's hits first.
+                            if (currentPrefixSegment && typeof id === 'string' && id.startsWith(currentPrefixSegment)) {
+                                factor *= 1.6;
+                            }
+                            return factor;
+                        },
                         fuzzy: term => term.length > 3 ? 0.2 : false,
                         prefix: term => term.length > 1,
                         combineWith: 'AND'
@@ -297,9 +317,12 @@
             return;
         }
 
-        const prefix = getRoutePrefix();
         container.innerHTML = results.map((result) => {
-            // Split id into path + anchor for section results.
+            // Split id into path + anchor for section results. In a multi-repo
+            // build the id already carries the sub-project's route prefix
+            // (e.g. `workspace/core-concepts/graph-model.html`), so we don't
+            // re-apply NEKO_ROUTE_PREFIX — that would double-prefix when the
+            // result lives in a different sub-site than the one being viewed.
             const rawId = String(result.id);
             const hashIdx = rawId.indexOf('#');
             let pathPart = hashIdx >= 0 ? rawId.slice(0, hashIdx) : rawId;
@@ -307,7 +330,15 @@
 
             let href = pathPart.replace(/\\/g, '/');
             if (!href.startsWith('/')) href = '/' + href;
-            href = prefix + href + anchor;
+
+            // A friendly, extension-less breadcrumb shown under the result —
+            // `.../workspace/core-concepts/graph-model` rather than the raw
+            // `/workspace/core-concepts/graph-model.html`. A trailing `index`
+            // segment collapses to its folder.
+            let displayPath = href.replace(/\.html$/i, '').replace(/\/index$/i, '');
+            displayPath = '...' + displayPath;
+
+            href = href + anchor;
 
             const terms = result.terms || [];
             const titleHtml = highlight(escapeHtml(result.title || ''), terms);
@@ -325,7 +356,7 @@
                 </div>
                 ${snippet ? `<div class="text-xs text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-2">${snippet}</div>` : ''}
                 <div class="text-[11px] text-gray-400 truncate mt-1">
-                    ${escapeHtml(href)}
+                    ${escapeHtml(displayPath)}
                 </div>
             </a>
         `;

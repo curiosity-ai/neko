@@ -39,6 +39,34 @@ namespace Neko.Builder
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private readonly List<SearchDocument> _documents = new List<SearchDocument>();
+        private readonly string _routePrefix;
+
+        public SearchIndexGenerator(string routePrefix = null)
+        {
+            _routePrefix = NormalizeRoutePrefix(routePrefix);
+        }
+
+        // Prefix becomes part of the document id (e.g. `workspace/foo.html`) so
+        // every entry survives being merged into a single aggregated index at
+        // the root, and so links resolve correctly regardless of which sub-site
+        // surfaced the result. We strip any leading/trailing slashes and a
+        // ".html" suffix so it composes cleanly with file paths.
+        private static string NormalizeRoutePrefix(string prefix)
+        {
+            if (string.IsNullOrWhiteSpace(prefix)) return string.Empty;
+            var p = prefix.Replace('\\', '/').Trim();
+            while (p.StartsWith("/")) p = p.Substring(1);
+            while (p.EndsWith("/")) p = p.Substring(0, p.Length - 1);
+            return p;
+        }
+
+        private string ApplyPrefix(string path)
+        {
+            if (string.IsNullOrEmpty(_routePrefix)) return path;
+            if (string.IsNullOrEmpty(path)) return _routePrefix;
+            var normalized = path.Replace('\\', '/').TrimStart('/');
+            return _routePrefix + "/" + normalized;
+        }
 
         public void AddDocument(string path, string title, string html, string description = null, string[] tags = null)
         {
@@ -51,7 +79,8 @@ namespace Neko.Builder
                 headingsText.Append(HtmlToText(section.TitleHtml));
             }
 
-            var slug = BuildSlug(path);
+            var prefixedPath = ApplyPrefix(path);
+            var slug = BuildSlug(prefixedPath);
             var fullText = HtmlToText(html);
 
             var pageContent = new StringBuilder();
@@ -67,7 +96,7 @@ namespace Neko.Builder
 
             _documents.Add(new SearchDocument
             {
-                Id = path,
+                Id = prefixedPath,
                 Title = title,
                 Content = pageContent.ToString().Trim(),
                 Headings = headingsText.Length > 0 ? headingsText.ToString() : null,
@@ -89,12 +118,12 @@ namespace Neko.Builder
 
                 _documents.Add(new SearchDocument
                 {
-                    Id = $"{path}#{section.Anchor}",
+                    Id = $"{prefixedPath}#{section.Anchor}",
                     Title = sectionTitle,
                     Content = sectionText,
                     Slug = slug,
                     ParentTitle = title,
-                    ParentId = path,
+                    ParentId = prefixedPath,
                     Type = "section"
                 });
             }
@@ -109,6 +138,43 @@ namespace Neko.Builder
             });
 
             await File.WriteAllTextAsync(Path.Combine(outputDir, "search.json"), json);
+        }
+
+        // Reads every `search.json` produced by a multi-repo build (one per
+        // sub-project), concatenates the entries, and writes a single merged
+        // `search.json` to the root output. The client always fetches the root
+        // copy so a search from any sub-site can find pages in any other one.
+        // Sub-projects' own search.json files are left in place — they remain
+        // valid stand-alone for downstream tooling, but the client ignores them.
+        public static async Task AggregateAsync(string rootOutputDir, IEnumerable<string> subProjectOutputDirs)
+        {
+            var merged = new List<JsonElement>();
+            var seenIds = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (var dir in subProjectOutputDirs)
+            {
+                if (string.IsNullOrEmpty(dir)) continue;
+                var path = Path.Combine(dir, "search.json");
+                if (!File.Exists(path)) continue;
+
+                using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+                if (doc.RootElement.ValueKind != JsonValueKind.Array) continue;
+                foreach (var entry in doc.RootElement.EnumerateArray())
+                {
+                    var id = entry.TryGetProperty("id", out var idProp) ? idProp.GetString() : null;
+                    if (id != null && !seenIds.Add(id)) continue;
+                    merged.Add(entry.Clone());
+                }
+            }
+
+            Directory.CreateDirectory(rootOutputDir);
+            var outputPath = Path.Combine(rootOutputDir, "search.json");
+            await using var stream = File.Create(outputPath);
+            await JsonSerializer.SerializeAsync(stream, merged, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            });
         }
 
         public static string HtmlToText(string html)

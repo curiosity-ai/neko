@@ -165,6 +165,41 @@ Body text for the untitled page.
         }
 
         [Test]
+        public async Task SearchIndex_ExcludesDotAndUnderscoreFolders()
+        {
+            Directory.CreateDirectory(Path.Combine(_sampleDir, "_helpers"));
+            await File.WriteAllTextAsync(Path.Combine(_sampleDir, "_helpers", "snippet.md"), @"---
+title: Helper Snippet
+---
+# Helper
+This underscore-folder-canary should not be indexed.
+");
+            Directory.CreateDirectory(Path.Combine(_sampleDir, ".scratch"));
+            await File.WriteAllTextAsync(Path.Combine(_sampleDir, ".scratch", "draft.md"), @"---
+title: Draft
+---
+# Draft
+This dot-folder-canary should not be indexed.
+");
+
+            var builder = new SiteBuilder(_sampleDir);
+            await builder.BuildAsync();
+
+            var json = await File.ReadAllTextAsync(Path.Combine(builder.OutputDirectory, "search.json"));
+            using var doc = JsonDocument.Parse(json);
+            var ids = doc.RootElement.EnumerateArray()
+                .Select(d => d.GetProperty("id").GetString())
+                .ToList();
+
+            Assert.That(ids, Does.Not.Contain("_helpers/snippet.html"),
+                "Pages under a folder starting with '_' must not be indexed");
+            Assert.That(ids, Does.Not.Contain(".scratch/draft.html"),
+                "Pages under a folder starting with '.' must not be indexed");
+            Assert.That(json, Does.Not.Contain("underscore-folder-canary"));
+            Assert.That(json, Does.Not.Contain("dot-folder-canary"));
+        }
+
+        [Test]
         public async Task SearchIndex_FallsBackToFirstH1_WhenFrontmatterTitleMissing()
         {
             var builder = new SiteBuilder(_sampleDir);
@@ -373,6 +408,70 @@ title: With Headings
             var headingsText = headings.GetString() ?? string.Empty;
             Assert.That(headingsText, Does.Contain("Configuration"));
             Assert.That(headingsText, Does.Contain("Deployment"));
+        }
+
+        [Test]
+        public async Task SearchIndex_PrefixesIdsAndSlugWithRoutePrefix_WhenSubProject()
+        {
+            var subProject = Path.Combine(_sampleDir, "isolated-sub");
+            Directory.CreateDirectory(subProject);
+            await File.WriteAllTextAsync(Path.Combine(subProject, "neko.yml"), @"
+url: https://example.com/workspace
+");
+            await File.WriteAllTextAsync(Path.Combine(subProject, "page.md"), @"---
+title: Sub Page
+---
+# Sub Page
+
+## Anchored Section
+
+Section body.
+");
+
+            var subOutput = Path.Combine(subProject, ".neko-out");
+            var builder = new SiteBuilder(subProject, subOutput, false, "/workspace");
+            await builder.BuildAsync();
+
+            var json = await File.ReadAllTextAsync(Path.Combine(subOutput, "search.json"));
+            using var doc = JsonDocument.Parse(json);
+            var docs = doc.RootElement.EnumerateArray().ToList();
+
+            var page = docs.First(d => d.GetProperty("id").GetString() == "workspace/page.html");
+            Assert.That(page.GetProperty("slug").GetString(), Is.EqualTo("workspace page"),
+                "Slug should include the route-prefix segments so a query for the sub-site name boosts its pages");
+
+            var section = docs.First(d => d.GetProperty("id").GetString()!.StartsWith("workspace/page.html#"));
+            Assert.That(section.GetProperty("parentId").GetString(), Is.EqualTo("workspace/page.html"),
+                "Section docs must point at the prefixed parent id so per-page dedup works after aggregation");
+        }
+
+        [Test]
+        public async Task SearchIndex_Aggregate_MergesSubProjectIndexesIntoRoot()
+        {
+            var rootOut = Path.Combine(_sampleDir, ".agg-root");
+            var subAOut = Path.Combine(_sampleDir, ".agg-a");
+            var subBOut = Path.Combine(_sampleDir, ".agg-b");
+            Directory.CreateDirectory(rootOut);
+            Directory.CreateDirectory(subAOut);
+            Directory.CreateDirectory(subBOut);
+
+            await File.WriteAllTextAsync(Path.Combine(rootOut, "search.json"),
+                "[{\"id\":\"index.html\",\"title\":\"Root\",\"type\":\"page\"}]");
+            await File.WriteAllTextAsync(Path.Combine(subAOut, "search.json"),
+                "[{\"id\":\"alpha/page.html\",\"title\":\"Alpha\",\"type\":\"page\"}]");
+            await File.WriteAllTextAsync(Path.Combine(subBOut, "search.json"),
+                "[{\"id\":\"beta/page.html\",\"title\":\"Beta\",\"type\":\"page\"}," +
+                "{\"id\":\"alpha/page.html\",\"title\":\"Duplicate\",\"type\":\"page\"}]");
+
+            await SearchIndexGenerator.AggregateAsync(rootOut, new[] { rootOut, subAOut, subBOut });
+
+            var merged = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(rootOut, "search.json")));
+            var ids = merged.RootElement.EnumerateArray()
+                .Select(d => d.GetProperty("id").GetString())
+                .ToList();
+
+            Assert.That(ids, Is.EquivalentTo(new[] { "index.html", "alpha/page.html", "beta/page.html" }),
+                "Aggregated index should contain every sub-project's entries, de-duplicating on id");
         }
     }
 }

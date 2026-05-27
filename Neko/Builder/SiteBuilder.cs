@@ -161,7 +161,7 @@ namespace Neko.Builder
                 }
 
                 var generator = new HtmlGenerator(_config, _isWatchMode, headIncludes);
-                var searchIndexer = new SearchIndexGenerator();
+                var searchIndexer = new SearchIndexGenerator(_routePrefix);
 
                 // Collect folders whose root yml opts the folder out of search indexing.
                 var searchExcludedFolders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -380,7 +380,8 @@ namespace Neko.Builder
                         || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password);
 
                     var isSearchExcluded = item.Doc.FrontMatter.SearchExclude
-                        || IsInSearchExcludedFolder(item.FilePath, searchExcludedFolders);
+                        || IsInSearchExcludedFolder(item.FilePath, searchExcludedFolders)
+                        || IsInDotOrUnderscoreFolder(item.RelativePath);
 
                     if (!isProtected && !isSearchExcluded)
                     {
@@ -549,6 +550,23 @@ namespace Neko.Builder
             {
                 if (fullPath.StartsWith(folder, StringComparison.OrdinalIgnoreCase))
                     return true;
+            }
+            return false;
+        }
+
+        // Pages living under a folder whose name starts with "." or "_" (e.g.
+        // `_helpers`, `_reference-material`, `.template`) are treated as private
+        // scaffolding and kept out of the search index. The check looks at every
+        // directory segment of the page's path relative to the input root.
+        private static bool IsInDotOrUnderscoreFolder(string relativePath)
+        {
+            if (string.IsNullOrEmpty(relativePath)) return false;
+            var segments = relativePath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+            // The final segment is the file itself; only directory segments count.
+            for (int i = 0; i < segments.Length - 1; i++)
+            {
+                var s = segments[i];
+                if (s.Length > 0 && (s[0] == '.' || s[0] == '_')) return true;
             }
             return false;
         }
