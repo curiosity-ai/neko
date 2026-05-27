@@ -547,10 +547,10 @@ namespace Neko.Builder
             {
                 sb.AppendLine("                    <div class=\"mt-8 pt-8 border-t border-gray-200 dark:border-gray-800\">");
                 sb.AppendLine("                        <h3 class=\"text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4\">Referenced by</h3>");
-                sb.AppendLine("                        <ul class=\"space-y-2\">");
+                sb.AppendLine("                        <ul class=\"space-y-2 list-none pl-0\">");
                 foreach (var link in backlinks)
                 {
-                    sb.AppendLine($"                            <li><a href=\"{link.Url}\" class=\"text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-2\"><i class=\"fi fi-rr-arrow-small-right\"></i> {link.Title}</a></li>");
+                    sb.AppendLine($"                            <li><a href=\"{link.Url}\" class=\"text-primary-600 dark:text-primary-400 no-underline flex items-center gap-2\"><i class=\"fi fi-rr-arrow-small-right no-underline\"></i><span class=\"hover:underline\">{link.Title}</span></a></li>");
                 }
                 sb.AppendLine("                        </ul>");
                 sb.AppendLine("                    </div>");
