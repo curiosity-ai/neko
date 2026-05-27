@@ -1383,6 +1383,24 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
             sb.AppendLine("            });");
             sb.AppendLine("        });");
 
+            // Fragment scroll on load. The content scrolls inside #main-scroll, not
+            // the document, so on reload the browser restores that container's offset
+            // instead of re-running the hash scroll — and async content (highlight.js
+            // line numbers, mermaid, KaTeX) shifts layout after the initial jump. Once
+            // everything has settled, re-align to the URL fragment so reloading a
+            // deep link lands on the right heading.
+            sb.AppendLine("        window.addEventListener('load', function() {");
+            sb.AppendLine("            if (!location.hash) return;");
+            sb.AppendLine("            var id;");
+            sb.AppendLine("            try { id = decodeURIComponent(location.hash.slice(1)); } catch (_) { id = location.hash.slice(1); }");
+            sb.AppendLine("            if (!id) return;");
+            sb.AppendLine("            var target = document.getElementById(id);");
+            sb.AppendLine("            if (!target) return;");
+            sb.AppendLine("            requestAnimationFrame(function() {");
+            sb.AppendLine("                requestAnimationFrame(function() { target.scrollIntoView({ block: 'start', behavior: 'auto' }); });");
+            sb.AppendLine("            });");
+            sb.AppendLine("        });");
+
             // Page links: resolve ${page}, ${url}, ${selection} variables at click time
             sb.AppendLine("        document.querySelectorAll('.neko-page-link').forEach(function(el) {");
             sb.AppendLine("            el.addEventListener('click', function(e) {");
