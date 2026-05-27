@@ -386,6 +386,8 @@ Custom label for the navigation node for the current page. Default is `null`.
 ```yml
 label: Custom label
 ```
+
+The `label` is used for the left sidebar entry and the top navigation entry. When no [`title`](#title) is set, the `label` is also used as the fallback for the page `<title>` tag (see [`meta.title`](#meta-title) to override the `<title>` directly).
 ===
 
 ---

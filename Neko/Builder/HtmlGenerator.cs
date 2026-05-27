@@ -82,8 +82,11 @@ namespace Neko.Builder
 
         public string Generate(ParsedDocument document, List<(string Url, string Title)> backlinks = null, NavigationContext navContext = null, List<LinkConfig> sidebarLinks = null, List<(ParsedDocument Doc, string Url)> blogPosts = null, List<(ParsedDocument Doc, string Url)> changelogEntries = null, string currentUrl = null)
         {
-            var title = !string.IsNullOrEmpty(document.FrontMatter.Title)
-                ? $"{_config.Branding.Title} - {document.FrontMatter.Title}"
+            var pageTitle = !string.IsNullOrEmpty(document.FrontMatter.Title)
+                ? document.FrontMatter.Title
+                : document.FrontMatter.Label;
+            var title = !string.IsNullOrEmpty(pageTitle)
+                ? $"{_config.Branding.Title} - {pageTitle}"
                 : _config.Branding.Title;
 
             var description = !string.IsNullOrEmpty(document.FrontMatter.Description)
@@ -399,7 +402,8 @@ namespace Neko.Builder
                     sb.AppendLine($"</div>");
                 }
 
-                sb.AppendLine($"<h1 class=\"text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4\">{document.FrontMatter.Title}</h1>");
+                var blogTitle = !string.IsNullOrEmpty(document.FrontMatter.Title) ? document.FrontMatter.Title : document.FrontMatter.Label;
+                sb.AppendLine($"<h1 class=\"text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4\">{blogTitle}</h1>");
 
                 sb.AppendLine("<div class=\"flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400\">");
                 if (!string.IsNullOrEmpty(document.FrontMatter.Author))
@@ -1977,7 +1981,7 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
 
             foreach (var post in posts)
             {
-                var title = post.Doc.FrontMatter.Title;
+                var title = !string.IsNullOrEmpty(post.Doc.FrontMatter.Title) ? post.Doc.FrontMatter.Title : post.Doc.FrontMatter.Label;
                 var desc = post.Doc.FrontMatter.Description;
                 var date = post.Doc.FrontMatter.Date;
                 var author = post.Doc.FrontMatter.Author;
@@ -2035,7 +2039,7 @@ sb.AppendLine("            window.nekoCurrentEditPath = window.location.pathname
 
             foreach (var entry in entries)
             {
-                var title = entry.Doc.FrontMatter.Title;
+                var title = !string.IsNullOrEmpty(entry.Doc.FrontMatter.Title) ? entry.Doc.FrontMatter.Title : entry.Doc.FrontMatter.Label;
                 var date = entry.Doc.FrontMatter.Date;
                 var html = entry.Doc.Html;
 

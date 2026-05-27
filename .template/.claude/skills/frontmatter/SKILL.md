@@ -24,7 +24,7 @@ visibility: public
 
 | Key              | Type / values                                       | Notes |
 | ---              | ---                                                 | --- |
-| `label`          | string                                              | Override the sidebar label. |
+| `label`          | string                                              | Override the sidebar + top-nav label. Also the `<title>` fallback when no `title` is set. |
 | `icon`           | UIcon name, `:emoji:`, `<svg>`, image path          | Sidebar / breadcrumb icon. |
 | `order`          | number / alpha string / `vSemver`                   | Reorders within parent folder. Higher number = higher position. |
 | `tags`           | list                                                | Auto-generates `/tags/<tag>/` index pages. |

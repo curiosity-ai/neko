@@ -74,7 +74,7 @@ namespace Neko.Builder
 
                 var folderLink = new LinkConfig
                 {
-                    Text = meta?.Label ?? (indexDoc.Doc?.FrontMatter.Title) ?? ToTitleCase(dirName),
+                    Text = meta?.Label ?? (indexDoc.Doc?.FrontMatter.Label) ?? (indexDoc.Doc?.FrontMatter.Title) ?? ToTitleCase(dirName),
                     Icon = meta?.Icon ?? (indexDoc.Doc?.FrontMatter.Icon),
                     Items = folderItems,
                     Link = link
@@ -99,9 +99,13 @@ namespace Neko.Builder
                 var link = file.RelativePath.Replace("\\", "/");
                 if (link.EndsWith(".md")) link = link.Substring(0, link.Length - 3);
 
+                var fileText = file.Doc.FrontMatter.Label;
+                if (string.IsNullOrEmpty(fileText)) fileText = file.Doc.FrontMatter.Title;
+                if (string.IsNullOrEmpty(fileText)) fileText = Path.GetFileNameWithoutExtension(fileName);
+
                 var item = new LinkConfig
                 {
-                    Text = !string.IsNullOrEmpty(file.Doc.FrontMatter.Title) ? file.Doc.FrontMatter.Title : Path.GetFileNameWithoutExtension(fileName),
+                    Text = fileText,
                     Icon = file.Doc.FrontMatter.Icon,
                     Link = link
                 };

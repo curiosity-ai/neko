@@ -219,9 +219,9 @@ namespace Neko.Builder
                 foreach (var item in parsedDocs)
                 {
                     var sourceRelativePath = item.RelativePath;
-                    var sourceTitle = !string.IsNullOrEmpty(item.Doc.FrontMatter.Title)
-                        ? item.Doc.FrontMatter.Title
-                        : Path.GetFileNameWithoutExtension(item.FilePath);
+                    var sourceTitle = item.Doc.FrontMatter.Title;
+                    if (string.IsNullOrEmpty(sourceTitle)) sourceTitle = item.Doc.FrontMatter.Label;
+                    if (string.IsNullOrEmpty(sourceTitle)) sourceTitle = Path.GetFileNameWithoutExtension(item.FilePath);
 
                     // Source URL for the backlink (relative to root, no extension)
                     var sourceUrl = "/" + sourceRelativePath.Replace("\\", "/");
