@@ -415,6 +415,9 @@ namespace Neko.Builder
 
                 await searchIndexer.WriteIndexAsync(OutputDirectory);
 
+                // Generate Redirect Pages
+                await GenerateRedirectPagesAsync(parsedDocs);
+
                 // Generate Sitemap (root project only; sub-projects share the output dir
                 // and would otherwise clobber each other's sitemap.xml).
                 if (_config.Sitemap && string.IsNullOrEmpty(_routePrefix))
@@ -540,6 +543,72 @@ namespace Neko.Builder
                 _singleBuild.Release();
                 Environment.CurrentDirectory = curDir;
             }
+        }
+
+        private async Task GenerateRedirectPagesAsync(List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)> parsedDocs)
+        {
+            var redirectDir = Path.Combine(OutputDirectory, "redirect");
+            var seenSlugs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var item in parsedDocs)
+            {
+                var rawSlug = item.Doc.FrontMatter.RedirectSlug;
+                if (string.IsNullOrWhiteSpace(rawSlug)) continue;
+
+                var slug = NormalizeRedirectSlug(rawSlug);
+                if (string.IsNullOrEmpty(slug))
+                {
+                    Console.WriteLine($"Warning: redirectSlug '{rawSlug}' in {item.RelativePath} is empty after normalization; skipping.");
+                    continue;
+                }
+
+                if (seenSlugs.TryGetValue(slug, out var existingPath))
+                {
+                    Console.WriteLine($"Warning: redirectSlug '{slug}' in {item.RelativePath} conflicts with {existingPath}; skipping.");
+                    continue;
+                }
+                seenSlugs[slug] = item.RelativePath;
+
+                var targetUrl = "/" + item.RelativePath.Replace("\\", "/");
+                if (targetUrl.EndsWith(".md")) targetUrl = targetUrl.Substring(0, targetUrl.Length - 3);
+                if (targetUrl.EndsWith("/index")) targetUrl = targetUrl.Substring(0, targetUrl.Length - "index".Length);
+                if (!string.IsNullOrEmpty(_routePrefix)) targetUrl = _routePrefix + targetUrl;
+
+                if (!Directory.Exists(redirectDir)) Directory.CreateDirectory(redirectDir);
+
+                var html = BuildRedirectHtml(targetUrl);
+                var outputPath = Path.Combine(redirectDir, slug + ".html");
+                await File.WriteAllTextAsync(outputPath, html);
+                Console.WriteLine($"Generated redirect /redirect/{slug} -> {targetUrl}");
+            }
+        }
+
+        private static string NormalizeRedirectSlug(string raw)
+        {
+            var trimmed = raw.Trim().Trim('/');
+            // Disallow path separators inside a slug — `/redirect/{slug}` is a flat namespace.
+            if (trimmed.Contains('/') || trimmed.Contains('\\')) return string.Empty;
+            return trimmed;
+        }
+
+        private static string BuildRedirectHtml(string targetUrl)
+        {
+            var escapedHtml = System.Net.WebUtility.HtmlEncode(targetUrl);
+            var escapedJs = System.Web.HttpUtility.JavaScriptStringEncode(targetUrl);
+            return "<!DOCTYPE html>\n"
+                 + "<html lang=\"en\">\n"
+                 + "<head>\n"
+                 + "  <meta charset=\"utf-8\">\n"
+                 + $"  <meta http-equiv=\"refresh\" content=\"0; url={escapedHtml}\">\n"
+                 + $"  <link rel=\"canonical\" href=\"{escapedHtml}\">\n"
+                 + "  <meta name=\"robots\" content=\"noindex\">\n"
+                 + "  <title>Redirecting…</title>\n"
+                 + $"  <script>window.location.replace(\"{escapedJs}\");</script>\n"
+                 + "</head>\n"
+                 + "<body>\n"
+                 + $"  <p>Redirecting to <a href=\"{escapedHtml}\">{escapedHtml}</a>…</p>\n"
+                 + "</body>\n"
+                 + "</html>\n";
         }
 
         private static bool IsInSearchExcludedFolder(string filePath, HashSet<string> excludedFolders)

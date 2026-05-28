@@ -1,6 +1,6 @@
 ---
 name: frontmatter
-description: Author the YAML frontmatter block of a Neko Markdown page — label, icon, order, tags, visibility, permalink, redirect, layout, meta, nav, toc, backlinks, password. Use when configuring an individual page.
+description: Author the YAML frontmatter block of a Neko Markdown page — label, icon, order, tags, visibility, permalink, redirect, redirectSlug, layout, meta, nav, toc, backlinks, password. Use when configuring an individual page.
 ---
 
 # Page frontmatter
@@ -37,6 +37,7 @@ visibility: public
 | `searchExclude`  | boolean                                             | `true` to omit the page from `search.json`. Folder-level: set the same key in `index.yml`. |
 | `permalink`      | string                                              | Custom URL. Wins over the file path. |
 | `redirect`       | string                                              | Redirect this slug to another page or URL. |
+| `redirectSlug`   | string                                              | Expose this page at the short URL `/redirect/<slug>`. Neko emits a tiny meta-refresh HTML file pointing back at the page. |
 | `target`         | `blank`, `self`, `parent`, `top`                    | How sidebar link opens. |
 | `templating`     | boolean                                             | `false` to disable `{{ … }}` for this page. |
 | `expanded`       | boolean                                             | Folder navigation: expand on load (used in `index.yml`). |

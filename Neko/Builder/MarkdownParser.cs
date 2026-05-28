@@ -69,6 +69,9 @@ namespace Neko.Builder
 
         [YamlMember(Alias = "searchExclude")]
         public bool SearchExclude { get; set; }
+
+        [YamlMember(Alias = "redirectSlug")]
+        public string RedirectSlug { get; set; }
     }
 
     public class MarkdownParser
