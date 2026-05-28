@@ -795,6 +795,45 @@ Neko is also smart enough to scan your project for any **setup.md** links and re
 
 ---
 
+## redirectSlug
+
+=== redirectSlug : `string`
+
+Expose this page at a short, stable URL of the form `/redirect/{slug}`.
+
+When `redirectSlug` is set, Neko writes a tiny HTML page at
+`/redirect/<slug>.html` whose only job is to redirect the visitor to the actual
+URL of this page (via `<meta http-equiv="refresh">`, a JavaScript fallback, and
+a visible link). The redirect page is also marked `noindex` and carries a
+`<link rel="canonical">` back to the real page so it doesn't compete in search
+engines.
+
+```yml
+---
+redirectSlug: launch
+---
+# Product Launch Notes
+```
+
+With the above frontmatter, requests for `/redirect/launch` resolve to the
+**Product Launch Notes** page no matter where you actually move the source
+file on disk. Use this to create short, shareable, stable links — for printed
+material, QR codes, emails, or social media — that survive future page
+re-organisation.
+
+For a page inside a folder, the redirect target collapses `index` to the
+folder URL. For example, a `docs/index.md` page with `redirectSlug: docs-home`
+emits `/redirect/docs-home.html` that redirects to `/docs/`. In a multi-repo
+build, the [route prefix](../neko-yml.md#routeprefix) is applied automatically.
+
+Slugs are a flat namespace under `/redirect/` — they must not contain `/` or
+`\`. Duplicate slugs across pages are detected at build time; the first wins
+and subsequent collisions are logged as warnings.
+
+===
+
+---
+
 ## route
 
 See [permalink](#permalink).
