@@ -1,0 +1,262 @@
+using Neko.Configuration;
+using System.Text;
+
+namespace Neko.Builder
+{
+    public partial class HtmlGenerator
+    {
+        private void RenderBanner(StringBuilder sb)
+        {
+            if (_config.Banner == null || !_config.Banner.Visible || string.IsNullOrEmpty(_config.Banner.Text)) return;
+
+            var banner = _config.Banner;
+            var bannerId = banner.Id ?? "neko-banner";
+            var bg = !string.IsNullOrEmpty(banner.Background) ? banner.Background : "bg-indigo-600";
+            var color = !string.IsNullOrEmpty(banner.Color) ? banner.Color : "text-white";
+
+            sb.AppendLine($"    <div id=\"{bannerId}\" class=\"{bg} {color} relative isolate flex items-center gap-x-6 overflow-hidden px-6 py-2.5 sm:px-3.5 sm:before:flex-1 hidden z-50\">");
+            sb.AppendLine("        <div class=\"flex flex-wrap items-center gap-x-4 gap-y-2\">");
+            sb.AppendLine($"            <p class=\"text-sm leading-6\">{banner.Text}</p>");
+            if (!string.IsNullOrEmpty(banner.Link))
+            {
+                var linkText = !string.IsNullOrEmpty(banner.LinkText) ? banner.LinkText : "Read more";
+                sb.AppendLine($"            <a href=\"{banner.Link}\" class=\"flex-none rounded-full bg-gray-900 px-3.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900\">{linkText} <span aria-hidden=\"true\">&rarr;</span></a>");
+            }
+            sb.AppendLine("        </div>");
+            if (banner.Dismissible)
+            {
+                sb.AppendLine("        <div class=\"flex flex-1 justify-end\">");
+                sb.AppendLine($"            <button type=\"button\" class=\"-m-3 p-3 focus-visible:outline-offset-[-4px]\" onclick=\"dismissBanner('{bannerId}')\">");
+                sb.AppendLine("                <span class=\"sr-only\">Dismiss</span>");
+                sb.AppendLine("                <i class=\"fi fi-rr-cross-small text-xl\"></i>");
+                sb.AppendLine("            </button>");
+                sb.AppendLine("        </div>");
+            }
+            sb.AppendLine("    </div>");
+        }
+
+        private void RenderNavbar(StringBuilder sb, string currentUrl)
+        {
+            sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10\">");
+            sb.AppendLine("        <div class=\"flex items-center gap-4\">");
+
+            if (_config.Layout.Sidebar)
+            {
+                sb.AppendLine("            <button id=\"mobile-menu-btn\" class=\"md:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none\">");
+                sb.AppendLine("                <i class=\"fi fi-rr-menu-burger text-xl\"></i>");
+                sb.AppendLine("            </button>");
+            }
+
+            RenderNavbarBrand(sb, currentUrl);
+            sb.AppendLine("        </div>");
+
+            RenderNavbarLinks(sb);
+            RenderNavbarActions(sb);
+
+            sb.AppendLine("    </header>");
+        }
+
+        private void RenderNavbarBrand(StringBuilder sb, string currentUrl)
+        {
+            if (!string.IsNullOrEmpty(_config.Branding.Logo))
+            {
+                string logoUrl = ResolveLogoPath(currentUrl, _config.Branding.Logo);
+                sb.AppendLine($"            <img src=\"{logoUrl}\" class=\"h-8 w-auto dark:hidden\">");
+                if (!string.IsNullOrEmpty(_config.Branding.LogoDark))
+                {
+                    string logoDarkUrl = ResolveLogoPath(currentUrl, _config.Branding.LogoDark);
+                    sb.AppendLine($"            <img src=\"{logoDarkUrl}\" class=\"h-8 w-auto hidden dark:block\">");
+                }
+                else
+                {
+                    sb.AppendLine($"            <img src=\"{logoUrl}\" class=\"h-8 w-auto hidden dark:block\">");
+                }
+            }
+            else if (!string.IsNullOrEmpty(_config.Branding.Icon))
+            {
+                sb.AppendLine($"            <i class=\"{_config.Branding.Icon} text-2xl text-primary-600 dark:text-primary-400\"></i>");
+            }
+            sb.AppendLine($"            <a href=\"/index\" class=\"font-bold text-xl hover:text-primary-600 transition-colors\">{_config.Branding.Title}</a>");
+        }
+
+        // Resolves a branding logo path. Walks up from the current page directory looking
+        // for the asset so logos can be referenced from any depth without breaking when
+        // the docs are mounted under a non-root route prefix.
+        private string ResolveLogoPath(string currentUrl, string logo)
+        {
+            if (string.IsNullOrEmpty(logo) || logo.Contains("://") || logo.StartsWith("#")) return logo;
+
+            var inputDir = System.IO.Path.GetFullPath(_config.Input);
+            var currentDir = inputDir;
+
+            if (!string.IsNullOrEmpty(currentUrl))
+            {
+                var fullUrlPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(inputDir, currentUrl.TrimStart('/')));
+                currentDir = System.IO.Path.GetDirectoryName(fullUrlPath) ?? inputDir;
+            }
+
+            string WithRoutePrefix(string rootRelative)
+            {
+                var prefix = SiteBuilder.CurrentRoutePrefix;
+                if (string.IsNullOrEmpty(prefix)) return rootRelative;
+                if (rootRelative.StartsWith(prefix + "/", System.StringComparison.Ordinal) || rootRelative == prefix) return rootRelative;
+                return prefix + rootRelative;
+            }
+
+            var trimmedLogo = logo.TrimStart('/');
+            var targetPath = System.IO.Path.Combine(currentDir, trimmedLogo);
+
+            if (System.IO.File.Exists(targetPath)) return WithRoutePrefix("/" + System.IO.Path.GetRelativePath(inputDir, targetPath).Replace("\\", "/"));
+
+            var fileName = System.IO.Path.GetFileName(trimmedLogo);
+            var urlDir = System.IO.Path.GetDirectoryName(trimmedLogo)?.Replace('\\', '/');
+
+            var searchDir = currentDir;
+            string foundPath = null;
+
+            while (searchDir.StartsWith(inputDir, System.StringComparison.OrdinalIgnoreCase))
+            {
+                string candidateDir = string.IsNullOrEmpty(urlDir) ? System.IO.Path.Combine(searchDir, "assets") : System.IO.Path.Combine(searchDir, urlDir);
+                var assetPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(candidateDir, fileName));
+
+                if (System.IO.File.Exists(assetPath))
+                {
+                    foundPath = assetPath;
+                    break;
+                }
+
+                var parent = System.IO.Directory.GetParent(searchDir);
+                if (parent == null) break;
+                searchDir = parent.FullName;
+            }
+
+            if (foundPath != null)
+            {
+                return WithRoutePrefix("/" + System.IO.Path.GetRelativePath(inputDir, foundPath).Replace("\\", "/"));
+            }
+
+            return logo;
+        }
+
+        private void RenderNavbarLinks(StringBuilder sb)
+        {
+            sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300\">");
+            if (_config.Links != null)
+            {
+                foreach (var link in _config.Links)
+                {
+                    if (link.Items != null && link.Items.Count > 0)
+                    {
+                        RenderNavbarFlyoutLink(sb, link);
+                    }
+                    else
+                    {
+                         var href = link.Link ?? "#";
+                         var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(link.Icon)} mr-2\"></i>";
+                         var target = !string.IsNullOrEmpty(link.Target) ? $" target=\"{link.Target}\"" : "";
+                         sb.AppendLine($"            <a href=\"{href}\"{target} class=\"hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center text-sm/3\">{iconHtml}{link.Text}</a>");
+                    }
+                }
+            }
+            sb.AppendLine("        </div>");
+        }
+
+        private void RenderNavbarFlyoutLink(StringBuilder sb, LinkConfig link)
+        {
+            sb.AppendLine($"            <div class=\"relative group z-50\">");
+            sb.AppendLine($"                <button class=\"flex items-center gap-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors focus:outline-none\">");
+            if (!string.IsNullOrEmpty(link.Icon))
+            {
+                sb.AppendLine($"                    <i class=\"{Neko.Builder.IconHelper.GetIconClass(link.Icon)}\"></i>");
+            }
+            sb.AppendLine($"                    <span>{link.Text}</span>");
+            sb.AppendLine($"                    <i class=\"fi fi-rr-angle-small-down transition-transform group-hover:rotate-180\"></i>");
+            sb.AppendLine($"                </button>");
+            sb.AppendLine($"                <div class=\"absolute -left-8 top-full mt-3 w-screen max-w-md overflow-hidden rounded-3xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-900/5 dark:ring-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-out z-50 delay-200 group-hover:delay-0\">");
+            sb.AppendLine($"                    <div class=\"p-4\">");
+            foreach (var item in link.Items)
+            {
+                var itemHref = item.Link ?? "#";
+                var itemTarget = !string.IsNullOrEmpty(item.Target) ? $" target=\"{item.Target}\"" : "";
+                sb.AppendLine($"                        <div class=\"group relative flex items-center gap-x-6 rounded-lg p-4 text-sm leading-6 hover:bg-gray-50 dark:hover:bg-gray-700/50\">");
+                sb.AppendLine($"                            <div class=\"flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700 group-hover:bg-white dark:group-hover:bg-gray-600\">");
+                if (!string.IsNullOrEmpty(item.Icon))
+                {
+                    sb.AppendLine($"                                <i class=\"{Neko.Builder.IconHelper.GetIconClass(item.Icon)} text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400\"></i>");
+                }
+                else
+                {
+                    sb.AppendLine($"                                <i class=\"fi fi-rr-arrow-small-right text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400\"></i>");
+                }
+                sb.AppendLine($"                            </div>");
+                sb.AppendLine($"                            <div class=\"flex-auto\">");
+                sb.AppendLine($"                                <a href=\"{itemHref}\"{itemTarget} class=\"block font-semibold text-gray-900 dark:text-gray-100 text-sm/3\">");
+                sb.AppendLine($"                                    {item.Text}");
+                sb.AppendLine($"                                    <span class=\"absolute inset-0\"></span>");
+                sb.AppendLine($"                                </a>");
+                if (!string.IsNullOrEmpty(item.Description))
+                {
+                    sb.AppendLine($"                                <p class=\"mt-1 text-gray-600 dark:text-gray-400\">{item.Description}</p>");
+                }
+                sb.AppendLine($"                            </div>");
+                sb.AppendLine($"                        </div>");
+            }
+            sb.AppendLine($"                    </div>");
+
+            if (link.FooterItems != null && link.FooterItems.Count > 0)
+            {
+                 sb.AppendLine($"                    <div class=\"grid grid-cols-2 divide-x divide-gray-900/5 dark:divide-gray-700 bg-gray-50 dark:bg-gray-700/50\">");
+                 foreach (var footerItem in link.FooterItems)
+                 {
+                     var footerHref = footerItem.Link ?? "#";
+                     var footerTarget = !string.IsNullOrEmpty(footerItem.Target) ? $" target=\"{footerItem.Target}\"" : "";
+                     sb.AppendLine($"                        <a href=\"{footerHref}\"{footerTarget} class=\"flex items-center justify-center gap-x-2.5 p-3 text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700\">");
+                     if (!string.IsNullOrEmpty(footerItem.Icon))
+                     {
+                         sb.AppendLine($"                            <i class=\"{Neko.Builder.IconHelper.GetIconClass(footerItem.Icon)} text-gray-400 dark:text-gray-500\"></i>");
+                     }
+                     sb.AppendLine($"                            {footerItem.Text}");
+                     sb.AppendLine($"                        </a>");
+                 }
+                 sb.AppendLine($"                    </div>");
+            }
+            sb.AppendLine($"                </div>");
+            sb.AppendLine($"            </div>");
+        }
+
+        private void RenderNavbarActions(StringBuilder sb)
+        {
+            sb.AppendLine("        <div class=\"flex items-center gap-4 hidden md:flex\">");
+            sb.AppendLine("            <button onclick=\"openSearch()\" class=\"flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-primary-500 w-64 justify-between\">");
+            sb.AppendLine("                <div class=\"flex items-center gap-2\">");
+            sb.AppendLine("                    <i class=\"fi fi-rr-search text-sm\"></i>");
+            sb.AppendLine("                    <span class=\"text-sm font-medium\">Search</span>");
+            sb.AppendLine("                </div>");
+            sb.AppendLine("                <kbd class=\"hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400\">⌘K</kbd>");
+            sb.AppendLine("            </button>");
+            sb.AppendLine("            <div class=\"relative\">");
+            sb.AppendLine("                <button id=\"history-btn\" onclick=\"toggleHistory()\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
+            sb.AppendLine("                    <i class=\"fi fi-rr-clock text-lg\"></i>");
+            sb.AppendLine("                </button>");
+            sb.AppendLine("                <div id=\"history-popup\" class=\"absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden border border-gray-200 dark:border-gray-700\">");
+            sb.AppendLine("                    <div class=\"px-4 py-2 border-b border-gray-200 dark:border-gray-700\">");
+            sb.AppendLine("                        <h3 class=\"text-sm font-semibold text-gray-900 dark:text-gray-100\">Recent Pages</h3>");
+            sb.AppendLine("                    </div>");
+            sb.AppendLine("                    <ul id=\"history-list\" class=\"max-h-64 overflow-y-auto\">");
+            sb.AppendLine("                    </ul>");
+            sb.AppendLine("                </div>");
+            sb.AppendLine("            </div>");
+            if (_isWatchMode)
+            {
+                sb.AppendLine("            <button onclick=\"nekoOpenEditor()\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\" title=\"Edit Page\">");
+                sb.AppendLine("                <i class=\"fi fi-rr-edit text-lg\"></i>");
+                sb.AppendLine("            </button>");
+            }
+            sb.AppendLine("            <button id=\"theme-toggle\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
+            sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
+            sb.AppendLine("                <i class=\"fi fi-rr-sun hidden dark:block text-lg\"></i>");
+            sb.AppendLine("            </button>");
+            sb.AppendLine("        </div>");
+        }
+    }
+}
