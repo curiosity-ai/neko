@@ -10,6 +10,10 @@ Neko is currently under active development.
 Please note that Neko uses a calendar versioning approach.
 
 
+## v26.6
+
+* **Fix**: `neko gen-images` and `neko gen-dark-images` now skip `[!img-gen]` directives (and `assets/img-gen/*.png` references) that sit inside an HTML comment. After the first generation pass, the original directive is preserved as a `<!-- ... -->` block above the rendered image — re-running the command was matching the commented-out directive again, burning API tokens and producing nested comments / orphan PNGs. The discovery regex is now paired with a comment-span filter so commented directives are detected and ignored; uncommenting a directive (as the documentation describes) is still the way to opt back into regeneration.
+
 ## v26.5
 
 * **Feature**: Added a `redirectSlug` page frontmatter key that exposes a page at a short, stable URL of the form `/redirect/<slug>`. When set, Neko writes a tiny HTML file at `redirect/<slug>.html` whose only job is to redirect the visitor to the page's actual URL via `<meta http-equiv="refresh">` (with a JavaScript fallback and a visible link). The redirect page is marked `noindex` and carries a `<link rel="canonical">` back to the real page, so it doesn't compete with the original in search engines. Useful for short, shareable, stable links — printed material, QR codes, emails, social posts — that survive future page re-organisation. Folder index pages collapse their target to the folder URL (`docs/index.md` → `/docs/`), and the route prefix is applied automatically in multi-repo builds. Slugs are a flat namespace under `/redirect/` and must not contain `/` or `\`; duplicate slugs across pages are detected at build time (first wins, the rest logged as warnings). Docs at `configuration/page.md#redirectslug`, and the `frontmatter` skill in the starter template has been updated.

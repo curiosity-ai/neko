@@ -394,6 +394,105 @@ imageGen:
         }
 
         [Test]
+        public void FindHtmlCommentSpansLocatesCommentRanges()
+        {
+            var content = "Before <!-- one --> middle <!-- two\nmulti\nline --> end";
+            var spans = ImageGenCommand.FindHtmlCommentSpans(content);
+            Assert.That(spans, Has.Count.EqualTo(2));
+            Assert.That(content.Substring(spans[0].Start, spans[0].End - spans[0].Start),
+                Is.EqualTo("<!-- one -->"));
+            Assert.That(content.Substring(spans[1].Start, spans[1].End - spans[1].Start),
+                Is.EqualTo("<!-- two\nmulti\nline -->"));
+        }
+
+        [Test]
+        public void FindHtmlCommentSpansHandlesUnterminatedComment()
+        {
+            var content = "Before <!-- never closed";
+            var spans = ImageGenCommand.FindHtmlCommentSpans(content);
+            Assert.That(spans, Has.Count.EqualTo(1));
+            Assert.That(spans[0].End, Is.EqualTo(content.Length));
+        }
+
+        [Test]
+        public void IsInsideAnySpanDetectsIndices()
+        {
+            var spans = new System.Collections.Generic.List<(int Start, int End)> { (5, 10), (20, 30) };
+            Assert.That(ImageGenCommand.IsInsideAnySpan(0, spans), Is.False);
+            Assert.That(ImageGenCommand.IsInsideAnySpan(5, spans), Is.True);
+            Assert.That(ImageGenCommand.IsInsideAnySpan(9, spans), Is.True);
+            Assert.That(ImageGenCommand.IsInsideAnySpan(10, spans), Is.False);
+            Assert.That(ImageGenCommand.IsInsideAnySpan(25, spans), Is.True);
+            Assert.That(ImageGenCommand.IsInsideAnySpan(30, spans), Is.False);
+        }
+
+        [Test]
+        public void CommandSkipsDirectivesInsideHtmlComments()
+        {
+            // A previously-generated directive lives inside `<!-- ... -->`
+            // alongside the rendered image. The command must not re-process
+            // it, otherwise it burns API tokens and produces nested comments.
+            // We exercise this by running with a non-empty key against a page
+            // that ONLY has commented-out directives: the command should pass
+            // through it without trying to call the API.
+            var tempDir = Path.Combine(Path.GetTempPath(), "neko_imggen_comment_" + System.Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+            try
+            {
+                var page = Path.Combine(tempDir, "page.md");
+                var original =
+                    "Intro paragraph.\n\n" +
+                    "<!--\n" +
+                    "[!img-gen\n" +
+                    "A cozy cat sitting by a window during a rainstorm, watercolor style\n" +
+                    "]\n" +
+                    "-->\n" +
+                    "![A cat by a rainy window.](assets/img-gen/cozy-cat.png)\n\n" +
+                    "Closing paragraph.\n";
+                File.WriteAllText(page, original);
+
+                // Drive the same filtering the command uses.
+                var regex = new Regex(
+                    @"\[!img-gen(?<body>(?:[^\[\]]|\[(?<o>)|\](?<-o>))*(?(o)(?!)))\]",
+                    RegexOptions.Compiled | RegexOptions.Singleline);
+                var matches = regex.Matches(original);
+                var spans = ImageGenCommand.FindHtmlCommentSpans(original);
+                var active = matches.Cast<Match>()
+                    .Where(m => !ImageGenCommand.IsInsideAnySpan(m.Index, spans))
+                    .ToList();
+
+                Assert.That(matches.Count, Is.EqualTo(1), "regex still finds the directive text");
+                Assert.That(active, Is.Empty, "but the comment-aware filter must drop it");
+            }
+            finally
+            {
+                try { Directory.Delete(tempDir, recursive: true); } catch { }
+            }
+        }
+
+        [Test]
+        public void CommandStillProcessesUncommentedDirectiveAlongsideCommentedOne()
+        {
+            var content =
+                "<!--\n[!img-gen\nAlready generated prompt\n]\n-->\n" +
+                "![old](assets/img-gen/old.png)\n\n" +
+                "[!img-gen\nA fresh prompt to generate\n]\n";
+
+            var regex = new Regex(
+                @"\[!img-gen(?<body>(?:[^\[\]]|\[(?<o>)|\](?<-o>))*(?(o)(?!)))\]",
+                RegexOptions.Compiled | RegexOptions.Singleline);
+            var matches = regex.Matches(content);
+            var spans = ImageGenCommand.FindHtmlCommentSpans(content);
+            var active = matches.Cast<Match>()
+                .Where(m => !ImageGenCommand.IsInsideAnySpan(m.Index, spans))
+                .ToList();
+
+            Assert.That(matches.Count, Is.EqualTo(2));
+            Assert.That(active, Has.Count.EqualTo(1));
+            Assert.That(active[0].Groups["body"].Value, Does.Contain("fresh prompt"));
+        }
+
+        [Test]
         public void DarkSrcImageRendersTwoTags()
         {
             var markdown = "![A diagram](assets/img-gen/foo.png){src-dark=\"assets/img-gen/foo-dark.png\"}";

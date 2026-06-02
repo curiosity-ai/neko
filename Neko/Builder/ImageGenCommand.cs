@@ -75,13 +75,29 @@ namespace Neko.Builder
                 var matches = ImgGenRegex.Matches(content);
                 if (matches.Count == 0) continue;
 
-                Console.WriteLine($"[img-gen] {Path.GetRelativePath(_inputDirectory, file)}: {matches.Count} directive(s).");
+                // Directives that sit inside an HTML comment (`<!-- ... -->`)
+                // have already been generated — `RunAsync` itself wraps the
+                // original directive in a comment after rewriting the page.
+                // Re-processing them would burn API tokens and corrupt the
+                // markdown with nested comments. Filter them out here.
+                var commentSpans = FindHtmlCommentSpans(content);
+                var active = matches.Cast<Match>()
+                    .Where(m => !IsInsideAnySpan(m.Index, commentSpans))
+                    .ToList();
+
+                if (active.Count == 0) continue;
+
+                var rel = Path.GetRelativePath(_inputDirectory, file);
+                int commented = matches.Count - active.Count;
+                Console.WriteLine(commented > 0
+                    ? $"[img-gen] {rel}: {active.Count} directive(s) ({commented} already generated, skipped)."
+                    : $"[img-gen] {rel}: {active.Count} directive(s).");
 
                 var fileDir = Path.GetDirectoryName(file) ?? _inputDirectory;
                 var assetsDir = Path.Combine(fileDir, "assets", "img-gen");
 
                 // Replace from the end so earlier match indices stay valid.
-                var ordered = matches.Cast<Match>().OrderByDescending(m => m.Index).ToList();
+                var ordered = active.OrderByDescending(m => m.Index).ToList();
                 var newContent = content;
 
                 foreach (var match in ordered)
@@ -211,11 +227,21 @@ namespace Neko.Builder
                 var matches = BackfillImgRegex.Matches(content);
                 if (matches.Count == 0) continue;
 
+                // Skip images that live inside an HTML comment — those are
+                // archived references next to the original `[!img-gen]`
+                // directive, not live images on the page.
+                var commentSpans = FindHtmlCommentSpans(content);
+                var active = matches.Cast<Match>()
+                    .Where(m => !IsInsideAnySpan(m.Index, commentSpans))
+                    .ToList();
+
+                if (active.Count == 0) continue;
+
                 var fileDir = Path.GetDirectoryName(file) ?? _inputDirectory;
                 var relFile = Path.GetRelativePath(_inputDirectory, file);
 
                 // Rewrite from the end so earlier match indices stay valid.
-                var ordered = matches.Cast<Match>().OrderByDescending(m => m.Index).ToList();
+                var ordered = active.OrderByDescending(m => m.Index).ToList();
                 var newContent = content;
 
                 foreach (var match in ordered)
@@ -324,6 +350,40 @@ namespace Neko.Builder
             return inner.Length == 0
                 ? $"{{src-dark=\"{darkUrl}\"}}"
                 : $"{{{inner} src-dark=\"{darkUrl}\"}}";
+        }
+
+        // Returns the [start, end) byte ranges of every `<!-- ... -->` block in
+        // `content`. An unterminated comment runs to end-of-file. Nested or
+        // overlapping comments don't exist in HTML, so we treat the first `-->`
+        // after `<!--` as the close.
+        public static List<(int Start, int End)> FindHtmlCommentSpans(string content)
+        {
+            var spans = new List<(int Start, int End)>();
+            if (string.IsNullOrEmpty(content)) return spans;
+            int i = 0;
+            while (i < content.Length)
+            {
+                int start = content.IndexOf("<!--", i, StringComparison.Ordinal);
+                if (start < 0) break;
+                int end = content.IndexOf("-->", start + 4, StringComparison.Ordinal);
+                if (end < 0)
+                {
+                    spans.Add((start, content.Length));
+                    break;
+                }
+                spans.Add((start, end + 3));
+                i = end + 3;
+            }
+            return spans;
+        }
+
+        public static bool IsInsideAnySpan(int index, List<(int Start, int End)> spans)
+        {
+            foreach (var (s, e) in spans)
+            {
+                if (index >= s && index < e) return true;
+            }
+            return false;
         }
 
         // Reads width/height out of the PNG IHDR chunk (bytes 16-23 of a valid
