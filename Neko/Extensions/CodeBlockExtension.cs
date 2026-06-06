@@ -103,6 +103,13 @@ namespace Neko.Extensions
                 return;
             }
 
+            // Handle Quiz
+            if ((fencedBlock.Info ?? "").ToLower() == "quiz")
+            {
+                QuizComponent.Write(renderer, fencedBlock);
+                return;
+            }
+
             // Handle CSharp Docs
             if ((fencedBlock.Info ?? "").ToLower() == "csharp-docs")
             {
