@@ -36,6 +36,7 @@
   "neko-img-gen-options": "[!img-gen size=1536x1024 quality=high\nDescribe the image you want here\n]",
   "neko-img-gen-no-dark": "[!img-gen size=1536x1024 dark=false\nDescribe the image you want here\n]",
   "neko-workflow": "```workflow\nnode1: Start | play\nnode2: Process | gear\nnode3: End | flag\n\nnode1 --> node2\nnode2 --> node3\n```",
+  "neko-quiz": "```quiz\ntitle: Check yourself\nquestions:\n  - q: \"Your question?\"\n    options:\n      - \"Option A\"\n      - \"Option B\"\n    answer: 1\n    explain: \"Why B is correct.\"\n```",
   "neko-front-matter": "---\ntitle: \"\"\nlabel: \"\"\nicon: \"\"\norder: \ntags: []\ndescription: \"\"\npassword: \"\"\nauthor: \"\"\nauthorImage: \"\"\ndate: \"\"\ncover: \"\"\nlayout: \"\"\nsearchExclude: false\n---\n",
   "neko-pdf": "![${1:caption}](${2:url.pdf}){$3}",
   "neko-roadmap": "::::: roadmap\n:::: lane {title=\"Under Consideration\" count=\"1\" accent=\"gray\"}\n::: roadmap-item {title=\"\" tag=\"Feature\" tag-color=\"emerald\" votes=\"0\"}\n:::\n::::\n:::: lane {title=\"Planned\" count=\"1\" accent=\"teal\"}\n::: roadmap-item {title=\"\" tag=\"Feature\" tag-color=\"emerald\" votes=\"0\"}\n:::\n::::\n:::: lane {title=\"In Progress\" count=\"1\" accent=\"amber\"}\n::: roadmap-item {title=\"\" tag=\"Feature\" tag-color=\"emerald\" votes=\"0\"}\n:::\n::::\n:::: lane {title=\"Public Beta\" count=\"1\" accent=\"sky\"}\n::: roadmap-item {title=\"\" tag=\"Feature\" tag-color=\"emerald\" votes=\"0\"}\n:::\n::::\n:::::",

@@ -89,6 +89,26 @@ AlertContent
         }
 
         [Test]
+        public async Task TestQuizComponentRendersInGeneratedSite()
+        {
+            File.WriteAllText(Path.Combine(_sampleDir, "quiz-page.md"), "---\ntitle: Quiz Page\n---\n# Quiz Page\n\n```quiz\ntitle: Check yourself\nquestions:\n  - q: \"What persists data across restarts?\"\n    options:\n      - \"The port mapping\"\n      - \"The volume mount\"\n    answer: 1\n    explain: \"The volume mount keeps data on disk.\"\n```\n");
+
+            var builder = new SiteBuilder(_sampleDir);
+            await builder.BuildAsync();
+
+            var quizPath = Path.Combine(builder.OutputDirectory, "quiz-page.html");
+            Assert.That(File.Exists(quizPath), Is.True, "quiz-page.html should exist");
+
+            var quizContent = await File.ReadAllTextAsync(quizPath);
+            Assert.That(quizContent, Contains.Substring("data-neko-quiz=\""));
+            Assert.That(quizContent, Contains.Substring("data-quiz-total=\"1\""));
+            Assert.That(quizContent, Contains.Substring("What persists data across restarts?"));
+            Assert.That(quizContent, Contains.Substring("data-quiz-correct=\"1\""));
+            Assert.That(quizContent, Contains.Substring("The volume mount keeps data on disk."));
+            Assert.That(quizContent, Contains.Substring("data-quiz-check"));
+        }
+
+        [Test]
         public async Task TestFaviconAutoDetectedFromInputRoot()
         {
             // Drop a favicon.ico at the input root. No `branding.favicon` is set in neko.yml.
