@@ -65,3 +65,7 @@ Provide either `answer` (single) or `answers` (multiple) per question, not both.
 - Keep questions focused on understanding, not recall of exact UI labels.
 - Put one quiz at the end of a page; pair it with the [Lesson](/components/) flow
   for multi-page tracks.
+
+## Live Demo
+
+Try it out yourself! Visit the [quiz sample page](/samples/quiz.md).
