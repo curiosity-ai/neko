@@ -68,4 +68,4 @@ Provide either `answer` (single) or `answers` (multiple) per question, not both.
 
 ## Live Demo
 
-Try it out yourself! Visit the [quiz sample page](/samples/quiz.md).
+Try it out yourself! Visit the [quiz sample page](/samples/quiz).

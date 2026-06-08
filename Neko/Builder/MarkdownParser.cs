@@ -74,6 +74,31 @@ namespace Neko.Builder
         public string RedirectSlug { get; set; }
     }
 
+    public static class UrlHelper
+    {
+        // Internal page URLs are authored with the .md suffix (so editor link
+        // completion and IDE navigation work) but generated pages are served
+        // without one. Strip the suffix from any local URL, preserving the
+        // anchor/query suffix. External URLs and non-.md links pass through.
+        public static string StripMarkdownExtension(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return url;
+            if (url.Contains("://")) return url;
+            if (url.StartsWith("#") || url.StartsWith("mailto:")) return url;
+
+            var splitIdx = url.IndexOfAny(new[] { '#', '?' });
+            var path = splitIdx >= 0 ? url.Substring(0, splitIdx) : url;
+            var suffix = splitIdx >= 0 ? url.Substring(splitIdx) : "";
+
+            if (path.EndsWith(".md", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return path.Substring(0, path.Length - 3) + suffix;
+            }
+
+            return url;
+        }
+    }
+
     public class MarkdownParser
     {
         private readonly MarkdownPipeline _pipeline;
@@ -266,6 +291,7 @@ namespace Neko.Builder
             {
                 if (!link.IsImage && !string.IsNullOrEmpty(link.Url) && !link.Url.Contains("://") && !link.Url.StartsWith("#") && !link.Url.StartsWith("mailto:"))
                 {
+                    link.Url = UrlHelper.StripMarkdownExtension(link.Url);
                     outgoingLinks.Add(link.Url);
                 }
             }

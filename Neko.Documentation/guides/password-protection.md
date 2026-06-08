@@ -40,6 +40,6 @@ This content is encrypted and can only be seen with the password.
 
 ## Live Demo
 
-Try it out yourself! Visit the [password protected sample page](/samples/password-protected.md).
+Try it out yourself! Visit the [password protected sample page](/samples/password-protected).
 
 The password is: `letmein`

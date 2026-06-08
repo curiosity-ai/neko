@@ -1191,6 +1191,10 @@ namespace Neko.Extensions
             {
                 link = "#";
             }
+            else
+            {
+                link = Builder.UrlHelper.StripMarkdownExtension(link);
+            }
 
             renderer.Write($"<a href=\"{link}\" class=\"inline-flex items-center text-primary-600 dark:text-primary-400 hover:underline no-underline\">");
             renderer.Write($"<i class=\"fi fi-rr-link-alt mr-1\"></i>");
