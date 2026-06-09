@@ -115,6 +115,17 @@
                 contentContainer.innerHTML = html;
                 contentContainer.classList.remove('hidden'); // Ensure it is visible if we hid it initially?
                 // Actually, the form is inside contentContainer, so overwriting innerHTML removes the form.
+
+                // <script> tags inserted via innerHTML do not execute, so re-create them
+                // to wire up components that ship with inline scripts (quiz, lesson, ...).
+                contentContainer.querySelectorAll('script').forEach((oldScript) => {
+                    const newScript = document.createElement('script');
+                    for (const attr of oldScript.attributes) {
+                        newScript.setAttribute(attr.name, attr.value);
+                    }
+                    newScript.text = oldScript.textContent;
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                });
             }
 
             // Re-initialize dynamic content
