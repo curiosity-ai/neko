@@ -446,6 +446,82 @@ Section body.
         }
 
         [Test]
+        public async Task SearchIndex_EmitsSidebarBreadcrumbs_OnPageAndSectionDocuments()
+        {
+            var project = Path.Combine(_sampleDir, "isolated-crumbs");
+            Directory.CreateDirectory(project);
+            Directory.CreateDirectory(Path.Combine(project, "guides", "core-concepts"));
+
+            // `standalone.md` sits at the root (no sidebar ancestors) but is nested
+            // under a navbar dropdown — it should pick up the navbar trail instead.
+            await File.WriteAllTextAsync(Path.Combine(project, "neko.yml"), @"
+url: https://example.com
+links:
+  - text: More
+    items:
+      - text: Standalone
+        link: standalone.md
+");
+            await File.WriteAllTextAsync(Path.Combine(project, "guides", "index.yml"), @"
+label: Guidebook
+");
+            await File.WriteAllTextAsync(Path.Combine(project, "guides", "core-concepts", "deep.md"), @"---
+title: Deep Page
+---
+# Deep Page
+
+## Anchored Section
+
+Section body text.
+");
+            await File.WriteAllTextAsync(Path.Combine(project, "standalone.md"), @"---
+title: Standalone
+---
+# Standalone
+
+Body text.
+");
+            await File.WriteAllTextAsync(Path.Combine(project, "orphan.md"), @"---
+title: Orphan
+---
+# Orphan
+
+Body text.
+");
+
+            var output = Path.Combine(project, ".neko-out");
+            var builder = new SiteBuilder(project, output, false);
+            await builder.BuildAsync();
+
+            var json = await File.ReadAllTextAsync(Path.Combine(output, "search.json"));
+            using var doc = JsonDocument.Parse(json);
+            var docs = doc.RootElement.EnumerateArray().ToList();
+
+            var page = docs.First(d => d.GetProperty("id").GetString() == "guides/core-concepts/deep.html");
+            Assert.That(page.TryGetProperty("breadcrumbs", out var pageCrumbs), Is.True,
+                "Pages nested in folders should carry a sidebar-derived `breadcrumbs` trail");
+            Assert.That(pageCrumbs.EnumerateArray().Select(c => c.GetString()),
+                Is.EqualTo(new[] { "Guidebook", "Core Concepts" }),
+                "Breadcrumbs should use folder labels (index.yml `label:`) and title-cased folder names, in order");
+
+            var section = docs.First(d => d.GetProperty("id").GetString() == "guides/core-concepts/deep.html#anchored-section");
+            Assert.That(section.TryGetProperty("breadcrumbs", out var sectionCrumbs), Is.True,
+                "Section documents should inherit the parent page's breadcrumb trail");
+            Assert.That(sectionCrumbs.EnumerateArray().Select(c => c.GetString()),
+                Is.EqualTo(new[] { "Guidebook", "Core Concepts" }));
+
+            var standalone = docs.First(d => d.GetProperty("id").GetString() == "standalone.html");
+            Assert.That(standalone.TryGetProperty("breadcrumbs", out var navbarCrumbs), Is.True,
+                "Root-level pages nested under a navbar dropdown group should fall back to the navbar trail");
+            Assert.That(navbarCrumbs.EnumerateArray().Select(c => c.GetString()),
+                Is.EqualTo(new[] { "More" }));
+
+            var orphan = docs.First(d => d.GetProperty("id").GetString() == "orphan.html");
+            Assert.That(orphan.TryGetProperty("breadcrumbs", out _), Is.False,
+                "Root-level pages with no ancestor groups anywhere should omit the `breadcrumbs` field entirely");
+        }
+
+        [Test]
         public async Task SearchIndex_Aggregate_MergesSubProjectIndexesIntoRoot()
         {
             var rootOut = Path.Combine(_sampleDir, ".agg-root");

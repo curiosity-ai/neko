@@ -67,7 +67,7 @@
 
                 const ms = new MiniSearch({
                     fields: ['title', 'content', 'headings', 'slug'],
-                    storeFields: ['title', 'content', 'parentTitle', 'parentId', 'type', 'slug'],
+                    storeFields: ['title', 'content', 'parentTitle', 'parentId', 'type', 'slug', 'breadcrumbs'],
                     searchOptions: {
                         boost: { title: 3, slug: 4, headings: 2 },
                         boostDocument: (id, _term, stored) => {
@@ -331,21 +331,30 @@
             let href = pathPart.replace(/\\/g, '/');
             if (!href.startsWith('/')) href = '/' + href;
 
-            // A friendly, extension-less breadcrumb shown under the result —
-            // `.../workspace/core-concepts/graph-model` rather than the raw
-            // `/workspace/core-concepts/graph-model.html`. A trailing `index`
-            // segment collapses to its folder.
-            let displayPath = href.replace(/\.html$/i, '').replace(/\/index$/i, '');
-            displayPath = '...' + displayPath;
-
             href = href + anchor;
 
             const terms = result.terms || [];
             const titleHtml = highlight(escapeHtml(result.title || ''), terms);
             const snippet = makeSnippet(result.content || '', terms);
 
-            const breadcrumb = result.type === 'section' && result.parentTitle
-                ? `<div class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">${escapeHtml(result.parentTitle)}</div>`
+            // Breadcrumb trail above the title: the page's ancestor group titles
+            // from the navigation, plus the parent page title for section hits.
+            // Pages that aren't part of the configured navigation fall back to
+            // their directory path segments so results stay distinguishable.
+            let crumbs = Array.isArray(result.breadcrumbs) ? result.breadcrumbs.filter(Boolean) : [];
+            if (crumbs.length === 0) {
+                const segments = pathPart.replace(/\\/g, '/').replace(/\.html$/i, '').split('/').filter(Boolean);
+                if (segments.length > 0 && segments[segments.length - 1].toLowerCase() === 'index') segments.pop();
+                segments.pop(); // the page's own segment — the title line already names it
+                crumbs = segments;
+            }
+            if (result.type === 'section' && result.parentTitle) {
+                crumbs = crumbs.concat(result.parentTitle);
+            }
+
+            const crumbSeparator = '<i class="fi fi-rr-angle-small-right text-[9px] leading-none shrink-0" aria-hidden="true"></i>';
+            const breadcrumb = crumbs.length > 0
+                ? `<div class="flex items-center gap-1 min-w-0 text-[11px] text-gray-400 dark:text-gray-500 mb-1">${crumbs.map(c => `<span class="truncate">${escapeHtml(c)}</span>`).join(crumbSeparator)}</div>`
                 : '';
 
             return `
@@ -355,9 +364,6 @@
                     ${titleHtml}
                 </div>
                 ${snippet ? `<div class="text-xs text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-2">${snippet}</div>` : ''}
-                <div class="text-[11px] text-gray-400 truncate mt-1">
-                    ${escapeHtml(displayPath)}
-                </div>
             </a>
         `;
         }).join('');

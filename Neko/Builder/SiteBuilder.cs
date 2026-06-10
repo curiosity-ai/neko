@@ -213,6 +213,12 @@ namespace Neko.Builder
                 // Build Navigation Map
                 var navigationMap = BuildNavigationMap(_config.Links);
 
+                // Sidebar-derived breadcrumb trails for the search index. The sidebar
+                // mirrors the folder hierarchy and covers every page, so it is the
+                // primary source; the navbar `links:` config only nests pages that
+                // sit under explicit dropdown groups.
+                var sidebarBreadcrumbMap = BuildSidebarBreadcrumbMap(sidebarLinks);
+
                 // Pass 2: Build Backlinks Map
                 var backlinkMap = new Dictionary<string, List<(string Url, string Title)>>(StringComparer.OrdinalIgnoreCase);
 
@@ -468,12 +474,24 @@ namespace Neko.Builder
                         {
                             indexTitle = Path.GetFileNameWithoutExtension(item.FilePath);
                         }
+                        // Ancestor group titles shown by the search UI as a breadcrumb
+                        // trail instead of the raw file path. Root-level pages have no
+                        // sidebar ancestors; for those, fall back to the navbar trail so
+                        // pages nested under navbar dropdown groups still get a crumb.
+                        var crumbSource = sidebarBreadcrumbMap.TryGetValue(relativeUrl, out var sidebarCrumbs) && sidebarCrumbs.Count > 0
+                            ? sidebarCrumbs
+                            : navContext.Breadcrumbs.Select(b => b.Title).ToList();
+                        var breadcrumbTitles = crumbSource
+                            .Where(t => !string.IsNullOrWhiteSpace(t))
+                            .ToArray();
+
                         searchIndexer.AddDocument(
                             htmlFileName,
                             indexTitle,
                             indexableContent,
                             item.Doc.FrontMatter.Description,
-                            item.Doc.FrontMatter.Tags);
+                            item.Doc.FrontMatter.Tags,
+                            breadcrumbTitles.Length > 0 ? breadcrumbTitles : null);
                     }
                 }
 
@@ -828,6 +846,44 @@ namespace Neko.Builder
                 if (s.Length > 0 && (s[0] == '.' || s[0] == '_')) return true;
             }
             return false;
+        }
+
+        // Maps a page's root-relative URL (no extension, leading slash) to the
+        // titles of its sidebar ancestor groups, e.g. "/guides/core/page" →
+        // ["Guides", "Core"]. Sidebar links already carry the route prefix, so
+        // unlike BuildNavigationMap no prefixing is applied here.
+        private static Dictionary<string, List<string>> BuildSidebarBreadcrumbMap(List<LinkConfig> links)
+        {
+            var map = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+            void Walk(List<LinkConfig> items, List<string> trail)
+            {
+                if (items == null) return;
+                foreach (var link in items)
+                {
+                    if (!string.IsNullOrEmpty(link.Link) && link.Link != "#" && !link.Link.Contains("://"))
+                    {
+                        var url = link.Link.Replace('\\', '/');
+                        if (url.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) url = url.Substring(0, url.Length - 3);
+                        if (url.EndsWith(".html", StringComparison.OrdinalIgnoreCase)) url = url.Substring(0, url.Length - 5);
+                        if (!url.StartsWith("/")) url = "/" + url;
+                        map[url] = trail;
+                    }
+
+                    if (link.Items != null && link.Items.Count > 0)
+                    {
+                        var next = trail;
+                        if (!string.IsNullOrWhiteSpace(link.Text))
+                        {
+                            next = new List<string>(trail) { link.Text };
+                        }
+                        Walk(link.Items, next);
+                    }
+                }
+            }
+
+            Walk(links, new List<string>());
+            return map;
         }
 
         private List<(string Url, string Title, List<NavigationItem> Breadcrumbs)> BuildNavigationMap(List<LinkConfig> links)

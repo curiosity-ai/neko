@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -68,8 +69,15 @@ namespace Neko.Builder
             return _routePrefix + "/" + normalized;
         }
 
-        public void AddDocument(string path, string title, string html, string description = null, string[] tags = null)
+        public void AddDocument(string path, string title, string html, string description = null, string[] tags = null, string[] breadcrumbs = null)
         {
+            // Breadcrumbs are the page's ancestor group titles from the site
+            // navigation ("Guides", "Core concepts", …). They're stored on every
+            // document — sections inherit the page's trail — so the search UI can
+            // show a nav-derived breadcrumb instead of the raw file path.
+            var crumbs = breadcrumbs?.Where(b => !string.IsNullOrWhiteSpace(b)).ToArray();
+            if (crumbs != null && crumbs.Length == 0) crumbs = null;
+
             var sections = ExtractSections(html);
 
             var headingsText = new StringBuilder();
@@ -101,7 +109,8 @@ namespace Neko.Builder
                 Content = pageContent.ToString().Trim(),
                 Headings = headingsText.Length > 0 ? headingsText.ToString() : null,
                 Slug = slug,
-                Type = "page"
+                Type = "page",
+                Breadcrumbs = crumbs
             });
 
             // Emit one document per H2/H3 with an id attribute so users can deep-link
@@ -124,7 +133,8 @@ namespace Neko.Builder
                     Slug = slug,
                     ParentTitle = title,
                     ParentId = prefixedPath,
-                    Type = "section"
+                    Type = "section",
+                    Breadcrumbs = crumbs
                 });
             }
         }
@@ -271,5 +281,6 @@ namespace Neko.Builder
         public string Type { get; set; }
         public string ParentTitle { get; set; }
         public string ParentId { get; set; }
+        public string[] Breadcrumbs { get; set; }
     }
 }
