@@ -44,6 +44,21 @@ namespace Neko.Builder
                 // Check if directory contains any relevant docs
                 if (!_docs.Any(d => d.FilePath.StartsWith(subDir))) continue;
 
+                // A changelog folder is a single destination (its aggregated page),
+                // not an expandable section — link straight to the folder URL.
+                var folderConfig = FolderConfig.LoadFromDirectory(subDir);
+                if (folderConfig.Changelog)
+                {
+                    var changelogLink = subDir.Substring(_inputDirectory.Length).Replace("\\", "/").TrimStart('/');
+                    items.Add((new LinkConfig
+                    {
+                        Text = folderConfig.Label ?? folderConfig.Title ?? ToTitleCase(dirName),
+                        Icon = folderConfig.Icon,
+                        Link = changelogLink,
+                    }, folderConfig.Order ?? 9999));
+                    continue;
+                }
+
                 var meta = GetFolderMeta(subDir);
                 var folderItems = GetItemsInDirectory(subDir);
 

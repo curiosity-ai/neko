@@ -55,7 +55,7 @@ namespace Neko.Builder
         // Returns the rendered article HTML for `document`, including blog/changelog
         // listings that would be injected at this URL. Used by the page generator
         // and by the search indexer so both see the same content.
-        public string BuildIndexableContent(ParsedDocument document, List<(ParsedDocument Doc, string Url)> blogPosts = null, List<(ParsedDocument Doc, string Url)> changelogEntries = null, string currentUrl = null)
+        public string BuildIndexableContent(ParsedDocument document, List<(ParsedDocument Doc, string Url)> blogPosts = null, List<(ParsedDocument Doc, string Url, string Version)> changelogEntries = null, string currentUrl = null)
         {
             var htmlContent = document.Html ?? string.Empty;
             if (!string.IsNullOrEmpty(htmlContent))
@@ -70,7 +70,7 @@ namespace Neko.Builder
                 htmlContent += sbBlog.ToString();
             }
 
-            if (currentUrl != null && (currentUrl == "/changelog/index" || document.FrontMatter.Layout == "changelog"))
+            if (document.FrontMatter.Layout == "changelog")
             {
                 var sbChangelog = new StringBuilder();
                 RenderChangelogIndex(sbChangelog, changelogEntries);
@@ -86,7 +86,7 @@ namespace Neko.Builder
             NavigationContext navContext = null,
             List<LinkConfig> sidebarLinks = null,
             List<(ParsedDocument Doc, string Url)> blogPosts = null,
-            List<(ParsedDocument Doc, string Url)> changelogEntries = null,
+            List<(ParsedDocument Doc, string Url, string Version)> changelogEntries = null,
             string currentUrl = null)
         {
             var pageTitle = !string.IsNullOrEmpty(document.FrontMatter.Title)

@@ -1,0 +1,9 @@
+# Marks this folder as a changelog. Each version-named `.md` file below becomes
+# an entry; Neko parses the file name as a version, sorts newest-first, and
+# renders a single timeline page at /changelog.
+changelog: true
+title: Changelog
+description: Neko is under active development and follows a calendar-versioning (vYY.M) scheme. The most recent release is listed first.
+label: Changelog
+icon: memo
+order: 2

@@ -28,6 +28,7 @@ expanded: true
 | `visibility`    | `public` (default), `hidden`, `protected`, `private`.                |
 | `searchExclude` | `true` to exclude every page in this folder (recursively) from the search index. |
 | `permalink`     | Base URL for everything under this folder.                           |
+| `changelog`     | `true` turns the folder into a [changelog](../changelog/SKILL.md) (version-named files → one timeline page). Pairs with `title` / `description`. |
 | `nextprev.mode` | `show`, `hide`, `exclude` for the whole folder.                      |
 | `nav.mode`      | `default`, `stack` (per top-level folder).                           |
 | `backlinks`     | Override project defaults inside this folder.                        |

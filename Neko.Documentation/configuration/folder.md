@@ -112,6 +112,26 @@ Pages inside the folder are still built and reachable, but they will not appear 
 
 ---
 
+## changelog
+
+Turn this folder into a [changelog](/configuration/changelog.md). The
+version-named `.md` files inside are parsed (file name → version), sorted
+newest-first, and rendered as a single timeline page at the folder URL. The
+companion `title` and `description` keys set the page heading and lead
+paragraph.
+
+```yml index.yml
+changelog: true
+title: Changelog
+description: All notable changes to this project.
+icon: memo
+order: 2
+```
+
+See the [Changelog](/configuration/changelog.md) configuration page for the full details.
+
+---
+
 ## visibility
 
 Hide a folder by setting the [visibility](/configuration/page.md#visibility) configuration.

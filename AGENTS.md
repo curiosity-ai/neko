@@ -46,9 +46,22 @@ This repository contains the source code for `Neko`, a CLI tool for generating s
 -   **Per-component skills (template)**: [`.template/.claude/skills/`](.template/.claude/skills/)
 
 ## Changelog
-- You MUST ALWAYS update the `Neko.Documentation/changelog.md` file by adding or updating the current "Calendar Versioning" version entry explaining the changes done.
-- The versions must follow the mandatory version format of `vYY.M` (or `v.YY.M`), and be updated using the current date of when the agent is running.
-- If an entry is already there, update it's content, don't replace it. Keep the depth of the update aligned with the already existing content.
+The Neko changelog is a **folder-based changelog** (the feature documented at
+`Neko.Documentation/configuration/changelog.md`): `Neko.Documentation/changelog/`
+contains `index.yml` (`changelog: true`) plus **one Markdown file per release,
+named after its version** (e.g. `v26.6.md`). Neko parses the file name as a
+version, sorts newest-first, and renders the single `/changelog` page.
+
+- You MUST ALWAYS capture your changes in the changelog by adding or updating the
+  version file for the current "Calendar Versioning" release under
+  `Neko.Documentation/changelog/`.
+- The version (file name and display) must follow the mandatory format `vYY.M`
+  (e.g. `v26.6.md`), derived from the current date of when the agent is running.
+- If a file for the current `vYY.M` already exists, **append a new bullet to it —
+  do not replace existing content or create a duplicate file.** Keep the depth of
+  the update aligned with the existing bullets.
+- There is no longer a single `changelog.md`; never recreate one. Each release is
+  its own file in the folder.
 
 ## Testing
 - ALWAYS use the Neko project targeting an output folder in the temp directory.

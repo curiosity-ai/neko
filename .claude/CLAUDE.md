@@ -125,7 +125,7 @@ Always point `--output` at a **temp folder**, never inside the repo. See
 - [ ] Playwright test that opens the generated page and verifies render
 - [ ] **Skill** at `.template/.claude/skills/<name>/SKILL.md`
 - [ ] Optional: example use in `.template/index.md`
-- [ ] Changelog entry in `Neko.Documentation/changelog.md`
+- [ ] Changelog entry in `Neko.Documentation/changelog/vYY.M.md` (current month)
 
 ## Code style and architectural rules
 
@@ -142,9 +142,20 @@ Always point `--output` at a **temp folder**, never inside the repo. See
 
 ## Changelog policy
 
-`Neko.Documentation/changelog.md` uses **Calendar Versioning** — `vYY.M`.
-Always update or extend the entry matching the current month. Don't replace
-existing entries; merge new bullets into them, preserving structure depth.
+The Neko changelog uses Neko's own **folder-based changelog** feature
+(`Neko.Documentation/configuration/changelog.md`). It lives at
+`Neko.Documentation/changelog/`:
+
+- `index.yml` marks the folder with `changelog: true` plus `title` / `description`.
+- Each release is **its own Markdown file named after the version**, using
+  **Calendar Versioning** `vYY.M` (e.g. `changelog/v26.6.md`). Neko parses the
+  file name as a version, sorts newest-first, and renders the `/changelog` page.
+
+When you make a change, **add a bullet to the file for the current month's
+`vYY.M` version** (create `changelog/vYY.M.md` if it doesn't exist yet, copying
+the optional `date:` frontmatter convention from the sibling files). Don't
+replace existing bullets; merge new ones in, preserving structure depth. Never
+recreate a single `changelog.md` — each release is a separate file.
 
 ## Quick reference
 

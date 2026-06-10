@@ -1,0 +1,8 @@
+# This folder is a changelog. Add one Markdown file per release, named after
+# its version (e.g. v1.1.0.md). Neko parses the file name as a version, sorts
+# entries newest-first, and renders a single timeline page at /changelog.
+changelog: true
+title: Changelog
+description: All notable changes to this project, newest first.
+icon: memo
+order: 50

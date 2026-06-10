@@ -239,12 +239,13 @@ The `.claude/skills/` folder contains one skill per Neko component. Skills are
 just `SKILL.md` files; load them on demand when you need precise syntax for a
 component. The set covers:
 
-alert · backlinks · badge · banner · button · callout · cards · code-block ·
-code-inline · code-snippet · color-chip · column · command-example · comments · container ·
-csharp-docs · embed · emoji · example · file · file-download · force-graph ·
-icon · image · img-gen · lesson · list · math · math-formulas · mermaid ·
-panel · pdf · reference-link · snapframe · steps · tab · table · tesserae ·
-workflow · youtube · frontmatter · neko-yml · folder-index.
+alert · backlinks · badge · banner · button · callout · cards · changelog ·
+code-block · code-inline · code-snippet · color-chip · column · command-example ·
+comments · container · csharp-docs · embed · emoji · example · file ·
+file-download · force-graph · icon · image · img-gen · lesson · list · math ·
+math-formulas · mermaid · panel · pdf · reference-link · snapframe · steps ·
+tab · table · tesserae · workflow · youtube · frontmatter · neko-yml ·
+folder-index.
 
 When you add a new component to Neko or change a component's syntax, **update
 the matching skill** so this template stays in sync with the engine.
