@@ -291,21 +291,85 @@ namespace Neko.Builder
                     .OrderByDescending(p => p.Doc.FrontMatter.Date ?? "")
                     .ToList();
 
-                var changelogEntries = parsedDocs
-                    .Where(p => p.RelativePath.Replace("\\", "/").StartsWith("changelog/") && !p.RelativePath.EndsWith("index.md"))
-                    .Select(p =>
+                // Changelog folders: any folder whose index.yml / <foldername>.yml sets
+                // `changelog: true`. Their version-named `.md` files are aggregated into a
+                // single timeline page rendered at the folder URL (newest version first),
+                // and are not emitted as standalone pages.
+                var changelogFolders = DiscoverChangelogFolders();
+                var changelogManagedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var changelogEntriesByFolder = new Dictionary<string, List<(ParsedDocument Doc, string Url, string Version)>>(StringComparer.OrdinalIgnoreCase);
+
+                if (changelogFolders.Count > 0)
+                {
+                    var versionedByFolder = new Dictionary<string, List<(ChangelogVersion Ver, ParsedDocument Doc)>>(StringComparer.OrdinalIgnoreCase);
+                    var unversionedByFolder = new Dictionary<string, List<ParsedDocument>>(StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var p in parsedDocs)
                     {
-                        var url = "/" + p.RelativePath.Replace("\\", "/");
-                        if (url.EndsWith(".md")) url = url.Substring(0, url.Length - 3);
-                        if (!string.IsNullOrEmpty(_routePrefix)) url = _routePrefix + url;
-                        return (p.Doc, url);
-                    })
-                    .OrderByDescending(p => p.Doc.FrontMatter.Date ?? "")
-                    .ToList();
+                        var dir = Path.GetFullPath(Path.GetDirectoryName(p.FilePath) ?? string.Empty);
+                        if (!changelogFolders.ContainsKey(dir)) continue;
+
+                        // Every `.md` in a changelog folder is managed (not built as its own page).
+                        changelogManagedFiles.Add(Path.GetFullPath(p.FilePath));
+
+                        var fileName = Path.GetFileName(p.FilePath);
+                        if (fileName.Equals("index.md", StringComparison.OrdinalIgnoreCase)
+                            || fileName.Equals("readme.md", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue; // intro page, not a version entry
+                        }
+
+                        var nameNoExt = Path.GetFileNameWithoutExtension(p.FilePath);
+                        if (ChangelogVersion.TryParse(nameNoExt, out var version))
+                        {
+                            if (!versionedByFolder.TryGetValue(dir, out var list))
+                                versionedByFolder[dir] = list = new List<(ChangelogVersion, ParsedDocument)>();
+                            list.Add((version, p.Doc));
+                        }
+                        else
+                        {
+                            if (!unversionedByFolder.TryGetValue(dir, out var list))
+                                unversionedByFolder[dir] = list = new List<ParsedDocument>();
+                            list.Add(p.Doc);
+                        }
+                    }
+
+                    foreach (var dir in changelogFolders.Keys)
+                    {
+                        var entries = new List<(ParsedDocument Doc, string Url, string Version)>();
+
+                        if (versionedByFolder.TryGetValue(dir, out var versioned))
+                        {
+                            foreach (var v in versioned.OrderByDescending(x => x.Ver))
+                            {
+                                entries.Add((v.Doc, "#" + v.Ver.Anchor, v.Ver.Display));
+                            }
+                        }
+
+                        // Any non-version files fall back to date ordering, listed after versions.
+                        if (unversionedByFolder.TryGetValue(dir, out var unversioned))
+                        {
+                            foreach (var doc in unversioned.OrderByDescending(d => d.FrontMatter.Date ?? string.Empty))
+                            {
+                                var label = !string.IsNullOrEmpty(doc.FrontMatter.Title) ? doc.FrontMatter.Title : doc.FrontMatter.Label;
+                                entries.Add((doc, null, label ?? string.Empty));
+                            }
+                        }
+
+                        changelogEntriesByFolder[dir] = entries;
+                    }
+                }
 
                 // Pass 3: Generate HTML
                 foreach (var item in parsedDocs)
                 {
+                    // Files inside a changelog folder are aggregated into a single page
+                    // (generated below), so they are not emitted individually here.
+                    if (changelogManagedFiles.Contains(Path.GetFullPath(item.FilePath)))
+                    {
+                        continue;
+                    }
+
                     Console.WriteLine($"Generating {Path.GetFileName(item.FilePath)}...");
 
                     // Get backlinks
@@ -357,7 +421,7 @@ namespace Neko.Builder
                         if (lessonNext != null) navContext.LessonNext = new NavigationItem { Title = lessonNext.Title, Url = lessonNext.Url };
                     }
 
-                    var html = generator.Generate(item.Doc, backlinks, navContext, sidebarLinks, blogPosts, changelogEntries, relativeUrl);
+                    var html = generator.Generate(item.Doc, backlinks, navContext, sidebarLinks, blogPosts, null, relativeUrl);
 
                     var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html");
                     var outputPath = Path.Combine(OutputDirectory, htmlFileName);
@@ -385,7 +449,7 @@ namespace Neko.Builder
 
                     if (!isProtected && !isSearchExcluded)
                     {
-                        var indexableContent = generator.BuildIndexableContent(item.Doc, blogPosts, changelogEntries, relativeUrl);
+                        var indexableContent = generator.BuildIndexableContent(item.Doc, blogPosts, null, relativeUrl);
                         var indexTitle = item.Doc.FrontMatter.Title;
                         if (string.IsNullOrWhiteSpace(indexTitle))
                         {
@@ -410,6 +474,88 @@ namespace Neko.Builder
                             indexableContent,
                             item.Doc.FrontMatter.Description,
                             item.Doc.FrontMatter.Tags);
+                    }
+                }
+
+                // Pass 4: Generate one aggregated timeline page per changelog folder.
+                foreach (var (folderFullPath, folderConfig) in changelogFolders)
+                {
+                    if (!changelogEntriesByFolder.TryGetValue(folderFullPath, out var entries)) continue;
+
+                    var relativeFolder = Path.GetRelativePath(_inputDirectory, folderFullPath).Replace("\\", "/");
+                    var folderUrl = "/" + relativeFolder;
+                    if (!string.IsNullOrEmpty(_routePrefix)) folderUrl = _routePrefix + folderUrl;
+
+                    // Use an existing index.md / readme.md as the intro, otherwise synthesize
+                    // a heading + lead paragraph from the folder yml title/description.
+                    var indexEntry = parsedDocs.FirstOrDefault(p =>
+                        Path.GetFullPath(Path.GetDirectoryName(p.FilePath) ?? string.Empty).Equals(folderFullPath, StringComparison.OrdinalIgnoreCase)
+                        && (Path.GetFileName(p.FilePath).Equals("index.md", StringComparison.OrdinalIgnoreCase)
+                            || Path.GetFileName(p.FilePath).Equals("readme.md", StringComparison.OrdinalIgnoreCase)));
+
+                    ParsedDocument pageDoc;
+                    if (indexEntry.Doc != null)
+                    {
+                        pageDoc = indexEntry.Doc;
+                        if (string.IsNullOrEmpty(pageDoc.FrontMatter.Title)) pageDoc.FrontMatter.Title = folderConfig.Title ?? folderConfig.Label;
+                        if (string.IsNullOrEmpty(pageDoc.FrontMatter.Description)) pageDoc.FrontMatter.Description = folderConfig.Description;
+                    }
+                    else
+                    {
+                        var heading = folderConfig.Title ?? folderConfig.Label ?? "Changelog";
+                        var intro = new System.Text.StringBuilder();
+                        intro.AppendLine($"<h1>{System.Net.WebUtility.HtmlEncode(heading)}</h1>");
+                        if (!string.IsNullOrEmpty(folderConfig.Description))
+                        {
+                            intro.AppendLine($"<p class=\"text-lg text-gray-600 dark:text-gray-400\">{System.Net.WebUtility.HtmlEncode(folderConfig.Description)}</p>");
+                        }
+                        pageDoc = new ParsedDocument
+                        {
+                            Html = intro.ToString(),
+                            FrontMatter = new FrontMatter
+                            {
+                                Title = heading,
+                                Description = folderConfig.Description,
+                                Icon = folderConfig.Icon,
+                            },
+                        };
+                    }
+                    pageDoc.FrontMatter.Layout = "changelog";
+
+                    // Navigation context (breadcrumbs / prev-next) for the folder URL.
+                    var navContext = new NavigationContext();
+                    var navIndex = navigationMap.FindIndex(n => n.Url.Equals(folderUrl, StringComparison.OrdinalIgnoreCase));
+                    if (navIndex >= 0)
+                    {
+                        navContext.Breadcrumbs = navigationMap[navIndex].Breadcrumbs;
+                        if (navIndex > 0) navContext.Prev = new NavigationItem { Title = navigationMap[navIndex - 1].Title, Url = navigationMap[navIndex - 1].Url };
+                        if (navIndex < navigationMap.Count - 1) navContext.Next = new NavigationItem { Title = navigationMap[navIndex + 1].Title, Url = navigationMap[navIndex + 1].Url };
+                    }
+
+                    var changelogHtml = generator.Generate(pageDoc, null, navContext, sidebarLinks, blogPosts, entries, folderUrl);
+
+                    var outputPath = Path.Combine(OutputDirectory, relativeFolder.Replace('/', Path.DirectorySeparatorChar), "index.html");
+                    var outputDirForFile = Path.GetDirectoryName(outputPath);
+                    if (outputDirForFile != null && !Directory.Exists(outputDirForFile)) Directory.CreateDirectory(outputDirForFile);
+                    await File.WriteAllTextAsync(outputPath, changelogHtml);
+                    Console.WriteLine($"Generated changelog {folderUrl}");
+
+                    // Index the aggregated page (unless the folder opts out / is protected).
+                    var folderSearchExcluded = folderConfig.SearchExclude
+                        || IsInDotOrUnderscoreFolder(relativeFolder + "/index.md");
+                    var isProtectedSite = !string.IsNullOrEmpty(_config.Password);
+                    if (!folderSearchExcluded && !isProtectedSite)
+                    {
+                        var indexable = generator.BuildIndexableContent(pageDoc, blogPosts, entries, folderUrl);
+                        var indexTitle = !string.IsNullOrWhiteSpace(pageDoc.FrontMatter.Title)
+                            ? pageDoc.FrontMatter.Title
+                            : (folderConfig.Label ?? "Changelog");
+                        searchIndexer.AddDocument(
+                            relativeFolder + "/index.html",
+                            indexTitle,
+                            indexable,
+                            pageDoc.FrontMatter.Description,
+                            pageDoc.FrontMatter.Tags);
                     }
                 }
 
@@ -446,6 +592,10 @@ namespace Neko.Builder
 
                         foreach (var item in parsedDocs)
                         {
+                            // Changelog version files are not standalone pages; the
+                            // aggregated folder URL is added separately below.
+                            if (changelogManagedFiles.Contains(Path.GetFullPath(item.FilePath))) continue;
+
                             // Skip password-protected pages — their URLs render an unlock prompt,
                             // so there's no reason to advertise them to crawlers.
                             var pagePassword = item.Doc.FrontMatter.Password;
@@ -476,6 +626,24 @@ namespace Neko.Builder
                             sitemapContent.AppendLine($"    <loc>{loc}</loc>");
                             sitemapContent.AppendLine($"    <lastmod>{lastmod}</lastmod>");
                             sitemapContent.AppendLine("  </url>");
+                        }
+
+                        // One sitemap entry per aggregated changelog page (clean folder URL).
+                        if (!string.IsNullOrEmpty(_config.Password))
+                        {
+                            // whole-site password: changelog pages are gated, skip them
+                        }
+                        else
+                        {
+                            foreach (var folderFullPath in changelogFolders.Keys)
+                            {
+                                var relativeFolder = Path.GetRelativePath(_inputDirectory, folderFullPath).Replace("\\", "/");
+                                var loc = System.Security.SecurityElement.Escape(baseUrl + "/" + relativeFolder);
+                                sitemapContent.AppendLine("  <url>");
+                                sitemapContent.AppendLine($"    <loc>{loc}</loc>");
+                                sitemapContent.AppendLine($"    <lastmod>{DateTime.UtcNow:yyyy-MM-dd}</lastmod>");
+                                sitemapContent.AppendLine("  </url>");
+                            }
                         }
 
                         sitemapContent.AppendLine("</urlset>");
@@ -609,6 +777,28 @@ namespace Neko.Builder
                  + $"  <p>Redirecting to <a href=\"{escapedHtml}\">{escapedHtml}</a>…</p>\n"
                  + "</body>\n"
                  + "</html>\n";
+        }
+
+        // Find every folder under the input root whose folder config (index.yml /
+        // <foldername>.yml) sets `changelog: true`. Keyed by normalized full path.
+        private Dictionary<string, FolderConfig> DiscoverChangelogFolders()
+        {
+            var result = new Dictionary<string, FolderConfig>(StringComparer.OrdinalIgnoreCase);
+            if (!Directory.Exists(_inputDirectory)) return result;
+
+            foreach (var dir in Directory.GetDirectories(_inputDirectory, "*", SearchOption.AllDirectories))
+            {
+                var name = Path.GetFileName(dir);
+                if (name.StartsWith(".") || name.StartsWith("_")) continue;
+
+                var config = FolderConfig.LoadFromDirectory(dir);
+                if (config.Changelog)
+                {
+                    result[Path.GetFullPath(dir)] = config;
+                }
+            }
+
+            return result;
         }
 
         private static bool IsInSearchExcludedFolder(string filePath, HashSet<string> excludedFolders)

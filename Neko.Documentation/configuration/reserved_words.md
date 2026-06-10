@@ -30,6 +30,21 @@ By default, `.md` pages created within the `/blog` folder are assigned the `layo
 Be sure to review the [`author`](/configuration/page.md#author) and [`date`](/configuration/page.md#date) Page configs if you are writing blog posts.
 !!!
 
+### /changelog
+
+A folder whose [folder config](/configuration/folder.md#changelog) sets
+`changelog: true` is treated as a **changelog**. Its version-named `.md` files
+(e.g. `v1.2.0.md`) are parsed into versions, sorted newest-first, and rendered
+as a single timeline page at the folder URL.
+
+- A single aggregated page is generated at the folder URL (e.g. `/changelog`).
+- The version files are not emitted as standalone pages.
+- The folder collapses to one entry in the sidebar.
+
+Unlike `/blog`, the folder name is not magic — any folder can become a
+changelog by opting in with `changelog: true`. See the full
+[Changelog](/configuration/changelog.md) configuration page.
+
 ### /categories
 
 The default index page of the `/categories` directory is reserved for a summary of any [category](/configuration/page.md#category) configs. Every category configured within an `.md` page of your Neko project will have a corresponding entry here.

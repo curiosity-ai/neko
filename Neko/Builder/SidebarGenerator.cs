@@ -25,6 +25,19 @@ namespace Neko.Builder
         [YamlMember(Alias = "searchExclude")]
         public bool SearchExclude { get; set; }
 
+        // Marks this folder as a changelog: its version-named `.md` files are
+        // aggregated into a single timeline page rendered at the folder URL.
+        [YamlMember(Alias = "changelog")]
+        public bool Changelog { get; set; }
+
+        // Heading for the aggregated changelog page (used when there is no index.md).
+        [YamlMember(Alias = "title")]
+        public string Title { get; set; }
+
+        // Sub-heading / lead paragraph for the aggregated changelog page.
+        [YamlMember(Alias = "description")]
+        public string Description { get; set; }
+
         public static FolderConfig LoadFromDirectory(string directory)
         {
             var dirName = Path.GetFileName(directory);
@@ -96,6 +109,36 @@ namespace Neko.Builder
                 }
 
                 var folderConfig = GetFolderConfig(subDir);
+
+                // A changelog folder collapses to a single link pointing at its
+                // aggregated timeline page — its version files are not listed.
+                if (folderConfig.Changelog)
+                {
+                    var changelogTitle = !string.IsNullOrEmpty(folderConfig.Label)
+                        ? folderConfig.Label
+                        : (!string.IsNullOrEmpty(folderConfig.Title) ? folderConfig.Title : ToTitleCase(dirName));
+
+                    var changelogUrl = Path.GetRelativePath(_inputDirectory, subDir).Replace("\\", "/");
+                    if (!string.IsNullOrEmpty(_routePrefix))
+                    {
+                        changelogUrl = _routePrefix + "/" + changelogUrl;
+                    }
+                    else
+                    {
+                        changelogUrl = "/" + changelogUrl;
+                    }
+
+                    var changelogLink = new LinkConfig
+                    {
+                        Text = changelogTitle,
+                        Link = changelogUrl,
+                        Icon = folderConfig.Icon,
+                    };
+
+                    items.Add((changelogLink, folderConfig.Order ?? int.MaxValue, changelogTitle));
+                    continue;
+                }
+
                 var subItems = GenerateRecursive(subDir);
 
                 if (subItems.Count > 0)

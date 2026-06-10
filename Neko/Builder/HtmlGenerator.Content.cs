@@ -71,7 +71,7 @@ namespace Neko.Builder
             StringBuilder sb,
             ParsedDocument document,
             List<(ParsedDocument Doc, string Url)> blogPosts,
-            List<(ParsedDocument Doc, string Url)> changelogEntries,
+            List<(ParsedDocument Doc, string Url, string Version)> changelogEntries,
             string currentUrl)
         {
             var htmlContent = BuildIndexableContent(document, blogPosts, changelogEntries, currentUrl);
@@ -377,7 +377,7 @@ namespace Neko.Builder
             sb.AppendLine("</div>");
         }
 
-        private void RenderChangelogIndex(StringBuilder sb, List<(ParsedDocument Doc, string Url)> entries)
+        private void RenderChangelogIndex(StringBuilder sb, List<(ParsedDocument Doc, string Url, string Version)> entries)
         {
             if (entries == null || entries.Count == 0) return;
 
@@ -388,29 +388,39 @@ namespace Neko.Builder
 
             foreach (var entry in entries)
             {
+                var version = entry.Version;
+                // A version file may carry an optional headline (frontmatter title/label),
+                // e.g. "Ready for Production", shown next to the version badge.
                 var title = !string.IsNullOrEmpty(entry.Doc.FrontMatter.Title) ? entry.Doc.FrontMatter.Title : entry.Doc.FrontMatter.Label;
                 var date = entry.Doc.FrontMatter.Date;
                 var html = entry.Doc.Html;
+                var anchor = entry.Url != null && entry.Url.StartsWith("#") ? entry.Url.Substring(1) : null;
 
-                sb.AppendLine("<div class=\"relative flex flex-col md:flex-row gap-8\">");
+                sb.AppendLine($"<div class=\"relative flex flex-col md:flex-row gap-8 scroll-mt-24\"{(string.IsNullOrEmpty(anchor) ? string.Empty : $" id=\"{EscapeHtmlAttr(anchor)}\"")}>");
 
-                // Left Column (Version & Date)
+                // Left Column (Date)
                 sb.AppendLine("    <div class=\"flex md:w-32 flex-col items-start md:items-end md:text-right shrink-0 relative\">");
 
                 // Dot
                 sb.AppendLine("        <div class=\"absolute left-4 md:left-full md:-ml-[5px] w-2.5 h-2.5 rounded-full ring-4 ring-white dark:ring-gray-900 bg-primary-600 top-2 z-10 -translate-x-1/2 md:translate-x-1/2\"></div>");
 
-                sb.AppendLine($"        <div class=\"pl-10 md:pl-0\">");
-                sb.AppendLine($"            <h2 class=\"text-lg font-bold text-gray-900 dark:text-gray-100 leading-6\">{title}</h2>");
+                sb.AppendLine($"        <div class=\"pl-10 md:pl-0 pt-1\">");
                 if (!string.IsNullOrEmpty(date))
                 {
-                    sb.AppendLine($"            <time class=\"text-xs text-gray-500 dark:text-gray-400\">{date}</time>");
+                    sb.AppendLine($"            <time class=\"text-sm font-medium text-gray-500 dark:text-gray-400\">{date}</time>");
                 }
                 sb.AppendLine($"        </div>");
                 sb.AppendLine("    </div>");
 
-                // Right Column (Content)
+                // Right Column (Version heading + content)
                 sb.AppendLine("    <div class=\"flex-1 pl-10 md:pl-0 pb-8\">");
+                sb.AppendLine("        <div class=\"flex items-baseline gap-3 mb-4 flex-wrap\">");
+                sb.AppendLine($"            <span class=\"inline-flex items-center rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-3 py-1 text-sm font-semibold\">{EscapeHtmlAttr(version)}</span>");
+                if (!string.IsNullOrEmpty(title))
+                {
+                    sb.AppendLine($"            <h2 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 m-0\">{title}</h2>");
+                }
+                sb.AppendLine("        </div>");
                 sb.AppendLine("        <div class=\"prose dark:prose-invert max-w-none prose-sm prose-headings:font-semibold prose-a:text-primary-600\">");
                 sb.AppendLine(html);
                 sb.AppendLine("        </div>");
