@@ -157,7 +157,7 @@ Each version file is authored as **sections + entries**:
   (`# :icon-sparkles: Features`, `# :icon-bug: Fixes`, …).
 - Each change is a `::: change {badge="New" title="…"}` block — the badge renders
   in a left column, vertically aligned, with the title + description next to it.
-- The `package:` frontmatter key links the sticky version header to the **latest
+- The `link:` frontmatter key links the sticky version header to the **latest
   Neko NuGet package of that month** (`https://www.nuget.org/packages/Neko/<YY>.<M>.<build>`).
   When unsure of the build, query the NuGet registration index
   (`https://api.nuget.org/v3/registration5-gz-semver2/neko/index.json`) and pick
@@ -165,7 +165,7 @@ Each version file is authored as **sections + entries**:
 
 When you make a change, **add a `::: change` entry to the right section of the
 file for the current month's `vYY.M` version** (create `changelog/vYY.M.md` if it
-doesn't exist yet, copying the `date:`/`package:` frontmatter convention from the
+doesn't exist yet, copying the `date:`/`link:` frontmatter convention from the
 sibling files). Don't replace existing entries; merge new ones in, preserving
 structure depth. Never recreate a single `changelog.md` — each release is a
 separate file. The authoring format is documented in the `changelog` skill

@@ -61,7 +61,7 @@ version, sorts newest-first, and renders the single `/changelog` page.
   with an icon shortcode (e.g. `# :icon-sparkles: Features`), and one
   `::: change {badge="…" title="…"}` block per change (badge in a left column,
   title + description next to it). See `.template/.claude/skills/changelog/SKILL.md`.
-- Set the `package:` frontmatter key to the **latest Neko NuGet package of the
+- Set the `link:` frontmatter key to the **latest Neko NuGet package of the
   current month** (`https://www.nuget.org/packages/Neko/<YY>.<M>.<build>`). The
   sticky version header links to it. When unsure of the build, check
   `https://api.nuget.org/v3/registration5-gz-semver2/neko/index.json` and pick the

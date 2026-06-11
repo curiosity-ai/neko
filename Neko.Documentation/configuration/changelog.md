@@ -105,14 +105,15 @@ date: 2024-06-18
 ```
 ===
 
-=== package : `string`
+=== link : `string`
 
 An optional link for the version. When set, the version badge in the (sticky)
-release header becomes a link — typically the NuGet/release page for that build.
+release header becomes a link — typically the NuGet/release page, a GitHub
+release, or release notes for that build.
 
 ```md v1.0.0.md
 ---
-package: https://www.nuget.org/packages/Neko/26.6.1802
+link: https://www.nuget.org/packages/Neko/26.6.1802
 ---
 ```
 ===
@@ -133,7 +134,7 @@ The body of a version file is authored as **sections** with **entries**:
 ```md v26.6.md
 ---
 date: Jun 2026
-package: https://www.nuget.org/packages/Neko/26.6.1802
+link: https://www.nuget.org/packages/Neko/26.6.1802
 ---
 
 # :icon-sparkles: Features
@@ -210,7 +211,7 @@ order: 2
 ---
 title: First stable release
 date: 2024-06-18
-package: https://www.nuget.org/packages/Acme/1.0.0
+link: https://www.nuget.org/packages/Acme/1.0.0
 ---
 
 # :icon-sparkles: Features

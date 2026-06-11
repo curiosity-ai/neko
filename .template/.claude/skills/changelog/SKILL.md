@@ -64,19 +64,19 @@ Ordering is numeric, component-by-component — `v26.6` sorts above `v26.3.16`.
 
 ```md
 ---
-title: Ready for Production                              # headline next to the version badge
-date: 2024-06-18                                         # rendered verbatim in the header
-package: https://www.nuget.org/packages/YourPkg/1.0.0    # version → release link
+title: Ready for Production                           # headline next to the version badge
+date: 2024-06-18                                      # rendered verbatim in the header
+link: https://www.nuget.org/packages/YourPkg/1.0.0    # version → release link
 ---
 ```
 
 All three keys are optional:
 
-| Key       | Notes |
-| ---       | --- |
-| `title`   | Headline shown next to the version badge. |
-| `date`    | Rendered verbatim in the version header. |
-| `package` | A link for the version — turns the version badge in the sticky header into a link (e.g. the NuGet/release page for that build). Link to the **latest package of that month/release**. |
+| Key     | Notes |
+| ---     | --- |
+| `title` | Headline shown next to the version badge. |
+| `date`  | Rendered verbatim in the version header. |
+| `link`  | A link for the version — turns the version badge in the sticky header into a link (e.g. the NuGet/release page, a GitHub release, or release notes). For packaged projects, link to the **latest package of that month/release**. |
 
 ## Sections and entries
 
@@ -91,7 +91,7 @@ The body is authored as **sections** with **entries**:
 ```md
 ---
 date: Jun 2026
-package: https://www.nuget.org/packages/YourPkg/26.6.1802
+link: https://www.nuget.org/packages/YourPkg/26.6.1802
 ---
 
 # :icon-sparkles: Features
@@ -135,7 +135,7 @@ A minimal release file:
 ---
 title: First stable release
 date: 2024-06-18
-package: https://www.nuget.org/packages/YourPkg/1.0.0
+link: https://www.nuget.org/packages/YourPkg/1.0.0
 ---
 
 # :icon-rocket: Highlights

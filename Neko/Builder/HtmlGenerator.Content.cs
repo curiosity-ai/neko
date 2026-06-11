@@ -393,7 +393,7 @@ namespace Neko.Builder
                 // e.g. "Ready for Production", shown next to the version badge.
                 var title = !string.IsNullOrEmpty(entry.Doc.FrontMatter.Title) ? entry.Doc.FrontMatter.Title : entry.Doc.FrontMatter.Label;
                 var date = entry.Doc.FrontMatter.Date;
-                var package = entry.Doc.FrontMatter.Package;
+                var link = entry.Doc.FrontMatter.Link;
                 var html = entry.Doc.Html;
                 var anchor = entry.Url != null && entry.Url.StartsWith("#") ? entry.Url.Substring(1) : null;
 
@@ -406,7 +406,7 @@ namespace Neko.Builder
                 // Timeline dot, sitting on the rail.
                 sb.AppendLine("            <span class=\"absolute -left-6 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full ring-4 ring-white dark:ring-gray-900 bg-primary-600\" aria-hidden=\"true\"></span>");
 
-                RenderChangelogVersionBadge(sb, version, package);
+                RenderChangelogVersionBadge(sb, version, link);
 
                 if (!string.IsNullOrEmpty(title))
                 {
@@ -431,16 +431,16 @@ namespace Neko.Builder
         }
 
         // The version pill in a changelog header: a linked version badge (to the
-        // package/NuGet page when provided) with a copy-to-clipboard button.
+        // release/reference link when provided) with a copy-to-clipboard button.
         // Mirrors the markup of the `[!version-badge]` component.
-        private void RenderChangelogVersionBadge(StringBuilder sb, string version, string package)
+        private void RenderChangelogVersionBadge(StringBuilder sb, string version, string link)
         {
             sb.AppendLine("            <span class=\"neko-version-badge inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 pl-2.5 pr-1.5 py-1\">");
 
-            var hasLink = !string.IsNullOrEmpty(package);
+            var hasLink = !string.IsNullOrEmpty(link);
             if (hasLink)
             {
-                sb.AppendLine($"                <a href=\"{EscapeHtmlAttr(package)}\" class=\"no-underline group/vb\" target=\"_blank\" rel=\"noopener\">");
+                sb.AppendLine($"                <a href=\"{EscapeHtmlAttr(link)}\" class=\"no-underline group/vb\" target=\"_blank\" rel=\"noopener\">");
             }
             sb.AppendLine($"                <span class=\"font-mono font-bold text-base text-gray-800 dark:text-gray-100{(hasLink ? " group-hover/vb:text-primary-600 dark:group-hover/vb:text-primary-400 transition-colors" : string.Empty)}\">{EscapeHtmlAttr(version)}</span>");
             if (hasLink)
