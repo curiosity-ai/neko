@@ -57,9 +57,18 @@ version, sorts newest-first, and renders the single `/changelog` page.
   `Neko.Documentation/changelog/`.
 - The version (file name and display) must follow the mandatory format `vYY.M`
   (e.g. `v26.6.md`), derived from the current date of when the agent is running.
-- If a file for the current `vYY.M` already exists, **append a new bullet to it —
-  do not replace existing content or create a duplicate file.** Keep the depth of
-  the update aligned with the existing bullets.
+- Each version file is authored as **sections + entries**: `#` headings prefixed
+  with an icon shortcode (e.g. `# :icon-sparkles: Features`), and one
+  `::: change {badge="…" title="…"}` block per change (badge in a left column,
+  title + description next to it). See `.template/.claude/skills/changelog/SKILL.md`.
+- Set the `package:` frontmatter key to the **latest Neko NuGet package of the
+  current month** (`https://www.nuget.org/packages/Neko/<YY>.<M>.<build>`). The
+  sticky version header links to it. When unsure of the build, check
+  `https://api.nuget.org/v3/registration5-gz-semver2/neko/index.json` and pick the
+  highest build for that `YY.M`.
+- If a file for the current `vYY.M` already exists, **append a new `::: change`
+  entry to the right section — do not replace existing content or create a
+  duplicate file.** Keep the depth of the update aligned with the existing entries.
 - There is no longer a single `changelog.md`; never recreate one. Each release is
   its own file in the folder.
 

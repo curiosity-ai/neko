@@ -151,11 +151,25 @@ The Neko changelog uses Neko's own **folder-based changelog** feature
   **Calendar Versioning** `vYY.M` (e.g. `changelog/v26.6.md`). Neko parses the
   file name as a version, sorts newest-first, and renders the `/changelog` page.
 
-When you make a change, **add a bullet to the file for the current month's
-`vYY.M` version** (create `changelog/vYY.M.md` if it doesn't exist yet, copying
-the optional `date:` frontmatter convention from the sibling files). Don't
-replace existing bullets; merge new ones in, preserving structure depth. Never
-recreate a single `changelog.md` — each release is a separate file.
+Each version file is authored as **sections + entries**:
+
+- Sections are `#` headings prefixed with an icon shortcode
+  (`# :icon-sparkles: Features`, `# :icon-bug: Fixes`, …).
+- Each change is a `::: change {badge="New" title="…"}` block — the badge renders
+  in a left column, vertically aligned, with the title + description next to it.
+- The `package:` frontmatter key links the sticky version header to the **latest
+  Neko NuGet package of that month** (`https://www.nuget.org/packages/Neko/<YY>.<M>.<build>`).
+  When unsure of the build, query the NuGet registration index
+  (`https://api.nuget.org/v3/registration5-gz-semver2/neko/index.json`) and pick
+  the highest build for that `YY.M`.
+
+When you make a change, **add a `::: change` entry to the right section of the
+file for the current month's `vYY.M` version** (create `changelog/vYY.M.md` if it
+doesn't exist yet, copying the `date:`/`package:` frontmatter convention from the
+sibling files). Don't replace existing entries; merge new ones in, preserving
+structure depth. Never recreate a single `changelog.md` — each release is a
+separate file. The authoring format is documented in the `changelog` skill
+(`.template/.claude/skills/changelog/SKILL.md`).
 
 ## Quick reference
 

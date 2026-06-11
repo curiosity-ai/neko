@@ -17,6 +17,7 @@ namespace Neko.Builder
             RenderThemeSwitchScript(sb);
             RenderTabScript(sb);
             RenderCopyCodeScript(sb);
+            RenderCopyTextScript(sb);
             RenderHighlightInitScript(sb);
             RenderLineHighlightScript(sb);
             RenderFragmentScrollScript(sb);
@@ -317,6 +318,26 @@ namespace Neko.Builder
             sb.AppendLine("                const icon = btn.querySelector('i');");
             sb.AppendLine("                const originalClass = icon.className;");
             sb.AppendLine("                icon.className = 'fi fi-rr-check';");
+            sb.AppendLine("                setTimeout(() => icon.className = originalClass, 2000);");
+            sb.AppendLine("            });");
+            sb.AppendLine("        });");
+        }
+
+        // Copy-to-clipboard for components that carry their payload in a
+        // `data-copy` attribute (version badges, link cards, …). Distinct from the
+        // code-block `.copy-btn` handler, which scrapes the rendered <code>.
+        private void RenderCopyTextScript(StringBuilder sb)
+        {
+            sb.AppendLine("        document.addEventListener('click', function(e) {");
+            sb.AppendLine("            const btn = e.target.closest('.neko-copy-btn');");
+            sb.AppendLine("            if (!btn) return;");
+            sb.AppendLine("            e.preventDefault();");
+            sb.AppendLine("            const text = btn.getAttribute('data-copy') || '';");
+            sb.AppendLine("            navigator.clipboard.writeText(text).then(() => {");
+            sb.AppendLine("                const icon = btn.querySelector('i');");
+            sb.AppendLine("                if (!icon) return;");
+            sb.AppendLine("                const originalClass = icon.className;");
+            sb.AppendLine("                icon.className = originalClass.replace('fi-rr-copy', 'fi-rr-check');");
             sb.AppendLine("                setTimeout(() => icon.className = originalClass, 2000);");
             sb.AppendLine("            });");
             sb.AppendLine("        });");

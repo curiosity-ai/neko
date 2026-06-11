@@ -48,6 +48,12 @@ namespace Neko.Extensions
                 return;
             }
 
+            if (type == "change")
+            {
+                RenderChange(renderer, obj);
+                return;
+            }
+
             if (type == "roadmap")
             {
                 RenderRoadmap(renderer, obj);
@@ -121,6 +127,64 @@ namespace Neko.Extensions
             {
                 RenderStackedCard(renderer, obj, image, title, link, seeMore, tags, icon);
             }
+        }
+
+        // Badge palettes for changelog entries, keyed by the (lower-cased) badge
+        // label. Matches Neko's BadgeExtension colour conventions.
+        private static readonly Dictionary<string, string> ChangeBadgePalettes =
+            new(System.StringComparer.OrdinalIgnoreCase)
+            {
+                ["new"]        = "bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300",
+                ["feature"]    = "bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300",
+                ["improved"]   = "bg-gray-100 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300",
+                ["improvement"]= "bg-gray-100 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300",
+                ["changed"]    = "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+                ["fixed"]      = "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+                ["fix"]        = "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+                ["deprecated"] = "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300",
+                ["removed"]    = "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+                ["security"]   = "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+                ["docs"]       = "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300",
+            };
+
+        // A single changelog entry: a badge in its own left column, vertically
+        // aligned, with the title + description rendered next to it.
+        private void RenderChange(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var attributes = obj.GetAttributes();
+            var badge = GetAttribute(attributes, "badge") ?? "New";
+            var title = GetAttribute(attributes, "title");
+            var color = GetAttribute(attributes, "badge-color");
+
+            string badgeClasses;
+            if (!string.IsNullOrEmpty(color) && ChangeBadgePalettes.TryGetValue(color, out var byColor))
+            {
+                badgeClasses = byColor;
+            }
+            else if (!ChangeBadgePalettes.TryGetValue(badge, out badgeClasses))
+            {
+                badgeClasses = ChangeBadgePalettes["improved"];
+            }
+
+            renderer.Write("<div class=\"neko-change not-prose flex flex-col sm:flex-row gap-3 sm:gap-5 py-4\">");
+
+            // Left column: badge (fixed width so badges align vertically).
+            renderer.Write("<div class=\"shrink-0 sm:w-24 pt-0.5\">");
+            renderer.Write($"<span class=\"inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold {badgeClasses}\">{WebUtility.HtmlEncode(badge)}</span>");
+            renderer.Write("</div>");
+
+            // Right column: title + description.
+            renderer.Write("<div class=\"min-w-0 flex-1\">");
+            if (!string.IsNullOrEmpty(title))
+            {
+                renderer.Write($"<h3 class=\"text-base font-semibold text-gray-900 dark:text-gray-100 mt-0 mb-1\">{WebUtility.HtmlEncode(title)}</h3>");
+            }
+            renderer.Write("<div class=\"text-sm leading-relaxed text-gray-600 dark:text-gray-400 neko-change-body\">");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
+            renderer.Write("</div>");
+
+            renderer.Write("</div>");
         }
 
         private void RenderExample(HtmlRenderer renderer, CustomContainer obj)

@@ -381,10 +381,10 @@ namespace Neko.Builder
         {
             if (entries == null || entries.Count == 0) return;
 
-            sb.AppendLine("<div class=\"space-y-12 mt-8 not-prose relative\">");
+            sb.AppendLine("<div class=\"neko-changelog mt-8 not-prose relative\">");
 
-            // Timeline line
-            sb.AppendLine("<div class=\"absolute left-4 top-2 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700 md:left-[8.5rem]\"></div>");
+            // Timeline rail (the version headers' opaque backgrounds scroll over it).
+            sb.AppendLine("    <div class=\"absolute top-0 bottom-0 left-2 w-px bg-gray-200 dark:bg-white/10\" aria-hidden=\"true\"></div>");
 
             foreach (var entry in entries)
             {
@@ -393,43 +393,63 @@ namespace Neko.Builder
                 // e.g. "Ready for Production", shown next to the version badge.
                 var title = !string.IsNullOrEmpty(entry.Doc.FrontMatter.Title) ? entry.Doc.FrontMatter.Title : entry.Doc.FrontMatter.Label;
                 var date = entry.Doc.FrontMatter.Date;
+                var package = entry.Doc.FrontMatter.Package;
                 var html = entry.Doc.Html;
                 var anchor = entry.Url != null && entry.Url.StartsWith("#") ? entry.Url.Substring(1) : null;
 
-                sb.AppendLine($"<div class=\"relative flex flex-col md:flex-row gap-8 scroll-mt-24\"{(string.IsNullOrEmpty(anchor) ? string.Empty : $" id=\"{EscapeHtmlAttr(anchor)}\"")}>");
+                sb.AppendLine($"    <section class=\"relative pl-8 scroll-mt-24\"{(string.IsNullOrEmpty(anchor) ? string.Empty : $" id=\"{EscapeHtmlAttr(anchor)}\"")}>");
 
-                // Left Column (Date)
-                sb.AppendLine("    <div class=\"flex md:w-32 flex-col items-start md:items-end md:text-right shrink-0 relative\">");
+                // Sticky version header: stays pinned while its release scrolls past,
+                // then the next version's header takes its place at the top.
+                sb.AppendLine("        <div class=\"neko-changelog-version sticky top-0 z-20 flex items-center gap-3 flex-wrap py-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur supports-[backdrop-filter]:bg-white/75 dark:supports-[backdrop-filter]:bg-gray-900/75\">");
 
-                // Dot
-                sb.AppendLine("        <div class=\"absolute left-4 md:left-full md:-ml-[5px] w-2.5 h-2.5 rounded-full ring-4 ring-white dark:ring-gray-900 bg-primary-600 top-2 z-10 -translate-x-1/2 md:translate-x-1/2\"></div>");
+                // Timeline dot, sitting on the rail.
+                sb.AppendLine("            <span class=\"absolute -left-6 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full ring-4 ring-white dark:ring-gray-900 bg-primary-600\" aria-hidden=\"true\"></span>");
 
-                sb.AppendLine($"        <div class=\"pl-10 md:pl-0 pt-1\">");
-                if (!string.IsNullOrEmpty(date))
-                {
-                    sb.AppendLine($"            <time class=\"text-sm font-medium text-gray-500 dark:text-gray-400\">{date}</time>");
-                }
-                sb.AppendLine($"        </div>");
-                sb.AppendLine("    </div>");
+                RenderChangelogVersionBadge(sb, version, package);
 
-                // Right Column (Version heading + content)
-                sb.AppendLine("    <div class=\"flex-1 pl-10 md:pl-0 pb-8\">");
-                sb.AppendLine("        <div class=\"flex items-baseline gap-3 mb-4 flex-wrap\">");
-                sb.AppendLine($"            <span class=\"inline-flex items-center rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-3 py-1 text-sm font-semibold\">{EscapeHtmlAttr(version)}</span>");
                 if (!string.IsNullOrEmpty(title))
                 {
                     sb.AppendLine($"            <h2 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 m-0\">{title}</h2>");
                 }
+                if (!string.IsNullOrEmpty(date))
+                {
+                    sb.AppendLine($"            <time class=\"text-sm font-medium text-gray-400 dark:text-gray-500 ml-auto\">{EscapeHtmlAttr(date)}</time>");
+                }
                 sb.AppendLine("        </div>");
-                sb.AppendLine("        <div class=\"prose dark:prose-invert max-w-none prose-sm prose-headings:font-semibold prose-a:text-primary-600\">");
+
+                // Release body. Sections (markdown H1s) and `::: change` entries are
+                // styled by the .neko-changelog-body rules in the page <style>.
+                sb.AppendLine("        <div class=\"neko-changelog-body prose dark:prose-invert max-w-none prose-sm prose-headings:font-semibold prose-a:text-primary-600 pt-2 pb-10\">");
                 sb.AppendLine(html);
                 sb.AppendLine("        </div>");
-                sb.AppendLine("    </div>");
 
-                sb.AppendLine("</div>");
+                sb.AppendLine("    </section>");
             }
 
             sb.AppendLine("</div>");
+        }
+
+        // The version pill in a changelog header: a linked version badge (to the
+        // package/NuGet page when provided) with a copy-to-clipboard button.
+        // Mirrors the markup of the `[!version-badge]` component.
+        private void RenderChangelogVersionBadge(StringBuilder sb, string version, string package)
+        {
+            sb.AppendLine("            <span class=\"neko-version-badge inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 pl-2.5 pr-1.5 py-1\">");
+
+            var hasLink = !string.IsNullOrEmpty(package);
+            if (hasLink)
+            {
+                sb.AppendLine($"                <a href=\"{EscapeHtmlAttr(package)}\" class=\"no-underline group/vb\" target=\"_blank\" rel=\"noopener\">");
+            }
+            sb.AppendLine($"                <span class=\"font-mono font-bold text-base text-gray-800 dark:text-gray-100{(hasLink ? " group-hover/vb:text-primary-600 dark:group-hover/vb:text-primary-400 transition-colors" : string.Empty)}\">{EscapeHtmlAttr(version)}</span>");
+            if (hasLink)
+            {
+                sb.AppendLine("                </a>");
+            }
+
+            sb.AppendLine($"                <button type=\"button\" class=\"neko-copy-btn inline-flex items-center justify-center p-1 rounded text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-200 hover:bg-gray-200/70 dark:hover:bg-white/10 transition-colors\" data-copy=\"{EscapeHtmlAttr(version)}\" title=\"Copy version\" aria-label=\"Copy version\"><i class=\"fi fi-rr-copy text-xs\"></i></button>");
+            sb.AppendLine("            </span>");
         }
     }
 }
