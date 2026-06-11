@@ -33,9 +33,7 @@ namespace Neko
             buildCommand.SetHandler(async (string input, string? output) =>
             {
                 var inputFullPath = Path.GetFullPath(input);
-                var configFiles = Directory.Exists(inputFullPath)
-                    ? Directory.GetFiles(inputFullPath, "neko.yml", SearchOption.AllDirectories)
-                    : Array.Empty<string>();
+                var configFiles = FindProjectConfigs(inputFullPath);
 
                 var isMultiRepo = configFiles.Length > 1 || (configFiles.Length == 1 && Path.GetDirectoryName(configFiles[0]) != inputFullPath);
 
@@ -123,9 +121,7 @@ namespace Neko
                 };
 
                 var inputFullPath = Path.GetFullPath(input);
-                var configFiles = Directory.Exists(inputFullPath)
-                    ? Directory.GetFiles(inputFullPath, "neko.yml", SearchOption.AllDirectories)
-                    : Array.Empty<string>();
+                var configFiles = FindProjectConfigs(inputFullPath);
 
                 var isMultiRepo = configFiles.Length > 1 || (configFiles.Length == 1 && Path.GetDirectoryName(configFiles[0]) != inputFullPath);
 
@@ -360,6 +356,32 @@ namespace Neko
             rootCommand.AddCommand(updateSkillsCommand);
 
             return await rootCommand.InvokeAsync(args);
+        }
+
+        // Discovers all neko.yml project configs under <root>, skipping any that
+        // live inside a hidden directory (a path segment starting with '.', e.g.
+        // .git, .idea, the .neko build output, or .claude/worktrees). Without this,
+        // multi-repo mode descends into git worktrees and rebuilds every project's
+        // duplicate copy into the worktree.
+        private static string[] FindProjectConfigs(string root)
+        {
+            if (!Directory.Exists(root))
+                return Array.Empty<string>();
+
+            return Directory
+                .GetFiles(root, "neko.yml", SearchOption.AllDirectories)
+                .Where(cfg => !HasHiddenSegment(Path.GetRelativePath(root, Path.GetDirectoryName(cfg)!)))
+                .ToArray();
+        }
+
+        private static bool HasHiddenSegment(string relativeDir)
+        {
+            foreach (var part in relativeDir.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+            {
+                if (part.Length > 0 && part != "." && part.StartsWith('.'))
+                    return true;
+            }
+            return false;
         }
 
         private static void InitializeMSBuild()
