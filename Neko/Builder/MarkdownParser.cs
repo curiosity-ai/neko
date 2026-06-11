@@ -72,6 +72,12 @@ namespace Neko.Builder
 
         [YamlMember(Alias = "redirectSlug")]
         public string RedirectSlug { get; set; }
+
+        // Changelog version entries may point at a release/reference for the version
+        // (e.g. the NuGet page, a GitHub release, or release notes). Rendered as a
+        // linked version badge in the timeline header.
+        [YamlMember(Alias = "link")]
+        public string Link { get; set; }
     }
 
     public static class UrlHelper
@@ -116,6 +122,7 @@ namespace Neko.Builder
                 .Use<IconExtension>()
                 .Use<EmojiExtension>()
                 .Use<BadgeExtension>()
+                .Use<VersionBadgeExtension>()
                 .Use<AlertExtension>()
                 .Use<GitHubAlertExtension>()
                 .Use<TabExtension>()

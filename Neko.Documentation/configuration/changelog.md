@@ -77,7 +77,7 @@ sorts **above** `v26.3.16` (a March patch).
 
 ## Entry frontmatter
 
-Each version file is a normal Markdown page. Two optional frontmatter keys
+Each version file is a normal Markdown page. A few optional frontmatter keys
 shape its appearance in the timeline:
 
 === title : `string`
@@ -105,8 +105,56 @@ date: 2024-06-18
 ```
 ===
 
-The rest of the file is ordinary Markdown — use any [component](/components/components.md)
-you like (alerts, images, code blocks, tabs…).
+=== link : `string`
+
+An optional link for the version. When set, the version badge in the (sticky)
+release header becomes a link — typically the NuGet/release page, a GitHub
+release, or release notes for that build.
+
+```md v1.0.0.md
+---
+link: https://www.nuget.org/packages/Neko/26.6.1802
+---
+```
+===
+
+---
+
+## Sections and entries
+
+The body of a version file is authored as **sections** with **entries**:
+
+- A **section** is a Markdown `#` heading prefixed with an
+  [icon](/components/icon.md) shortcode. It renders as a labelled header with the
+  icon in a coloured box.
+- Each **entry** is a `::: change {badge="…" title="…"}` block. The badge renders
+  in a left column — vertically aligned across all entries — with the title and
+  description next to it.
+
+```md v26.6.md
+---
+date: Jun 2026
+link: https://www.nuget.org/packages/Neko/26.6.1802
+---
+
+# :icon-sparkles: Features
+
+::: change {badge="New" title="Folder-based changelogs"}
+Changelogs are now built from a folder of version-named files.
+:::
+
+# :icon-bug: Fixes
+
+::: change {badge="Fixed" title="Skip commented directives"}
+Re-running image generation no longer regenerates commented-out directives.
+:::
+```
+
+`badge=` is free text; well-known values (`New`/`Feature`, `Improved`, `Fixed`,
+`Changed`, `Removed`, `Security`, `Docs`) are coloured automatically — override
+with `badge-color="…"`. The change body is ordinary Markdown and may use any
+[component](/components/components.md). Plain Markdown outside `::: change`
+blocks still renders, but the section + entry form is preferred.
 
 ---
 
@@ -163,9 +211,20 @@ order: 2
 ---
 title: First stable release
 date: 2024-06-18
+link: https://www.nuget.org/packages/Acme/1.0.0
 ---
-* **Feature**: Shipped the public API.
-* **Fix**: Resolved the login redirect loop.
+
+# :icon-sparkles: Features
+
+::: change {badge="New" title="Public API"}
+Shipped the public API.
+:::
+
+# :icon-bug: Fixes
+
+::: change {badge="Fixed" title="Login redirect loop"}
+Resolved the login redirect loop.
+:::
 ```
 
 This produces a `/changelog` page with a single `v1.0.0` entry. Add a

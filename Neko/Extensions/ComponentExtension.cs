@@ -68,8 +68,8 @@ namespace Neko.Extensions
                 return false;
             }
 
-            // Avoid conflict with BadgeParser
-            if (name == "badge")
+            // Avoid conflict with BadgeParser / VersionBadgeParser
+            if (name == "badge" || name == "version-badge")
             {
                 slice = saved;
                 return false;

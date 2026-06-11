@@ -110,6 +110,13 @@ namespace Neko.Extensions
                 return;
             }
 
+            // Handle Link Card (card of links)
+            if ((fencedBlock.Info ?? "").ToLower() == "links")
+            {
+                LinkCardComponent.Write(renderer, fencedBlock);
+                return;
+            }
+
             // Handle CSharp Docs
             if ((fencedBlock.Info ?? "").ToLower() == "csharp-docs")
             {

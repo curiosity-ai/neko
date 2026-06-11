@@ -64,15 +64,67 @@ Ordering is numeric, component-by-component — `v26.6` sorts above `v26.3.16`.
 
 ```md
 ---
-title: Ready for Production   # headline shown next to the version badge
-date: 2024-06-18              # rendered verbatim in the timeline's date column
+title: Ready for Production                           # headline next to the version badge
+date: 2024-06-18                                      # rendered verbatim in the header
+link: https://www.nuget.org/packages/YourPkg/1.0.0    # version → release link
 ---
-* **Feature**: Describe the change.
-* **Fix**: Describe the fix.
 ```
 
-Both keys are optional. The rest of the file is normal Markdown and may use any
-Neko component.
+All three keys are optional:
+
+| Key     | Notes |
+| ---     | --- |
+| `title` | Headline shown next to the version badge. |
+| `date`  | Rendered verbatim in the version header. |
+| `link`  | A link for the version — turns the version badge in the sticky header into a link (e.g. the NuGet/release page, a GitHub release, or release notes). For packaged projects, link to the **latest package of that month/release**. |
+
+## Sections and entries
+
+The body is authored as **sections** with **entries**:
+
+- A section is a Markdown `#` heading prefixed with an [icon](icon.md)
+  shortcode. It renders as a labelled header with the icon in a coloured box.
+- Each entry is a `::: change {badge="…" title="…"}` block: the badge renders in
+  a left column (vertically aligned across entries), with the title +
+  description next to it.
+
+```md
+---
+date: Jun 2026
+link: https://www.nuget.org/packages/YourPkg/26.6.1802
+---
+
+# :icon-sparkles: Features
+
+::: change {badge="New" title="Folder-based changelogs"}
+Changelogs are now built from a folder of version-named files.
+:::
+
+# :icon-bug: Fixes
+
+::: change {badge="Fixed" title="Skip commented directives"}
+Re-running image generation no longer regenerates commented-out directives.
+:::
+```
+
+### Badge values & section icons
+
+`badge=` is free text; these well-known values get colours automatically
+(override with `badge-color="…"`):
+
+| Badge | Colour | Suggested section |
+| ---   | ---    | --- |
+| `New` / `Feature` | primary | `# :icon-sparkles: Features` |
+| `Improved` | neutral | `# :icon-wrench-simple: Improvements` |
+| `Fixed` | green | `# :icon-bug: Fixes` |
+| `Docs` | sky | `# :icon-document: Documentation` |
+| `Changed` | amber | |
+| `Removed` | red | |
+| `Security` | purple | |
+
+The change body is ordinary Markdown — code spans, links, lists, or any
+[component](/components/components.md). Plain Markdown outside `::: change`
+blocks still renders, but the section + entry form is preferred.
 
 ## Examples
 
@@ -83,8 +135,14 @@ A minimal release file:
 ---
 title: First stable release
 date: 2024-06-18
+link: https://www.nuget.org/packages/YourPkg/1.0.0
 ---
-* **Feature**: Shipped the public API.
+
+# :icon-rocket: Highlights
+
+::: change {badge="New" title="Public API"}
+Shipped the public API.
+:::
 ```
 
 Adding `changelog/v1.1.0.md` later automatically appears **above** `v1.0.0` on

@@ -169,8 +169,8 @@ the full per-component reference** — this section is just a map.
 | Column             | `\|\|\|`               | column                            |
 | Steps              | `>>>`                  | steps                             |
 | Panel (collapse)   | `===` / `==-`          | panel                             |
-| Inline shortcode   | `[!name attr=…]`       | badge, button, ref, file, embed, lesson, command-example, color-chip |
-| Fence block        | ` ```lang `            | code blocks, mermaid, force-graph, workflow, tesserae, csharp-docs, math-formulas |
+| Inline shortcode   | `[!name attr=…]`       | badge, version-badge, button, ref, file, embed, lesson, command-example, color-chip |
+| Fence block        | ` ```lang `            | code blocks, mermaid, force-graph, workflow, tesserae, csharp-docs, math-formulas, links (link-card) |
 | Container          | `::: name { attrs }`   | card, example, generic container  |
 | Inline emoji/icon  | `:name:` / `:icon-…:`  | emoji, icon                       |
 | Image attrs        | `![cap](url){…}`       | image, pdf                        |

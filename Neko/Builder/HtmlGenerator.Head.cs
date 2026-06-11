@@ -351,6 +351,15 @@ namespace Neko.Builder
             sb.AppendLine("        .dark #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }");
             sb.AppendLine("        #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(156, 163, 175, 0.8); }");
             sb.AppendLine("        .dark #main-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(107, 114, 128, 0.8); }");
+            sb.AppendLine("");
+            sb.AppendLine("        /* Changelog sections: H1s become labelled section headers with an icon */");
+            sb.AppendLine("        .neko-changelog-body > h1:first-child { margin-top: 0; }");
+            sb.AppendLine("        .neko-changelog-body h1 { display: flex; align-items: center; gap: 0.625rem; font-size: 1.125rem; line-height: 1.75rem; font-weight: 600; margin: 1.75rem 0 0.25rem; padding: 0; border: 0; }");
+            sb.AppendLine("        .neko-changelog-body h1 > i:first-child { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; flex: none; border-radius: 0.625rem; font-size: 1rem; background: color-mix(in srgb, var(--neko-grad-from) 14%, transparent); color: var(--neko-grad-from); }");
+            sb.AppendLine("        /* Changelog entries: hairline separator between consecutive entries */");
+            sb.AppendLine("        .neko-changelog-body .neko-change + .neko-change { border-top: 1px solid rgba(148, 163, 184, 0.18); }");
+            sb.AppendLine("        .neko-changelog-body .neko-change-body > :first-child { margin-top: 0; }");
+            sb.AppendLine("        .neko-changelog-body .neko-change-body > :last-child { margin-bottom: 0; }");
             sb.AppendLine("    </style>");
         }
 
