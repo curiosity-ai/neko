@@ -366,14 +366,25 @@ namespace Neko.Builder
                     }
                 }
 
-                // Pass 3: Generate HTML
-                foreach (var item in parsedDocs)
+                // Pass 3: Generate HTML. Pages are independent, so page generation and
+                // the file writes run in parallel. Search-index entries are collected
+                // per page and added afterwards in source order so search.json stays
+                // deterministic regardless of completion order.
+                var indexRequests =
+                    new (string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs)?[parsedDocs.Count];
+
+                await Parallel.ForEachAsync(
+                    Enumerable.Range(0, parsedDocs.Count),
+                    new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
+                    async (pageIndex, ct) =>
                 {
+                    var item = parsedDocs[pageIndex];
+
                     // Files inside a changelog folder are aggregated into a single page
                     // (generated below), so they are not emitted individually here.
                     if (changelogManagedFiles.Contains(Path.GetFullPath(item.FilePath)))
                     {
-                        continue;
+                        return;
                     }
 
                     Console.WriteLine($"Generating {Path.GetFileName(item.FilePath)}...");
@@ -438,7 +449,7 @@ namespace Neko.Builder
                         Directory.CreateDirectory(outputDirForFile);
                     }
 
-                    await File.WriteAllTextAsync(outputPath, html);
+                    await File.WriteAllTextAsync(outputPath, html, ct);
 
                     // Index only pages whose content is publicly visible. Pages with a
                     // per-page password (or a site-wide password without `password: none`)
@@ -485,7 +496,7 @@ namespace Neko.Builder
                             .Where(t => !string.IsNullOrWhiteSpace(t))
                             .ToArray();
 
-                        searchIndexer.AddDocument(
+                        indexRequests[pageIndex] = (
                             htmlFileName,
                             indexTitle,
                             indexableContent,
@@ -493,6 +504,15 @@ namespace Neko.Builder
                             item.Doc.FrontMatter.Tags,
                             breadcrumbTitles.Length > 0 ? breadcrumbTitles : null);
                     }
+                });
+
+                // Add the collected search documents in deterministic source order so
+                // the generated search.json doesn't churn between builds.
+                foreach (var request in indexRequests)
+                {
+                    if (request == null) continue;
+                    var r = request.Value;
+                    searchIndexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs);
                 }
 
                 // Pass 4: Generate one aggregated timeline page per changelog folder.
