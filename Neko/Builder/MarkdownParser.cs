@@ -70,6 +70,12 @@ namespace Neko.Builder
         [YamlMember(Alias = "searchExclude")]
         public bool SearchExclude { get; set; }
 
+        // Sidebar/nav visibility. `hidden` keeps the page out of the sidebar
+        // while still building it (crawlable, linkable). `protected` is handled
+        // separately via `password`; `public` (default) shows normally.
+        [YamlMember(Alias = "visibility")]
+        public string Visibility { get; set; }
+
         [YamlMember(Alias = "redirectSlug")]
         public string RedirectSlug { get; set; }
 

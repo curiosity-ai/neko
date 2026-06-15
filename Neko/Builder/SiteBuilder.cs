@@ -170,7 +170,7 @@ namespace Neko.Builder
                     foreach (var dir in Directory.GetDirectories(_inputDirectory, "*", SearchOption.AllDirectories))
                     {
                         var folderConfig = FolderConfig.LoadFromDirectory(dir);
-                        if (folderConfig.SearchExclude)
+                        if (folderConfig.SearchExclude || SidebarGenerator.IsHiddenVisibility(folderConfig.Visibility))
                         {
                             var dirPath = Path.GetFullPath(dir);
                             if (!dirPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
@@ -461,6 +461,7 @@ namespace Neko.Builder
                         || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password);
 
                     var isSearchExcluded = item.Doc.FrontMatter.SearchExclude
+                        || SidebarGenerator.IsHiddenVisibility(item.Doc.FrontMatter.Visibility)
                         || IsInSearchExcludedFolder(item.FilePath, searchExcludedFolders)
                         || IsInDotOrUnderscoreFolder(item.RelativePath);
 
@@ -580,6 +581,7 @@ namespace Neko.Builder
 
                     // Index the aggregated page (unless the folder opts out / is protected).
                     var folderSearchExcluded = folderConfig.SearchExclude
+                        || SidebarGenerator.IsHiddenVisibility(folderConfig.Visibility)
                         || IsInDotOrUnderscoreFolder(relativeFolder + "/index.md");
                     var isProtectedSite = !string.IsNullOrEmpty(_config.Password);
                     if (!folderSearchExcluded && !isProtectedSite)
