@@ -37,7 +37,7 @@ namespace Neko.Builder
 
         private void RenderNavbar(StringBuilder sb, string currentUrl)
         {
-            sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-10\">");
+            sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-30\">");
             sb.AppendLine("        <div class=\"flex items-center gap-4\">");
 
             if (_config.Layout.Sidebar)
