@@ -305,7 +305,7 @@ namespace Neko.Builder
                 var iconHtml = string.Empty;
                 if (!string.IsNullOrEmpty(link.Icon))
                 {
-                    iconHtml = $"<i class=\"{IconHelper.GetIconClass(link.Icon)} text-base\"></i>";
+                    iconHtml = IconHelper.RenderIcon(link.Icon, "text-base");
                 }
 
                 var label = EscapeHtmlAttr(link.Label ?? string.Empty);

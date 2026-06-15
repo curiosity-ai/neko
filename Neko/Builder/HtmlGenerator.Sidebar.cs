@@ -39,7 +39,7 @@ namespace Neko.Builder
                 var iconHtml = "";
                 if (!string.IsNullOrEmpty(link.Icon))
                 {
-                    iconHtml = $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(link.Icon)}\"></i>";
+                    iconHtml = Neko.Builder.IconHelper.RenderIcon(link.Icon);
                 }
                 else
                 {
