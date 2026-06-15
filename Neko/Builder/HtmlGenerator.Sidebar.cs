@@ -30,7 +30,7 @@ namespace Neko.Builder
             sb.AppendLine("        </aside>");
         }
 
-        private void RenderSidebarItems(StringBuilder sb, List<LinkConfig> links, int level, string parentGroupId = "__root__")
+        private void RenderSidebarItems(StringBuilder sb, List<LinkConfig> links, int level, string parentGroupId = "__root__", string parentSectionKey = "")
         {
             if (links == null || links.Count == 0) return;
 
@@ -122,20 +122,26 @@ namespace Neko.Builder
 
                 if (link.Items != null && link.Items.Count > 0)
                 {
+                    // Stable, hierarchical key (title path from the root) so the open/closed
+                    // state of every collapsible section can be persisted across page loads.
+                    var titleForKey = link.Text ?? "";
+                    var sectionKeyRaw = string.IsNullOrEmpty(parentSectionKey) ? titleForKey : parentSectionKey + " / " + titleForKey;
+                    var sectionKey = System.Net.WebUtility.HtmlEncode(sectionKeyRaw);
+
                     if (level == 0)
                     {
-                        // Render as a collapsible section header, collapsed by default.
-                        // The active page's section is re-opened on load by the active-link script.
-                        var sectionKey = System.Net.WebUtility.HtmlEncode(link.Text ?? "");
+                        // Render as a collapsible section header, open by default.
+                        // The active page's section is re-opened on load by the active-link script;
+                        // any user-toggled state is restored by the section-state script.
                         sb.AppendLine($"                    <li class=\"first:mt-0 {liClasses}\"{itemAttributes}{reorderAttrs} style=\"margin-top:1.2rem;margin-bottom:0.5rem;\">");
                         sb.AppendLine($"                        <details class=\"sidebar-section group\" data-section-key=\"{sectionKey}\" open>");
                         sb.AppendLine($"                            <summary class=\"flex items-center justify-between w-full px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none\">");
                         sb.AppendLine($"                                <span class=\"text-xs font-bold text-gray-500 uppercase tracking-wider\">{displayTitle}</span>");
-                        sb.AppendLine($"                                <div class=\"flex items-center shrink-0\">{editHtml}<i class=\"fi fi-rr-angle-small-down text-gray-400 transition-transform group-open:rotate-180\"></i></div>");
+                        sb.AppendLine($"                                <div class=\"flex items-center shrink-0\">{editHtml}<i class=\"fi fi-rr-angle-small-right text-gray-400 transition-transform duration-200 ease-in-out group-open:rotate-90\"></i></div>");
                         sb.AppendLine($"                            </summary>");
                         sb.AppendLine($"                            <ul class=\"space-y-1 mt-1\">");
 
-                        RenderSidebarItems(sb, link.Items, level + 1, groupIdForChildren);
+                        RenderSidebarItems(sb, link.Items, level + 1, groupIdForChildren, sectionKeyRaw);
 
                         sb.AppendLine($"                            </ul>");
                         sb.AppendLine($"                        </details>");
@@ -145,14 +151,14 @@ namespace Neko.Builder
                     {
                         // Render as a collapsible group
                         sb.AppendLine($"                    <li class=\"space-y-1 {liClasses}\"{itemAttributes}{reorderAttrs}>");
-                        sb.AppendLine($"                        <details class=\"group\" open>");
+                        sb.AppendLine($"                        <details class=\"group\" data-section-key=\"{sectionKey}\" open>");
                         sb.AppendLine($"                            <summary class=\"flex items-center justify-between py-1 px-2 text-[13px] font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none\">");
                         sb.AppendLine($"                                <span class=\"flex items-center gap-2 truncate\">{iconHtml} <span class=\"truncate\">{displayTitle}</span></span>");
-                        sb.AppendLine($"                                <div class=\"flex items-center shrink-0\">{editHtml}<i class=\"fi fi-rr-angle-small-down transition-transform group-open:rotate-180\"></i></div>");
+                        sb.AppendLine($"                                <div class=\"flex items-center shrink-0\">{editHtml}<i class=\"fi fi-rr-angle-small-right transition-transform duration-200 ease-in-out group-open:rotate-90\"></i></div>");
                         sb.AppendLine($"                            </summary>");
                         sb.AppendLine($"                            <ul class=\"pl-0 space-y-1 mt-1 border-l border-gray-200 dark:border-gray-700 ml-3\">");
 
-                        RenderSidebarItems(sb, link.Items, level + 1, groupIdForChildren);
+                        RenderSidebarItems(sb, link.Items, level + 1, groupIdForChildren, sectionKeyRaw);
 
                         sb.AppendLine($"                            </ul>");
                         sb.AppendLine($"                        </details>");

@@ -13,6 +13,7 @@ namespace Neko.Builder
             RenderSidebarScrollScript(sb);
             RenderSidebarFilterScript(sb);
             RenderActiveSidebarLinkScript(sb);
+            RenderSidebarSectionStateScript(sb);
             RenderTocHighlightScript(sb);
             RenderThemeSwitchScript(sb);
             RenderTabScript(sb);
@@ -152,6 +153,41 @@ namespace Neko.Builder
             sb.AppendLine("                }");
             sb.AppendLine("            });");
             sb.AppendLine("        });");
+        }
+
+        private void RenderSidebarSectionStateScript(StringBuilder sb)
+        {
+            // Persist the open/collapsed state of each collapsible sidebar section across
+            // page navigations (the site is statically served, so every navigation is a full
+            // reload that would otherwise reset every <details> to its default `open` state).
+            var keyBase = System.Text.RegularExpressions.Regex.Replace(_config.Branding.Title ?? "neko", "[^a-zA-Z0-9]", "-").ToLower();
+            sb.AppendLine("        if (sidebar) {");
+            sb.AppendLine($"            const sectionStateKey = '{keyBase}-sidebar-sections';");
+            sb.AppendLine("            let sectionState = {};");
+            sb.AppendLine("            try { sectionState = JSON.parse(localStorage.getItem(sectionStateKey) || '{}') || {}; } catch (e) { sectionState = {}; }");
+            sb.AppendLine("            const sectionDetails = sidebar.querySelectorAll('details[data-section-key]');");
+            sb.AppendLine("            sectionDetails.forEach(d => {");
+            sb.AppendLine("                const key = d.getAttribute('data-section-key');");
+            sb.AppendLine("                // Restore the user's last choice for this section, if any.");
+            sb.AppendLine("                if (Object.prototype.hasOwnProperty.call(sectionState, key)) {");
+            sb.AppendLine("                    d.open = !!sectionState[key];");
+            sb.AppendLine("                }");
+            sb.AppendLine("                // Only persist genuine user toggles — ignore programmatic opens");
+            sb.AppendLine("                // (filter 'expand all', active-page reveal, and the restore above).");
+            sb.AppendLine("                const summary = d.querySelector(':scope > summary');");
+            sb.AppendLine("                let userAction = false;");
+            sb.AppendLine("                if (summary) {");
+            sb.AppendLine("                    summary.addEventListener('click', () => { userAction = true; });");
+            sb.AppendLine("                    summary.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') userAction = true; });");
+            sb.AppendLine("                }");
+            sb.AppendLine("                d.addEventListener('toggle', () => {");
+            sb.AppendLine("                    if (!userAction) return;");
+            sb.AppendLine("                    userAction = false;");
+            sb.AppendLine("                    sectionState[key] = d.open;");
+            sb.AppendLine("                    try { localStorage.setItem(sectionStateKey, JSON.stringify(sectionState)); } catch (e) {}");
+            sb.AppendLine("                });");
+            sb.AppendLine("            });");
+            sb.AppendLine("        }");
         }
 
         private void RenderTocHighlightScript(StringBuilder sb)
