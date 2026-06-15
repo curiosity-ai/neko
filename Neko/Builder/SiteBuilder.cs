@@ -301,7 +301,7 @@ namespace Neko.Builder
                 // `changelog: true`. Their version-named `.md` files are aggregated into a
                 // single timeline page rendered at the folder URL (newest version first),
                 // and are not emitted as standalone pages.
-                var changelogFolders = DiscoverChangelogFolders();
+                var changelogFolders = DiscoverChangelogFolders(excludedDirs);
                 var changelogManagedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var changelogEntriesByFolder = new Dictionary<string, List<(ParsedDocument Doc, string Url, string Version)>>(StringComparer.OrdinalIgnoreCase);
 
@@ -799,7 +799,11 @@ namespace Neko.Builder
 
         // Find every folder under the input root whose folder config (index.yml /
         // <foldername>.yml) sets `changelog: true`. Keyed by normalized full path.
-        private Dictionary<string, FolderConfig> DiscoverChangelogFolders()
+        // <paramref name="excludedDirs"/> holds the roots of sub-projects (folders
+        // with their own neko.yml); folders living under those are skipped because
+        // the sub-project builds its own changelog. Without this the root build emits
+        // an empty duplicate page that shadows the real one in the dev server.
+        private Dictionary<string, FolderConfig> DiscoverChangelogFolders(HashSet<string> excludedDirs)
         {
             var result = new Dictionary<string, FolderConfig>(StringComparer.OrdinalIgnoreCase);
             if (!Directory.Exists(_inputDirectory)) return result;
@@ -809,6 +813,8 @@ namespace Neko.Builder
                 var name = Path.GetFileName(dir);
                 if (name.StartsWith(".") || name.StartsWith("_")) continue;
 
+                if (IsInExcludedSubProject(dir, excludedDirs)) continue;
+
                 var config = FolderConfig.LoadFromDirectory(dir);
                 if (config.Changelog)
                 {
@@ -817,6 +823,24 @@ namespace Neko.Builder
             }
 
             return result;
+        }
+
+        // True when <paramref name="dir"/> lives inside one of the sub-project roots
+        // in <paramref name="excludedDirs"/>. The excluded roots are stored with a
+        // trailing separator; a separator is appended to the candidate too so that
+        // a sibling like `workspace-api` is not matched by the `workspace` prefix.
+        private static bool IsInExcludedSubProject(string dir, HashSet<string> excludedDirs)
+        {
+            if (excludedDirs == null || excludedDirs.Count == 0) return false;
+            var fullPath = Path.GetFullPath(dir);
+            if (!fullPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                fullPath += Path.DirectorySeparatorChar;
+            foreach (var excluded in excludedDirs)
+            {
+                if (fullPath.StartsWith(excluded, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
         }
 
         private static bool IsInSearchExcludedFolder(string filePath, HashSet<string> excludedFolders)
