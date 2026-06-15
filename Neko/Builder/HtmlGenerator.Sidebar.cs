@@ -124,15 +124,22 @@ namespace Neko.Builder
                 {
                     if (level == 0)
                     {
-                        // Render as a flat header
-                        sb.AppendLine($"                    <li class=\"first:mt-0 px-2 {liClasses}\"{itemAttributes}{reorderAttrs} style=\"margin-top:1.2rem;margin-bottom:0.5rem;\">");
-                        sb.AppendLine($"                        <div class=\"flex items-center justify-between w-full\">");
-                        sb.AppendLine($"                            <span class=\"text-xs font-bold text-gray-500 uppercase tracking-wider\">{displayTitle}</span>");
-                        sb.AppendLine($"                            <div class=\"flex items-center shrink-0\">{editHtml}</div>");
-                        sb.AppendLine($"                        </div>");
-                        sb.AppendLine($"                    </li>");
+                        // Render as a collapsible section header, collapsed by default.
+                        // The active page's section is re-opened on load by the active-link script.
+                        var sectionKey = System.Net.WebUtility.HtmlEncode(link.Text ?? "");
+                        sb.AppendLine($"                    <li class=\"first:mt-0 {liClasses}\"{itemAttributes}{reorderAttrs} style=\"margin-top:1.2rem;margin-bottom:0.5rem;\">");
+                        sb.AppendLine($"                        <details class=\"sidebar-section group\" data-section-key=\"{sectionKey}\">");
+                        sb.AppendLine($"                            <summary class=\"flex items-center justify-between w-full px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none\">");
+                        sb.AppendLine($"                                <span class=\"text-xs font-bold text-gray-500 uppercase tracking-wider\">{displayTitle}</span>");
+                        sb.AppendLine($"                                <div class=\"flex items-center shrink-0\">{editHtml}<i class=\"fi fi-rr-angle-small-down text-gray-400 transition-transform group-open:rotate-180\"></i></div>");
+                        sb.AppendLine($"                            </summary>");
+                        sb.AppendLine($"                            <ul class=\"space-y-1 mt-1\">");
 
                         RenderSidebarItems(sb, link.Items, level + 1, groupIdForChildren);
+
+                        sb.AppendLine($"                            </ul>");
+                        sb.AppendLine($"                        </details>");
+                        sb.AppendLine($"                    </li>");
                     }
                     else
                     {
