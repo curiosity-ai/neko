@@ -128,7 +128,7 @@ namespace Neko.Builder
                         // The active page's section is re-opened on load by the active-link script.
                         var sectionKey = System.Net.WebUtility.HtmlEncode(link.Text ?? "");
                         sb.AppendLine($"                    <li class=\"first:mt-0 {liClasses}\"{itemAttributes}{reorderAttrs} style=\"margin-top:1.2rem;margin-bottom:0.5rem;\">");
-                        sb.AppendLine($"                        <details class=\"sidebar-section group\" data-section-key=\"{sectionKey}\">");
+                        sb.AppendLine($"                        <details class=\"sidebar-section group\" data-section-key=\"{sectionKey}\" open>");
                         sb.AppendLine($"                            <summary class=\"flex items-center justify-between w-full px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none\">");
                         sb.AppendLine($"                                <span class=\"text-xs font-bold text-gray-500 uppercase tracking-wider\">{displayTitle}</span>");
                         sb.AppendLine($"                                <div class=\"flex items-center shrink-0\">{editHtml}<i class=\"fi fi-rr-angle-small-down text-gray-400 transition-transform group-open:rotate-180\"></i></div>");
