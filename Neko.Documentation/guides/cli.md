@@ -253,6 +253,58 @@ Options:
 
 ---
 
+## `neko check-links`
+
+The `neko check-links` command builds your project into a throwaway folder and then verifies every link in the generated site. It is the quickest way to catch dead links, renamed pages, and stale anchors before you publish.
+
+```
+neko check-links
+```
+
+For each generated page Neko inspects every `href` and `src` and validates it:
+
+- **Internal page links** (`/guides/getting-started`, `../about`) are resolved against the files actually written to disk — including clean, extension-less URLs (`/guides/getting-started` → `guides/getting-started.html`) and folder index pages (`/guides/` → `guides/index.html`).
+- **Asset links** (images, downloads, scripts, stylesheets) are checked for existence.
+- **`#fragment` anchors** are matched against the `id`/`name` attributes in the target page (for example a "On this page" entry that points at a heading that was renamed).
+
+External `http(s)` links are **not** contacted by default. Pass `--external` to also probe them over the network:
+
+```
+neko check-links --external
+```
+
+Anchor validation is on by default. If a page generates anchor targets at runtime with JavaScript, you can skip fragment checking with `--no-anchors`:
+
+```
+neko check-links --no-anchors
+```
+
+Broken links are **grouped by target**, so a single root cause that appears on every page (a navbar or footer link, say) is reported once with an occurrence count and a few example pages — not once per page. For page-relative links, the report also shows the path the link actually resolves to, which makes it obvious when an existing page is simply being reached by the wrong path. HTML generated *inside* an `assets/` folder (such as the Tesserae live-preview app) is treated as a build artifact and skipped.
+
+The command exits with a **non-zero status code** when anything is broken — so it can gate a CI pipeline:
+
+```
+neko check-links || exit 1
+```
+
+### Options
+
+```
+Description:
+  Build the project and report any broken links in the generated site
+
+Usage:
+  neko check-links [options]
+
+Options:
+  -i, --input <input>  Input directory path [default: .]
+  --external           Also verify external http(s) links over the network
+  --no-anchors         Skip validation of #fragment anchors
+  -?, -h, --help       Show help and usage information
+```
+
+---
+
 ## `neko serve`
 
 The `neko serve` command starts a local development only web server and hosts your website.

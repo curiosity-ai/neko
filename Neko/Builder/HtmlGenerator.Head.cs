@@ -339,6 +339,9 @@ namespace Neko.Builder
             sb.AppendLine("        #sidebar::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 3px; }");
             sb.AppendLine("        #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); }");
             sb.AppendLine("        .dark #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }");
+            sb.AppendLine("        /* Sidebar chevrons only animate on user interaction, never on initial");
+            sb.AppendLine("           load while saved/active section state is being restored. */");
+            sb.AppendLine("        #sidebar.neko-no-anim .neko-chevron { transition: none !important; }");
             sb.AppendLine("");
             sb.AppendLine("        /* TOC */");
             sb.AppendLine("        #toc-sidebar::-webkit-scrollbar { display: none; }");

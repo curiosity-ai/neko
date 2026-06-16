@@ -142,14 +142,7 @@ namespace Neko.Builder
             sb.AppendLine("                if (href === currentPath || (href !== '/' && currentPath.startsWith(href) && (href.endsWith('/') || currentPath.charAt(href.length) === '/'))) {");
             sb.AppendLine("                    link.classList.add('bg-primary-50', 'dark:bg-primary-900', 'text-primary-700', 'dark:text-primary-300', 'font-medium');");
             sb.AppendLine("                    link.classList.remove('text-gray-700', 'dark:text-gray-200');");
-            sb.AppendLine("                    // Open parent details");
-            sb.AppendLine("                    let parent = link.parentElement;");
-            sb.AppendLine("                    while (parent && parent.id !== 'sidebar-list') {");
-            sb.AppendLine("                        if (parent.tagName === 'DETAILS') {");
-            sb.AppendLine("                            parent.open = true;");
-            sb.AppendLine("                        }");
-            sb.AppendLine("                        parent = parent.parentElement;");
-            sb.AppendLine("                    }");
+            sb.AppendLine("                    // (Revealing the parent <details> is handled synchronously by the section-state script.)");
             sb.AppendLine("                }");
             sb.AppendLine("            });");
             sb.AppendLine("        });");
@@ -160,20 +153,43 @@ namespace Neko.Builder
             // Persist the open/collapsed state of each collapsible sidebar section across
             // page navigations (the site is statically served, so every navigation is a full
             // reload that would otherwise reset every <details> to its default `open` state).
+            //
+            // Everything here is synchronous and event-driven: read localStorage, set the
+            // <details> state, and listen for user toggles. No MutationObserver (or any other
+            // observer) is used. This script runs at the end of <body>, after the sidebar is
+            // parsed but before the first paint, so the restored state never flashes.
             var keyBase = System.Text.RegularExpressions.Regex.Replace(_config.Branding.Title ?? "neko", "[^a-zA-Z0-9]", "-").ToLower();
             sb.AppendLine("        if (sidebar) {");
             sb.AppendLine($"            const sectionStateKey = '{keyBase}-sidebar-sections';");
             sb.AppendLine("            let sectionState = {};");
             sb.AppendLine("            try { sectionState = JSON.parse(localStorage.getItem(sectionStateKey) || '{}') || {}; } catch (e) { sectionState = {}; }");
             sb.AppendLine("            const sectionDetails = sidebar.querySelectorAll('details[data-section-key]');");
+            sb.AppendLine("            // 1) Restore each section to the user's last saved choice.");
             sb.AppendLine("            sectionDetails.forEach(d => {");
             sb.AppendLine("                const key = d.getAttribute('data-section-key');");
-            sb.AppendLine("                // Restore the user's last choice for this section, if any.");
-            sb.AppendLine("                if (Object.prototype.hasOwnProperty.call(sectionState, key)) {");
-            sb.AppendLine("                    d.open = !!sectionState[key];");
+            sb.AppendLine("                if (Object.prototype.hasOwnProperty.call(sectionState, key)) { d.open = !!sectionState[key]; }");
+            sb.AppendLine("            });");
+            sb.AppendLine("            // 2) Always reveal the section(s) containing the current page (transient, not saved).");
+            sb.AppendLine("            let currentPath = window.location.pathname;");
+            sb.AppendLine("            if (currentPath.endsWith('.html')) currentPath = currentPath.substring(0, currentPath.length - 5);");
+            sb.AppendLine("            sidebar.querySelectorAll('#sidebar-list a').forEach(link => {");
+            sb.AppendLine("                const href = link.getAttribute('href');");
+            sb.AppendLine("                if (href === currentPath || (href !== '/' && currentPath.startsWith(href) && (href.endsWith('/') || currentPath.charAt(href.length) === '/'))) {");
+            sb.AppendLine("                    let parent = link.parentElement;");
+            sb.AppendLine("                    while (parent && parent.id !== 'sidebar-list') {");
+            sb.AppendLine("                        if (parent.tagName === 'DETAILS') parent.open = true;");
+            sb.AppendLine("                        parent = parent.parentElement;");
+            sb.AppendLine("                    }");
             sb.AppendLine("                }");
-            sb.AppendLine("                // Only persist genuine user toggles — ignore programmatic opens");
-            sb.AppendLine("                // (filter 'expand all', active-page reveal, and the restore above).");
+            sb.AppendLine("            });");
+            sb.AppendLine("            // 3) Commit the restored state with the transition suppressed, then re-enable it");
+            sb.AppendLine("            //    so the chevron only animates on a later user click, never on this load.");
+            sb.AppendLine("            void sidebar.offsetWidth;");
+            sb.AppendLine("            sidebar.classList.remove('neko-no-anim');");
+            sb.AppendLine("            // 4) Persist genuine user toggles only (ignore the programmatic opens above");
+            sb.AppendLine("            //    and the filter's 'expand all', which fire toggle events without a click).");
+            sb.AppendLine("            sectionDetails.forEach(d => {");
+            sb.AppendLine("                const key = d.getAttribute('data-section-key');");
             sb.AppendLine("                const summary = d.querySelector(':scope > summary');");
             sb.AppendLine("                let userAction = false;");
             sb.AppendLine("                if (summary) {");

@@ -9,7 +9,7 @@ namespace Neko.Builder
         private void RenderSidebar(StringBuilder sb, List<LinkConfig> sidebarLinks)
         {
             sb.AppendLine("        <div id=\"sidebar-overlay\" class=\"fixed inset-0 bg-black/50 z-40 hidden md:hidden glassmorphism\"></div>");
-            sb.AppendLine("        <aside id=\"sidebar\" class=\"w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex flex-col shrink-0 fixed md:static inset-y-0 left-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out h-full\">");
+            sb.AppendLine("        <aside id=\"sidebar\" class=\"neko-no-anim w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex flex-col shrink-0 fixed md:static inset-y-0 left-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out h-full\">");
             sb.AppendLine("            <nav class=\"flex-1\">");
             sb.AppendLine("                <div class=\"p-4 sticky top-0 z-10 bg-gray-50 dark:bg-gray-800\">");
             sb.AppendLine("                    <div class=\"relative\">");
@@ -137,7 +137,7 @@ namespace Neko.Builder
                         sb.AppendLine($"                        <details class=\"sidebar-section group\" data-section-key=\"{sectionKey}\" open>");
                         sb.AppendLine($"                            <summary class=\"flex items-center justify-between w-full px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none\">");
                         sb.AppendLine($"                                <span class=\"text-xs font-bold text-gray-500 uppercase tracking-wider\">{displayTitle}</span>");
-                        sb.AppendLine($"                                <div class=\"flex items-center shrink-0\">{editHtml}<i class=\"fi fi-rr-angle-small-right text-gray-400 transition-transform duration-200 ease-in-out group-open:rotate-90\"></i></div>");
+                        sb.AppendLine($"                                <div class=\"flex items-center shrink-0\">{editHtml}<i class=\"neko-chevron fi fi-rr-angle-small-right text-gray-400 transition-transform duration-200 ease-in-out group-open:rotate-90\"></i></div>");
                         sb.AppendLine($"                            </summary>");
                         sb.AppendLine($"                            <ul class=\"space-y-1 mt-1\">");
 
@@ -154,7 +154,7 @@ namespace Neko.Builder
                         sb.AppendLine($"                        <details class=\"group\" data-section-key=\"{sectionKey}\" open>");
                         sb.AppendLine($"                            <summary class=\"flex items-center justify-between py-1 px-2 text-[13px] font-medium text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer select-none\">");
                         sb.AppendLine($"                                <span class=\"flex items-center gap-2 truncate\">{iconHtml} <span class=\"truncate\">{displayTitle}</span></span>");
-                        sb.AppendLine($"                                <div class=\"flex items-center shrink-0\">{editHtml}<i class=\"fi fi-rr-angle-small-right transition-transform duration-200 ease-in-out group-open:rotate-90\"></i></div>");
+                        sb.AppendLine($"                                <div class=\"flex items-center shrink-0\">{editHtml}<i class=\"neko-chevron fi fi-rr-angle-small-right transition-transform duration-200 ease-in-out group-open:rotate-90\"></i></div>");
                         sb.AppendLine($"                            </summary>");
                         sb.AppendLine($"                            <ul class=\"pl-0 space-y-1 mt-1 border-l border-gray-200 dark:border-gray-700 ml-3\">");
 
