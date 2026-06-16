@@ -17,6 +17,7 @@ namespace Neko.Builder
             RenderHeadMermaid(sb);
             RenderHeadAuxiliaryScripts(sb);
             RenderHeadHighlightJs(sb);
+            RenderHeadViewTransitions(sb);
             RenderHeadDarkModeInit(sb);
 
             if (!string.IsNullOrEmpty(_headIncludes))
@@ -339,6 +340,11 @@ namespace Neko.Builder
             sb.AppendLine("        #sidebar::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 3px; }");
             sb.AppendLine("        #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); }");
             sb.AppendLine("        .dark #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }");
+            sb.AppendLine("        /* A disclosure chevron rotates with its OWN <details>, at every nesting");
+            sb.AppendLine("           level. Scoping to the direct child summary (rather than Tailwind's");
+            sb.AppendLine("           group-open, which matches any ancestor .group[open]) keeps a nested");
+            sb.AppendLine("           chevron from being forced down just because its parent section is open. */");
+            sb.AppendLine("        #sidebar details[open] > summary .neko-chevron { transform: rotate(90deg); }");
             sb.AppendLine("        /* Sidebar chevrons only animate on user interaction, never on initial");
             sb.AppendLine("           load while saved/active section state is being restored. */");
             sb.AppendLine("        #sidebar.neko-no-anim .neko-chevron { transition: none !important; }");
@@ -363,6 +369,39 @@ namespace Neko.Builder
             sb.AppendLine("        .neko-changelog-body .neko-change + .neko-change { border-top: 1px solid rgba(148, 163, 184, 0.18); }");
             sb.AppendLine("        .neko-changelog-body .neko-change-body > :first-child { margin-top: 0; }");
             sb.AppendLine("        .neko-changelog-body .neko-change-body > :last-child { margin-bottom: 0; }");
+            sb.AppendLine("    </style>");
+        }
+
+        // Cross-document View Transitions. Neko ships a fully static, multi-page
+        // site, so every sidebar click is a real navigation that re-parses and
+        // repaints the whole document — including the (identical) sidebar, which
+        // visibly flashes and resets its scroll/active state before the inline
+        // scripts restore it. Opting the document into the View Transitions API
+        // turns each same-origin navigation into a quick content cross-fade and,
+        // crucially, lets us hold the persistent chrome (header + sidebar) in
+        // place across pages so it no longer flashes. This is a progressive
+        // enhancement: browsers that don't support cross-document view
+        // transitions simply perform a normal full navigation, exactly as before.
+        private void RenderHeadViewTransitions(StringBuilder sb)
+        {
+            sb.AppendLine("    <style>");
+            sb.AppendLine("        @view-transition { navigation: auto; }");
+            sb.AppendLine("        /* Give the persistent chrome a stable name so the browser keeps it");
+            sb.AppendLine("           across navigations instead of cross-fading it with the rest. */");
+            sb.AppendLine("        header { view-transition-name: neko-header; }");
+            sb.AppendLine("        #sidebar { view-transition-name: neko-sidebar; }");
+            sb.AppendLine("        /* Hold the chrome perfectly still — no fade or morph — while the");
+            sb.AppendLine("           page content swaps underneath it. */");
+            sb.AppendLine("        ::view-transition-group(neko-header),");
+            sb.AppendLine("        ::view-transition-group(neko-sidebar) { animation-duration: 0s; }");
+            sb.AppendLine("        /* Quick, subtle cross-fade for the page content only. */");
+            sb.AppendLine("        ::view-transition-old(root),");
+            sb.AppendLine("        ::view-transition-new(root) { animation-duration: 0.18s; }");
+            sb.AppendLine("        @media (prefers-reduced-motion: reduce) {");
+            sb.AppendLine("            ::view-transition-group(*),");
+            sb.AppendLine("            ::view-transition-old(*),");
+            sb.AppendLine("            ::view-transition-new(*) { animation: none !important; }");
+            sb.AppendLine("        }");
             sb.AppendLine("    </style>");
         }
 
