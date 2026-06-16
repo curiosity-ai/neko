@@ -51,12 +51,11 @@ namespace Neko.Tests
 
             var html = _generator.Generate(doc, sidebarLinks: sidebar);
 
-            // Check for the margin class on the section headers
-            // We expect mt-10 (or whatever we decide) for sections.
-            // Currently it is mt-6. So we expect this test to fail if we assert mt-10.
-
-            // Checking for Section 2 specifically as the first one has first:mt-0
-            Assert.That(html, Contains.Substring("<li class=\"first:mt-0 px-2 \" style=\"margin-top:1.2rem;margin-bottom:0.5rem;\">"));
+            // Top-level sections render as collapsible <details> (expanded by
+            // default via `open`), keeping the section spacing on the <li> and
+            // the uppercase header styling on the <summary> label.
+            Assert.That(html, Contains.Substring("<li class=\"first:mt-0 \" style=\"margin-top:1.2rem;margin-bottom:0.5rem;\">"));
+            Assert.That(html, Contains.Substring("<details class=\"sidebar-section group\" data-section-key=\"Section 2\" open>"));
             Assert.That(html, Contains.Substring("<span class=\"text-xs font-bold text-gray-500 uppercase tracking-wider\">Section 2</span>"));
         }
     }

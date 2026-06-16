@@ -25,6 +25,11 @@ namespace Neko.Builder
         [YamlMember(Alias = "searchExclude")]
         public bool SearchExclude { get; set; }
 
+        // Sidebar visibility. `hidden` keeps the whole folder (and its pages)
+        // out of the sidebar while they are still built and crawlable.
+        [YamlMember(Alias = "visibility")]
+        public string Visibility { get; set; }
+
         // Marks this folder as a changelog: its version-named `.md` files are
         // aggregated into a single timeline page rendered at the folder URL.
         [YamlMember(Alias = "changelog")]
@@ -110,6 +115,15 @@ namespace Neko.Builder
 
                 var folderConfig = GetFolderConfig(subDir);
 
+                // Honor `visibility: hidden` on the folder — set either in its
+                // index.yml or in the index.md/README.md frontmatter. The folder
+                // and its whole subtree are dropped from the sidebar (pages are
+                // still built and remain crawlable).
+                if (IsHiddenVisibility(folderConfig.Visibility) || IsHiddenVisibility(GetIndexVisibility(fullSubDir)))
+                {
+                    continue;
+                }
+
                 // A changelog folder collapses to a single link pointing at its
                 // aggregated timeline page — its version files are not listed.
                 if (folderConfig.Changelog)
@@ -191,7 +205,11 @@ namespace Neko.Builder
                 
                 var fullPath = Path.GetFullPath(file);
                 if (!_parsedDocs.TryGetValue(fullPath, out var doc)) continue;
-                
+
+                // Honor `visibility: hidden` on the page frontmatter — keep it
+                // out of the sidebar while still building it.
+                if (IsHiddenVisibility(doc.FrontMatter.Visibility)) continue;
+
                 string title = doc.FrontMatter.Label;
 
                 if (string.IsNullOrEmpty(title))
@@ -260,6 +278,33 @@ namespace Neko.Builder
         }
 
         private FolderConfig GetFolderConfig(string directory) => FolderConfig.LoadFromDirectory(directory);
+
+        // `hidden` and `private` (case-insensitive) are both kept out of the
+        // navigation and search per the documented visibility matrix. `protected`
+        // stays in the sidebar — it renders via the password flow — and `public`
+        // (default) is shown. Shared with the search indexer in SiteBuilder.
+        public static bool IsHiddenVisibility(string visibility)
+        {
+            if (string.IsNullOrWhiteSpace(visibility)) return false;
+            var v = visibility.Trim();
+            return v.Equals("hidden", StringComparison.OrdinalIgnoreCase)
+                || v.Equals("private", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Visibility declared in a folder's index.md / README.md frontmatter,
+        // used as a fallback when index.yml doesn't set it.
+        private string GetIndexVisibility(string fullSubDir)
+        {
+            var indexDocPath = Path.Combine(fullSubDir, "index.md");
+            if (_parsedDocs.TryGetValue(indexDocPath, out var indexDoc))
+                return indexDoc.FrontMatter.Visibility;
+
+            var readmeDocPath = Path.Combine(fullSubDir, "README.md");
+            if (_parsedDocs.TryGetValue(readmeDocPath, out var readmeDoc))
+                return readmeDoc.FrontMatter.Visibility;
+
+            return null;
+        }
 
         private string ToTitleCase(string str)
         {

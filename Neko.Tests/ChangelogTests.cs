@@ -115,5 +115,54 @@ namespace Neko.Tests
             // The version files are not indexed as their own documents.
             Assert.That(searchJson, Does.Not.Contain("changelog/v1.0.0"));
         }
+
+        // A changelog living inside a sub-project (a folder with its own neko.yml)
+        // belongs to that sub-project's build. The root build excludes the
+        // sub-project's markdown from scanning, so it must NOT discover and emit an
+        // (empty) aggregated page for that folder — otherwise the root site's
+        // catch-all file server shadows the sub-project's real changelog at the
+        // shared URL. See SiteBuilder.DiscoverChangelogFolders.
+        [Test]
+        public async Task RootBuild_DoesNotEmitChangelogForSubProjectFolder()
+        {
+            var rootDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "MultiProjectChangelogSample");
+            if (Directory.Exists(rootDir)) Directory.Delete(rootDir, true);
+            Directory.CreateDirectory(rootDir);
+
+            File.WriteAllText(Path.Combine(rootDir, "neko.yml"), "url: https://example.com\nbranding:\n  title: Root\n");
+            File.WriteAllText(Path.Combine(rootDir, "index.md"), "# Home\n");
+
+            // A sub-project: its own neko.yml makes `sub` a separate project, so the
+            // root build excludes it.
+            var subDir = Path.Combine(rootDir, "sub");
+            Directory.CreateDirectory(subDir);
+            File.WriteAllText(Path.Combine(subDir, "neko.yml"), "url: https://example.com/sub\nbranding:\n  title: Sub\n");
+            File.WriteAllText(Path.Combine(subDir, "index.md"), "# Sub Home\n");
+
+            var clDir = Path.Combine(subDir, "changelog");
+            Directory.CreateDirectory(clDir);
+            File.WriteAllText(Path.Combine(clDir, "index.yml"),
+                "changelog: true\ntitle: Changelog\ndescription: Sub changes.\nicon: memo\n");
+            File.WriteAllText(Path.Combine(clDir, "v1.0.0.md"),
+                "---\ndate: 2024-06-18\n---\nThe **1.0.0** release notes.\n");
+
+            // Build the ROOT project (mirrors `neko watch` building each project).
+            var rootBuilder = new SiteBuilder(rootDir);
+            await rootBuilder.BuildAsync();
+
+            // The root build must not produce a (shadowing) changelog page for the
+            // sub-project's folder.
+            var shadowPage = Path.Combine(rootBuilder.OutputDirectory, "sub", "changelog", "index.html");
+            Assert.That(File.Exists(shadowPage), Is.False,
+                "root build must not emit a changelog page for a sub-project's folder");
+
+            // Building the sub-project itself still produces the real changelog.
+            var subBuilder = new SiteBuilder(subDir, routePrefix: "/sub");
+            await subBuilder.BuildAsync();
+            var realPage = Path.Combine(subBuilder.OutputDirectory, "changelog", "index.html");
+            Assert.That(File.Exists(realPage), Is.True, "sub-project build should emit its changelog");
+            var html = await File.ReadAllTextAsync(realPage);
+            Assert.That(html, Does.Contain(">v1.0.0<"), "sub-project changelog should contain its version entry");
+        }
     }
 }

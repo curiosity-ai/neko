@@ -339,7 +339,7 @@ namespace Neko.Extensions
             renderer.Write($"<div class=\"relative inline-flex h-11 w-11 items-center justify-center rounded-xl {bg} ring-1 {ring} {text} mb-5\">");
             if (!string.IsNullOrEmpty(icon))
             {
-                renderer.Write($"<i class=\"{Neko.Builder.IconHelper.GetIconClass(WebUtility.HtmlEncode(icon))} text-lg\"></i>");
+                renderer.Write(Neko.Builder.IconHelper.RenderIcon(icon, "text-lg"));
             }
             else
             {
@@ -412,7 +412,7 @@ namespace Neko.Extensions
 
                 if (!string.IsNullOrEmpty(icon))
                 {
-                    renderer.Write($"<div class=\"absolute inset-0 flex items-center justify-center pointer-events-none z-20\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(WebUtility.HtmlEncode(icon))} text-white text-6xl drop-shadow-md\"></i></div>");
+                    renderer.Write($"<div class=\"absolute inset-0 flex items-center justify-center pointer-events-none z-20\">{Neko.Builder.IconHelper.RenderIcon(icon, "text-white text-6xl drop-shadow-md")}</div>");
                 }
                 renderer.Write("</div>");
             }
@@ -477,7 +477,7 @@ namespace Neko.Extensions
 
                 if (!string.IsNullOrEmpty(icon))
                 {
-                    renderer.Write($"<div class=\"absolute inset-0 flex items-center justify-center pointer-events-none z-20\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(WebUtility.HtmlEncode(icon))} text-white text-6xl drop-shadow-md\"></i></div>");
+                    renderer.Write($"<div class=\"absolute inset-0 flex items-center justify-center pointer-events-none z-20\">{Neko.Builder.IconHelper.RenderIcon(icon, "text-white text-6xl drop-shadow-md")}</div>");
                 }
                 renderer.Write("</div>");
             }

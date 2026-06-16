@@ -32,50 +32,7 @@ namespace Neko
 
             buildCommand.SetHandler(async (string input, string? output) =>
             {
-                var inputFullPath = Path.GetFullPath(input);
-                var configFiles = FindProjectConfigs(inputFullPath);
-
-                var isMultiRepo = configFiles.Length > 1 || (configFiles.Length == 1 && Path.GetDirectoryName(configFiles[0]) != inputFullPath);
-
-                if (isMultiRepo)
-                {
-                    Console.WriteLine($"Building in Multi-Repo Mode...");
-                    var subProjectOutputs = new List<string>();
-                    string rootOutput = null;
-                    foreach (var configFile in configFiles)
-                    {
-                        var subDir = Path.GetDirectoryName(configFile);
-                        if (subDir == null) continue;
-
-                        var subDirRelative = Path.GetRelativePath(inputFullPath, subDir).Replace("\\", "/");
-                        var isRoot = subDir == inputFullPath;
-                        var routePrefix = isRoot ? "" : "/" + subDirRelative;
-                        var siteOutput = output != null
-                            ? (isRoot ? output : Path.Combine(output, subDirRelative))
-                            : Path.Combine(subDir, ".neko");
-
-                        var builder = new SiteBuilder(subDir, siteOutput, false, isRoot ? null : routePrefix);
-                        await builder.BuildAsync();
-
-                        if (isRoot) rootOutput = builder.OutputDirectory;
-                        subProjectOutputs.Add(builder.OutputDirectory);
-                    }
-
-                    // Aggregate every sub-project's search.json into a single
-                    // index at the root output, so the client can issue one
-                    // cross-project search instead of being scoped to whichever
-                    // sub-site the user happens to be on.
-                    if (rootOutput != null)
-                    {
-                        Console.WriteLine("Aggregating search indexes across sub-projects...");
-                        await Neko.Builder.SearchIndexGenerator.AggregateAsync(rootOutput, subProjectOutputs);
-                    }
-                }
-                else
-                {
-                    var builder = new SiteBuilder(input, output);
-                    await builder.BuildAsync();
-                }
+                await BuildRunner.RunAsync(input, output);
             }, inputOption, outputOption);
 
             // Snap Command
@@ -121,7 +78,7 @@ namespace Neko
                 };
 
                 var inputFullPath = Path.GetFullPath(input);
-                var configFiles = FindProjectConfigs(inputFullPath);
+                var configFiles = BuildRunner.FindProjectConfigs(inputFullPath);
 
                 var isMultiRepo = configFiles.Length > 1 || (configFiles.Length == 1 && Path.GetDirectoryName(configFiles[0]) != inputFullPath);
 
@@ -318,6 +275,31 @@ namespace Neko
                 Environment.ExitCode = await cmd.BackfillDarkImagesAsync();
             }, darkInputOption, darkApiKeyOption, darkImageModelOption);
 
+            // Check-Links Command — build the site into a throwaway folder and
+            // verify every internal page/asset link (and #anchor) resolves, plus
+            // optionally probe external http(s) links. Exits non-zero when any
+            // link is broken so it can gate CI.
+            var checkLinksCommand = new Command("check-links", "Build the project and report any broken links in the generated site");
+            var checkLinksInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
+            var checkLinksExternalOption = new Option<bool>(new[] { "--external" }, () => false, "Also verify external http(s) links over the network");
+            var checkLinksNoAnchorsOption = new Option<bool>(new[] { "--no-anchors" }, () => false, "Skip validation of #fragment anchors");
+            checkLinksCommand.AddOption(checkLinksInputOption);
+            checkLinksCommand.AddOption(checkLinksExternalOption);
+            checkLinksCommand.AddOption(checkLinksNoAnchorsOption);
+
+            // Use the InvocationContext so the broken-link exit code propagates
+            // as the process exit code (InvokeAsync's return value, which Main
+            // returns, otherwise wins over Environment.ExitCode).
+            checkLinksCommand.SetHandler(async (context) =>
+            {
+                var input = context.ParseResult.GetValueForOption(checkLinksInputOption) ?? ".";
+                var external = context.ParseResult.GetValueForOption(checkLinksExternalOption);
+                var noAnchors = context.ParseResult.GetValueForOption(checkLinksNoAnchorsOption);
+
+                var cmd = new Neko.Builder.CheckLinksCommand(input, external, checkAnchors: !noAnchors);
+                context.ExitCode = await cmd.RunAsync();
+            });
+
             // New Command — scaffold a new documentation project from the
             // embedded .template/ starter zip.
             var newCommand = new Command("new", "Initialize a new Neko documentation project from the built-in template");
@@ -349,6 +331,7 @@ namespace Neko
 
             rootCommand.AddCommand(buildCommand);
             rootCommand.AddCommand(watchCommand);
+            rootCommand.AddCommand(checkLinksCommand);
             rootCommand.AddCommand(snapCommand);
             rootCommand.AddCommand(genImagesCommand);
             rootCommand.AddCommand(darkImagesCommand);
@@ -356,32 +339,6 @@ namespace Neko
             rootCommand.AddCommand(updateSkillsCommand);
 
             return await rootCommand.InvokeAsync(args);
-        }
-
-        // Discovers all neko.yml project configs under <root>, skipping any that
-        // live inside a hidden directory (a path segment starting with '.', e.g.
-        // .git, .idea, the .neko build output, or .claude/worktrees). Without this,
-        // multi-repo mode descends into git worktrees and rebuilds every project's
-        // duplicate copy into the worktree.
-        private static string[] FindProjectConfigs(string root)
-        {
-            if (!Directory.Exists(root))
-                return Array.Empty<string>();
-
-            return Directory
-                .GetFiles(root, "neko.yml", SearchOption.AllDirectories)
-                .Where(cfg => !HasHiddenSegment(Path.GetRelativePath(root, Path.GetDirectoryName(cfg)!)))
-                .ToArray();
-        }
-
-        private static bool HasHiddenSegment(string relativeDir)
-        {
-            foreach (var part in relativeDir.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
-            {
-                if (part.Length > 0 && part != "." && part.StartsWith('.'))
-                    return true;
-            }
-            return false;
         }
 
         private static void InitializeMSBuild()

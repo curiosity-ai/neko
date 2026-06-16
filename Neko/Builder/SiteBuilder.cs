@@ -170,7 +170,7 @@ namespace Neko.Builder
                     foreach (var dir in Directory.GetDirectories(_inputDirectory, "*", SearchOption.AllDirectories))
                     {
                         var folderConfig = FolderConfig.LoadFromDirectory(dir);
-                        if (folderConfig.SearchExclude)
+                        if (folderConfig.SearchExclude || SidebarGenerator.IsHiddenVisibility(folderConfig.Visibility))
                         {
                             var dirPath = Path.GetFullPath(dir);
                             if (!dirPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
@@ -301,7 +301,7 @@ namespace Neko.Builder
                 // `changelog: true`. Their version-named `.md` files are aggregated into a
                 // single timeline page rendered at the folder URL (newest version first),
                 // and are not emitted as standalone pages.
-                var changelogFolders = DiscoverChangelogFolders();
+                var changelogFolders = DiscoverChangelogFolders(excludedDirs);
                 var changelogManagedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var changelogEntriesByFolder = new Dictionary<string, List<(ParsedDocument Doc, string Url, string Version)>>(StringComparer.OrdinalIgnoreCase);
 
@@ -366,14 +366,25 @@ namespace Neko.Builder
                     }
                 }
 
-                // Pass 3: Generate HTML
-                foreach (var item in parsedDocs)
+                // Pass 3: Generate HTML. Pages are independent, so page generation and
+                // the file writes run in parallel. Search-index entries are collected
+                // per page and added afterwards in source order so search.json stays
+                // deterministic regardless of completion order.
+                var indexRequests =
+                    new (string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs)?[parsedDocs.Count];
+
+                await Parallel.ForEachAsync(
+                    Enumerable.Range(0, parsedDocs.Count),
+                    new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
+                    async (pageIndex, ct) =>
                 {
+                    var item = parsedDocs[pageIndex];
+
                     // Files inside a changelog folder are aggregated into a single page
                     // (generated below), so they are not emitted individually here.
                     if (changelogManagedFiles.Contains(Path.GetFullPath(item.FilePath)))
                     {
-                        continue;
+                        return;
                     }
 
                     Console.WriteLine($"Generating {Path.GetFileName(item.FilePath)}...");
@@ -438,7 +449,7 @@ namespace Neko.Builder
                         Directory.CreateDirectory(outputDirForFile);
                     }
 
-                    await File.WriteAllTextAsync(outputPath, html);
+                    await File.WriteAllTextAsync(outputPath, html, ct);
 
                     // Index only pages whose content is publicly visible. Pages with a
                     // per-page password (or a site-wide password without `password: none`)
@@ -450,6 +461,7 @@ namespace Neko.Builder
                         || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password);
 
                     var isSearchExcluded = item.Doc.FrontMatter.SearchExclude
+                        || SidebarGenerator.IsHiddenVisibility(item.Doc.FrontMatter.Visibility)
                         || IsInSearchExcludedFolder(item.FilePath, searchExcludedFolders)
                         || IsInDotOrUnderscoreFolder(item.RelativePath);
 
@@ -485,7 +497,7 @@ namespace Neko.Builder
                             .Where(t => !string.IsNullOrWhiteSpace(t))
                             .ToArray();
 
-                        searchIndexer.AddDocument(
+                        indexRequests[pageIndex] = (
                             htmlFileName,
                             indexTitle,
                             indexableContent,
@@ -493,6 +505,15 @@ namespace Neko.Builder
                             item.Doc.FrontMatter.Tags,
                             breadcrumbTitles.Length > 0 ? breadcrumbTitles : null);
                     }
+                });
+
+                // Add the collected search documents in deterministic source order so
+                // the generated search.json doesn't churn between builds.
+                foreach (var request in indexRequests)
+                {
+                    if (request == null) continue;
+                    var r = request.Value;
+                    searchIndexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs);
                 }
 
                 // Pass 4: Generate one aggregated timeline page per changelog folder.
@@ -560,6 +581,7 @@ namespace Neko.Builder
 
                     // Index the aggregated page (unless the folder opts out / is protected).
                     var folderSearchExcluded = folderConfig.SearchExclude
+                        || SidebarGenerator.IsHiddenVisibility(folderConfig.Visibility)
                         || IsInDotOrUnderscoreFolder(relativeFolder + "/index.md");
                     var isProtectedSite = !string.IsNullOrEmpty(_config.Password);
                     if (!folderSearchExcluded && !isProtectedSite)
@@ -799,7 +821,11 @@ namespace Neko.Builder
 
         // Find every folder under the input root whose folder config (index.yml /
         // <foldername>.yml) sets `changelog: true`. Keyed by normalized full path.
-        private Dictionary<string, FolderConfig> DiscoverChangelogFolders()
+        // <paramref name="excludedDirs"/> holds the roots of sub-projects (folders
+        // with their own neko.yml); folders living under those are skipped because
+        // the sub-project builds its own changelog. Without this the root build emits
+        // an empty duplicate page that shadows the real one in the dev server.
+        private Dictionary<string, FolderConfig> DiscoverChangelogFolders(HashSet<string> excludedDirs)
         {
             var result = new Dictionary<string, FolderConfig>(StringComparer.OrdinalIgnoreCase);
             if (!Directory.Exists(_inputDirectory)) return result;
@@ -809,6 +835,8 @@ namespace Neko.Builder
                 var name = Path.GetFileName(dir);
                 if (name.StartsWith(".") || name.StartsWith("_")) continue;
 
+                if (IsInExcludedSubProject(dir, excludedDirs)) continue;
+
                 var config = FolderConfig.LoadFromDirectory(dir);
                 if (config.Changelog)
                 {
@@ -817,6 +845,24 @@ namespace Neko.Builder
             }
 
             return result;
+        }
+
+        // True when <paramref name="dir"/> lives inside one of the sub-project roots
+        // in <paramref name="excludedDirs"/>. The excluded roots are stored with a
+        // trailing separator; a separator is appended to the candidate too so that
+        // a sibling like `workspace-api` is not matched by the `workspace` prefix.
+        private static bool IsInExcludedSubProject(string dir, HashSet<string> excludedDirs)
+        {
+            if (excludedDirs == null || excludedDirs.Count == 0) return false;
+            var fullPath = Path.GetFullPath(dir);
+            if (!fullPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                fullPath += Path.DirectorySeparatorChar;
+            foreach (var excluded in excludedDirs)
+            {
+                if (fullPath.StartsWith(excluded, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
         }
 
         private static bool IsInSearchExcludedFolder(string filePath, HashSet<string> excludedFolders)

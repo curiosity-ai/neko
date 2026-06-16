@@ -49,4 +49,4 @@ Open `index.md` and start writing.
 >>>
 +++
 
-Explore every component and option in the [.claude/skills](.claude/skills) folder and in the main [Neko documentation](https://neko.curiosity.ai).
+Explore every component and option in the `.claude/skills` folder and in the main [Neko documentation](https://neko.curiosity.ai).

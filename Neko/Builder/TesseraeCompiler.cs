@@ -40,6 +40,72 @@ namespace Neko.Builder
             return Path.Combine(cacheDir, $"{hash}_{tesseraeVersion}.json");
         }
 
+        // Directory holding the compiled shared asset files (h5.js, css, …) for one
+        // cache entry, mirroring the per-entry JSON manifest.
+        private static string GetCacheAssetsDir(string hash, NuGetVersion tesseraeVersion)
+        {
+            var cacheDir = Path.Combine(Path.GetTempPath(), "neko", "tesserae-cache");
+            Directory.CreateDirectory(cacheDir);
+            return Path.Combine(cacheDir, $"{hash}_{tesseraeVersion}");
+        }
+
+        private const string AssetUrlPrefix = "/assets/tesserae/";
+
+        // Asset URLs in a result are rooted at "/assets/tesserae/"; map one back to
+        // its path relative to the tesserae assets directory.
+        private static string AssetRelativePath(string assetUrl)
+        {
+            var p = (assetUrl ?? string.Empty).Replace('\\', '/');
+            if (p.StartsWith(AssetUrlPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                p = p.Substring(AssetUrlPrefix.Length);
+            }
+            return p.TrimStart('/');
+        }
+
+        // Copy the freshly-compiled shared asset files into the persistent cache so a
+        // later build (which starts by wiping the output directory) can restore them.
+        private static void SaveCachedAssets(TesseraeCompilerResult result, string siteAssetsDir, string cacheAssetsDir)
+        {
+            if (result?.AssetsPath == null || result.AssetsPath.Count == 0) return;
+
+            foreach (var assetUrl in result.AssetsPath)
+            {
+                var rel = AssetRelativePath(assetUrl);
+                if (string.IsNullOrEmpty(rel)) continue;
+
+                var source = Path.Combine(siteAssetsDir, rel);
+                if (!File.Exists(source)) continue;
+
+                var dest = Path.Combine(cacheAssetsDir, rel);
+                Directory.CreateDirectory(Path.GetDirectoryName(dest));
+                File.Copy(source, dest, overwrite: true);
+            }
+        }
+
+        // Restore a cached result's shared asset files into the output directory.
+        // Returns false (forcing a recompile) if any expected file is missing from
+        // the cache, so a partial or corrupt cache repairs itself.
+        private static bool RestoreCachedAssets(TesseraeCompilerResult result, string cacheAssetsDir, string siteAssetsDir)
+        {
+            if (result?.AssetsPath == null || result.AssetsPath.Count == 0) return true;
+
+            foreach (var assetUrl in result.AssetsPath)
+            {
+                var rel = AssetRelativePath(assetUrl);
+                if (string.IsNullOrEmpty(rel)) continue;
+
+                var source = Path.Combine(cacheAssetsDir, rel);
+                if (!File.Exists(source)) return false;
+
+                var dest = Path.Combine(siteAssetsDir, rel);
+                Directory.CreateDirectory(Path.GetDirectoryName(dest));
+                File.Copy(source, dest, overwrite: true);
+            }
+
+            return true;
+        }
+
         private static async Task<NuGetVersion> GetLatestVersionAsync(string package)
         {
             if (_cachedLatestVersion.TryGetValue(package, out var cachedVersion))
@@ -163,28 +229,33 @@ namespace Neko.Builder
             var siteAssetsDir = Path.Combine(siteOutputRoot, "assets", "tesserae");
             Directory.CreateDirectory(siteAssetsDir);
 
-            var hash = ComputeHash(csharpCode);
+            // The compiled HTML bakes in the route prefix (asset <script>/<link>
+            // hrefs), so it is part of the cache key — otherwise a multi-site build
+            // could serve one sub-site's prefix to another.
+            var hash = ComputeHash(csharpCode + " " + (SiteBuilder.CurrentRoutePrefix ?? string.Empty));
             var tesseraeVersion = await GetLatestVersionAsync("Tesserae");
             var cacheFilePath = GetCacheFilePath(hash, tesseraeVersion);
+            var cacheAssetsDir = GetCacheAssetsDir(hash, tesseraeVersion);
 
-            if (Directory.EnumerateFiles(siteAssetsDir).Any()) //Only re-use cached if the files are already in the output
+            // Reuse a previously compiled result and restore its shared asset files
+            // into the (freshly wiped) output directory. Restoring the files here is
+            // what lets the cache survive across builds: without it the assets would
+            // be missing and every build would have to recompile to re-emit them.
+            if (File.Exists(cacheFilePath))
             {
-                if (File.Exists(cacheFilePath))
+                try
                 {
-                    try
+                    var json = await File.ReadAllTextAsync(cacheFilePath);
+                    var cachedResult = JsonSerializer.Deserialize<TesseraeCompilerResult>(json);
+                    if (cachedResult != null && RestoreCachedAssets(cachedResult, cacheAssetsDir, siteAssetsDir))
                     {
-                        var json = await File.ReadAllTextAsync(cacheFilePath);
-                        var cachedResult = JsonSerializer.Deserialize<TesseraeCompilerResult>(json);
-                        if (cachedResult != null)
-                        {
-                            Console.WriteLine($"Using cached Tesserae code for {codeBlockArguments}");
-                            return cachedResult;
-                        }
+                        Console.WriteLine($"Using cached Tesserae code for {codeBlockArguments}");
+                        return cachedResult;
                     }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Failed to read cache file: {ex.Message}");
-                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to read cache file: {ex.Message}");
                 }
             }
 
@@ -219,6 +290,7 @@ namespace Neko.Builder
                                 .WithSourceFile("App.cs", csharpCode);
 
             var result = new TesseraeCompilerResult();
+            var compiled = false;
 
 
             try
@@ -310,6 +382,7 @@ namespace Neko.Builder
                 htmlBuilder.AppendLine("</html>");
 
                 result.OutputHtml = htmlBuilder.ToString();
+                compiled = true;
 
                 Console.WriteLine($"Compiled Tesserae code for {codeBlockArguments} in {sw.Elapsed.TotalSeconds:n1}s");
 
@@ -324,14 +397,22 @@ namespace Neko.Builder
                 };
             }
 
-            try
+            // Only persist successful compiles. Caching a failure (e.g. a transient
+            // network or restore error) would otherwise serve the error placeholder
+            // forever. Persist the produced asset files alongside the manifest so a
+            // later build can restore them after wiping the output directory.
+            if (compiled)
             {
-                var json = JsonSerializer.Serialize(result);
-                await File.WriteAllTextAsync(cacheFilePath, json);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to write cache file: {ex.Message}");
+                try
+                {
+                    SaveCachedAssets(result, siteAssetsDir, cacheAssetsDir);
+                    var json = JsonSerializer.Serialize(result);
+                    await File.WriteAllTextAsync(cacheFilePath, json);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to write cache file: {ex.Message}");
+                }
             }
 
             return result;

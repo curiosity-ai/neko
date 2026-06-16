@@ -28,6 +28,58 @@ namespace Neko.Builder
             return $"fi fi-rr-{iconName}";
         }
 
+        private static readonly string[] _imageExtensions =
+            { ".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".ico" };
+
+        // An icon value points at an image (rather than naming a UIcon) when it
+        // looks like a path or URL, or ends in a known image extension.
+        private static bool IsImagePath(string value)
+        {
+            if (value.StartsWith("/") || value.StartsWith("./") || value.StartsWith("../") ||
+                value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                value.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                value.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            foreach (var ext in _imageExtensions)
+            {
+                if (value.EndsWith(ext, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Renders an icon value as a complete HTML element. Accepts a UIcons
+        /// catalog name (<c>&lt;i class="fi …"&gt;</c>), a raw inline SVG, or an
+        /// image path / URL such as a brand logo under <c>/assets/</c> (rendered
+        /// as an <c>&lt;img&gt;</c>). Image paths are sized to <c>1em</c> so the
+        /// caller's text-size classes (e.g. <c>text-lg</c>) keep controlling the
+        /// rendered size, and they bypass the UIcons catalog warning.
+        /// </summary>
+        public static string RenderIcon(string icon, string extraClasses = "")
+        {
+            if (string.IsNullOrEmpty(icon)) return string.Empty;
+
+            var trimmed = icon.Trim();
+            var extra = string.IsNullOrEmpty(extraClasses) ? string.Empty : " " + extraClasses;
+
+            if (trimmed.StartsWith("<svg", StringComparison.OrdinalIgnoreCase))
+            {
+                return System.Net.WebUtility.HtmlDecode(trimmed);
+            }
+
+            if (IsImagePath(trimmed))
+            {
+                var src = System.Net.WebUtility.HtmlEncode(trimmed);
+                return $"<img src=\"{src}\" alt=\"\" class=\"inline-block object-contain align-middle{extra}\" style=\"height:1em;width:1em;\" />";
+            }
+
+            return $"<i class=\"{GetIconClass(icon)}{extra}\"></i>";
+        }
+
         private static void WarnIfInvalid(string iconName)
         {
             var catalog = _validIcons.Value;
