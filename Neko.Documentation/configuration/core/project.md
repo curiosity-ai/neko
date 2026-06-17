@@ -1297,33 +1297,33 @@ To convert only one top-level directory to a `stack` type layout, please see the
 
 #### mode{#nav-icons-mode}
 
-The `mode` configuration enables customization for how the icons are displayed in the main navigation. The `mode` allows you to hide all icons (and their reserved space) in the navigation, as well as other icon show/hide scenarios.
+The `mode` configuration enables customization for how the icons are displayed in the main navigation. Sidebar icons are **opt-in**: by default no icons (and no reserved space) are shown, and you whitelist where they appear via `mode`.
 
 === mode : `string`
-Controls how icons are displayed in the left sidebar navigation. The default value is `all`, which shows all icons or reserves space for all icons within the navigation.
+Controls how icons are displayed in the left sidebar navigation. The default value is `none`, which hides all icons and reserves no space for them. Set `mode` to whitelist where icons should appear.
 
 The following sample demonstrates how the icon mode can be configured in your `neko.yml` file:
 
 ```yml
 nav:
   icons:
-    mode: all|none|folders|pages|top # Default is all
+    mode: all|none|folders|pages|top # Default is none
 ```
 
 | Mode    | Description                                                            |
 |---------|------------------------------------------------------------------------|
-| `all`     | Show icons for all navigation items (default)                          |
+| `none`    | Hide all navigation icons (default)                                    |
+| `all`     | Show icons for all navigation items                                    |
 | `folders` | Show icons only for folder/category items                              |
 | `pages`   | Show icons only for page items                                         |
 | `top`     | Show icons only for top-level pages and folders, hide for nested items |
-| `none`    | Hide all navigation icons                                              |
 
-To hide icons for all pages and folders, add the following setting to your project `neko.yml` configuration file:
+To show icons for every page and folder, add the following setting to your project `neko.yml` configuration file:
 
 ```yml
 nav:
   icons:
-    mode: none
+    mode: all
 ```
 
 The `nav.icons.mode` setting can be used in conjunction with [`nav.mode: stack`](#mode) to handle many different icon and navigation rendering combinations.

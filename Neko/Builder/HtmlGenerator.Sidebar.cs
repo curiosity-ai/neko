@@ -36,15 +36,22 @@ namespace Neko.Builder
 
             foreach (var link in links)
             {
+                var isFolder = link.Items != null && link.Items.Count > 0;
+
+                // Sidebar icons are opt-in (see `nav.icons.mode`). When an item is not
+                // whitelisted we emit no icon and no spacer, so the label sits flush left.
                 var iconHtml = "";
-                if (!string.IsNullOrEmpty(link.Icon))
+                if (ShouldShowSidebarIcon(level, isFolder))
                 {
-                    iconHtml = Neko.Builder.IconHelper.RenderIcon(link.Icon);
-                }
-                else
-                {
-                     // Add invisible icon spacer to align with siblings
-                     iconHtml = "<i class=\"fi fi-rr-circle opacity-0\"></i>";
+                    if (!string.IsNullOrEmpty(link.Icon))
+                    {
+                        iconHtml = Neko.Builder.IconHelper.RenderIcon(link.Icon);
+                    }
+                    else
+                    {
+                        // Add invisible icon spacer to align with siblings that do have one.
+                        iconHtml = "<i class=\"fi fi-rr-circle opacity-0\"></i>";
+                    }
                 }
 
                 string editHtml = "";
@@ -180,6 +187,30 @@ namespace Neko.Builder
 
                     sb.AppendLine($"                    <li class=\"{liClasses}\"{itemAttributes}{reorderAttrs}><a href=\"{href}\" class=\"block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] text-gray-700 dark:text-gray-300 truncate\">{iconHtml} <span class=\"truncate\">{displayTitle}</span></a></li>");
                 }
+            }
+        }
+
+        /// <summary>
+        /// Decides whether a given sidebar item should render its icon, based on the
+        /// project's <c>nav.icons.mode</c> whitelist. Icons are off by default (<c>none</c>).
+        /// </summary>
+        private bool ShouldShowSidebarIcon(int level, bool isFolder)
+        {
+            var mode = _config?.Nav?.Icons?.Mode?.Trim().ToLowerInvariant();
+            switch (mode)
+            {
+                case "all":
+                    return true;
+                case "folders":
+                    return isFolder;
+                case "pages":
+                    return !isFolder;
+                case "top":
+                    // Top-level pages and folders only (level 0/1); hide for deeper nesting.
+                    return level <= 1;
+                case "none":
+                default:
+                    return false;
             }
         }
     }

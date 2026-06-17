@@ -48,6 +48,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "layout")]
         public LayoutConfig Layout { get; set; } = new LayoutConfig();
 
+        [YamlMember(Alias = "nav")]
+        public NavConfig Nav { get; set; } = new NavConfig();
+
         [YamlMember(Alias = "poweredByNeko")]
         public bool PoweredByNeko { get; set; } = true;
 
@@ -183,6 +186,24 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "toc")]
         public bool Toc { get; set; } = true;
+    }
+
+    public class NavConfig
+    {
+        [YamlMember(Alias = "icons")]
+        public NavIconsConfig Icons { get; set; } = new NavIconsConfig();
+    }
+
+    public class NavIconsConfig
+    {
+        /// <summary>
+        /// Controls which left-sidebar navigation items render their icon.
+        /// Icons are opt-in: the default is <c>none</c>, so a site must explicitly
+        /// whitelist where icons appear. Recognised values: <c>all</c>, <c>none</c>,
+        /// <c>folders</c>, <c>pages</c>, <c>top</c>.
+        /// </summary>
+        [YamlMember(Alias = "mode")]
+        public string Mode { get; set; } = "none";
     }
 
     public class SnippetsConfig

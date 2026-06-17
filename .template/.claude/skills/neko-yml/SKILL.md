@@ -43,7 +43,7 @@ links:
 | `pageLinks` | Site-wide links rendered on top of every page's "On this page" TOC.        |
 | `banner`    | Site-wide announcement bar. See [`banner`](../banner/SKILL.md).            |
 | `footer`    | Footer content (`copyright`, custom links).                                |
-| `nav`       | Project-wide nav settings (e.g. `mode: stack`).                            |
+| `nav`       | Project-wide nav settings — `mode: stack`, sidebar `icons.mode`.           |
 | `toc`       | Default right-sidebar TOC settings.                                        |
 | `backlinks` | Default inbound-link block behaviour.                                      |
 | `start`     | Dev-server tweaks (`pro: true`, ports).                                    |
@@ -139,6 +139,29 @@ pageLinks:
 
 `pageLinks` only render when the page has a TOC; pages with `toc: false`
 hide them.
+
+## Sidebar icons (`nav.icons.mode:`)
+
+Left-sidebar icons are **opt-in**. By default no icons (and no reserved space)
+are shown, even if pages and folders define an `icon:`. Whitelist where icons
+appear with `nav.icons.mode`:
+
+```yml
+nav:
+  icons:
+    mode: all        # none (default) | all | folders | pages | top
+```
+
+| Mode      | Shows icons for…                                          |
+| ---       | ---                                                       |
+| `none`    | nothing — hide every sidebar icon (default)               |
+| `all`     | every navigation item                                     |
+| `folders` | folder / category items only                              |
+| `pages`   | page (leaf) items only                                    |
+| `top`     | top-level pages and folders only; nested items stay clean |
+
+The configured `icon:` on a page/folder is still used by other surfaces (top
+nav, breadcrumbs); `nav.icons.mode` only controls the left sidebar.
 
 ## Footer
 

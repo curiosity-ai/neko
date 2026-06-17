@@ -12,6 +12,11 @@ branding:
 theme:
   name: curiosity
 
+# Sidebar icons are opt-in (engine default is `none`); the docs whitelist all of them.
+nav:
+  icons:
+    mode: all
+
 meta:
   description: A modern, lightweight static documentation site generator.
   keywords: static site generator, csharp, dotnet, documentation, markdown

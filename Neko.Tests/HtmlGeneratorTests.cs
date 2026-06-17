@@ -42,8 +42,9 @@ namespace Neko.Tests
             Assert.That(html, Contains.Substring("<title>Test Docs - Page Title</title>"));
             // Updated assertion for branding in header
             Assert.That(html, Contains.Substring("<a href=\"/index\" class=\"font-bold text-xl hover:text-primary-600 transition-colors\">Test Docs</a>"));
-            // Updated assertion for link with new classes
-            Assert.That(html, Contains.Substring("<a href=\"/\" class=\"block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] text-gray-700 dark:text-gray-300 truncate\"><i class=\"fi fi-rr-circle opacity-0\"></i> <span class=\"truncate\">Home</span></a>"));
+            // Sidebar icons are off by default (nav.icons.mode: none), so the link renders
+            // with no icon and no spacer — the label sits flush left.
+            Assert.That(html, Contains.Substring("<a href=\"/\" class=\"block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] text-gray-700 dark:text-gray-300 truncate\"> <span class=\"truncate\">Home</span></a>"));
             Assert.That(html, Contains.Substring("<p>Content</p>"));
         }
 
@@ -141,8 +142,11 @@ pageLinks:
         }
 
         [Test]
-        public void TestSidebarIcons()
+        public void TestSidebarIconsWhitelistedWithModeAll()
         {
+            // Icons are opt-in; `nav.icons.mode: all` whitelists every item.
+            _config.Nav.Icons.Mode = "all";
+
             var doc = new ParsedDocument
             {
                 Html = "<p>Content</p>",
@@ -160,8 +164,71 @@ pageLinks:
             // Check item with icon
             Assert.That(html, Contains.Substring("<i class=\"fi fi-rr-home\"></i> <span class=\"truncate\">With Icon</span>"));
 
-            // Check item without icon (should have invisible circle)
+            // Check item without icon (should have invisible circle spacer)
             Assert.That(html, Contains.Substring("<i class=\"fi fi-rr-circle opacity-0\"></i> <span class=\"truncate\">Without Icon</span>"));
+        }
+
+        [Test]
+        public void TestSidebarIconsHiddenByDefault()
+        {
+            // Default mode is `none`: even an item with a configured icon renders without
+            // it (and without a spacer).
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Content</p>",
+                FrontMatter = new FrontMatter { Title = "Page Title" }
+            };
+
+            var sidebar = new System.Collections.Generic.List<LinkConfig>
+            {
+                new LinkConfig { Text = "With Icon", Link = "/with-icon", Icon = "home" }
+            };
+
+            var html = _generator.Generate(doc, sidebarLinks: sidebar);
+
+            Assert.That(html, Does.Not.Contain("<i class=\"fi fi-rr-home\"></i>"));
+            Assert.That(html, Contains.Substring("truncate\"> <span class=\"truncate\">With Icon</span>"));
+        }
+
+        [Test]
+        public void TestSidebarIconsModePages()
+        {
+            // `pages` whitelists leaf links but not folder/section items.
+            _config.Nav.Icons.Mode = "pages";
+
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Content</p>",
+                FrontMatter = new FrontMatter { Title = "Page Title" }
+            };
+
+            // Section (level 0) > nested folder (level 1, shows its own icon) > page (level 2).
+            var sidebar = new System.Collections.Generic.List<LinkConfig>
+            {
+                new LinkConfig
+                {
+                    Text = "Section",
+                    Items = new System.Collections.Generic.List<LinkConfig>
+                    {
+                        new LinkConfig
+                        {
+                            Text = "Group",
+                            Icon = "folder",
+                            Items = new System.Collections.Generic.List<LinkConfig>
+                            {
+                                new LinkConfig { Text = "Child", Link = "/child", Icon = "home" }
+                            }
+                        }
+                    }
+                }
+            };
+
+            var html = _generator.Generate(doc, sidebarLinks: sidebar);
+
+            // Leaf page keeps its icon...
+            Assert.That(html, Contains.Substring("<i class=\"fi fi-rr-home\"></i> <span class=\"truncate\">Child</span>"));
+            // ...but the nested folder icon is suppressed.
+            Assert.That(html, Does.Not.Contain("<i class=\"fi fi-rr-folder\"></i>"));
         }
     }
 }
