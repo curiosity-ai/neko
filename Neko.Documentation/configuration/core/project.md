@@ -1307,7 +1307,7 @@ The following sample demonstrates how the icon mode can be configured in your `n
 ```yml
 nav:
   icons:
-    mode: all|none|folders|pages|top # Default is none
+    mode: all|none|folders|parents|pages|top # Default is none
 ```
 
 | Mode    | Description                                                            |
@@ -1315,6 +1315,7 @@ nav:
 | `none`    | Hide all navigation icons (default)                                    |
 | `all`     | Show icons for all navigation items                                    |
 | `folders` | Show icons only for folder/category items                              |
+| `parents` | Show icons only for items that have sub-pages (alias of `folders`)     |
 | `pages`   | Show icons only for page items                                         |
 | `top`     | Show icons only for top-level pages and folders, hide for nested items |
 

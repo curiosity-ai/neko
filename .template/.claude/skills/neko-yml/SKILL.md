@@ -149,7 +149,7 @@ appear with `nav.icons.mode`:
 ```yml
 nav:
   icons:
-    mode: all        # none (default) | all | folders | pages | top
+    mode: all        # none (default) | all | folders | parents | pages | top
 ```
 
 | Mode      | Shows icons for…                                          |
@@ -157,6 +157,7 @@ nav:
 | `none`    | nothing — hide every sidebar icon (default)               |
 | `all`     | every navigation item                                     |
 | `folders` | folder / category items only                              |
+| `parents` | items that have sub-pages (alias of `folders`)            |
 | `pages`   | page (leaf) items only                                    |
 | `top`     | top-level pages and folders only; nested items stay clean |
 

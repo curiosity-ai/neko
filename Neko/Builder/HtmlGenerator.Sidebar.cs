@@ -202,6 +202,9 @@ namespace Neko.Builder
                 case "all":
                     return true;
                 case "folders":
+                case "parents":
+                    // `parents` is a friendlier alias for `folders`: an item only has
+                    // sub-pages when it is a folder/group node, so both mean the same set.
                     return isFolder;
                 case "pages":
                     return !isFolder;

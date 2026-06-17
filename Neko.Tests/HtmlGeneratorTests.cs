@@ -230,5 +230,47 @@ pageLinks:
             // ...but the nested folder icon is suppressed.
             Assert.That(html, Does.Not.Contain("<i class=\"fi fi-rr-folder\"></i>"));
         }
+
+        [Test]
+        public void TestSidebarIconsModeParentsAliasesFolders()
+        {
+            // `parents` is a friendlier alias for `folders`: icons on items that have
+            // sub-pages, none on leaf pages.
+            _config.Nav.Icons.Mode = "parents";
+
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Content</p>",
+                FrontMatter = new FrontMatter { Title = "Page Title" }
+            };
+
+            // Section (level 0) > nested folder (level 1, has sub-pages) > page (level 2).
+            var sidebar = new System.Collections.Generic.List<LinkConfig>
+            {
+                new LinkConfig
+                {
+                    Text = "Section",
+                    Items = new System.Collections.Generic.List<LinkConfig>
+                    {
+                        new LinkConfig
+                        {
+                            Text = "Group",
+                            Icon = "folder",
+                            Items = new System.Collections.Generic.List<LinkConfig>
+                            {
+                                new LinkConfig { Text = "Child", Link = "/child", Icon = "home" }
+                            }
+                        }
+                    }
+                }
+            };
+
+            var html = _generator.Generate(doc, sidebarLinks: sidebar);
+
+            // Parent folder (has sub-pages) keeps its icon...
+            Assert.That(html, Contains.Substring("<i class=\"fi fi-rr-folder\"></i> <span class=\"truncate\">Group</span>"));
+            // ...but the leaf page icon is suppressed.
+            Assert.That(html, Does.Not.Contain("<i class=\"fi fi-rr-home\"></i>"));
+        }
     }
 }
