@@ -45,7 +45,12 @@ namespace Neko.Builder
 
         private void RenderNavbar(StringBuilder sb, string currentUrl)
         {
-            sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 z-30\">");
+            sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center px-6 z-30\">");
+
+            var maxWidthClass = LayoutMaxWidthClass();
+            var innerWidthClass = string.IsNullOrEmpty(maxWidthClass) ? string.Empty : $" {maxWidthClass}";
+            sb.AppendLine($"        <div class=\"flex items-center justify-between w-full{innerWidthClass}\">");
+
             sb.AppendLine("        <div class=\"flex items-center gap-4\">");
 
             if (_config.Layout.Sidebar)
@@ -61,6 +66,7 @@ namespace Neko.Builder
             RenderNavbarLinks(sb);
             RenderNavbarActions(sb);
 
+            sb.AppendLine("        </div>");
             sb.AppendLine("    </header>");
         }
 

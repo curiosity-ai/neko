@@ -111,7 +111,9 @@ namespace Neko.Builder
             RenderNavbar(sb, currentUrl);
             RenderPivot(sb, currentUrl);
 
-            sb.AppendLine("    <div class=\"flex flex-1 overflow-hidden\">");
+            var maxWidthClass = LayoutMaxWidthClass();
+            var rowWidthClass = string.IsNullOrEmpty(maxWidthClass) ? string.Empty : $" {maxWidthClass} w-full";
+            sb.AppendLine($"    <div class=\"flex flex-1 overflow-hidden{rowWidthClass}\">");
 
             if (_config.Layout.Sidebar)
             {
@@ -151,6 +153,41 @@ namespace Neko.Builder
             sb.AppendLine("</html>");
 
             return sb.ToString();
+        }
+
+        // Tailwind classes that cap and centre a layout region at the
+        // configured `layout.maxWidth`. Returns an empty string when the cap
+        // is disabled ("full"/"none"), leaving the region full-width.
+        private string LayoutMaxWidthClass()
+        {
+            var mw = _config.Layout?.MaxWidth?.Trim();
+            if (string.IsNullOrEmpty(mw)
+                || mw.Equals("full", System.StringComparison.OrdinalIgnoreCase)
+                || mw.Equals("none", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+
+            string cls;
+            if (mw.StartsWith("max-w-"))
+            {
+                cls = mw;
+            }
+            else if (mw.IndexOf("px", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || mw.IndexOf("rem", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || mw.IndexOf("em", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || mw.Contains("%")
+                || mw.IndexOf("vw", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || mw.IndexOf("ch", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                cls = $"max-w-[{mw}]";
+            }
+            else
+            {
+                cls = $"max-w-{mw}";
+            }
+
+            return $"{cls} mx-auto";
         }
 
         private static string EscapeHtmlAttr(string value)

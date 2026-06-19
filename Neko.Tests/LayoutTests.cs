@@ -119,5 +119,66 @@ input: .
 
             Assert.That(html, Does.Not.Contain("id=\"toc-sidebar\""));
         }
+
+        [Test]
+        public void TestMaxWidthDefault()
+        {
+            var yaml = @"
+input: .
+";
+            var tempFile = Path.GetTempFileName();
+            File.WriteAllText(tempFile, yaml);
+
+            try
+            {
+                var config = ConfigParser.Parse(tempFile);
+                Assert.That(config.Layout.MaxWidth, Is.EqualTo("screen-2xl"));
+            }
+            finally
+            {
+                File.Delete(tempFile);
+            }
+        }
+
+        [Test]
+        public void TestMaxWidthCapsLayoutByDefault()
+        {
+            var config = new NekoConfig();
+            var generator = new HtmlGenerator(config);
+            var doc = new ParsedDocument { Html = "Content" };
+
+            var html = generator.Generate(doc);
+
+            // The body row, header content, and pivot row share the centred cap.
+            Assert.That(html, Contains.Substring("flex flex-1 overflow-hidden max-w-screen-2xl mx-auto w-full"));
+            Assert.That(html, Contains.Substring("max-w-screen-2xl mx-auto"));
+        }
+
+        [Test]
+        public void TestMaxWidthFullDisablesCap()
+        {
+            var config = new NekoConfig();
+            config.Layout.MaxWidth = "full";
+            var generator = new HtmlGenerator(config);
+            var doc = new ParsedDocument { Html = "Content" };
+
+            var html = generator.Generate(doc);
+
+            Assert.That(html, Does.Not.Contain("max-w-screen-2xl"));
+            Assert.That(html, Contains.Substring("flex flex-1 overflow-hidden\""));
+        }
+
+        [Test]
+        public void TestMaxWidthRawCssLengthBecomesArbitraryValue()
+        {
+            var config = new NekoConfig();
+            config.Layout.MaxWidth = "1600px";
+            var generator = new HtmlGenerator(config);
+            var doc = new ParsedDocument { Html = "Content" };
+
+            var html = generator.Generate(doc);
+
+            Assert.That(html, Contains.Substring("max-w-[1600px] mx-auto"));
+        }
     }
 }

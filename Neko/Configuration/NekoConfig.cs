@@ -265,6 +265,15 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "toc")]
         public bool Toc { get; set; } = true;
+
+        // Caps the width of the header content, pivot tabs, and the
+        // sidebar + content + TOC row, centring them on wide screens so the
+        // layout stops expanding past a comfortable reading width. Accepts a
+        // Tailwind max-width token (e.g. "screen-2xl", "7xl"), a full
+        // "max-w-…" class, or a raw CSS length ("1600px", "90rem"). Use
+        // "full" or "none" to disable the cap and span the full viewport.
+        [YamlMember(Alias = "maxWidth")]
+        public string MaxWidth { get; set; } = "screen-2xl";
     }
 
     public class SnippetsConfig

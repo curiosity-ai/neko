@@ -972,6 +972,75 @@ host: docs.example.com/js/plausible.js
 
 ---
 
+## layout
+
+The `layout` config controls the page chrome shared by every page — the left
+sidebar, the right Table of Contents, and how wide the content is allowed to
+grow.
+
+```yml
+layout:
+  sidebar: true
+  toc: true
+  maxWidth: screen-2xl
+```
+
+### sidebar
+
+=== sidebar : `boolean`
+
+Show the left navigation sidebar. Default is `true`.
+
+```yml
+layout:
+  sidebar: false
+```
+
+===
+
+### toc
+
+=== toc : `boolean`
+
+Show the right "On this page" Table of Contents column. Default is `true`.
+This is the layout-level on/off switch; the [`toc`](#toc) config tunes the
+contents (depth, label).
+
+```yml
+layout:
+  toc: false
+```
+
+===
+
+### maxWidth
+
+=== maxWidth : `string`
+
+Caps and centres the header content, the pivot tabs, and the sidebar +
+content + TOC row. On wide monitors the layout stops expanding past this width
+and is centred, rather than stretching edge-to-edge. The default is
+`screen-2xl` (1536px).
+
+```yml
+layout:
+  maxWidth: screen-2xl
+```
+
+Accepted values:
+
+Value | Description
+--- | ---
+`screen-2xl` | `default` Tailwind max-width token — 1536px
+`7xl`, `6xl`, … | Any Tailwind `max-w-*` token (without the `max-w-` prefix)
+`max-w-[1800px]` | A full Tailwind class, used verbatim
+`1600px`, `90rem` | A raw CSS length, wrapped as an arbitrary value
+`full` / `none` | Disable the cap — the layout spans the full viewport width
+
+===
+
+---
+
 ## links
 
 Custom links added to the top-bar navigation of all pages.

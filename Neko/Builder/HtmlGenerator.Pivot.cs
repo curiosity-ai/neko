@@ -53,8 +53,10 @@ namespace Neko.Builder
 
             if (activeGroup == null) return;
 
+            var maxWidthClass = LayoutMaxWidthClass();
+            var innerWidthClass = string.IsNullOrEmpty(maxWidthClass) ? string.Empty : $" {maxWidthClass} w-full";
             sb.AppendLine("    <nav class=\"shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 z-20\">");
-            sb.AppendLine("        <div class=\"flex items-center gap-6 overflow-x-auto text-sm font-medium\">");
+            sb.AppendLine($"        <div class=\"flex items-center gap-6 overflow-x-auto text-sm font-medium{innerWidthClass}\">");
             foreach (var item in activeGroup.Items)
             {
                 var href = item.Link ?? "#";

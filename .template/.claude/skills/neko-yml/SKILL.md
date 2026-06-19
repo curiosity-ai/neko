@@ -44,6 +44,7 @@ links:
 | `banner`    | Site-wide announcement bar. See [`banner`](../banner/SKILL.md).            |
 | `footer`    | Footer content (`copyright`, custom links).                                |
 | `nav`       | Project-wide nav settings (`mode: stack`; `icons.mode` — sidebar icons, default `none`). |
+| `layout`    | Page chrome: `sidebar`/`toc` toggles and the `maxWidth` content cap.       |
 | `toc`       | Default right-sidebar TOC settings.                                        |
 | `backlinks` | Default inbound-link block behaviour.                                      |
 | `start`     | Dev-server tweaks (`pro: true`, ports).                                    |
@@ -167,6 +168,28 @@ hide them.
 footer:
   copyright: "&copy; Copyright {{ year }}. All rights reserved."
 ```
+
+## Layout
+
+Controls the page chrome shared by every page.
+
+```yml
+layout:
+  sidebar: true          # show the left navigation sidebar (default true)
+  toc: true              # show the right "On this page" TOC (default true)
+  maxWidth: screen-2xl   # cap + centre the content on wide screens (default screen-2xl)
+```
+
+`maxWidth` caps the width of the header content, the pivot tabs, and the
+sidebar + content + TOC row, then centres them. On wide monitors the layout
+stops expanding past this width instead of stretching edge-to-edge. Accepted
+values:
+
+- a Tailwind max-width token — `screen-2xl` (default, 1536px), `7xl`, `6xl`, …
+- a full class — `max-w-[1800px]`
+- a raw CSS length — `1600px`, `90rem`
+- `full` or `none` to disable the cap and span the whole viewport (the previous
+  behaviour).
 
 ## Image generation defaults
 
