@@ -17,14 +17,20 @@ namespace Neko.Builder
     /// against the files actually written to disk; <c>#fragment</c> anchors are
     /// checked against the <c>id</c>/<c>name</c> attributes in the target page;
     /// external <c>http(s)</c> links are only contacted when <c>--external</c> is
-    /// passed. Returns a non-zero exit code when any broken link is found, so it
-    /// can gate a CI pipeline.
+    /// passed. With <c>--redirects</c> the external probe also reports links that
+    /// resolve only after an HTTP redirect (advisory — they still work, but the
+    /// target moved). External probing issues a HEAD and falls back to GET when a
+    /// server answers HEAD with a non-success status, so hosts like nuget.org that
+    /// reject HEAD are not reported as false positives. Returns a non-zero exit
+    /// code when any broken link is found, so it can gate a CI pipeline; redirects
+    /// are advisory and never change the exit code.
     /// </summary>
     public class CheckLinksCommand
     {
         private readonly string _input;
         private readonly bool _checkExternal;
         private readonly bool _checkAnchors;
+        private readonly bool _checkRedirects;
 
         // href="..." / href='...' / src="..." / src='...' across any tag.
         private static readonly Regex LinkRegex = new(
@@ -36,11 +42,14 @@ namespace Neko.Builder
             "(?:id|name)\\s*=\\s*([\"'])(.*?)\\1",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-        public CheckLinksCommand(string input, bool checkExternal, bool checkAnchors)
+        public CheckLinksCommand(string input, bool checkExternal, bool checkAnchors, bool checkRedirects = false)
         {
             _input = input;
-            _checkExternal = checkExternal;
+            // Redirect checking implies external probing — both reach out over the
+            // network and the redirect chain is established while probing.
+            _checkExternal = checkExternal || checkRedirects;
             _checkAnchors = checkAnchors;
+            _checkRedirects = checkRedirects;
         }
 
         // Detail carries per-page context (e.g. the path a relative link actually
@@ -74,6 +83,10 @@ namespace Neko.Builder
                 + (skippedAssetPages > 0 ? $" (skipped {skippedAssetPages} HTML file(s) under assets/)" : "") + "...");
 
             var broken = new List<BrokenLink>();
+            // External links that resolve only after one or more HTTP redirects.
+            // Reported separately (and advisory): the link works today, but the
+            // target URL should usually be updated to its canonical destination.
+            var redirected = new List<BrokenLink>();
             var anchorCache = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
             // Distinct external URLs mapped to the pages that reference them.
             var externalRefs = new Dictionary<string, List<string>>(StringComparer.Ordinal);
@@ -160,8 +173,9 @@ namespace Neko.Builder
 
             if (_checkExternal && externalRefs.Count > 0)
             {
-                Console.WriteLine($"[check-links] Checking {externalRefs.Count} external URL(s)...");
-                await CheckExternalAsync(externalRefs, broken);
+                Console.WriteLine($"[check-links] Checking {externalRefs.Count} external URL(s)"
+                    + (_checkRedirects ? " (reporting redirects)" : "") + "...");
+                await CheckExternalAsync(externalRefs, broken, redirected);
             }
 
             // Report. Links are grouped by their (target, reason) so a single
@@ -169,9 +183,36 @@ namespace Neko.Builder
             // present on every page — is shown once with an occurrence count,
             // rather than once per page.
             Console.WriteLine();
+
+            // Redirected links are advisory: they resolve fine today but point at a
+            // URL that now redirects. Print them in their own section so they don't
+            // get confused with hard failures, and never let them change the exit
+            // code (an http->https redirect shouldn't fail a CI gate).
+            if (redirected.Count > 0)
+            {
+                var redirectGroups = redirected
+                    .GroupBy(b => (b.Url, b.Reason))
+                    .OrderByDescending(g => g.Count())
+                    .ThenBy(g => g.Key.Url, StringComparer.Ordinal)
+                    .ToList();
+
+                Console.WriteLine($"[check-links] {redirectGroups.Count} link(s) redirect (advisory — they resolve, but the target moved):");
+                Console.WriteLine();
+                foreach (var g in redirectGroups)
+                {
+                    Console.WriteLine($"  ↪ {g.Key.Url}   — {g.Key.Reason}");
+                    foreach (var pg in g.GroupBy(x => x.SourcePage).Take(3))
+                        Console.WriteLine($"      on {pg.Key}");
+                    var more = g.GroupBy(x => x.SourcePage).Count() - 3;
+                    if (more > 0) Console.WriteLine($"      … and {more} more page(s)");
+                    Console.WriteLine();
+                }
+            }
+
             if (broken.Count == 0)
             {
-                Console.WriteLine($"[check-links] No broken links found across {htmlFiles.Length} page(s) ({checkedLinks} link(s) checked).");
+                Console.WriteLine($"[check-links] No broken links found across {htmlFiles.Length} page(s) ({checkedLinks} link(s) checked)."
+                    + (redirected.Count > 0 ? $" {redirected.Select(r => r.Url).Distinct().Count()} link(s) redirect — see above." : ""));
                 return 0;
             }
 
@@ -315,14 +356,20 @@ namespace Neko.Builder
             return false;
         }
 
-        private static async Task CheckExternalAsync(Dictionary<string, List<string>> externalRefs, List<BrokenLink> broken)
+        private const int MaxRedirects = 10;
+
+        private async Task CheckExternalAsync(
+            Dictionary<string, List<string>> externalRefs, List<BrokenLink> broken, List<BrokenLink> redirected)
         {
-            using var handler = new HttpClientHandler { AllowAutoRedirect = true, MaxAutomaticRedirections = 10 };
+            // Auto-redirect is disabled so we can observe and report 3xx hops
+            // ourselves; ProbeAsync follows the chain manually up to MaxRedirects.
+            using var handler = new HttpClientHandler { AllowAutoRedirect = false };
             using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Neko-LinkChecker/1.0");
 
             using var throttle = new SemaphoreSlim(8);
-            var results = new ConcurrentBag<BrokenLink>();
+            var brokenResults = new ConcurrentBag<BrokenLink>();
+            var redirectResults = new ConcurrentBag<BrokenLink>();
 
             var tasks = externalRefs.Select(async kvp =>
             {
@@ -330,12 +377,17 @@ namespace Neko.Builder
                 await throttle.WaitAsync();
                 try
                 {
-                    var reason = await ProbeAsync(client, url);
+                    var (reason, finalUrl) = await ProbeAsync(client, url);
                     if (reason != null)
                     {
                         // Report once per (page, url) so the source pages are listed.
                         foreach (var page in kvp.Value.Distinct())
-                            results.Add(new BrokenLink(page, url, reason));
+                            brokenResults.Add(new BrokenLink(page, url, reason));
+                    }
+                    else if (_checkRedirects && finalUrl != null)
+                    {
+                        foreach (var page in kvp.Value.Distinct())
+                            redirectResults.Add(new BrokenLink(page, url, "redirects to " + finalUrl));
                     }
                 }
                 finally
@@ -345,50 +397,97 @@ namespace Neko.Builder
             });
 
             await Task.WhenAll(tasks);
-            broken.AddRange(results);
+            broken.AddRange(brokenResults);
+            redirected.AddRange(redirectResults);
         }
 
-        // Returns null when the URL is reachable, otherwise a short failure reason.
-        // Tries a cheap HEAD first and falls back to GET for hosts that reject it.
-        private static async Task<string?> ProbeAsync(HttpClient client, string url)
+        // Probes an external URL, manually following redirects so the final
+        // destination can be reported. Returns (null, finalUrl) when the URL is
+        // reachable — finalUrl is non-null only when at least one redirect was
+        // followed — or (reason, null) when it is broken.
+        private static async Task<(string? Reason, string? FinalUrl)> ProbeAsync(HttpClient client, string url)
         {
+            var current = url;
+            string? finalUrl = null;
+            var visited = new HashSet<string>(StringComparer.Ordinal) { url };
+
+            for (var hop = 0; hop <= MaxRedirects; hop++)
+            {
+                HttpResponseMessage resp;
+                try
+                {
+                    resp = await SendWithFallbackAsync(client, current);
+                }
+                catch (TaskCanceledException)
+                {
+                    return ("request timed out", null);
+                }
+                catch (Exception ex)
+                {
+                    return (ex.Message, null);
+                }
+
+                using (resp)
+                {
+                    var code = (int)resp.StatusCode;
+
+                    if (IsRedirect(resp.StatusCode))
+                    {
+                        var location = resp.Headers.Location;
+                        if (location == null)
+                            return ($"HTTP {code} (redirect without Location)", null);
+
+                        var next = location.IsAbsoluteUri
+                            ? location.ToString()
+                            : new Uri(new Uri(current), location).ToString();
+
+                        if (!visited.Add(next))
+                            return ("redirect loop", null);
+
+                        current = next;
+                        finalUrl = next;
+                        continue;
+                    }
+
+                    if (resp.IsSuccessStatusCode)
+                        return (null, finalUrl);
+
+                    return ($"HTTP {code}", null);
+                }
+            }
+
+            return ($"too many redirects (> {MaxRedirects})", null);
+        }
+
+        // Issues a cheap HEAD and falls back to GET whenever HEAD yields a
+        // non-success, non-redirect status (many servers — nuget.org, some CDNs —
+        // answer HEAD with 403/404/405 yet serve a real GET), or throws.
+        private static async Task<HttpResponseMessage> SendWithFallbackAsync(HttpClient client, string url)
+        {
+            HttpResponseMessage resp;
             try
             {
                 using var head = new HttpRequestMessage(HttpMethod.Head, url);
-                using var resp = await client.SendAsync(head, HttpCompletionOption.ResponseHeadersRead);
-                if ((int)resp.StatusCode == 405 || (int)resp.StatusCode == 501 || (int)resp.StatusCode == 403)
-                    return await ProbeGetAsync(client, url);
-                return resp.IsSuccessStatusCode ? null : $"HTTP {(int)resp.StatusCode}";
+                resp = await client.SendAsync(head, HttpCompletionOption.ResponseHeadersRead);
             }
             catch (HttpRequestException)
             {
-                return await ProbeGetAsync(client, url);
+                using var get = new HttpRequestMessage(HttpMethod.Get, url);
+                return await client.SendAsync(get, HttpCompletionOption.ResponseHeadersRead);
             }
-            catch (TaskCanceledException)
-            {
-                return "request timed out";
-            }
-            catch (Exception ex)
-            {
-                return ex.Message;
-            }
+
+            if (resp.IsSuccessStatusCode || IsRedirect(resp.StatusCode))
+                return resp;
+
+            resp.Dispose();
+            using var getReq = new HttpRequestMessage(HttpMethod.Get, url);
+            return await client.SendAsync(getReq, HttpCompletionOption.ResponseHeadersRead);
         }
 
-        private static async Task<string?> ProbeGetAsync(HttpClient client, string url)
+        private static bool IsRedirect(HttpStatusCode status)
         {
-            try
-            {
-                using var resp = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-                return resp.IsSuccessStatusCode ? null : $"HTTP {(int)resp.StatusCode}";
-            }
-            catch (TaskCanceledException)
-            {
-                return "request timed out";
-            }
-            catch (Exception ex)
-            {
-                return ex.Message;
-            }
+            var code = (int)status;
+            return code is 301 or 302 or 303 or 307 or 308;
         }
     }
 }
