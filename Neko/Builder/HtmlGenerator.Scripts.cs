@@ -24,6 +24,7 @@ namespace Neko.Builder
             RenderLineHighlightScript(sb);
             RenderFragmentScrollScript(sb);
             RenderPageLinkClickScript(sb);
+            RenderChangelogStickyScript(sb);
 
             sb.AppendLine("    </script>");
         }
@@ -545,6 +546,29 @@ namespace Neko.Builder
             sb.AppendLine("                if (target && target !== '_self') { window.open(finalUrl, target); } else { window.location.href = finalUrl; }");
             sb.AppendLine("            });");
             sb.AppendLine("        });");
+        }
+
+        // Changelog version headers swap between an in-flow rounded card and a full-bleed
+        // sticky bar. There is no widely-supported CSS `:stuck` selector, so a zero-size
+        // sentinel marks each header's natural top and an IntersectionObserver (rooted at
+        // #main-scroll) toggles `.is-stuck` once the sentinel scrolls above the pane top.
+        private void RenderChangelogStickyScript(StringBuilder sb)
+        {
+            sb.AppendLine("        (function() {");
+            sb.AppendLine("            var root = document.getElementById('main-scroll');");
+            sb.AppendLine("            var sentinels = document.querySelectorAll('.neko-cl-sentinel');");
+            sb.AppendLine("            if (!root || !sentinels.length || !('IntersectionObserver' in window)) return;");
+            sb.AppendLine("            var io = new IntersectionObserver(function(entries) {");
+            sb.AppendLine("                entries.forEach(function(e) {");
+            sb.AppendLine("                    var header = e.target.nextElementSibling;");
+            sb.AppendLine("                    if (!header) return;");
+            sb.AppendLine("                    var rb = e.rootBounds;");
+            sb.AppendLine("                    var stuck = !e.isIntersecting && !!rb && e.boundingClientRect.top <= rb.top;");
+            sb.AppendLine("                    header.classList.toggle('is-stuck', stuck);");
+            sb.AppendLine("                });");
+            sb.AppendLine("            }, { root: root, threshold: [0] });");
+            sb.AppendLine("            sentinels.forEach(function(s) { io.observe(s); });");
+            sb.AppendLine("        })();");
         }
     }
 }

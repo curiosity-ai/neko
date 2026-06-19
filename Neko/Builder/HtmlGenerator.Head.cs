@@ -413,6 +413,20 @@ namespace Neko.Builder
             sb.AppendLine("        .dark .api-details dd { color: #e5e7eb; }");
             sb.AppendLine("        /* Inline code inside an endpoint (paths excepted) gets a subtle pill. */");
             sb.AppendLine("        .api-endpoint :not(.api-path) > code, .api-endpoint code:not(.api-path) { background: rgba(148, 163, 184, 0.18); padding: 0.12em 0.4em; border-radius: 0.25rem; font-size: 0.85em; }");
+            sb.AppendLine("        /* Changelog version header — two states.");
+            sb.AppendLine("           In flow it is a rounded, blurred, inset card. When it sticks to the");
+            sb.AppendLine("           top of the scroll pane (`.is-stuck`, toggled by an observer) the card");
+            sb.AppendLine("           styling drops and a full-bleed background layer spans the whole pane. */");
+            sb.AppendLine("        .neko-changelog-version { position: sticky; top: -1rem; z-index: 20; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; padding: 0.625rem 1rem; border-radius: 1rem; border: 1px solid rgba(229, 231, 235, 0.7); background-color: rgba(255, 255, 255, 0.92); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); transition: border-radius 0.15s ease, border-color 0.15s ease; }");
+            sb.AppendLine("        @media (min-width: 768px) { .neko-changelog-version { top: -2rem; } }");
+            sb.AppendLine("        .dark .neko-changelog-version { border-color: rgba(255, 255, 255, 0.1); background-color: rgba(17, 24, 39, 0.92); }");
+            sb.AppendLine("        @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) { .neko-changelog-version { background-color: rgba(255, 255, 255, 0.78); } .dark .neko-changelog-version { background-color: rgba(17, 24, 39, 0.78); } }");
+            sb.AppendLine("        .neko-cl-sentinel { position: absolute; top: 0; left: 0; width: 1px; height: 1px; pointer-events: none; }");
+            sb.AppendLine("        .neko-cl-bleed { display: none; }");
+            sb.AppendLine("        .neko-changelog-version.is-stuck { border-radius: 0; border-color: transparent; background-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }");
+            sb.AppendLine("        .neko-changelog-version.is-stuck .neko-cl-bleed { display: block; position: absolute; top: 0; bottom: 0; left: -50vw; right: -50vw; z-index: -10; border-bottom: 1px solid rgba(229, 231, 235, 0.7); background-color: rgba(255, 255, 255, 0.92); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }");
+            sb.AppendLine("        .dark .neko-changelog-version.is-stuck .neko-cl-bleed { border-bottom-color: rgba(255, 255, 255, 0.1); background-color: rgba(17, 24, 39, 0.92); }");
+            sb.AppendLine("        @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) { .neko-changelog-version.is-stuck .neko-cl-bleed { background-color: rgba(255, 255, 255, 0.78); } .dark .neko-changelog-version.is-stuck .neko-cl-bleed { background-color: rgba(17, 24, 39, 0.78); } }");
             sb.AppendLine("    </style>");
         }
 
