@@ -37,6 +37,7 @@ links:
 | `cname`     | Value written to `CNAME` for GitHub Pages.                                 |
 | `sitemap`   | Generate `sitemap.xml`. Default `true`; skipped when `url` is unset.       |
 | `branding`  | Logo, title, label, colours.                                               |
+| `breadcrumb`| Friendly project name shown as the leading crumb in cross-project search.   |
 | `theme`     | Theme name and overrides.                                                  |
 | `meta`      | Default `<meta>` tags (description, keywords, author, image, og:type).     |
 | `links`     | Header navigation.                                                         |
@@ -65,6 +66,26 @@ branding:
   baseColor: "#5495f1"
   repository: https://github.com/owner/repo
 ```
+
+## Breadcrumb (cross-project search)
+
+In a multi-repo site, every search result leads with a crumb naming the
+sub-project it belongs to (e.g. `Connect & Ingest › Guides`). This name comes
+from the **navbar** by default: the `text` of the `links` entry whose target is
+the project's root. The navbar already names every sub-project, so it is the
+single shared source — no per-project setup needed.
+
+Set `breadcrumb.label` only to override the navbar (or to name a sub-project
+that isn't in the navbar):
+
+```yml
+breadcrumb:
+  label: Connect & Ingest
+```
+
+Resolution order: navbar label → `breadcrumb.label` → `branding.label` →
+`branding.title` → title-cased mount path. The override is project-local (not
+inherited from a parent) and has no effect on the root project (no mount path).
 
 ## Theme
 

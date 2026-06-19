@@ -27,6 +27,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "branding")]
         public BrandingConfig Branding { get; set; } = new BrandingConfig();
 
+        [YamlMember(Alias = "breadcrumb")]
+        public BreadcrumbConfig Breadcrumb { get; set; } = new BreadcrumbConfig();
+
         [YamlMember(Alias = "links")]
         public List<LinkConfig> Links { get; set; } = new List<LinkConfig>();
 
@@ -331,6 +334,21 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "repository")]
         public string Repository { get; set; }
+    }
+
+    public class BreadcrumbConfig
+    {
+        // Friendly name for this (sub-)project in the cross-project search
+        // breadcrumb trail — the first crumb a result shows. Falls back to
+        // `branding.label`, then `branding.title`, then a title-cased route
+        // prefix when unset. Project-local: not inherited from a parent config.
+        [YamlMember(Alias = "label")]
+        public string Label { get; set; }
+
+        // Reserved for the on-page breadcrumb home marker (icon/text). Parsed so
+        // a `breadcrumb: { home: … }` block doesn't trip up deserialization.
+        [YamlMember(Alias = "home")]
+        public string Home { get; set; }
     }
 
     public class LinkConfig

@@ -274,6 +274,32 @@ breadcrumb:
 ```
 ===
 
+### label
+
+=== label : `string`
+An override for this project's name in the **cross-project search breadcrumb** —
+the first crumb shown above each search result. In a multi-repo site, search is
+aggregated across every sub-project, so each result leads with the project it
+belongs to (e.g. `Connect & Ingest › Guides`).
+
+By default this name is taken from the **navbar**: the text of the [`links`](#links)
+entry whose target is the project's root. The navbar already names every
+sub-project, so it is the single, shared source — no per-project configuration is
+needed. Set `breadcrumb.label` only to override the navbar (or to name a
+sub-project that doesn't appear in the navbar):
+
+```yml
+breadcrumb:
+  label: Connect & Ingest
+```
+
+Resolution order: the **navbar label** for the project's root, then
+`breadcrumb.label`, then [`branding.label`](#label), then
+[`branding.title`](#branding-title), then a title-cased version of the project's
+mount path. The override is project-local — it is **not** inherited from a parent
+config — and has no effect on the root project, which has no mount path.
+===
+
 ### separator
 
 === separator : `string`
