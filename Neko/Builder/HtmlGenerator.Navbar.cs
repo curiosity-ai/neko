@@ -5,6 +5,14 @@ namespace Neko.Builder
 {
     public partial class HtmlGenerator
     {
+        // Navigation icons are hidden by default; a site opts back in per-context
+        // via the `nav:` block in neko.yml. `icons` covers the header (top-level
+        // links + dropdown triggers), `dropdownIcons` the flyout menu items, and
+        // `pivotIcons` the contextual pivot tab bar.
+        private bool _showHeaderIcons => _config.Nav?.HeaderIcons ?? false;
+        private bool _showDropdownIcons => _config.Nav?.DropdownIcons ?? false;
+        private bool _showPivotIcons => _config.Nav?.PivotIcons ?? false;
+
         private void RenderBanner(StringBuilder sb)
         {
             if (_config.Banner == null || !_config.Banner.Visible || string.IsNullOrEmpty(_config.Banner.Text)) return;
@@ -152,7 +160,7 @@ namespace Neko.Builder
                     else
                     {
                          var href = link.Link ?? "#";
-                         var iconHtml = string.IsNullOrEmpty(link.Icon) ? "" : $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(link.Icon)} mr-2\"></i>";
+                         var iconHtml = (!_showHeaderIcons || string.IsNullOrEmpty(link.Icon)) ? "" : $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(link.Icon)} mr-2\"></i>";
                          var target = !string.IsNullOrEmpty(link.Target) ? $" target=\"{link.Target}\"" : "";
                          sb.AppendLine($"            <a href=\"{href}\"{target} class=\"hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center text-sm/3\">{iconHtml}{link.Text}</a>");
                     }
@@ -165,7 +173,7 @@ namespace Neko.Builder
         {
             sb.AppendLine($"            <div class=\"relative group z-50\">");
             sb.AppendLine($"                <button class=\"flex items-center gap-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors focus:outline-none\">");
-            if (!string.IsNullOrEmpty(link.Icon))
+            if (_showHeaderIcons && !string.IsNullOrEmpty(link.Icon))
             {
                 sb.AppendLine($"                    <i class=\"{Neko.Builder.IconHelper.GetIconClass(link.Icon)}\"></i>");
             }
@@ -179,16 +187,19 @@ namespace Neko.Builder
                 var itemHref = item.Link ?? "#";
                 var itemTarget = !string.IsNullOrEmpty(item.Target) ? $" target=\"{item.Target}\"" : "";
                 sb.AppendLine($"                        <div class=\"group relative flex items-center gap-x-6 rounded-lg p-4 text-sm leading-6 hover:bg-gray-50 dark:hover:bg-gray-700/50\">");
-                sb.AppendLine($"                            <div class=\"flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700 group-hover:bg-white dark:group-hover:bg-gray-600\">");
-                if (!string.IsNullOrEmpty(item.Icon))
+                if (_showDropdownIcons)
                 {
-                    sb.AppendLine($"                                <i class=\"{Neko.Builder.IconHelper.GetIconClass(item.Icon)} text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400\"></i>");
+                    sb.AppendLine($"                            <div class=\"flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700 group-hover:bg-white dark:group-hover:bg-gray-600\">");
+                    if (!string.IsNullOrEmpty(item.Icon))
+                    {
+                        sb.AppendLine($"                                <i class=\"{Neko.Builder.IconHelper.GetIconClass(item.Icon)} text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400\"></i>");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"                                <i class=\"fi fi-rr-arrow-small-right text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400\"></i>");
+                    }
+                    sb.AppendLine($"                            </div>");
                 }
-                else
-                {
-                    sb.AppendLine($"                                <i class=\"fi fi-rr-arrow-small-right text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400\"></i>");
-                }
-                sb.AppendLine($"                            </div>");
                 sb.AppendLine($"                            <div class=\"flex-auto\">");
                 sb.AppendLine($"                                <a href=\"{itemHref}\"{itemTarget} class=\"block font-semibold text-gray-900 dark:text-gray-100 text-sm/3\">");
                 sb.AppendLine($"                                    {item.Text}");
@@ -211,7 +222,7 @@ namespace Neko.Builder
                      var footerHref = footerItem.Link ?? "#";
                      var footerTarget = !string.IsNullOrEmpty(footerItem.Target) ? $" target=\"{footerItem.Target}\"" : "";
                      sb.AppendLine($"                        <a href=\"{footerHref}\"{footerTarget} class=\"flex items-center justify-center gap-x-2.5 p-3 text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700\">");
-                     if (!string.IsNullOrEmpty(footerItem.Icon))
+                     if (_showDropdownIcons && !string.IsNullOrEmpty(footerItem.Icon))
                      {
                          sb.AppendLine($"                            <i class=\"{Neko.Builder.IconHelper.GetIconClass(footerItem.Icon)} text-gray-400 dark:text-gray-500\"></i>");
                      }

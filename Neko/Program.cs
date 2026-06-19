@@ -283,9 +283,11 @@ namespace Neko
             var checkLinksInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var checkLinksExternalOption = new Option<bool>(new[] { "--external" }, () => false, "Also verify external http(s) links over the network");
             var checkLinksNoAnchorsOption = new Option<bool>(new[] { "--no-anchors" }, () => false, "Skip validation of #fragment anchors");
+            var checkLinksRedirectsOption = new Option<bool>(new[] { "--redirects" }, () => false, "Report external links that resolve via an HTTP redirect (implies --external)");
             checkLinksCommand.AddOption(checkLinksInputOption);
             checkLinksCommand.AddOption(checkLinksExternalOption);
             checkLinksCommand.AddOption(checkLinksNoAnchorsOption);
+            checkLinksCommand.AddOption(checkLinksRedirectsOption);
 
             // Use the InvocationContext so the broken-link exit code propagates
             // as the process exit code (InvokeAsync's return value, which Main
@@ -295,8 +297,9 @@ namespace Neko
                 var input = context.ParseResult.GetValueForOption(checkLinksInputOption) ?? ".";
                 var external = context.ParseResult.GetValueForOption(checkLinksExternalOption);
                 var noAnchors = context.ParseResult.GetValueForOption(checkLinksNoAnchorsOption);
+                var redirects = context.ParseResult.GetValueForOption(checkLinksRedirectsOption);
 
-                var cmd = new Neko.Builder.CheckLinksCommand(input, external, checkAnchors: !noAnchors);
+                var cmd = new Neko.Builder.CheckLinksCommand(input, external, checkAnchors: !noAnchors, checkRedirects: redirects);
                 context.ExitCode = await cmd.RunAsync();
             });
 

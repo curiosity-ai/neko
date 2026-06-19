@@ -1112,6 +1112,18 @@ links:
         icon: lock
         description: Protect your data
 ```
+
+A group with `items` also doubles as a **contextual pivot**: while the reader is
+inside the section, Neko renders the same items as a row of tabs in a secondary
+navigation bar directly below the header, with the tab for the current page
+highlighted. A page is "inside" the section when its URL matches one of the
+group's item links (or sits below it). This is the default behaviour for every
+dropdown group — no extra configuration is required.
+
+With the example above, opening any page under `/products/security/` shows the
+two tabs below the header with **Security** active. If several groups define
+items, the group whose item most specifically matches the current page is the
+one shown, so sibling sections that share a path prefix do not collide.
 ===
 
 ### description
@@ -1328,6 +1340,55 @@ nav:
 
 The `nav.icons.mode` setting can be used in conjunction with [`nav.mode: stack`](#mode) to handle many different icon and navigation rendering combinations.
 
+===
+
+### headerIcons{#nav-headerIcons}
+
+=== headerIcons : `boolean`
+
+Controls whether icons are shown on the **top-bar** navigation — both the
+plain [`links`](#links) and the dropdown trigger buttons. Icons are **hidden by
+default**; set `headerIcons: true` to show the `icon:` you configured on each
+link.
+
+```yml
+nav:
+  headerIcons: true
+```
+
+This only affects the header. Icons inside dropdown menus are controlled by
+[`dropdownIcons`](#nav-dropdownIcons) and pivot-tab icons by
+[`pivotIcons`](#nav-pivotIcons). Your `icon:` values stay in `neko.yml` either
+way, so toggling the flag is all that's needed to show or hide them.
+===
+
+### dropdownIcons{#nav-dropdownIcons}
+
+=== dropdownIcons : `boolean`
+
+Controls whether icons are shown on the items **inside** dropdown (flyout)
+menus, including their footer items. Hidden by default; when off, the icon
+column is removed entirely so item text aligns to the left. Set
+`dropdownIcons: true` to show them.
+
+```yml
+nav:
+  dropdownIcons: true
+```
+===
+
+### pivotIcons{#nav-pivotIcons}
+
+=== pivotIcons : `boolean`
+
+Controls whether icons are shown on the contextual **pivot** tab bar (see
+[`links` › `items`](#items)). Hidden by default; set `pivotIcons: true` to show
+the item `icon:` on each tab.
+
+```yml
+nav:
+  pivotIcons: true
+```
 ===
 
 ---
