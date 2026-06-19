@@ -50,8 +50,9 @@ public class TodoApp
 - Samples compile in parallel in a warm-up pass before pages render. Tune the
   degree with `tesserae.maxParallelism` in `neko.yml` (`0` = CPU count).
 - Pin the Tesserae version with `tesserae.version` in `neko.yml` for
-  deterministic builds — otherwise Neko uses the latest stable version (cached
-  for 24h). See the `neko-yml` skill.
+  deterministic builds — otherwise Neko resolves the latest stable version once
+  and records it on disk, reusing it on every later build (no expiry). See the
+  `neko-yml` skill.
 
 ## Tips
 

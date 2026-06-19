@@ -31,13 +31,8 @@ namespace Neko.Builder
         private static Dictionary<string, NuGetVersion> _cachedLatestVersion = new Dictionary<string, NuGetVersion>();
 
         // Resolving a package version touches the network and writes the on-disk
-        // version cache, so serialise it across the parallel warm pass.
+        // version record, so serialise it across the parallel warm pass.
         private static readonly SemaphoreSlim _versionLock = new SemaphoreSlim(1, 1);
-
-        // How long a resolved "latest" version stays valid on disk before we
-        // re-query NuGet. Keeps repeated `neko watch` starts network-free while
-        // still picking up new releases within a day.
-        private static readonly TimeSpan VersionTtl = TimeSpan.FromHours(24);
 
         // In-memory cache of compiled results, keyed by {hash}_{version}. Survives
         // across watch rebuilds (the process stays alive), so an unchanged sample
@@ -147,29 +142,23 @@ namespace Neko.Builder
             return true;
         }
 
-        // ---- version resolution (disk-cached) ----
-
-        private sealed class VersionCacheEntry
-        {
-            public string Version { get; set; }
-            public DateTime ResolvedAtUtc { get; set; }
-        }
+        // ---- version resolution (recorded on disk, no expiry) ----
 
         private static string GetVersionsFilePath() => Path.Combine(GetCacheDir(), "versions.json");
 
-        private static Dictionary<string, VersionCacheEntry> LoadVersionsFile()
+        private static Dictionary<string, string> LoadVersionsFile()
         {
             try
             {
                 var path = GetVersionsFilePath();
-                if (!File.Exists(path)) return new Dictionary<string, VersionCacheEntry>();
+                if (!File.Exists(path)) return new Dictionary<string, string>();
                 var json = File.ReadAllText(path);
-                return JsonSerializer.Deserialize<Dictionary<string, VersionCacheEntry>>(json)
-                       ?? new Dictionary<string, VersionCacheEntry>();
+                return JsonSerializer.Deserialize<Dictionary<string, string>>(json)
+                       ?? new Dictionary<string, string>();
             }
             catch
             {
-                return new Dictionary<string, VersionCacheEntry>();
+                return new Dictionary<string, string>();
             }
         }
 
@@ -178,17 +167,17 @@ namespace Neko.Builder
             try
             {
                 var map = LoadVersionsFile();
-                map[package] = new VersionCacheEntry { Version = version.ToString(), ResolvedAtUtc = DateTime.UtcNow };
+                map[package] = version.ToString();
                 File.WriteAllText(GetVersionsFilePath(), JsonSerializer.Serialize(map));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to persist version cache: {ex.Message}");
+                Console.WriteLine($"Failed to persist version record: {ex.Message}");
             }
         }
 
         // Resolve the Tesserae version for the cache key: an explicit neko.yml pin
-        // when present, otherwise the (disk-cached) latest stable version.
+        // when present, otherwise the version recorded on disk.
         private static async Task<NuGetVersion> ResolveTesseraeVersionAsync()
         {
             if (_pinnedTesseraeVersion != null && NuGetVersion.TryParse(_pinnedTesseraeVersion, out var pinned))
@@ -215,16 +204,19 @@ namespace Neko.Builder
                     return cachedVersion;
                 }
 
-                // Reuse a fresh on-disk resolution so repeated process starts don't
-                // hit the network (and so the cache key stays stable between them).
+                // The resolved version is recorded on disk with no expiry. Once a
+                // version is known, it is reused verbatim — so the sample cache key
+                // stays identical across rebuilds and `neko watch` restarts, and a
+                // later upstream release never silently invalidates the cache. The
+                // on-disk record (not process memory) is the source of truth; the
+                // in-memory map is only a within-process read-through. Delete the
+                // cache directory or pin `tesserae.version` to move to a new version.
                 var diskMap = LoadVersionsFile();
-                if (diskMap.TryGetValue(package, out var entry)
-                    && (DateTime.UtcNow - entry.ResolvedAtUtc) < VersionTtl
-                    && NuGetVersion.TryParse(entry.Version, out var diskVersion))
+                if (diskMap.TryGetValue(package, out var recorded) && NuGetVersion.TryParse(recorded, out var recordedVersion))
                 {
-                    _cachedLatestVersion[package] = diskVersion;
-                    await EnsurePackageRestored(diskVersion, package);
-                    return diskVersion;
+                    _cachedLatestVersion[package] = recordedVersion;
+                    await EnsurePackageRestored(recordedVersion, package);
+                    return recordedVersion;
                 }
 
                 Console.WriteLine($"Checking latest version for {package}");
@@ -261,7 +253,7 @@ namespace Neko.Builder
                     }
 
                     var version = _cachedLatestVersion[package] = versions.Max();
-                    Console.WriteLine($"Resolved latest {package} version: {version}");
+                    Console.WriteLine($"Resolved {package} version: {version} (recorded for future builds)");
 
                     SaveVersionEntry(package, version);
                     await EnsurePackageRestored(version, package);
@@ -270,15 +262,6 @@ namespace Neko.Builder
                 }
                 catch (Exception ex)
                 {
-                    // Offline / NuGet unreachable: fall back to a stale on-disk
-                    // resolution rather than failing the whole build.
-                    if (diskMap.TryGetValue(package, out var stale) && NuGetVersion.TryParse(stale.Version, out var staleVersion))
-                    {
-                        Console.WriteLine($"Could not refresh {package} version ({ex.Message}); using cached {staleVersion}.");
-                        _cachedLatestVersion[package] = staleVersion;
-                        await EnsurePackageRestored(staleVersion, package);
-                        return staleVersion;
-                    }
                     throw new Exception($"Failed to fetch or restore latest {package} version.", ex);
                 }
             }

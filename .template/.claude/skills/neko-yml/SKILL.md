@@ -173,12 +173,13 @@ optional.
 
 ```yml
 tesserae:
-  version: "2026.6.67522"    # pin the Tesserae NuGet version (omit = latest, cached 24h)
+  version: "2026.6.67522"    # pin the Tesserae NuGet version (omit = resolve latest once, then reuse)
   maxParallelism: 4          # parallel compiles during the warm pass (0 = CPU count)
 ```
 
-Pin `version` for deterministic builds: a new Tesserae release then never
-invalidates the on-disk sample cache until you bump it. See the `tesserae` skill.
+When `version` is omitted, Neko resolves the latest version once and records it
+on disk, reusing it on every later build (no expiry). Pin `version` (or delete
+the cache directory) to move to a different version. See the `tesserae` skill.
 
 ## Multi-repo
 

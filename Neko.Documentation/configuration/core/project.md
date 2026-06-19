@@ -2127,10 +2127,11 @@ and `neko watch` restarts instead of being recompiled.
 === version : `string`
 
 Pins the Tesserae NuGet version used to compile samples. When omitted, Neko
-resolves the latest stable version from NuGet and caches that resolution on disk
-for 24 hours (so repeated `neko watch` starts don't make a network call). Pin an
-exact version for fully deterministic builds — a new Tesserae release then never
-invalidates the sample cache until you bump it.
+resolves the latest stable version from NuGet **once**, records it on disk, and
+reuses that exact version on every later build and `neko watch` restart — so
+repeated starts make no network call and a new Tesserae release never silently
+invalidates the sample cache. Pin an exact version (or delete the cache
+directory) to move to a different version.
 
 ```yml
 tesserae:
