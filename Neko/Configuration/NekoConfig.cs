@@ -114,7 +114,7 @@ namespace Neko.Configuration
                 if (!Theme.Dark.ContainsKey(kvp.Key)) Theme.Dark[kvp.Key] = kvp.Value;
             }
 
-            if (Theme.Highlight.Light == "tokyo-night-light" && parent.Theme.Highlight.Light != "tokyo-night-light")
+            if (Theme.Highlight.Light == "github" && parent.Theme.Highlight.Light != "github")
                 Theme.Highlight.Light = parent.Theme.Highlight.Light;
             if (Theme.Highlight.Dark == "tokyo-night-dark" && parent.Theme.Highlight.Dark != "tokyo-night-dark")
                 Theme.Highlight.Dark = parent.Theme.Highlight.Dark;
@@ -435,7 +435,7 @@ namespace Neko.Configuration
     public class HighlightConfig
     {
         [YamlMember(Alias = "light")]
-        public string Light { get; set; } = "tokyo-night-light";
+        public string Light { get; set; } = "github";
 
         [YamlMember(Alias = "dark")]
         public string Dark { get; set; } = "tokyo-night-dark";
