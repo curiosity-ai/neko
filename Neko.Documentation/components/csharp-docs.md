@@ -11,12 +11,13 @@ Neko uses Roslyn to parse your code and extracts standard XML documentation tags
 
 ## Layout
 
-When the block contains an enclosing type declaration (class / struct / interface / record / enum), Neko renders:
+The layout follows the Microsoft Learn / DocFX convention for API reference pages. When the block contains an enclosing type declaration (class / struct / interface / record / enum), Neko renders:
 
 1. A **sticky header** with the type kind (class, interface, …), the type name, its signature, and its summary. The header stays pinned to the top of the `csharp-docs` area as the visitor scrolls through the rest of the section.
-2. The type's documented members grouped by kind, in this order: **Constructors → Properties → Methods → Events → Fields**. Each member is prefixed with a small kind badge (Constructor, Method, Property, …) and its name is qualified with the parent type (e.g. `DetailsList.OnColumnClick`).
+2. A **Definition** block listing the type's `Namespace` (taken from the enclosing `namespace` declaration), its `Inheritance` chain (the base class, shown as `Base → Type`), and the interfaces it `Implements`. Rows are omitted when there is nothing to show.
+3. For each member kind, a **summary table** (`Name` → anchor link, `Description`) followed by the full member documentation. Members are grouped in this order: **Constructors → Properties → Methods → Events → Fields**. Each member is prefixed with a small kind badge (Constructor, Method, Property, …) and its name is qualified with the parent type (e.g. `DetailsList.OnColumnClick`).
 
-Permalink anchors are rendered as a small link icon *after* each name. Signature whitespace is normalized at render time, so column-aligned source code (`public void        OnColumnClick()`) is shown collapsed to a single space.
+Permalink anchors are rendered as a small link icon *after* each name, and the summary-table names link to those anchors. Signature whitespace is normalized at render time, so column-aligned source code (`public void        OnColumnClick()`) is shown collapsed to a single space.
 
 For fragments without an enclosing type (e.g. the single-method example below), members are rendered inline in source order.
 
@@ -61,6 +62,42 @@ public static int AgeAt(this DateOnly dateOfBirth, DateOnly date)
 {
     int age = date.Year - dateOfBirth.Year;
     return dateOfBirth > date.AddYears(-age) ? --age : age;
+}
+```
+
+## Example: a full type
+
+When the block declares a type inside a namespace, Neko renders the Definition
+block and the per-group summary tables:
+
+```csharp-docs
+namespace Geometry
+{
+    /// <summary>
+    /// An axis-aligned rectangle defined by its width and height.
+    /// </summary>
+    public class Rectangle : Shape, IEquatable<Rectangle>
+    {
+        /// <summary>Initializes a new rectangle with the given dimensions.</summary>
+        /// <param name="width">The width, in pixels.</param>
+        /// <param name="height">The height, in pixels.</param>
+        public Rectangle(double width, double height) { }
+
+        /// <summary>Gets the width of the rectangle, in pixels.</summary>
+        public double Width { get; }
+
+        /// <summary>Gets the height of the rectangle, in pixels.</summary>
+        public double Height { get; }
+
+        /// <summary>Computes the area of the rectangle.</summary>
+        /// <returns>The area, in square pixels.</returns>
+        public double Area() => Width * Height;
+
+        /// <summary>Determines whether this rectangle equals another.</summary>
+        /// <param name="other">The rectangle to compare against.</param>
+        /// <returns><c>true</c> if the rectangles have the same dimensions.</returns>
+        public bool Equals(Rectangle other) => false;
+    }
 }
 ```
 

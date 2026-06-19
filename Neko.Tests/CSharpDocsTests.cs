@@ -175,6 +175,55 @@ namespace Tesserae
         }
 
         [Test]
+        public void RendersNamespaceAndImplementsInDefinition()
+        {
+            var doc = _parser.Parse(DetailsListColumnSource);
+            var html = doc.Html;
+            Assert.That(html, Contains.Substring("csharp-definition"));
+            // Namespace metadata derived from the enclosing namespace declaration.
+            Assert.That(html, Contains.Substring(">Namespace<"));
+            Assert.That(html, Contains.Substring("Tesserae"));
+            // The interface in the base list is surfaced as "Implements".
+            Assert.That(html, Contains.Substring(">Implements<"));
+            Assert.That(html, Contains.Substring("IDetailsListColumn"));
+        }
+
+        [Test]
+        public void RendersInheritanceChainForBaseClass()
+        {
+            const string source = @"```csharp-docs
+namespace Demo
+{
+    /// <summary>A widget.</summary>
+    public class Widget : Control, IDisposable
+    {
+        /// <summary>Does work.</summary>
+        public void Run() { }
+    }
+}
+```";
+            var doc = _parser.Parse(source);
+            var html = doc.Html;
+            // The non-interface base type becomes the inheritance chain; the interface is listed under Implements.
+            Assert.That(html, Contains.Substring(">Inheritance<"));
+            Assert.That(html, Contains.Substring("Control → Widget"));
+            Assert.That(html, Contains.Substring(">Implements<"));
+            Assert.That(html, Contains.Substring("IDisposable"));
+        }
+
+        [Test]
+        public void RendersMemberSummaryTable()
+        {
+            var doc = _parser.Parse(DetailsListColumnSource);
+            var html = doc.Html;
+            Assert.That(html, Contains.Substring("csharp-member-table"));
+            // The summary table links each member name to its detail anchor.
+            Assert.That(html, Contains.Substring("href=\"#DetailsListColumn.SortingKey\""));
+            // Both the summary table row and the detail section carry the description text.
+            Assert.That(html, Contains.Substring("Gets or sets the sorting key."));
+        }
+
+        [Test]
         public void StandaloneMemberStillRenders()
         {
             const string source = @"```csharp-docs

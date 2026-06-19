@@ -143,29 +143,34 @@ namespace Neko.Extensions
                     renderer.Write("<div class=\"csharp-docs my-8\">");
 
                     // Collect top-level members: types and standalone declarations,
-                    // unwrapping namespace declarations.
-                    var topLevel = new List<MemberDeclarationSyntax>();
-                    void Collect(SyntaxNode container)
+                    // unwrapping namespace declarations while remembering the namespace name
+                    // they were declared in (used for the Microsoft Learn-style metadata).
+                    var topLevel = new List<(MemberDeclarationSyntax Member, string Namespace)>();
+                    void Collect(SyntaxNode container, string ns)
                     {
                         foreach (var child in container.ChildNodes())
                         {
-                            if (child is NamespaceDeclarationSyntax || child is FileScopedNamespaceDeclarationSyntax)
+                            if (child is NamespaceDeclarationSyntax nsDecl)
                             {
-                                Collect(child);
+                                Collect(nsDecl, nsDecl.Name.ToString());
+                            }
+                            else if (child is FileScopedNamespaceDeclarationSyntax fsNs)
+                            {
+                                Collect(fsNs, fsNs.Name.ToString());
                             }
                             else if (child is MemberDeclarationSyntax m)
                             {
-                                topLevel.Add(m);
+                                topLevel.Add((m, ns));
                             }
                         }
                     }
-                    Collect(root);
+                    Collect(root, "");
 
-                    foreach (var member in topLevel)
+                    foreach (var (member, ns) in topLevel)
                     {
                         if (member is BaseTypeDeclarationSyntax typeDecl)
                         {
-                            RenderCSharpType(renderer, typeDecl);
+                            RenderCSharpType(renderer, typeDecl, ns);
                         }
                         else if (HasXmlDoc(member))
                         {
@@ -879,7 +884,91 @@ namespace Neko.Extensions
             return sb.ToString();
         }
 
-        private static void RenderCSharpType(HtmlRenderer renderer, BaseTypeDeclarationSyntax type)
+        // A base type whose name matches the interface naming convention (I followed by an
+        // uppercase letter, e.g. IDisposable) is treated as an implemented interface.
+        private static bool LooksLikeInterface(string name)
+        {
+            var bare = name;
+            var lt = bare.IndexOf('<');
+            if (lt >= 0) bare = bare.Substring(0, lt);
+            var dot = bare.LastIndexOf('.');
+            if (dot >= 0) bare = bare.Substring(dot + 1);
+            return bare.Length >= 2 && bare[0] == 'I' && char.IsUpper(bare[1]);
+        }
+
+        // Renders the Microsoft Learn-style "Definition" block: namespace, inheritance chain,
+        // and implemented interfaces. Skipped entirely when there is nothing to show.
+        private static void RenderCSharpDefinition(HtmlRenderer renderer, BaseTypeDeclarationSyntax type, string typeName, string namespaceName)
+        {
+            string baseClass = null;
+            var implements = new List<string>();
+
+            if (type.BaseList != null && !(type is EnumDeclarationSyntax))
+            {
+                var bases = type.BaseList.Types.Select(t => t.Type.ToString()).ToList();
+                if (type is InterfaceDeclarationSyntax)
+                {
+                    implements.AddRange(bases);
+                }
+                else
+                {
+                    foreach (var b in bases)
+                    {
+                        if (baseClass == null && !LooksLikeInterface(b)) baseClass = b;
+                        else implements.Add(b);
+                    }
+                }
+            }
+
+            var hasNamespace = !string.IsNullOrEmpty(namespaceName);
+            if (!hasNamespace && baseClass == null && implements.Count == 0) return;
+
+            renderer.Write("<dl class=\"csharp-definition grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm mb-6 pl-3 border-l-2 border-gray-200 dark:border-gray-700\">");
+
+            void Row(string label, string value, bool mono)
+            {
+                renderer.Write($"<dt class=\"font-semibold text-gray-500 dark:text-gray-400\">{System.Net.WebUtility.HtmlEncode(label)}</dt>");
+                var cls = mono ? "font-mono text-gray-800 dark:text-gray-200" : "text-gray-800 dark:text-gray-200";
+                renderer.Write($"<dd class=\"m-0 {cls}\">{System.Net.WebUtility.HtmlEncode(value)}</dd>");
+            }
+
+            if (hasNamespace) Row("Namespace", namespaceName, mono: false);
+            if (baseClass != null) Row("Inheritance", $"{baseClass} → {typeName}", mono: true);
+            if (implements.Count > 0) Row("Implements", string.Join(", ", implements), mono: true);
+
+            renderer.Write("</dl>");
+        }
+
+        // Renders a Microsoft Learn / DocFX-style summary table (Name → anchor link, Description)
+        // that sits above the detailed member entries for a group.
+        private static void RenderCSharpMemberTable(HtmlRenderer renderer, List<MemberDeclarationSyntax> members, string classPrefix)
+        {
+            renderer.Write("<div class=\"csharp-member-table overflow-x-auto mb-6 rounded-md border border-gray-200 dark:border-white/10\">");
+            renderer.Write("<table class=\"w-full text-sm border-collapse m-0\">");
+            renderer.Write("<thead><tr class=\"bg-gray-50 dark:bg-gray-800/60 text-left\">");
+            renderer.Write("<th class=\"font-semibold text-gray-700 dark:text-gray-300 px-3 py-2 border-b border-gray-200 dark:border-white/10\">Name</th>");
+            renderer.Write("<th class=\"font-semibold text-gray-700 dark:text-gray-300 px-3 py-2 border-b border-gray-200 dark:border-white/10\">Description</th>");
+            renderer.Write("</tr></thead><tbody>");
+
+            foreach (var node in members)
+            {
+                var memberName = GetMemberName(node);
+                // Must match the detail anchor produced by RenderCSharpMember.
+                var anchor = SlugifyId(!string.IsNullOrEmpty(classPrefix)
+                    ? $"{classPrefix}.{memberName}"
+                    : memberName);
+                var summary = ParseXmlDoc(GetXmlDoc(node)).Summary;
+
+                renderer.Write("<tr class=\"border-b border-gray-100 dark:border-white/5 last:border-0 align-top\">");
+                renderer.Write($"<td class=\"px-3 py-2 whitespace-nowrap\"><a href=\"#{System.Net.WebUtility.HtmlEncode(anchor)}\" class=\"font-mono text-primary-600 dark:text-primary-400 no-underline hover:underline\">{System.Net.WebUtility.HtmlEncode(memberName)}</a></td>");
+                renderer.Write($"<td class=\"px-3 py-2 text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(summary)}</td>");
+                renderer.Write("</tr>");
+            }
+
+            renderer.Write("</tbody></table></div>");
+        }
+
+        private static void RenderCSharpType(HtmlRenderer renderer, BaseTypeDeclarationSyntax type, string namespaceName = "")
         {
             var xml = GetXmlDoc(type);
             var doc = ParseXmlDoc(xml);
@@ -917,6 +1006,10 @@ namespace Neko.Extensions
 
             renderer.Write("</header>");
 
+            // Microsoft Learn-style "Definition" metadata: namespace, inheritance, and
+            // implemented interfaces derived from the declaration.
+            RenderCSharpDefinition(renderer, type, typeName, namespaceName);
+
             // Group child members by kind
             if (type is TypeDeclarationSyntax td)
             {
@@ -941,6 +1034,7 @@ namespace Neko.Extensions
 
                     renderer.Write("<div class=\"csharp-member-group mt-8\">");
                     renderer.Write($"<h4 class=\"text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100\">{groupLabel}</h4>");
+                    RenderCSharpMemberTable(renderer, inGroup, simpleName);
                     foreach (var m in inGroup)
                     {
                         RenderCSharpMember(renderer, m, classPrefix: simpleName);
@@ -955,6 +1049,7 @@ namespace Neko.Extensions
                 {
                     renderer.Write("<div class=\"csharp-member-group mt-8\">");
                     renderer.Write("<h4 class=\"text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100\">Values</h4>");
+                    RenderCSharpMemberTable(renderer, values.Cast<MemberDeclarationSyntax>().ToList(), simpleName);
                     foreach (var v in values)
                     {
                         RenderCSharpMember(renderer, v, classPrefix: simpleName);
