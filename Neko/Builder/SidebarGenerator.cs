@@ -235,7 +235,13 @@ namespace Neko.Builder
                 // Special handling for index.md
                 if (fileName.Equals("index.md", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (Path.GetFullPath(directory) == Path.GetFullPath(_inputDirectory))
+                    // Only the true site root (no route prefix) is renamed to
+                    // "Home". A sub-site root (multi-repo project mounted under a
+                    // route prefix) keeps its own label/title — otherwise every
+                    // pillar's intro would be labelled "Home" and duplicate the
+                    // active header pivot, both pointing at the pillar root.
+                    if (Path.GetFullPath(directory) == Path.GetFullPath(_inputDirectory)
+                        && string.IsNullOrEmpty(_routePrefix))
                     {
                         title = "Home"; // Root index is Home
                     }
