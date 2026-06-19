@@ -19,6 +19,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Neko.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\neko-logo-small.png" Link="neko-logo-small.png" Pack="true" PackagePath="" />
     <None Include="..\README.md" Link="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
