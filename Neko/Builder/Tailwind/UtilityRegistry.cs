@@ -23,6 +23,8 @@ namespace Neko.Builder.Tailwind
         private const string BackdropChain =
             "var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)";
         private const string DivideSpaceSuffix = " > :not([hidden]) ~ :not([hidden])";
+        private const string FontVariantNumeric =
+            "var(--tw-ordinal) var(--tw-slashed-zero) var(--tw-numeric-figure) var(--tw-numeric-spacing) var(--tw-numeric-fraction)";
 
         public UtilityRegistry(TailwindTheme theme)
         {
@@ -1342,7 +1344,15 @@ namespace Neko.Builder.Tailwind
             ["scroll-smooth"] = D(("scroll-behavior", "smooth")),
             ["scroll-auto"] = D(("scroll-behavior", "auto")),
 
-            ["tabular-nums"] = D(("--tw-numeric-spacing", "tabular-nums"), ("font-variant-numeric", "var(--tw-ordinal) var(--tw-slashed-zero) var(--tw-numeric-figure) var(--tw-numeric-spacing) var(--tw-numeric-fraction)")),
+            ["normal-nums"] = D(("font-variant-numeric", "normal")),
+            ["ordinal"] = D(("--tw-ordinal", "ordinal"), ("font-variant-numeric", FontVariantNumeric)),
+            ["slashed-zero"] = D(("--tw-slashed-zero", "slashed-zero"), ("font-variant-numeric", FontVariantNumeric)),
+            ["lining-nums"] = D(("--tw-numeric-figure", "lining-nums"), ("font-variant-numeric", FontVariantNumeric)),
+            ["oldstyle-nums"] = D(("--tw-numeric-figure", "oldstyle-nums"), ("font-variant-numeric", FontVariantNumeric)),
+            ["proportional-nums"] = D(("--tw-numeric-spacing", "proportional-nums"), ("font-variant-numeric", FontVariantNumeric)),
+            ["tabular-nums"] = D(("--tw-numeric-spacing", "tabular-nums"), ("font-variant-numeric", FontVariantNumeric)),
+            ["diagonal-fractions"] = D(("--tw-numeric-fraction", "diagonal-fractions"), ("font-variant-numeric", FontVariantNumeric)),
+            ["stacked-fractions"] = D(("--tw-numeric-fraction", "stacked-fractions"), ("font-variant-numeric", FontVariantNumeric)),
 
             ["align-middle"] = D(("vertical-align", "middle")),
             ["align-top"] = D(("vertical-align", "top")),
