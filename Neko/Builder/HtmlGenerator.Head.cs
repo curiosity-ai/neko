@@ -424,9 +424,12 @@ namespace Neko.Builder
             sb.AppendLine("        .neko-cl-sentinel { position: absolute; top: 0; left: 0; width: 1px; height: 1px; pointer-events: none; }");
             sb.AppendLine("        .neko-cl-bleed { display: none; }");
             sb.AppendLine("        .neko-changelog-version.is-stuck { border-radius: 0; border-color: transparent; background-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }");
-            sb.AppendLine("        .neko-changelog-version.is-stuck .neko-cl-bleed { display: block; position: absolute; top: 0; bottom: 0; left: -50vw; right: -50vw; z-index: -10; border-bottom: 1px solid rgba(229, 231, 235, 0.7); background-color: rgba(255, 255, 255, 0.92); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }");
-            sb.AppendLine("        .dark .neko-changelog-version.is-stuck .neko-cl-bleed { border-bottom-color: rgba(255, 255, 255, 0.1); background-color: rgba(17, 24, 39, 0.92); }");
-            sb.AppendLine("        @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) { .neko-changelog-version.is-stuck .neko-cl-bleed { background-color: rgba(255, 255, 255, 0.78); } .dark .neko-changelog-version.is-stuck .neko-cl-bleed { background-color: rgba(17, 24, 39, 0.78); } }");
+            sb.AppendLine("        /* The bleed overshoots the header top by 0.75rem (clipped to the pane by");
+            sb.AppendLine("           #main-scroll's overflow) so the blur covers the very top edge — without");
+            sb.AppendLine("           it a 1px line of content shows through above the bar while scrolling. */");
+            sb.AppendLine("        .neko-changelog-version.is-stuck .neko-cl-bleed { display: block; position: absolute; top: -0.75rem; bottom: 0; left: -50vw; right: -50vw; z-index: -10; border-bottom: 1px solid rgba(203, 213, 225, 0.8); background-color: rgba(255, 255, 255, 0.97); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }");
+            sb.AppendLine("        .dark .neko-changelog-version.is-stuck .neko-cl-bleed { border-bottom-color: rgba(255, 255, 255, 0.12); background-color: rgba(17, 24, 39, 0.97); }");
+            sb.AppendLine("        @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) { .neko-changelog-version.is-stuck .neko-cl-bleed { background-color: rgba(255, 255, 255, 0.86); } .dark .neko-changelog-version.is-stuck .neko-cl-bleed { background-color: rgba(17, 24, 39, 0.86); } }");
             sb.AppendLine("    </style>");
         }
 
