@@ -80,6 +80,14 @@ namespace Neko.Extensions
                         fencedBlock.Info = "csharp";
                         fencedBlock.GetAttributes().AddClass("tesserae-code");
                     }
+                    else
+                    {
+                        // Compilation failed (e.g. an offline build with no Tesserae
+                        // toolchain). Fall back to rendering the source as a normal C#
+                        // code block so it stays syntax-highlighted and legible instead
+                        // of an unhighlighted `language-tesserae` block in flat grey.
+                        fencedBlock.Info = "csharp";
+                    }
                 }
             }
 
