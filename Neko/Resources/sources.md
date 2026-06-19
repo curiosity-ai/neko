@@ -17,7 +17,16 @@
 ### Tailwind CSS
 - **Source**: https://tailwindcss.com
 - **License**: MIT
-- **File**: `Neko/Resources/tailwind.js` (Downloaded from CDN)
+- **Approach**: Neko generates `assets/tailwind.css` at build time with a
+  pure-C# port of Tailwind v3's utility generator (`Neko/Builder/Tailwind/`) —
+  no Node/npm, no CDN, no downloaded binary. The `base` (Preflight) and
+  `components` (`@tailwindcss/typography`) layers are captured verbatim from
+  the official Tailwind v3.4 standalone CLI and shipped as embedded resources
+  (`Neko/Resources/tailwind/preflight.css`, `typography.css`); only the
+  content-dependent `utilities` layer is generated in C#. Re-capture the two
+  static layers when the pinned Tailwind version changes.
+- **Static layers**: `Neko/Resources/tailwind/preflight.css`,
+  `Neko/Resources/tailwind/typography.css` (Tailwind v3.4.17, typography MIT).
 
 ### Inter Font
 - **Source**: https://github.com/rsms/inter

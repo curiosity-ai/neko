@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
+using Neko.Builder.Tailwind;
 using Neko.Configuration;
 
 namespace Neko.Builder
@@ -744,6 +745,12 @@ namespace Neko.Builder
                 // Copy Assets
                 await CopyAssetsAsync(OutputDirectory);
 
+                // Generate the static Tailwind stylesheet now that every page and
+                // asset has been written — the generator scans the emitted HTML/JS
+                // for the utility classes actually used and emits only those, plus
+                // the shipped preflight + typography layers.
+                await GenerateTailwindAsync(OutputDirectory);
+
                 // Generate CNAME if applicable
                 var customCnamePath = Path.Combine(_inputDirectory, "CNAME");
                 if (!File.Exists(customCnamePath) && _config.Cname?.ToLower() != "false")
@@ -1058,6 +1065,10 @@ namespace Neko.Builder
             {
                 if (resourceName.EndsWith(".js") || resourceName.EndsWith(".css") || resourceName.EndsWith(".woff2") || resourceName.EndsWith(".json"))
                 {
+                    // The Tailwind base/components layers are inputs to the
+                    // generator, not standalone assets — never copy them out.
+                    if (resourceName.StartsWith("Neko.Resources.tailwind.")) continue;
+
                     // Resource name format: Neko.Resources.filename.ext
                     // We need to map it to assets/filename.ext
 
@@ -1146,6 +1157,29 @@ namespace Neko.Builder
                         Console.WriteLine($"Warning: Error copying {candidate}: {ex.Message}");
                     }
                 }
+            }
+        }
+
+        // Scans the emitted site for used Tailwind classes and writes a static
+        // assets/tailwind.css with the pure-C# generator. Per-site (multi-repo
+        // sub-projects each call this for their own OutputDirectory), so the
+        // used-class set and palette are correct for each.
+        private async Task GenerateTailwindAsync(string outputDir)
+        {
+            try
+            {
+                var contents = ClassExtractor.ReadContentFiles(outputDir).ToList();
+                var css = TailwindGenerator.Generate(contents, _config, minify: true);
+
+                var assetsDir = Path.Combine(outputDir, "assets");
+                Directory.CreateDirectory(assetsDir);
+                var cssOut = Path.Combine(assetsDir, "tailwind.css");
+                await File.WriteAllTextAsync(cssOut, css);
+                Console.WriteLine($"Generated static Tailwind stylesheet: {Path.GetRelativePath(outputDir, cssOut)}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: failed to generate the Tailwind stylesheet: {ex.Message}");
             }
         }
     }
