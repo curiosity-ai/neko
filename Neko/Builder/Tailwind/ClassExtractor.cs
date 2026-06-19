@@ -16,13 +16,20 @@ namespace Neko.Builder.Tailwind
         // else (quotes, whitespace, &lt;&gt;, backticks, =, etc.) is a boundary.
         private static bool IsTokenChar(char ch)
         {
+            // Mirror the character classes Tailwind's extractor permits inside a
+            // candidate so we harvest (and reject) the same tokens it does. In
+            // particular '|' is part of a token — so a pipe-delimited string in an
+            // inlined script (e.g. "list-item|line|line-through") is one (invalid)
+            // token rather than several valid utilities.
             return (ch >= 'A' && ch <= 'Z')
                 || (ch >= 'a' && ch <= 'z')
                 || (ch >= '0' && ch <= '9')
                 || ch == '_' || ch == '-' || ch == ':' || ch == '/'
                 || ch == '[' || ch == ']' || ch == '.' || ch == '!'
                 || ch == '#' || ch == '%' || ch == '(' || ch == ')'
-                || ch == ',' || ch == '+' || ch == '*' || ch == '@';
+                || ch == ',' || ch == '+' || ch == '*' || ch == '@'
+                || ch == '|' || ch == '&' || ch == '~'
+                || ch == '?' || ch == ';' || ch > 0x7f;
         }
 
         /// <summary>Harvest the deduplicated token set from the given file contents.</summary>
@@ -59,9 +66,13 @@ namespace Neko.Builder.Tailwind
         private static void AddToken(string token, HashSet<string> tokens)
         {
             // Trim leading/trailing punctuation that is never the start/end of a
-            // real class but is commonly adjacent in markup.
+            // real class but is commonly adjacent in markup. A leading ':' is also
+            // trimmed so that the tail of an escaped CSS selector — e.g.
+            // `.dark\:bg-gray-900` in an inlined <style>, which splits on the
+            // backslash into `:bg-gray-900` — recovers the bare utility, exactly
+            // as Tailwind's extractor does.
             int start = 0, end = token.Length;
-            while (start < end && (token[start] == ',' || token[start] == '.' || token[start] == '(' || token[start] == ')' || token[start] == '+' || token[start] == '*'))
+            while (start < end && (token[start] == ',' || token[start] == '.' || token[start] == '(' || token[start] == ')' || token[start] == '+' || token[start] == '*' || token[start] == ':'))
                 start++;
             while (end > start && (token[end - 1] == ',' || token[end - 1] == '(' || token[end - 1] == ')' || token[end - 1] == '+' || token[end - 1] == '*'))
                 end--;

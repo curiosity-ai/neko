@@ -1169,7 +1169,10 @@ namespace Neko.Builder
             try
             {
                 var contents = ClassExtractor.ReadContentFiles(outputDir).ToList();
-                var css = TailwindGenerator.Generate(contents, _config, minify: true);
+                // Non-minified so the output matches the Tailwind CLI's
+                // (non-minified) output byte-for-byte. Minification (matching
+                // cssnano) can be layered on later without affecting correctness.
+                var css = TailwindGenerator.Generate(contents, _config, minify: false);
 
                 var assetsDir = Path.Combine(outputDir, "assets");
                 Directory.CreateDirectory(assetsDir);
