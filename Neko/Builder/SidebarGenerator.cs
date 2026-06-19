@@ -235,9 +235,19 @@ namespace Neko.Builder
                 // Special handling for index.md
                 if (fileName.Equals("index.md", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (Path.GetFullPath(directory) == Path.GetFullPath(_inputDirectory))
+                    bool isRootIndex = Path.GetFullPath(directory) == Path.GetFullPath(_inputDirectory);
+
+                    // A sub-site root (multi-repo project mounted under a route
+                    // prefix) is already reachable from the header pivot / parent
+                    // nav, so don't repeat its intro page as a sidebar entry.
+                    if (isRootIndex && !string.IsNullOrEmpty(_routePrefix))
                     {
-                        title = "Home"; // Root index is Home
+                        continue;
+                    }
+
+                    if (isRootIndex)
+                    {
+                        title = "Home"; // True site root index is Home
                     }
                     else
                     {
