@@ -317,6 +317,13 @@ namespace Neko.Builder
             sb.AppendLine("        .prose :not(pre) > code { background-color: rgba(148, 163, 184, 0.18); color: inherit; padding: 0.15em 0.4em; border-radius: 0.25rem; font-weight: 500; font-size: 0.875em; }");
             sb.AppendLine("        .dark .prose :not(pre) > code { background-color: rgba(148, 163, 184, 0.22); }");
             sb.AppendLine("");
+            sb.AppendLine("        /* Reset Tailwind Typography's <pre> defaults inside Neko code blocks. */");
+            sb.AppendLine("        /* Without this the prose <pre> keeps its own dark background, margin, */");
+            sb.AppendLine("        /* padding and rounding, so the code renders as a dark inset box floating */");
+            sb.AppendLine("        /* with gaps inside the lighter wrapper card. Let the wrapper own the */");
+            sb.AppendLine("        /* background, spacing and corners; the inner <code> keeps its padding. */");
+            sb.AppendLine("        .prose .neko-code-block > pre { margin: 0 !important; padding: 0 !important; background: transparent !important; border: 0 !important; border-radius: 0 !important; }");
+            sb.AppendLine("");
             sb.AppendLine("        /* Highlight.js Line Numbers CSS */");
             sb.AppendLine("        .prose table.hljs-ln tr { border: none !important; }");
             sb.AppendLine("        .prose table.hljs-ln td { padding: 0 !important; }");
