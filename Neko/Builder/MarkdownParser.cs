@@ -198,6 +198,43 @@ namespace Neko.Builder
             });
         }
 
+        // Extract the C# code of every `tesserae` fenced block in a document, exactly
+        // as the renderer would read it (post-include, line-by-line). Used to warm the
+        // Tesserae compile cache in parallel before the synchronous render pass, so
+        // each block becomes a cache hit instead of a serial compile.
+        public List<(string Arguments, string Code)> ExtractTesseraeSamples(string markdown, string filePath = null, string rootDirectory = null)
+        {
+            var samples = new List<(string Arguments, string Code)>();
+            if (string.IsNullOrEmpty(markdown)) return samples;
+
+            // Cheap gate: skip the parse entirely when the file has no tesserae blocks.
+            if (markdown.IndexOf("tesserae", System.StringComparison.OrdinalIgnoreCase) < 0) return samples;
+
+            if (!string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(rootDirectory))
+            {
+                markdown = PreProcessIncludes(markdown, filePath, rootDirectory);
+            }
+
+            var document = Markdig.Markdown.Parse(markdown, _pipeline);
+            foreach (var fenced in document.Descendants<FencedCodeBlock>())
+            {
+                if ((fenced.Info ?? "").ToLower() != "tesserae") continue;
+
+                var code = new System.Text.StringBuilder();
+                var lines = fenced.Lines;
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    var slice = lines.Lines[i].Slice;
+                    if (slice.Text == null) continue;
+                    code.AppendLine(slice.ToString());
+                }
+
+                samples.Add((fenced.Arguments, code.ToString()));
+            }
+
+            return samples;
+        }
+
         public ParsedDocument Parse(string markdown, string filePath = null, string rootDirectory = null)
         {
             // Pre-process includes

@@ -57,6 +57,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "imageGen")]
         public ImageGenConfig ImageGen { get; set; } = new ImageGenConfig();
 
+        [YamlMember(Alias = "tesserae")]
+        public TesseraeConfig Tesserae { get; set; } = new TesseraeConfig();
+
         public void NormalizeLinks()
         {
             if (Banner != null)
@@ -148,7 +151,30 @@ namespace Neko.Configuration
                 if (string.IsNullOrEmpty(ImageGen.Size) || ImageGen.Size == ImageGenConfig.DefaultSize)
                     ImageGen.Size = parent.ImageGen.Size;
             }
+
+            // Inherit Tesserae settings (per-field, only when the child left the default)
+            if (Tesserae == null) Tesserae = new TesseraeConfig();
+            if (parent.Tesserae != null)
+            {
+                if (string.IsNullOrEmpty(Tesserae.Version)) Tesserae.Version = parent.Tesserae.Version;
+                if (Tesserae.MaxParallelism == 0)           Tesserae.MaxParallelism = parent.Tesserae.MaxParallelism;
+            }
         }
+    }
+
+    public class TesseraeConfig
+    {
+        // Pin the Tesserae NuGet version used to compile live `tesserae` samples.
+        // When empty, Neko resolves the latest stable version (cached on disk, see
+        // TesseraeCompiler). Pinning makes the sample cache deterministic — a new
+        // Tesserae release no longer invalidates every cached sample at once.
+        [YamlMember(Alias = "version")]
+        public string Version { get; set; }
+
+        // Maximum number of Tesserae samples compiled in parallel during the
+        // build's cache-warming pre-pass. 0 (default) means Environment.ProcessorCount.
+        [YamlMember(Alias = "maxParallelism")]
+        public int MaxParallelism { get; set; }
     }
 
     public class ImageGenConfig

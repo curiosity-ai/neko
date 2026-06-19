@@ -1,8 +1,10 @@
 using System;
 using System.IO;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -28,25 +30,63 @@ namespace Neko.Builder
         private static readonly HttpClient _httpClient = new HttpClient();
         private static Dictionary<string, NuGetVersion> _cachedLatestVersion = new Dictionary<string, NuGetVersion>();
 
+        // Resolving a package version touches the network and writes the on-disk
+        // version cache, so serialise it across the parallel warm pass.
+        private static readonly SemaphoreSlim _versionLock = new SemaphoreSlim(1, 1);
+
+        // How long a resolved "latest" version stays valid on disk before we
+        // re-query NuGet. Keeps repeated `neko watch` starts network-free while
+        // still picking up new releases within a day.
+        private static readonly TimeSpan VersionTtl = TimeSpan.FromHours(24);
+
+        // In-memory cache of compiled results, keyed by {hash}_{version}. Survives
+        // across watch rebuilds (the process stays alive), so an unchanged sample
+        // is served instantly on every rebuild without even touching disk.
+        private static readonly ConcurrentDictionary<string, TesseraeCompilerResult> _memCache =
+            new ConcurrentDictionary<string, TesseraeCompilerResult>();
+
+        // Parallel compiles emit the same shared runtime files (h5.js, css, …);
+        // serialise the actual file writes so two threads never write one path at
+        // once. The heavy H5 compilation itself stays parallel.
+        private static readonly object _assetWriteLock = new object();
+
+        // Build configuration, set from neko.yml before the build runs.
+        private static string _pinnedTesseraeVersion;
+        private static int _maxParallelism = Environment.ProcessorCount;
+
+        public static int MaxParallelism => _maxParallelism;
+
+        // Apply project configuration. `pinnedVersion` empty => resolve latest;
+        // `maxParallelism` <= 0 => Environment.ProcessorCount.
+        public static void Configure(string pinnedVersion, int maxParallelism)
+        {
+            _pinnedTesseraeVersion = string.IsNullOrWhiteSpace(pinnedVersion) ? null : pinnedVersion.Trim();
+            _maxParallelism = maxParallelism > 0 ? maxParallelism : Environment.ProcessorCount;
+        }
+
         public static string ComputeHash(string input)
         {
             return input.Hash128().ToString();
         }
 
-        private static string GetCacheFilePath(string hash, NuGetVersion tesseraeVersion)
+        private static string GetCacheDir()
         {
             var cacheDir = Path.Combine(Path.GetTempPath(), "neko", "tesserae-cache");
             Directory.CreateDirectory(cacheDir);
-            return Path.Combine(cacheDir, $"{hash}_{tesseraeVersion}.json");
+            return cacheDir;
         }
 
-        // Directory holding the compiled shared asset files (h5.js, css, …) for one
-        // cache entry, mirroring the per-entry JSON manifest.
-        private static string GetCacheAssetsDir(string hash, NuGetVersion tesseraeVersion)
+        private static string GetCacheFilePath(string hash, NuGetVersion tesseraeVersion)
         {
-            var cacheDir = Path.Combine(Path.GetTempPath(), "neko", "tesserae-cache");
-            Directory.CreateDirectory(cacheDir);
-            return Path.Combine(cacheDir, $"{hash}_{tesseraeVersion}");
+            return Path.Combine(GetCacheDir(), $"{hash}_{tesseraeVersion}.json");
+        }
+
+        // The compiled shared runtime (h5.js, h5.core.js, css, …) is identical for
+        // every sample built against the same Tesserae version, so it is stored
+        // once per version rather than once per sample.
+        private static string GetSharedAssetsDir(NuGetVersion tesseraeVersion)
+        {
+            return Path.Combine(GetCacheDir(), $"shared_{tesseraeVersion}");
         }
 
         private const string AssetUrlPrefix = "/assets/tesserae/";
@@ -63,47 +103,100 @@ namespace Neko.Builder
             return p.TrimStart('/');
         }
 
-        // Copy the freshly-compiled shared asset files into the persistent cache so a
-        // later build (which starts by wiping the output directory) can restore them.
-        private static void SaveCachedAssets(TesseraeCompilerResult result, string siteAssetsDir, string cacheAssetsDir)
+        // Write a shared asset to both the live output directory and the persistent
+        // per-version cache, skipping files that already exist. Idempotent and safe
+        // to call from parallel compiles (serialised on _assetWriteLock).
+        private static void WriteSharedAsset(string relativePath, byte[] content, string siteAssetsDir, string sharedAssetsDir)
         {
-            if (result?.AssetsPath == null || result.AssetsPath.Count == 0) return;
-
-            foreach (var assetUrl in result.AssetsPath)
+            lock (_assetWriteLock)
             {
-                var rel = AssetRelativePath(assetUrl);
-                if (string.IsNullOrEmpty(rel)) continue;
-
-                var source = Path.Combine(siteAssetsDir, rel);
-                if (!File.Exists(source)) continue;
-
-                var dest = Path.Combine(cacheAssetsDir, rel);
-                Directory.CreateDirectory(Path.GetDirectoryName(dest));
-                File.Copy(source, dest, overwrite: true);
+                foreach (var baseDir in new[] { siteAssetsDir, sharedAssetsDir })
+                {
+                    var dest = Path.Combine(baseDir, relativePath);
+                    if (File.Exists(dest)) continue;
+                    Directory.CreateDirectory(Path.GetDirectoryName(dest));
+                    File.WriteAllBytes(dest, content);
+                }
             }
         }
 
-        // Restore a cached result's shared asset files into the output directory.
-        // Returns false (forcing a recompile) if any expected file is missing from
-        // the cache, so a partial or corrupt cache repairs itself.
-        private static bool RestoreCachedAssets(TesseraeCompilerResult result, string cacheAssetsDir, string siteAssetsDir)
+        // Ensure a cached result's shared runtime files exist in the output
+        // directory, copying them from the per-version cache. Returns false (forcing
+        // a recompile) if the cache has no shared assets for this version yet.
+        // Write-if-absent makes it idempotent and self-healing across rebuilds.
+        private static bool RestoreSharedAssets(NuGetVersion tesseraeVersion, string siteAssetsDir)
         {
-            if (result?.AssetsPath == null || result.AssetsPath.Count == 0) return true;
+            var sharedDir = GetSharedAssetsDir(tesseraeVersion);
+            if (!Directory.Exists(sharedDir)) return false;
 
-            foreach (var assetUrl in result.AssetsPath)
+            var files = Directory.GetFiles(sharedDir, "*", SearchOption.AllDirectories);
+            if (files.Length == 0) return false;
+
+            lock (_assetWriteLock)
             {
-                var rel = AssetRelativePath(assetUrl);
-                if (string.IsNullOrEmpty(rel)) continue;
-
-                var source = Path.Combine(cacheAssetsDir, rel);
-                if (!File.Exists(source)) return false;
-
-                var dest = Path.Combine(siteAssetsDir, rel);
-                Directory.CreateDirectory(Path.GetDirectoryName(dest));
-                File.Copy(source, dest, overwrite: true);
+                foreach (var source in files)
+                {
+                    var rel = Path.GetRelativePath(sharedDir, source);
+                    var dest = Path.Combine(siteAssetsDir, rel);
+                    if (File.Exists(dest)) continue;
+                    Directory.CreateDirectory(Path.GetDirectoryName(dest));
+                    File.Copy(source, dest, overwrite: true);
+                }
             }
 
             return true;
+        }
+
+        // ---- version resolution (disk-cached) ----
+
+        private sealed class VersionCacheEntry
+        {
+            public string Version { get; set; }
+            public DateTime ResolvedAtUtc { get; set; }
+        }
+
+        private static string GetVersionsFilePath() => Path.Combine(GetCacheDir(), "versions.json");
+
+        private static Dictionary<string, VersionCacheEntry> LoadVersionsFile()
+        {
+            try
+            {
+                var path = GetVersionsFilePath();
+                if (!File.Exists(path)) return new Dictionary<string, VersionCacheEntry>();
+                var json = File.ReadAllText(path);
+                return JsonSerializer.Deserialize<Dictionary<string, VersionCacheEntry>>(json)
+                       ?? new Dictionary<string, VersionCacheEntry>();
+            }
+            catch
+            {
+                return new Dictionary<string, VersionCacheEntry>();
+            }
+        }
+
+        private static void SaveVersionEntry(string package, NuGetVersion version)
+        {
+            try
+            {
+                var map = LoadVersionsFile();
+                map[package] = new VersionCacheEntry { Version = version.ToString(), ResolvedAtUtc = DateTime.UtcNow };
+                File.WriteAllText(GetVersionsFilePath(), JsonSerializer.Serialize(map));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to persist version cache: {ex.Message}");
+            }
+        }
+
+        // Resolve the Tesserae version for the cache key: an explicit neko.yml pin
+        // when present, otherwise the (disk-cached) latest stable version.
+        private static async Task<NuGetVersion> ResolveTesseraeVersionAsync()
+        {
+            if (_pinnedTesseraeVersion != null && NuGetVersion.TryParse(_pinnedTesseraeVersion, out var pinned))
+            {
+                await EnsurePackageRestored(pinned, "Tesserae");
+                return pinned;
+            }
+            return await GetLatestVersionAsync("Tesserae");
         }
 
         private static async Task<NuGetVersion> GetLatestVersionAsync(string package)
@@ -113,49 +206,85 @@ namespace Neko.Builder
                 return cachedVersion;
             }
 
-            Console.WriteLine($"Checking latest version for {package}");
-
+            await _versionLock.WaitAsync();
             try
             {
-                var json = await _httpClient.GetStringAsync($"https://api.nuget.org/v3-flatcontainer/{package.ToLower()}/index.json");
-                var versions = new List<NuGetVersion>();
-
-                using (var doc = JsonDocument.Parse(json))
+                // Another thread may have resolved it while we waited.
+                if (_cachedLatestVersion.TryGetValue(package, out cachedVersion))
                 {
-                    if (doc.RootElement.TryGetProperty("versions", out var versionsProp) && versionsProp.ValueKind == JsonValueKind.Array)
+                    return cachedVersion;
+                }
+
+                // Reuse a fresh on-disk resolution so repeated process starts don't
+                // hit the network (and so the cache key stays stable between them).
+                var diskMap = LoadVersionsFile();
+                if (diskMap.TryGetValue(package, out var entry)
+                    && (DateTime.UtcNow - entry.ResolvedAtUtc) < VersionTtl
+                    && NuGetVersion.TryParse(entry.Version, out var diskVersion))
+                {
+                    _cachedLatestVersion[package] = diskVersion;
+                    await EnsurePackageRestored(diskVersion, package);
+                    return diskVersion;
+                }
+
+                Console.WriteLine($"Checking latest version for {package}");
+
+                try
+                {
+                    var json = await _httpClient.GetStringAsync($"https://api.nuget.org/v3-flatcontainer/{package.ToLower()}/index.json");
+                    var versions = new List<NuGetVersion>();
+
+                    using (var doc = JsonDocument.Parse(json))
                     {
-                        foreach (var v in versionsProp.EnumerateArray())
+                        if (doc.RootElement.TryGetProperty("versions", out var versionsProp) && versionsProp.ValueKind == JsonValueKind.Array)
                         {
-                            if (v.ValueKind == JsonValueKind.String)
+                            foreach (var v in versionsProp.EnumerateArray())
                             {
-                                var versionString = v.GetString();
-                                if (!string.IsNullOrEmpty(versionString) && NuGetVersion.TryParse(versionString, out var candidateVersion))
+                                if (v.ValueKind == JsonValueKind.String)
                                 {
-                                    if (!candidateVersion.IsPrerelease)
+                                    var versionString = v.GetString();
+                                    if (!string.IsNullOrEmpty(versionString) && NuGetVersion.TryParse(versionString, out var candidateVersion))
                                     {
-                                        versions.Add(candidateVersion);
+                                        if (!candidateVersion.IsPrerelease)
+                                        {
+                                            versions.Add(candidateVersion);
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
 
-                if (versions.Count == 0)
+                    if (versions.Count == 0)
+                    {
+                        throw new Exception($"No stable versions found for {package} package.");
+                    }
+
+                    var version = _cachedLatestVersion[package] = versions.Max();
+                    Console.WriteLine($"Resolved latest {package} version: {version}");
+
+                    SaveVersionEntry(package, version);
+                    await EnsurePackageRestored(version, package);
+
+                    return version;
+                }
+                catch (Exception ex)
                 {
-                    throw new Exception($"No stable versions found for {package} package.");
+                    // Offline / NuGet unreachable: fall back to a stale on-disk
+                    // resolution rather than failing the whole build.
+                    if (diskMap.TryGetValue(package, out var stale) && NuGetVersion.TryParse(stale.Version, out var staleVersion))
+                    {
+                        Console.WriteLine($"Could not refresh {package} version ({ex.Message}); using cached {staleVersion}.");
+                        _cachedLatestVersion[package] = staleVersion;
+                        await EnsurePackageRestored(staleVersion, package);
+                        return staleVersion;
+                    }
+                    throw new Exception($"Failed to fetch or restore latest {package} version.", ex);
                 }
-
-                var version = _cachedLatestVersion[package] = versions.Max();
-                Console.WriteLine($"Resolved latest {package} version: {version}");
-
-                await EnsurePackageRestored(version, package);
-
-                return version;
             }
-            catch (Exception ex)
+            finally
             {
-                throw new Exception($"Failed to fetch or restore latest {package} version.", ex);
+                _versionLock.Release();
             }
         }
 
@@ -224,6 +353,47 @@ namespace Neko.Builder
             }
         }
 
+        // Compile every supplied sample into the cache up front, in parallel, before
+        // the (synchronous, sequential) page-render pass turns them into cache hits.
+        // Identical samples are compiled only once.
+        public static async Task WarmAsync(IReadOnlyList<(string Arguments, string Code)> samples, string siteOutputRoot)
+        {
+            if (samples == null || samples.Count == 0) return;
+
+            var routePrefix = SiteBuilder.CurrentRoutePrefix ?? string.Empty;
+            var seen = new HashSet<string>();
+            var distinct = new List<(string Arguments, string Code)>();
+            foreach (var s in samples)
+            {
+                if (seen.Add(ComputeHash(s.Code + " " + routePrefix)))
+                {
+                    distinct.Add(s);
+                }
+            }
+
+            Console.WriteLine($"Warming {distinct.Count} Tesserae sample(s) using up to {_maxParallelism} parallel compile(s)...");
+            var sw = Stopwatch.StartNew();
+
+            await Parallel.ForEachAsync(
+                distinct,
+                new ParallelOptions { MaxDegreeOfParallelism = _maxParallelism },
+                async (sample, ct) =>
+                {
+                    try
+                    {
+                        await CompileAsync(sample.Arguments, sample.Code, siteOutputRoot);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Never let one bad sample abort the warm pass; the failure is
+                        // surfaced again (and rendered as an error block) at render time.
+                        Console.WriteLine($"Warm compile failed for {sample.Arguments}: {ex.Message}");
+                    }
+                });
+
+            Console.WriteLine($"Warmed Tesserae samples in {sw.Elapsed.TotalSeconds:n1}s");
+        }
+
         public static async Task<TesseraeCompilerResult> CompileAsync(string codeBlockArguments, string csharpCode, string siteOutputRoot)
         {
             var siteAssetsDir = Path.Combine(siteOutputRoot, "assets", "tesserae");
@@ -232,24 +402,35 @@ namespace Neko.Builder
             // The compiled HTML bakes in the route prefix (asset <script>/<link>
             // hrefs), so it is part of the cache key — otherwise a multi-site build
             // could serve one sub-site's prefix to another.
-            var hash = ComputeHash(csharpCode + " " + (SiteBuilder.CurrentRoutePrefix ?? string.Empty));
-            var tesseraeVersion = await GetLatestVersionAsync("Tesserae");
+            var hash = ComputeHash(csharpCode + " " + (SiteBuilder.CurrentRoutePrefix ?? string.Empty));
+            var tesseraeVersion = await ResolveTesseraeVersionAsync();
+            var cacheKey = $"{hash}_{tesseraeVersion}";
             var cacheFilePath = GetCacheFilePath(hash, tesseraeVersion);
-            var cacheAssetsDir = GetCacheAssetsDir(hash, tesseraeVersion);
+            var sharedAssetsDir = GetSharedAssetsDir(tesseraeVersion);
 
-            // Reuse a previously compiled result and restore its shared asset files
-            // into the (freshly wiped) output directory. Restoring the files here is
-            // what lets the cache survive across builds: without it the assets would
-            // be missing and every build would have to recompile to re-emit them.
+            // In-memory hit: served without touching disk. Still make sure the shared
+            // runtime exists in the (possibly freshly wiped) output directory.
+            if (_memCache.TryGetValue(cacheKey, out var memResult))
+            {
+                if (string.IsNullOrEmpty(memResult.OutputHtml) || RestoreSharedAssets(tesseraeVersion, siteAssetsDir))
+                {
+                    return memResult;
+                }
+            }
+
+            // On-disk hit: reuse the manifest and restore the shared runtime files
+            // into the output directory. Restoring here is what lets the cache
+            // survive across builds, which start by wiping the output directory.
             if (File.Exists(cacheFilePath))
             {
                 try
                 {
                     var json = await File.ReadAllTextAsync(cacheFilePath);
                     var cachedResult = JsonSerializer.Deserialize<TesseraeCompilerResult>(json);
-                    if (cachedResult != null && RestoreCachedAssets(cachedResult, cacheAssetsDir, siteAssetsDir))
+                    if (cachedResult != null && (cachedResult.AssetsPath.Count == 0 || RestoreSharedAssets(tesseraeVersion, siteAssetsDir)))
                     {
                         Console.WriteLine($"Using cached Tesserae code for {codeBlockArguments}");
+                        _memCache[cacheKey] = cachedResult;
                         return cachedResult;
                     }
                 }
@@ -259,39 +440,36 @@ namespace Neko.Builder
                 }
             }
 
-                Console.WriteLine($"Compiling Tesserae code for {codeBlockArguments}");
+            Console.WriteLine($"Compiling Tesserae code for {codeBlockArguments}");
 
-                var sw = Stopwatch.StartNew();
+            var sw = Stopwatch.StartNew();
 
-                var h5Version = await GetLatestVersionAsync("h5");
-                var h5TargetVersion = await GetLatestVersionAsync("h5.Target");
-                var h5CoreVer = await GetLatestVersionAsync("h5.core");
-                var h5JsonVer = await GetLatestVersionAsync("h5.Newtonsoft.Json");
+            var h5Version = await GetLatestVersionAsync("h5");
+            var h5TargetVersion = await GetLatestVersionAsync("h5.Target");
+            var h5CoreVer = await GetLatestVersionAsync("h5.core");
+            var h5JsonVer = await GetLatestVersionAsync("h5.Newtonsoft.Json");
 
-
-
-                var settings = new H5DotJson_AssemblySettings()
+            var settings = new H5DotJson_AssemblySettings()
+            {
+                Reflection = new ReflectionConfig()
                 {
-                    Reflection = new ReflectionConfig()
-                    {
-                        Disabled = false,
-                        Target = H5.Contract.MetadataTarget.Inline,
-                    },
-                    IgnoreDuplicateTypes = true
-                };
+                    Disabled = false,
+                    Target = H5.Contract.MetadataTarget.Inline,
+                },
+                IgnoreDuplicateTypes = true
+            };
 
-                var request = new CompilationRequest("App", settings)
-                                //.NoHTML()
-                                //.WithLanguageVersion("Latest")
-                                .WithPackageReference("h5", h5Version)
-                                .WithPackageReference("Tesserae", tesseraeVersion)
-                                .WithPackageReference("h5.core", h5CoreVer)
-                                .WithPackageReference("h5.Newtonsoft.Json", h5JsonVer)
-                                .WithSourceFile("App.cs", csharpCode);
+            var request = new CompilationRequest("App", settings)
+                            //.NoHTML()
+                            //.WithLanguageVersion("Latest")
+                            .WithPackageReference("h5", h5Version)
+                            .WithPackageReference("Tesserae", tesseraeVersion)
+                            .WithPackageReference("h5.core", h5CoreVer)
+                            .WithPackageReference("h5.Newtonsoft.Json", h5JsonVer)
+                            .WithSourceFile("App.cs", csharpCode);
 
             var result = new TesseraeCompilerResult();
             var compiled = false;
-
 
             try
             {
@@ -334,14 +512,18 @@ namespace Neko.Builder
                     if (fileName.Equals("app.js", StringComparison.OrdinalIgnoreCase)) continue;
 
                     var relativePath = file.Key.Replace("\\", "/");
-                    var destPath = Path.Combine(siteAssetsDir, relativePath);
 
-                    Directory.CreateDirectory(Path.GetDirectoryName(destPath));
-
-                    using (var f = File.OpenWrite(destPath))
+                    // app.js aside, every emitted file is part of the shared runtime
+                    // that is identical for all samples of this Tesserae version, so
+                    // it is written once (per version) into both the output and the
+                    // shared cache rather than duplicated per sample.
+                    byte[] bytes;
+                    using (var ms = new MemoryStream())
                     {
-                        await file.Value.CopyToAsync(f);
+                        await file.Value.CopyToAsync(ms);
+                        bytes = ms.ToArray();
                     }
+                    WriteSharedAsset(relativePath, bytes, siteAssetsDir, sharedAssetsDir);
 
                     var assetUrl = $"/assets/tesserae/{relativePath}";
                     result.AssetsPath.Add(assetUrl);
@@ -399,15 +581,15 @@ namespace Neko.Builder
 
             // Only persist successful compiles. Caching a failure (e.g. a transient
             // network or restore error) would otherwise serve the error placeholder
-            // forever. Persist the produced asset files alongside the manifest so a
-            // later build can restore them after wiping the output directory.
+            // forever. The shared asset files were already written to the per-version
+            // cache above, so the manifest just records the result.
             if (compiled)
             {
                 try
                 {
-                    SaveCachedAssets(result, siteAssetsDir, cacheAssetsDir);
                     var json = JsonSerializer.Serialize(result);
                     await File.WriteAllTextAsync(cacheFilePath, json);
+                    _memCache[cacheKey] = result;
                 }
                 catch (Exception ex)
                 {

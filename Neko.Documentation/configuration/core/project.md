@@ -2115,6 +2115,45 @@ For most projects, the default limit of 1000 iterations provides a good balance 
 
 ---
 
+## tesserae
+
+Controls how live [`tesserae`](/components/tesserae) C# samples are compiled. The
+compiled output of each sample is cached on disk (keyed by a hash of the sample
+code plus the Tesserae version), so unchanged samples are reused across builds
+and `neko watch` restarts instead of being recompiled.
+
+### version
+
+=== version : `string`
+
+Pins the Tesserae NuGet version used to compile samples. When omitted, Neko
+resolves the latest stable version from NuGet and caches that resolution on disk
+for 24 hours (so repeated `neko watch` starts don't make a network call). Pin an
+exact version for fully deterministic builds — a new Tesserae release then never
+invalidates the sample cache until you bump it.
+
+```yml
+tesserae:
+  version: "2026.6.67522"
+```
+===
+
+### maxParallelism
+
+=== maxParallelism : `number`
+
+Maximum number of samples compiled in parallel during the cache-warming pass
+that runs before pages are rendered. Defaults to `0`, meaning one per logical
+CPU core (`Environment.ProcessorCount`). Set to `1` to compile serially.
+
+```yml
+tesserae:
+  maxParallelism: 4
+```
+===
+
+---
+
 ## theme
 
 The `theme` configuration allows you to customize the visual appearance of your Neko website by overriding colors and other design elements to match your brand or project preferences.

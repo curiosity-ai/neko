@@ -49,6 +49,7 @@ links:
 | `start`     | Dev-server tweaks (`pro: true`, ports).                                    |
 | `snippets`  | Map of template variables substituted into pages.                          |
 | `imageGen`  | Defaults for the `[!img-gen]` component (system prompt, size, light/dark). |
+| `tesserae`  | Live `tesserae` sample compilation: `version` (pin) and `maxParallelism`.   |
 
 ## Branding
 
@@ -164,6 +165,20 @@ imageGen:
 
 See the `img-gen` skill for per-directive overrides (`size=`, `light=`,
 `dark=`).
+
+## Tesserae sample compilation
+
+Controls how live `tesserae` C# samples are compiled and cached. Both keys are
+optional.
+
+```yml
+tesserae:
+  version: "2026.6.67522"    # pin the Tesserae NuGet version (omit = latest, cached 24h)
+  maxParallelism: 4          # parallel compiles during the warm pass (0 = CPU count)
+```
+
+Pin `version` for deterministic builds: a new Tesserae release then never
+invalidates the on-disk sample cache until you bump it. See the `tesserae` skill.
 
 ## Multi-repo
 

@@ -42,6 +42,17 @@ public class TodoApp
 - For arbitrary C# code blocks, use a plain
   [`code-block`](../code-block/SKILL.md) with ` ```csharp `.
 
+## Caching and performance
+
+- Each compiled sample is cached on disk, keyed by a hash of its code plus the
+  Tesserae version, so unchanged samples are reused across builds and
+  `neko start` restarts instead of recompiling.
+- Samples compile in parallel in a warm-up pass before pages render. Tune the
+  degree with `tesserae.maxParallelism` in `neko.yml` (`0` = CPU count).
+- Pin the Tesserae version with `tesserae.version` in `neko.yml` for
+  deterministic builds — otherwise Neko uses the latest stable version (cached
+  for 24h). See the `neko-yml` skill.
+
 ## Tips
 
 - Failures in the embedded program become build errors — keep examples

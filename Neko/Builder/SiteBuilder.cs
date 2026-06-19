@@ -183,6 +183,30 @@ namespace Neko.Builder
                 // 4. Process Files
                 var parsedDocs = new List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)>();
 
+                // Pass 0: Warm the Tesserae compile cache in parallel. Compilation
+                // otherwise happens inline during the (synchronous, sequential) parse
+                // below — one sample at a time — because Markdig's renderer can't be
+                // awaited. Compiling every sample up front turns each parse into a fast
+                // cache hit and lets independent samples build concurrently.
+                Builder.TesseraeCompiler.Configure(_config.Tesserae?.Version, _config.Tesserae?.MaxParallelism ?? 0);
+                var tesseraeSamples = new List<(string Arguments, string Code)>();
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        var markdown = await File.ReadAllTextAsync(file);
+                        tesseraeSamples.AddRange(parser.ExtractTesseraeSamples(markdown, file, _inputDirectory));
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Warning: failed to scan {Path.GetFileName(file)} for Tesserae samples: {ex.Message}");
+                    }
+                }
+                if (tesseraeSamples.Count > 0)
+                {
+                    await Builder.TesseraeCompiler.WarmAsync(tesseraeSamples, Environment.CurrentDirectory);
+                }
+
                 // Pass 1: Parse all files
                 foreach (var file in files)
                 {
