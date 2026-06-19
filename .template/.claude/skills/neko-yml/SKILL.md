@@ -112,6 +112,26 @@ links:
     icon: brands-github
 ```
 
+Any group with `items` also doubles as a **contextual pivot**: while the reader
+is inside the section, the items render as a tab bar directly below the header,
+with the active tab highlighted. A page is "inside" when its URL sits under one
+of the item links. This is the default — no extra key is needed — and the flyout
+dropdown still works on top of it. See the
+[project config docs](https://neko.curiosity.ai/configuration/core/project#items).
+
+**Navigation icons are hidden by default.** The `icon:` you set on links still
+lives in `neko.yml`, but you opt into showing it per context under `nav:`:
+
+```yml
+nav:
+  headerIcons: true     # icons on top-bar links + dropdown triggers
+  dropdownIcons: true   # icons on items inside dropdown flyouts
+  pivotIcons: true      # icons on the pivot tab bar
+```
+
+All three default to `false`. (This is separate from `nav.icons.mode`, which
+governs the left **sidebar** icons.)
+
 ## Page links (`pageLinks:`)
 
 Site-wide links rendered above the right-sidebar "On this page" TOC. Use for

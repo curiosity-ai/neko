@@ -48,6 +48,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "layout")]
         public LayoutConfig Layout { get; set; } = new LayoutConfig();
 
+        [YamlMember(Alias = "nav")]
+        public NavConfig Nav { get; set; } = new NavConfig();
+
         [YamlMember(Alias = "poweredByNeko")]
         public bool PoweredByNeko { get; set; } = true;
 
@@ -56,9 +59,6 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "imageGen")]
         public ImageGenConfig ImageGen { get; set; } = new ImageGenConfig();
-
-        [YamlMember(Alias = "nav")]
-        public NavConfig Nav { get; set; } = new NavConfig();
 
         public void NormalizeLinks()
         {
@@ -121,6 +121,25 @@ namespace Neko.Configuration
                 if (!Theme.Accent.ContainsKey(kvp.Key)) Theme.Accent[kvp.Key] = kvp.Value;
             }
 
+            // Inherit Nav settings (only when the child left them unset/default)
+            if (Nav == null) Nav = new NavConfig();
+            if (Nav.Icons == null) Nav.Icons = new NavIconsConfig();
+            if (parent.Nav != null)
+            {
+                // Top-nav icon toggles (header / dropdown / pivot) inherit per-flag.
+                Nav.HeaderIcons ??= parent.Nav.HeaderIcons;
+                Nav.DropdownIcons ??= parent.Nav.DropdownIcons;
+                Nav.PivotIcons ??= parent.Nav.PivotIcons;
+
+                // Sidebar icon mode inherits only when the child left the default ("none").
+                if (parent.Nav.Icons != null
+                    && string.Equals(Nav.Icons.Mode, "none", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(parent.Nav.Icons.Mode, "none", StringComparison.OrdinalIgnoreCase))
+                {
+                    Nav.Icons.Mode = parent.Nav.Icons.Mode;
+                }
+            }
+
             // Inherit Snippets settings
             if (Snippets.LineNumbers.Count == 0 && parent.Snippets.LineNumbers.Count > 0)
             {
@@ -137,16 +156,6 @@ namespace Neko.Configuration
             if ((Ignore == null || Ignore.Length == 0) && parent.Ignore != null && parent.Ignore.Length > 0)
             {
                 Ignore = (string[])parent.Ignore.Clone();
-            }
-
-            // Inherit Nav settings (only when the child left the default)
-            if (Nav == null) Nav = new NavConfig();
-            if (Nav.Icons == null) Nav.Icons = new NavIconsConfig();
-            if (parent.Nav?.Icons != null
-                && string.Equals(Nav.Icons.Mode, "none", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(parent.Nav.Icons.Mode, "none", StringComparison.OrdinalIgnoreCase))
-            {
-                Nav.Icons.Mode = parent.Nav.Icons.Mode;
             }
 
             // Inherit ImageGen settings (per-field, only when the child left the default)
@@ -166,8 +175,24 @@ namespace Neko.Configuration
 
     public class NavConfig
     {
+        // Sidebar icon mode (none/all/folders/pages/top). Distinct from the
+        // top-nav icon toggles below.
         [YamlMember(Alias = "icons")]
         public NavIconsConfig Icons { get; set; } = new NavIconsConfig();
+
+        // Show icons on the top-level header links and the dropdown trigger buttons.
+        // Null/false hides them; set to true in neko.yml to opt back in. Named
+        // `headerIcons` to avoid colliding with the sidebar `icons` object above.
+        [YamlMember(Alias = "headerIcons")]
+        public bool? HeaderIcons { get; set; }
+
+        // Show icons on the items inside dropdown flyout menus (and footer items).
+        [YamlMember(Alias = "dropdownIcons")]
+        public bool? DropdownIcons { get; set; }
+
+        // Show icons on the contextual pivot tab bar.
+        [YamlMember(Alias = "pivotIcons")]
+        public bool? PivotIcons { get; set; }
     }
 
     public class NavIconsConfig
