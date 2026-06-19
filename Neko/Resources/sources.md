@@ -38,4 +38,4 @@
 - **Source**: https://github.com/highlightjs/highlight.js
 - **License**: BSD-3-Clause
 - **File**: `Neko/Resources/highlight/highlight.min.js` (Downloaded from CDN)
-- **Themes**: `tokyo-night-dark.min.css`, `tokyo-night-light.min.css` (Downloaded from CDN)
+- **Themes**: `github.min.css` (default light), `tokyo-night-dark.min.css` (default dark), `tokyo-night-light.min.css` (Downloaded from CDN)
