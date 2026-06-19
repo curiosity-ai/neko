@@ -162,7 +162,13 @@ namespace Neko.Builder
                     }
                 }
 
-                var generator = new HtmlGenerator(_config, _isWatchMode, headIncludes);
+                // Resolve the Tailwind CLI up front so the page head can link the
+                // build-time static stylesheet (no Play-CDN flash). Falls back to
+                // the CDN when no CLI is available.
+                var tailwindCli = await TailwindBuilder.ResolveCliAsync();
+                var staticTailwind = tailwindCli != null;
+
+                var generator = new HtmlGenerator(_config, _isWatchMode, headIncludes, staticTailwind);
                 var searchIndexer = new SearchIndexGenerator(_routePrefix);
 
                 // Collect folders whose root yml opts the folder out of search indexing.
@@ -743,6 +749,16 @@ namespace Neko.Builder
 
                 // Copy Assets
                 await CopyAssetsAsync(OutputDirectory);
+
+                // Generate the static Tailwind stylesheet now that every page and
+                // asset has been written (the CLI scans the emitted HTML/JS). If
+                // this fails, the head already linked /assets/tailwind.css, so log
+                // loudly — but the CDN fallback only applies when the CLI never
+                // resolved in the first place.
+                if (staticTailwind)
+                {
+                    await TailwindBuilder.GenerateAsync(OutputDirectory, _config, tailwindCli);
+                }
 
                 // Generate CNAME if applicable
                 var customCnamePath = Path.Combine(_inputDirectory, "CNAME");
