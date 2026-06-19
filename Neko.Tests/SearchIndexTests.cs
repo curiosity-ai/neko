@@ -582,6 +582,47 @@ Overview.
         }
 
         [Test]
+        public async Task SearchIndex_PrefersNavbarLabel_ForProjectBreadcrumb()
+        {
+            // The navbar names this sub-project's root ("Connect & Ingest"); that
+            // label wins over branding.label and even an explicit breadcrumb.label,
+            // so every sub-project draws its crumb from the single, shared navbar.
+            var project = Path.Combine(_sampleDir, "workspace-data-and-integrations");
+            Directory.CreateDirectory(Path.Combine(project, "guides"));
+            await File.WriteAllTextAsync(Path.Combine(project, "neko.yml"), @"
+url: https://example.com
+branding:
+  title: Curiosity
+  label: Data & Integrations
+breadcrumb:
+  label: Ignore Me
+links:
+  - text: Workspace
+    items:
+      - text: Build
+        link: /workspace-build/
+      - text: Connect & Ingest
+        link: /workspace-data-and-integrations/
+");
+            await File.WriteAllTextAsync(Path.Combine(project, "guides", "csv.md"), @"---
+title: CSV recipe
+---
+# CSV recipe
+
+Body text.
+");
+            var output = Path.Combine(project, ".neko-out");
+            await new SiteBuilder(project, output, false, "/workspace-data-and-integrations").BuildAsync();
+
+            using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(output, "search.json")));
+            var csv = doc.RootElement.EnumerateArray()
+                .First(d => d.GetProperty("id").GetString() == "workspace-data-and-integrations/guides/csv.html");
+            Assert.That(csv.GetProperty("breadcrumbs").EnumerateArray().Select(c => c.GetString()),
+                Is.EqualTo(new[] { "Connect & Ingest", "Guides" }),
+                "The navbar label for the project's root should be the leading crumb");
+        }
+
+        [Test]
         public async Task SearchIndex_UsesFriendlyProjectName_FromBreadcrumbLabelThenBrandingLabel()
         {
             // `breadcrumb.label` wins over `branding.label`/`branding.title`, and

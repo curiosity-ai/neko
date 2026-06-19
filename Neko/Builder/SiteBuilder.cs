@@ -16,11 +16,11 @@ namespace Neko.Builder
         private readonly string? _routePrefix;
         private NekoConfig _config;
 
-        // Friendly name for this sub-project, shown as the leading crumb of every
-        // search result so cross-project hits name the project they belong to.
-        // Computed from the project's *own* config before it inherits the parent's
-        // branding. Null for the root project (no route prefix).
-        private string _projectBreadcrumbName;
+        // This sub-project's *own* identity (branding/breadcrumb label), captured
+        // before it inherits the parent's branding. Used as a fallback for the
+        // search breadcrumb when the project isn't named in the navbar. Null for
+        // the root project (no route prefix).
+        private string _projectOwnName;
 
         public string OutputDirectory { get; private set; }
 
@@ -49,12 +49,13 @@ namespace Neko.Builder
                 {
                     _config = ConfigParser.Parse(configPath);
 
-                    // Resolve the project's breadcrumb name from its *own* config,
-                    // before the merge below pulls the parent's branding down (the
-                    // parent's title/label would otherwise mask this sub-project's).
+                    // Capture this project's own identity before the merge below
+                    // pulls the parent's branding down (the parent's title/label
+                    // would otherwise mask this sub-project's). Used as the search
+                    // breadcrumb fallback when the navbar doesn't name the project.
                     if (!string.IsNullOrEmpty(_routePrefix))
                     {
-                        _projectBreadcrumbName = ResolveProjectBreadcrumbName(_config, _routePrefix);
+                        _projectOwnName = ResolveOwnProjectName(_config);
                     }
 
                     // If we are a sub-project (indicated by having a routePrefix), attempt to inherit from root config
@@ -178,7 +179,7 @@ namespace Neko.Builder
                 }
 
                 var generator = new HtmlGenerator(_config, _isWatchMode, headIncludes);
-                var searchIndexer = new SearchIndexGenerator(_routePrefix, _projectBreadcrumbName);
+                var searchIndexer = new SearchIndexGenerator(_routePrefix);
 
                 // Collect folders whose root yml opts the folder out of search indexing.
                 var searchExcludedFolders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -253,6 +254,16 @@ namespace Neko.Builder
 
                 // Build Navigation Map
                 var navigationMap = BuildNavigationMap(_config.Links);
+
+                // Resolve the friendly name shown as the leading search-breadcrumb
+                // crumb for this sub-project. The navbar already maps each
+                // sub-project's root link to a friendly label (e.g. "Connect &
+                // Ingest"), so it is the single, preferred source; fall back to the
+                // project's own branding, then a title-cased mount path.
+                if (!string.IsNullOrEmpty(_routePrefix))
+                {
+                    searchIndexer.ProjectName = ResolveProjectBreadcrumbName(_config.Links, _projectOwnName, _routePrefix);
+                }
 
                 // Sidebar-derived breadcrumb trails for the search index. The sidebar
                 // mirrors the folder hierarchy and covers every page, so it is the
@@ -979,11 +990,29 @@ namespace Neko.Builder
             return map;
         }
 
-        // Picks the friendly name shown as the leading search-breadcrumb crumb for
-        // a sub-project: an explicit `breadcrumb.label`, else the header
-        // `branding.label`, else `branding.title` (ignoring the default "Neko"),
-        // else a title-cased version of the last route-prefix segment.
-        private static string ResolveProjectBreadcrumbName(NekoConfig config, string routePrefix)
+        // The single, unified label for a sub-project in the search breadcrumb.
+        // The navbar already names every sub-project (its root link's text), so it
+        // is the preferred source; fall back to the project's own branding, then a
+        // title-cased version of the last route-prefix segment.
+        private static string ResolveProjectBreadcrumbName(List<LinkConfig> links, string ownName, string routePrefix)
+        {
+            var navbarLabel = FindNavbarLabel(links, routePrefix);
+            if (!string.IsNullOrWhiteSpace(navbarLabel)) return navbarLabel.Trim();
+
+            if (!string.IsNullOrWhiteSpace(ownName)) return ownName.Trim();
+
+            var segment = (routePrefix ?? string.Empty)
+                .Replace('\\', '/')
+                .Split('/', StringSplitOptions.RemoveEmptyEntries)
+                .LastOrDefault();
+            return string.IsNullOrEmpty(segment) ? null : ToFriendlyName(segment);
+        }
+
+        // A sub-project's own identity, from its own config: an explicit
+        // `breadcrumb.label`, else `branding.label`, else `branding.title`
+        // (ignoring the default "Neko"). Read before the parent merge so an
+        // inherited parent title/label doesn't masquerade as this project's name.
+        private static string ResolveOwnProjectName(NekoConfig config)
         {
             var explicitLabel = config?.Breadcrumb?.Label;
             if (!string.IsNullOrWhiteSpace(explicitLabel)) return explicitLabel.Trim();
@@ -998,11 +1027,50 @@ namespace Neko.Builder
                 return brandingTitle.Trim();
             }
 
-            var segment = (routePrefix ?? string.Empty)
-                .Replace('\\', '/')
-                .Split('/', StringSplitOptions.RemoveEmptyEntries)
-                .LastOrDefault();
-            return string.IsNullOrEmpty(segment) ? null : ToFriendlyName(segment);
+            return null;
+        }
+
+        // Finds the navbar link (at any nesting depth) whose target is this
+        // sub-project's root, and returns its text. Matching canonicalises both
+        // sides: drop scheme-less leading slash, a `.md`/`.html` suffix, a
+        // trailing `/index`, and surrounding slashes.
+        private static string FindNavbarLabel(List<LinkConfig> links, string routePrefix)
+        {
+            var target = CanonicalizeLinkPath(routePrefix);
+            if (string.IsNullOrEmpty(target)) return null;
+
+            string Walk(List<LinkConfig> items)
+            {
+                if (items == null) return null;
+                foreach (var link in items)
+                {
+                    if (!string.IsNullOrWhiteSpace(link.Text)
+                        && !string.IsNullOrEmpty(link.Link)
+                        && !link.Link.Contains("://")
+                        && string.Equals(CanonicalizeLinkPath(link.Link), target, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return link.Text;
+                    }
+
+                    var nested = Walk(link.Items);
+                    if (nested != null) return nested;
+                }
+                return null;
+            }
+
+            return Walk(links);
+        }
+
+        private static string CanonicalizeLinkPath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+            var p = path.Replace('\\', '/').Trim();
+            if (p.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) p = p.Substring(0, p.Length - 3);
+            else if (p.EndsWith(".html", StringComparison.OrdinalIgnoreCase)) p = p.Substring(0, p.Length - 5);
+            p = p.Trim('/');
+            if (p.EndsWith("/index", StringComparison.OrdinalIgnoreCase)) p = p.Substring(0, p.Length - "/index".Length);
+            else if (p.Equals("index", StringComparison.OrdinalIgnoreCase)) p = string.Empty;
+            return p;
         }
 
         // "landlock-sharp" → "Landlock-Sharp": capitalise the first letter of each

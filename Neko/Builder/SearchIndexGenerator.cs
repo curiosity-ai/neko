@@ -41,28 +41,26 @@ namespace Neko.Builder
 
         private readonly List<SearchDocument> _documents = new List<SearchDocument>();
         private readonly string _routePrefix;
-        private readonly string[] _projectCrumbs;
+
+        // The friendly name of the (sub-)project every document belongs to, shown
+        // as the leading search-breadcrumb crumb. Settable because it is resolved
+        // from the finalized navbar, which isn't built until after construction.
+        public string ProjectName { get; set; }
 
         public SearchIndexGenerator(string routePrefix = null, string projectName = null)
         {
             _routePrefix = NormalizeRoutePrefix(routePrefix);
+            ProjectName = projectName;
+        }
 
-            // The leading breadcrumb(s) naming the (sub-)project every document
-            // belongs to. Prefer the caller-supplied friendly name; fall back to
-            // the raw route-prefix segments so a result still names its project
-            // even when no friendly name was resolved.
-            if (!string.IsNullOrWhiteSpace(projectName))
-            {
-                _projectCrumbs = new[] { projectName.Trim() };
-            }
-            else if (!string.IsNullOrEmpty(_routePrefix))
-            {
-                _projectCrumbs = _routePrefix.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            }
-            else
-            {
-                _projectCrumbs = Array.Empty<string>();
-            }
+        // The leading breadcrumb(s) naming the project. Prefer the resolved
+        // friendly name; fall back to the raw route-prefix segments so a result
+        // still names its project even when no friendly name was resolved.
+        private string[] ProjectCrumbs()
+        {
+            if (!string.IsNullOrWhiteSpace(ProjectName)) return new[] { ProjectName.Trim() };
+            if (!string.IsNullOrEmpty(_routePrefix)) return _routePrefix.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            return Array.Empty<string>();
         }
 
         // Prefix becomes part of the document id (e.g. `workspace/foo.html`) so
@@ -102,7 +100,7 @@ namespace Neko.Builder
             // belongs to as the first crumb. This restores the project segment
             // that the path fallback in search.js only adds when the trail is
             // empty.
-            var crumbList = new List<string>(_projectCrumbs);
+            var crumbList = new List<string>(ProjectCrumbs());
             if (breadcrumbs != null)
             {
                 crumbList.AddRange(breadcrumbs.Where(b => !string.IsNullOrWhiteSpace(b)));
