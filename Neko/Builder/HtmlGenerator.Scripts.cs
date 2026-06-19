@@ -552,12 +552,27 @@ namespace Neko.Builder
         // sticky bar. There is no widely-supported CSS `:stuck` selector, so a zero-size
         // sentinel marks each header's natural top and an IntersectionObserver (rooted at
         // #main-scroll) toggles `.is-stuck` once the sentinel scrolls above the pane top.
+        // When stuck, the bar's background is `position: fixed` so it spans the whole
+        // viewport (the content row is max-width-capped and centred); its top/height are
+        // set inline here to track the pinned header, re-applied on resize.
         private void RenderChangelogStickyScript(StringBuilder sb)
         {
             sb.AppendLine("        (function() {");
             sb.AppendLine("            var root = document.getElementById('main-scroll');");
             sb.AppendLine("            var sentinels = document.querySelectorAll('.neko-cl-sentinel');");
             sb.AppendLine("            if (!root || !sentinels.length || !('IntersectionObserver' in window)) return;");
+            sb.AppendLine("            function place(header) {");
+            sb.AppendLine("                var bleed = header.querySelector('.neko-cl-bleed');");
+            sb.AppendLine("                if (!bleed) return;");
+            sb.AppendLine("                if (header.classList.contains('is-stuck')) {");
+            sb.AppendLine("                    var r = header.getBoundingClientRect();");
+            sb.AppendLine("                    bleed.style.top = (r.top - 8) + 'px';");
+            sb.AppendLine("                    bleed.style.height = (r.height + 8) + 'px';");
+            sb.AppendLine("                } else {");
+            sb.AppendLine("                    bleed.style.top = '';");
+            sb.AppendLine("                    bleed.style.height = '';");
+            sb.AppendLine("                }");
+            sb.AppendLine("            }");
             sb.AppendLine("            var io = new IntersectionObserver(function(entries) {");
             sb.AppendLine("                entries.forEach(function(e) {");
             sb.AppendLine("                    var header = e.target.nextElementSibling;");
@@ -565,9 +580,13 @@ namespace Neko.Builder
             sb.AppendLine("                    var rb = e.rootBounds;");
             sb.AppendLine("                    var stuck = !e.isIntersecting && !!rb && e.boundingClientRect.top <= rb.top;");
             sb.AppendLine("                    header.classList.toggle('is-stuck', stuck);");
+            sb.AppendLine("                    place(header);");
             sb.AppendLine("                });");
             sb.AppendLine("            }, { root: root, threshold: [0] });");
             sb.AppendLine("            sentinels.forEach(function(s) { io.observe(s); });");
+            sb.AppendLine("            window.addEventListener('resize', function() {");
+            sb.AppendLine("                document.querySelectorAll('.neko-changelog-version.is-stuck').forEach(place);");
+            sb.AppendLine("            });");
             sb.AppendLine("        })();");
         }
     }
