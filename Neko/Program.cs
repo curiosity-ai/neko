@@ -80,6 +80,10 @@ namespace Neko
                 var inputFullPath = Path.GetFullPath(input);
                 var configFiles = BuildRunner.FindProjectConfigs(inputFullPath);
 
+                // Keep all on-disk Tesserae build artifacts in the project's
+                // .neko-cache folder rather than the OS temp directory.
+                Neko.Builder.TesseraeCompiler.SetCacheRoot(Path.Combine(inputFullPath, ".neko-cache"));
+
                 var isMultiRepo = configFiles.Length > 1 || (configFiles.Length == 1 && Path.GetDirectoryName(configFiles[0]) != inputFullPath);
 
                 Console.WriteLine($"Watching {input}{(isMultiRepo ? " (Multi-Repo Mode)" : "")}...");
@@ -170,6 +174,9 @@ namespace Neko
                     {
                         var fullOutput = Path.GetFullPath(site.OutputPath);
                         if (e.FullPath.Contains(fullOutput)) return;
+                        // Never rebuild in response to our own build artifacts /
+                        // the Tesserae cache being written.
+                        if (e.FullPath.Contains($"{Path.DirectorySeparatorChar}.neko-cache{Path.DirectorySeparatorChar}")) return;
 
                         if ((DateTime.Now - lastBuild).TotalMilliseconds < 500) return;
                         lastBuild = DateTime.Now;

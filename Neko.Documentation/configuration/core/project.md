@@ -2179,9 +2179,10 @@ For most projects, the default limit of 1000 iterations provides a good balance 
 ## tesserae
 
 Controls how live [`tesserae`](/components/tesserae) C# samples are compiled. The
-compiled output of each sample is cached on disk (keyed by a hash of the sample
-code plus the Tesserae version), so unchanged samples are reused across builds
-and `neko watch` restarts instead of being recompiled.
+compiled output of each sample is cached on disk in a `.neko-cache/` folder in
+your project root (keyed by a hash of the sample code plus the Tesserae version),
+so unchanged samples are reused across builds and `neko watch` restarts instead
+of being recompiled. Add `.neko-cache/` to your `.gitignore`.
 
 ### version
 
@@ -2191,8 +2192,8 @@ Pins the Tesserae NuGet version used to compile samples. When omitted, Neko
 resolves the latest stable version from NuGet **once**, records it on disk, and
 reuses that exact version on every later build and `neko watch` restart — so
 repeated starts make no network call and a new Tesserae release never silently
-invalidates the sample cache. Pin an exact version (or delete the cache
-directory) to move to a different version.
+invalidates the sample cache. Pin an exact version (or delete the
+`.neko-cache/` folder) to move to a different version.
 
 ```yml
 tesserae:

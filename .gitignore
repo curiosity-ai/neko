@@ -290,6 +290,7 @@ __pycache__/
 .DS_Store
 .taildocs/
 .neko/
+.neko-cache/
 temp_output/
 test-output-docs/
 test-docs/

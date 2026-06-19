@@ -59,6 +59,16 @@ namespace Neko.Builder
             _maxParallelism = maxParallelism > 0 ? maxParallelism : Environment.ProcessorCount;
         }
 
+        // Root for all on-disk Tesserae build artifacts (compiled samples, shared
+        // runtime, version record). Set once per invocation to the project's
+        // `.neko-cache` folder so nothing is written to the OS temp directory.
+        private static string _cacheRoot;
+
+        public static void SetCacheRoot(string cacheRoot)
+        {
+            if (!string.IsNullOrWhiteSpace(cacheRoot)) _cacheRoot = cacheRoot;
+        }
+
         public static string ComputeHash(string input)
         {
             return input.Hash128().ToString();
@@ -66,7 +76,11 @@ namespace Neko.Builder
 
         private static string GetCacheDir()
         {
-            var cacheDir = Path.Combine(Path.GetTempPath(), "neko", "tesserae-cache");
+            // `_cacheRoot` is always set by the CLI entry points before a build.
+            // The temp fallback only applies to direct unit-test calls that skip
+            // SetCacheRoot.
+            var root = _cacheRoot ?? Path.Combine(Path.GetTempPath(), "neko", ".neko-cache");
+            var cacheDir = Path.Combine(root, "tesserae");
             Directory.CreateDirectory(cacheDir);
             return cacheDir;
         }
@@ -283,7 +297,7 @@ namespace Neko.Builder
 
             Console.WriteLine($"Package {package} version {version} not found in cache. Restoring...");
 
-            var tempDir = Path.Combine(Path.GetTempPath(), "H5_Restore_" + Guid.NewGuid());
+            var tempDir = Path.Combine(GetCacheDir(), "h5-restore-" + Guid.NewGuid());
             Directory.CreateDirectory(tempDir);
 
             try

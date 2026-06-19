@@ -85,9 +85,11 @@ namespace Neko.Builder
                 }
                 else
                 {
-                    // Default to temp folder as requested
-                    var projectName = new DirectoryInfo(_inputDirectory).Name;
-                    OutputDirectory = Path.Combine(Path.GetTempPath(), "neko", projectName);
+                    // Default to the project's `.neko` build folder (honouring the
+                    // neko.yml `output:` key), matching multi-repo mode instead of
+                    // writing into the OS temp directory.
+                    var outputName = string.IsNullOrWhiteSpace(_config.Output) ? ".neko" : _config.Output;
+                    OutputDirectory = Path.GetFullPath(Path.Combine(_inputDirectory, outputName));
                 }
 
                 Console.WriteLine($"Output directory: {OutputDirectory}");

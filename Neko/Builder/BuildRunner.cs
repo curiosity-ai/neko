@@ -24,6 +24,10 @@ namespace Neko.Builder
             var inputFullPath = Path.GetFullPath(input);
             var configFiles = FindProjectConfigs(inputFullPath);
 
+            // Keep all on-disk Tesserae build artifacts in the project's
+            // .neko-cache folder rather than the OS temp directory.
+            TesseraeCompiler.SetCacheRoot(Path.Combine(inputFullPath, ".neko-cache"));
+
             var isMultiRepo = configFiles.Length > 1 || (configFiles.Length == 1 && Path.GetDirectoryName(configFiles[0]) != inputFullPath);
 
             if (isMultiRepo)

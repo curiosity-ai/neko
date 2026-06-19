@@ -198,8 +198,9 @@ tesserae:
 ```
 
 When `version` is omitted, Neko resolves the latest version once and records it
-on disk, reusing it on every later build (no expiry). Pin `version` (or delete
-the cache directory) to move to a different version. See the `tesserae` skill.
+on disk under `.neko-cache/` in the project root, reusing it on every later build
+(no expiry). Pin `version` (or delete the `.neko-cache/` folder) to move to a
+different version. See the `tesserae` skill.
 
 ## Multi-repo
 

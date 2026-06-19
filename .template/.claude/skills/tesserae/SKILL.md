@@ -44,9 +44,10 @@ public class TodoApp
 
 ## Caching and performance
 
-- Each compiled sample is cached on disk, keyed by a hash of its code plus the
-  Tesserae version, so unchanged samples are reused across builds and
-  `neko start` restarts instead of recompiling.
+- Each compiled sample is cached on disk under a `.neko-cache/` folder in the
+  project root, keyed by a hash of its code plus the Tesserae version, so
+  unchanged samples are reused across builds and `neko start` restarts instead
+  of recompiling. Add `.neko-cache/` to your `.gitignore`.
 - Samples compile in parallel in a warm-up pass before pages render. Tune the
   degree with `tesserae.maxParallelism` in `neko.yml` (`0` = CPU count).
 - Pin the Tesserae version with `tesserae.version` in `neko.yml` for

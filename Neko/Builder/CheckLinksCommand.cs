@@ -65,9 +65,10 @@ namespace Neko.Builder
                 return 2;
             }
 
-            // Build into a dedicated temp folder so we validate the real, rendered
+            // Build into a dedicated throwaway folder under the project's
+            // .neko-cache (not the OS temp dir) so we validate the real, rendered
             // output (with all of Neko's link rewriting) rather than raw Markdown.
-            var outputRoot = Path.Combine(Path.GetTempPath(), "neko", "_linkcheck");
+            var outputRoot = Path.Combine(inputFullPath, ".neko-cache", "_linkcheck");
             Console.WriteLine($"[check-links] Building {inputFullPath} into {outputRoot}...");
             outputRoot = await BuildRunner.RunAsync(_input, outputRoot);
 
