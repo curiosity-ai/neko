@@ -522,6 +522,65 @@ Body text.
         }
 
         [Test]
+        public async Task SearchIndex_PrependsRoutePrefix_ToSubProjectBreadcrumbs()
+        {
+            // A multi-repo sub-project mounted at /landlock-sharp. Its sidebar
+            // breadcrumbs start *inside* the project ("Advanced"), so the project
+            // segment must be prepended to keep results distinguishable in the
+            // aggregated root index.
+            var project = Path.Combine(_sampleDir, "landlock-sharp");
+            Directory.CreateDirectory(Path.Combine(project, "advanced"));
+
+            await File.WriteAllTextAsync(Path.Combine(project, "neko.yml"), @"
+url: https://example.com
+");
+            await File.WriteAllTextAsync(Path.Combine(project, "advanced", "testing.md"), @"---
+title: Testing strategies
+---
+# Testing strategies
+
+## Pattern 1
+
+Body text.
+");
+            await File.WriteAllTextAsync(Path.Combine(project, "index.md"), @"---
+title: Landlock-Sharp
+---
+# Landlock-Sharp
+
+Overview.
+");
+
+            var output = Path.Combine(project, ".neko-out");
+            var builder = new SiteBuilder(project, output, false, "/landlock-sharp");
+            await builder.BuildAsync();
+
+            var json = await File.ReadAllTextAsync(Path.Combine(output, "search.json"));
+            using var doc = JsonDocument.Parse(json);
+            var docs = doc.RootElement.EnumerateArray().ToList();
+
+            var page = docs.First(d => d.GetProperty("id").GetString() == "landlock-sharp/advanced/testing.html");
+            Assert.That(page.TryGetProperty("breadcrumbs", out var pageCrumbs), Is.True,
+                "Sub-project pages should carry a breadcrumb trail");
+            Assert.That(pageCrumbs.EnumerateArray().Select(c => c.GetString()),
+                Is.EqualTo(new[] { "landlock-sharp", "Advanced" }),
+                "The route-prefix segment should be the first crumb, ahead of the sidebar trail");
+
+            var section = docs.First(d => d.GetProperty("id").GetString() == "landlock-sharp/advanced/testing.html#pattern-1");
+            Assert.That(section.TryGetProperty("breadcrumbs", out var sectionCrumbs), Is.True);
+            Assert.That(sectionCrumbs.EnumerateArray().Select(c => c.GetString()),
+                Is.EqualTo(new[] { "landlock-sharp", "Advanced" }),
+                "Section documents inherit the prefixed trail");
+
+            // A root-level sub-project page with no sidebar ancestors still gets
+            // the project segment as its sole crumb.
+            var home = docs.First(d => d.GetProperty("id").GetString() == "landlock-sharp/index.html");
+            Assert.That(home.TryGetProperty("breadcrumbs", out var homeCrumbs), Is.True);
+            Assert.That(homeCrumbs.EnumerateArray().Select(c => c.GetString()),
+                Is.EqualTo(new[] { "landlock-sharp" }));
+        }
+
+        [Test]
         public async Task SearchIndex_Aggregate_MergesSubProjectIndexesIntoRoot()
         {
             var rootOut = Path.Combine(_sampleDir, ".agg-root");

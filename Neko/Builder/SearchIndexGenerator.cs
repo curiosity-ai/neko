@@ -75,8 +75,24 @@ namespace Neko.Builder
             // navigation ("Guides", "Core concepts", …). They're stored on every
             // document — sections inherit the page's trail — so the search UI can
             // show a nav-derived breadcrumb instead of the raw file path.
-            var crumbs = breadcrumbs?.Where(b => !string.IsNullOrWhiteSpace(b)).ToArray();
-            if (crumbs != null && crumbs.Length == 0) crumbs = null;
+            //
+            // In multi-repo mode the supplied trail comes from the sub-project's
+            // own sidebar/navbar and therefore starts *inside* the sub-project
+            // (e.g. "Advanced"). Prepend the route-prefix segments — the
+            // sub-project's mount path (e.g. "landlock-sharp") — so a result in
+            // the aggregated root index always names the project it belongs to as
+            // the first crumb. This restores the project segment that the path
+            // fallback in search.js only adds when the trail is empty.
+            var crumbList = new List<string>();
+            if (!string.IsNullOrEmpty(_routePrefix))
+            {
+                crumbList.AddRange(_routePrefix.Split('/', StringSplitOptions.RemoveEmptyEntries));
+            }
+            if (breadcrumbs != null)
+            {
+                crumbList.AddRange(breadcrumbs.Where(b => !string.IsNullOrWhiteSpace(b)));
+            }
+            var crumbs = crumbList.Count > 0 ? crumbList.ToArray() : null;
 
             var sections = ExtractSections(html);
 
