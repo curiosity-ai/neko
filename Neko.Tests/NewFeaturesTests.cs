@@ -152,6 +152,60 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void TestNavIconsHiddenByDefault()
+        {
+            _config.Links = new List<LinkConfig> { MakePivotGroup() };
+            var doc = new ParsedDocument { Html = "<p>Content</p>", FrontMatter = new FrontMatter { Title = "Page" } };
+
+            var html = _generator.Generate(doc, currentUrl: "/workspace-build/intro");
+
+            // "Learn" carries a graduation-cap icon; with icons off by default it
+            // must not appear in the pivot bar or the dropdown.
+            Assert.That(html, Does.Not.Contain("fi-rr-graduation-cap"));
+        }
+
+        [Test]
+        public void TestPivotIconsEnabled()
+        {
+            _config.Links = new List<LinkConfig> { MakePivotGroup() };
+            _config.Nav = new NavConfig { PivotIcons = true };
+            var doc = new ParsedDocument { Html = "<p>Content</p>", FrontMatter = new FrontMatter { Title = "Page" } };
+
+            var html = _generator.Generate(doc, currentUrl: "/workspace-build/intro");
+
+            Assert.That(html, Contains.Substring("fi-rr-graduation-cap"));
+        }
+
+        [Test]
+        public void TestDropdownIconsEnabled()
+        {
+            _config.Links = new List<LinkConfig> { MakePivotGroup() };
+            _config.Nav = new NavConfig { DropdownIcons = true };
+            var doc = new ParsedDocument { Html = "<p>Content</p>", FrontMatter = new FrontMatter { Title = "Page" } };
+
+            // On a page outside the section the pivot is hidden, so the only place
+            // the icon can come from is the dropdown flyout.
+            var html = _generator.Generate(doc, currentUrl: "/");
+
+            Assert.That(html, Contains.Substring("fi-rr-graduation-cap"));
+        }
+
+        [Test]
+        public void TestHeaderIconsEnabled()
+        {
+            var group = MakePivotGroup();
+            group.Icon = "building";
+            _config.Links = new List<LinkConfig> { group };
+            _config.Nav = new NavConfig { HeaderIcons = true };
+            var doc = new ParsedDocument { Html = "<p>Content</p>", FrontMatter = new FrontMatter { Title = "Page" } };
+
+            var html = _generator.Generate(doc, currentUrl: "/");
+
+            // The dropdown trigger button shows its icon when header icons are on.
+            Assert.That(html, Contains.Substring("fi-rr-building"));
+        }
+
+        [Test]
         public void TestPivotNotRenderedForGroupWithoutItems()
         {
             // A plain top-nav link (no items) is never a pivot section.

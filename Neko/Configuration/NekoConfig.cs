@@ -48,6 +48,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "layout")]
         public LayoutConfig Layout { get; set; } = new LayoutConfig();
 
+        [YamlMember(Alias = "nav")]
+        public NavConfig Nav { get; set; } = new NavConfig();
+
         [YamlMember(Alias = "poweredByNeko")]
         public bool PoweredByNeko { get; set; } = true;
 
@@ -118,6 +121,15 @@ namespace Neko.Configuration
                 if (!Theme.Accent.ContainsKey(kvp.Key)) Theme.Accent[kvp.Key] = kvp.Value;
             }
 
+            // Inherit Nav icon toggles per-flag (only when the child left it unset)
+            if (Nav == null) Nav = new NavConfig();
+            if (parent.Nav != null)
+            {
+                Nav.HeaderIcons ??= parent.Nav.HeaderIcons;
+                Nav.DropdownIcons ??= parent.Nav.DropdownIcons;
+                Nav.PivotIcons ??= parent.Nav.PivotIcons;
+            }
+
             // Inherit Snippets settings
             if (Snippets.LineNumbers.Count == 0 && parent.Snippets.LineNumbers.Count > 0)
             {
@@ -174,6 +186,23 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "darkModePrompt")]
         public string DarkModePrompt { get; set; } = DefaultDarkModePrompt;
+    }
+
+    public class NavConfig
+    {
+        // Show icons on the top-level header links and the dropdown trigger buttons.
+        // Null/false hides them; set to true in neko.yml to opt back in. Named
+        // `headerIcons` to avoid colliding with the sidebar `nav.icons` object.
+        [YamlMember(Alias = "headerIcons")]
+        public bool? HeaderIcons { get; set; }
+
+        // Show icons on the items inside dropdown flyout menus (and footer items).
+        [YamlMember(Alias = "dropdownIcons")]
+        public bool? DropdownIcons { get; set; }
+
+        // Show icons on the contextual pivot tab bar.
+        [YamlMember(Alias = "pivotIcons")]
+        public bool? PivotIcons { get; set; }
     }
 
     public class LayoutConfig

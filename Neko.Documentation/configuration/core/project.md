@@ -1342,6 +1342,55 @@ The `nav.icons.mode` setting can be used in conjunction with [`nav.mode: stack`]
 
 ===
 
+### headerIcons{#nav-headerIcons}
+
+=== headerIcons : `boolean`
+
+Controls whether icons are shown on the **top-bar** navigation — both the
+plain [`links`](#links) and the dropdown trigger buttons. Icons are **hidden by
+default**; set `headerIcons: true` to show the `icon:` you configured on each
+link.
+
+```yml
+nav:
+  headerIcons: true
+```
+
+This only affects the header. Icons inside dropdown menus are controlled by
+[`dropdownIcons`](#nav-dropdownIcons) and pivot-tab icons by
+[`pivotIcons`](#nav-pivotIcons). Your `icon:` values stay in `neko.yml` either
+way, so toggling the flag is all that's needed to show or hide them.
+===
+
+### dropdownIcons{#nav-dropdownIcons}
+
+=== dropdownIcons : `boolean`
+
+Controls whether icons are shown on the items **inside** dropdown (flyout)
+menus, including their footer items. Hidden by default; when off, the icon
+column is removed entirely so item text aligns to the left. Set
+`dropdownIcons: true` to show them.
+
+```yml
+nav:
+  dropdownIcons: true
+```
+===
+
+### pivotIcons{#nav-pivotIcons}
+
+=== pivotIcons : `boolean`
+
+Controls whether icons are shown on the contextual **pivot** tab bar (see
+[`links` › `items`](#items)). Hidden by default; set `pivotIcons: true` to show
+the item `icon:` on each tab.
+
+```yml
+nav:
+  pivotIcons: true
+```
+===
+
 ---
 
 ## nextprev

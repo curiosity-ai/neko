@@ -59,7 +59,7 @@ namespace Neko.Builder
             {
                 var href = item.Link ?? "#";
                 var target = !string.IsNullOrEmpty(item.Target) ? $" target=\"{item.Target}\"" : "";
-                var iconHtml = string.IsNullOrEmpty(item.Icon) ? "" : $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(item.Icon)}\"></i>";
+                var iconHtml = (!_showPivotIcons || string.IsNullOrEmpty(item.Icon)) ? "" : $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(item.Icon)}\"></i>";
                 var isActive = ReferenceEquals(item, activeItem);
                 var stateClass = isActive
                     ? "border-primary-600 text-primary-600 dark:text-primary-400 dark:border-primary-400"
