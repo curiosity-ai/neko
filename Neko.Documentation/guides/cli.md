@@ -279,6 +279,14 @@ Anchor validation is on by default. If a page generates anchor targets at runtim
 neko check-links --no-anchors
 ```
 
+Pass `--redirects` to also flag external links that still work but only resolve after an HTTP redirect — useful for keeping links pointed at their canonical URL (it implies `--external`):
+
+```
+neko check-links --redirects
+```
+
+Redirects are reported in their own section and are **advisory**: they never change the exit code, since an `http → https` hop shouldn't fail a CI gate. External probing issues a `HEAD` and falls back to `GET` when a server answers `HEAD` with a non-success status, so hosts that reject `HEAD` (such as nuget.org) are not reported as false positives.
+
 Broken links are **grouped by target**, so a single root cause that appears on every page (a navbar or footer link, say) is reported once with an occurrence count and a few example pages — not once per page. For page-relative links, the report also shows the path the link actually resolves to, which makes it obvious when an existing page is simply being reached by the wrong path. HTML generated *inside* an `assets/` folder (such as the Tesserae live-preview app) is treated as a build artifact and skipped.
 
 The command exits with a **non-zero status code** when anything is broken — so it can gate a CI pipeline:
@@ -300,6 +308,7 @@ Options:
   -i, --input <input>  Input directory path [default: .]
   --external           Also verify external http(s) links over the network
   --no-anchors         Skip validation of #fragment anchors
+  --redirects          Report external links that resolve via an HTTP redirect (implies --external)
   -?, -h, --help       Show help and usage information
 ```
 
