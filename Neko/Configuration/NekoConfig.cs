@@ -259,6 +259,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "description")]
         public string Description { get; set; }
 
+        [YamlMember(Alias = "pivot")]
+        public bool Pivot { get; set; }
+
         [YamlMember(Alias = "items")]
         public List<LinkConfig> Items { get; set; } = new List<LinkConfig>();
 

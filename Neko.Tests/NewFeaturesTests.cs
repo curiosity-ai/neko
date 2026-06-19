@@ -95,5 +95,74 @@ namespace Neko.Tests
             // Should NOT contain the icon class (because logo takes precedence in my implementation: if (Logo) ... else if (Icon) ...)
             Assert.That(html, Does.Not.Contain("<i class=\"fi fi-rr-star text-2xl"));
         }
+
+        private static LinkConfig MakePivotGroup()
+        {
+            return new LinkConfig
+            {
+                Text = "Workspace",
+                Pivot = true,
+                Items = new List<LinkConfig>
+                {
+                    new LinkConfig { Text = "Learn", Link = "/workspace/", Icon = "graduation-cap" },
+                    new LinkConfig { Text = "Deploy", Link = "/workspace-deployment/" },
+                    new LinkConfig { Text = "Build", Link = "/workspace-build/" },
+                }
+            };
+        }
+
+        [Test]
+        public void TestPivotRendersForMatchingSection()
+        {
+            _config.Links = new List<LinkConfig> { MakePivotGroup() };
+            var doc = new ParsedDocument { Html = "<p>Content</p>", FrontMatter = new FrontMatter { Title = "Page" } };
+
+            // A page under /workspace-build should surface the pivot with all tabs.
+            var html = _generator.Generate(doc, currentUrl: "/workspace-build/intro");
+
+            Assert.That(html, Contains.Substring("aria-current=\"page\""));
+            Assert.That(html, Contains.Substring(">Learn</a>"));
+            Assert.That(html, Contains.Substring(">Deploy</a>"));
+            Assert.That(html, Contains.Substring(">Build</a>"));
+        }
+
+        [Test]
+        public void TestPivotHighlightsActiveItemWithoutPrefixCollision()
+        {
+            _config.Links = new List<LinkConfig> { MakePivotGroup() };
+            var doc = new ParsedDocument { Html = "<p>Content</p>", FrontMatter = new FrontMatter { Title = "Page" } };
+
+            var html = _generator.Generate(doc, currentUrl: "/workspace-build/intro");
+
+            // /workspace-build must mark "Build" active, NOT "Learn" (/workspace),
+            // even though "/workspace" is a string prefix of "/workspace-build".
+            Assert.That(html, Contains.Substring("aria-current=\"page\" class=\"border-primary-600 text-primary-600 dark:text-primary-400 dark:border-primary-400 flex items-center gap-2 border-b-2 py-3 whitespace-nowrap transition-colors\">Build</a>"));
+            Assert.That(html, Does.Not.Contain("aria-current=\"page\" class=\"border-primary-600 text-primary-600 dark:text-primary-400 dark:border-primary-400 flex items-center gap-2 border-b-2 py-3 whitespace-nowrap transition-colors\">Learn</a>"));
+        }
+
+        [Test]
+        public void TestPivotHiddenOutsideSection()
+        {
+            _config.Links = new List<LinkConfig> { MakePivotGroup() };
+            var doc = new ParsedDocument { Html = "<p>Content</p>", FrontMatter = new FrontMatter { Title = "Page" } };
+
+            // A page outside any pivot section (e.g. the home page) shows no pivot bar.
+            var html = _generator.Generate(doc, currentUrl: "/");
+
+            Assert.That(html, Does.Not.Contain("aria-current=\"page\""));
+        }
+
+        [Test]
+        public void TestPivotNotRenderedWithoutPivotFlag()
+        {
+            var group = MakePivotGroup();
+            group.Pivot = false;
+            _config.Links = new List<LinkConfig> { group };
+            var doc = new ParsedDocument { Html = "<p>Content</p>", FrontMatter = new FrontMatter { Title = "Page" } };
+
+            var html = _generator.Generate(doc, currentUrl: "/workspace-build/intro");
+
+            Assert.That(html, Does.Not.Contain("aria-current=\"page\""));
+        }
     }
 }

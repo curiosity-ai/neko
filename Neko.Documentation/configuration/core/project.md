@@ -1114,6 +1114,47 @@ links:
 ```
 ===
 
+### pivot
+
+=== pivot : `boolean`
+
+Turns a link group into a **contextual pivot**. When set to `true` on a link that
+has [`items`](#items), Neko renders those items as a row of tabs in a secondary
+navigation bar directly below the header — but only while the reader is inside
+the section. A page is "inside" the section when its URL matches one of the
+group's item links (or sits below it). The tab for the current page is
+highlighted automatically.
+
+This is useful when a site is split into several areas (for example
+documentation pillars versus a developer/API reference area) and you want the
+relevant set of tabs surfaced without the reader opening a dropdown.
+
+```yml
+links:
+  - text: Workspace
+    pivot: true
+    items:
+      - text: Learn
+        link: /workspace/
+        icon: graduation-cap
+      - text: Deploy
+        link: /workspace-deployment/
+        icon: database
+      - text: Build
+        link: /workspace-build/
+        icon: rocket
+```
+
+With the configuration above, opening any page under `/workspace-build/` shows
+the three tabs below the header with **Build** marked as the active tab. Several
+groups can each set `pivot: true`; the group whose item most specifically
+matches the current page is the one shown.
+
+Default is `false`. The flyout dropdown defined by [`items`](#items) still works
+as usual, so the same group can serve both as a header dropdown (to jump between
+sections) and as the in-section pivot.
+===
+
 ### description
 
 === description : `string`

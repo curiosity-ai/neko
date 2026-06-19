@@ -109,6 +109,7 @@ namespace Neko.Builder
 
             RenderBanner(sb);
             RenderNavbar(sb, currentUrl);
+            RenderPivot(sb, currentUrl);
 
             sb.AppendLine("    <div class=\"flex flex-1 overflow-hidden\">");
 
