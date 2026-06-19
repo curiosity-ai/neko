@@ -43,7 +43,7 @@ links:
 | `pageLinks` | Site-wide links rendered on top of every page's "On this page" TOC.        |
 | `banner`    | Site-wide announcement bar. See [`banner`](../banner/SKILL.md).            |
 | `footer`    | Footer content (`copyright`, custom links).                                |
-| `nav`       | Project-wide nav settings (e.g. `mode: stack`).                            |
+| `nav`       | Project-wide nav settings (`mode: stack`; `icons.mode` — sidebar icons, default `none`). |
 | `toc`       | Default right-sidebar TOC settings.                                        |
 | `backlinks` | Default inbound-link block behaviour.                                      |
 | `start`     | Dev-server tweaks (`pro: true`, ports).                                    |

@@ -57,6 +57,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "imageGen")]
         public ImageGenConfig ImageGen { get; set; } = new ImageGenConfig();
 
+        [YamlMember(Alias = "nav")]
+        public NavConfig Nav { get; set; } = new NavConfig();
+
         public void NormalizeLinks()
         {
             if (Banner != null)
@@ -136,6 +139,16 @@ namespace Neko.Configuration
                 Ignore = (string[])parent.Ignore.Clone();
             }
 
+            // Inherit Nav settings (only when the child left the default)
+            if (Nav == null) Nav = new NavConfig();
+            if (Nav.Icons == null) Nav.Icons = new NavIconsConfig();
+            if (parent.Nav?.Icons != null
+                && string.Equals(Nav.Icons.Mode, "none", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(parent.Nav.Icons.Mode, "none", StringComparison.OrdinalIgnoreCase))
+            {
+                Nav.Icons.Mode = parent.Nav.Icons.Mode;
+            }
+
             // Inherit ImageGen settings (per-field, only when the child left the default)
             if (ImageGen == null) ImageGen = new ImageGenConfig();
             if (parent.ImageGen != null)
@@ -149,6 +162,24 @@ namespace Neko.Configuration
                     ImageGen.Size = parent.ImageGen.Size;
             }
         }
+    }
+
+    public class NavConfig
+    {
+        [YamlMember(Alias = "icons")]
+        public NavIconsConfig Icons { get; set; } = new NavIconsConfig();
+    }
+
+    public class NavIconsConfig
+    {
+        /// <summary>
+        /// Controls which sidebar navigation items render an icon.
+        /// One of: <c>none</c> (default), <c>all</c>, <c>folders</c>,
+        /// <c>pages</c>, <c>top</c>. Icons are hidden by default and must be
+        /// opted into explicitly.
+        /// </summary>
+        [YamlMember(Alias = "mode")]
+        public string Mode { get; set; } = "none";
     }
 
     public class ImageGenConfig
