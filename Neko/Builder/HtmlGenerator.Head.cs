@@ -192,8 +192,11 @@ namespace Neko.Builder
             sb.AppendLine("                    if (rDark.bindFunctions && darkSvg) rDark.bindFunctions(darkSvg);");
             sb.AppendLine("                    ");
             sb.AppendLine("                    const instances = [];");
-            sb.AppendLine("                    if (lightSvg) instances.push({svg: lightSvg, gpz: panzoom(lightSvg, { bounds: true, boundsPadding: 0.1 })});");
-            sb.AppendLine("                    if (darkSvg) instances.push({svg: darkSvg, gpz: panzoom(darkSvg, { bounds: true, boundsPadding: 0.1 })});");
+            sb.AppendLine("                    // beforeWheel returns true so the wheel never zooms the diagram —");
+            sb.AppendLine("                    // this lets page scroll pass through instead of being captured.");
+            sb.AppendLine("                    const pzOptions = { bounds: true, boundsPadding: 0.1, beforeWheel: () => true };");
+            sb.AppendLine("                    if (lightSvg) instances.push({svg: lightSvg, gpz: panzoom(lightSvg, pzOptions)});");
+            sb.AppendLine("                    if (darkSvg) instances.push({svg: darkSvg, gpz: panzoom(darkSvg, pzOptions)});");
             sb.AppendLine("                    ");
             sb.AppendLine("                    const zoomInBtn = el.querySelector('.zoom-in-btn');");
             sb.AppendLine("                    const zoomOutBtn = el.querySelector('.zoom-out-btn');");
