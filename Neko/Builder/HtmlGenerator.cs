@@ -126,7 +126,7 @@ namespace Neko.Builder
             }
 
             sb.AppendLine("        <div class=\"flex-1 flex overflow-hidden\">");
-            sb.AppendLine("            <main class=\"flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth\" id=\"main-scroll\">");
+            sb.AppendLine("            <main class=\"flex-1 overflow-y-auto overflow-x-clip p-4 md:p-8 scroll-smooth\" id=\"main-scroll\">");
             sb.AppendLine("                <div class=\"max-w-4xl mx-auto prose dark:prose-invert\">");
 
             RenderBreadcrumbs(sb, navContext);
