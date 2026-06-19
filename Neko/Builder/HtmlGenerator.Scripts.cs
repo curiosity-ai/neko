@@ -12,6 +12,7 @@ namespace Neko.Builder
             RenderMobileMenuScript(sb);
             RenderSidebarScrollScript(sb);
             RenderSidebarFilterScript(sb);
+            RenderSidebarMatchHelper(sb);
             RenderActiveSidebarLinkScript(sb);
             RenderSidebarSectionStateScript(sb);
             RenderTocHighlightScript(sb);
@@ -131,15 +132,49 @@ namespace Neko.Builder
             sb.AppendLine("        }");
         }
 
+        // Shared link-matching used by both the active-link highlighter and the
+        // section-state script, so a sidebar entry and the current URL are compared
+        // the same way in both places.
+        //
+        // A folder's index.md / readme.md renders as a leaf link whose href ends in
+        // `/index` (e.g. `/foo/index`), but the page is actually served at the folder
+        // URL `/foo/` (or `/foo`). Canonicalising both sides — dropping `.html`, a
+        // trailing slash, and a trailing `/index` — makes those forms compare equal so
+        // the folder's own entry highlights when you are on the folder page.
+        //
+        // Index links match by exact (canonical) path only. The prefix rule, which
+        // lets a real parent page stay highlighted while you browse its children, is
+        // deliberately skipped for index links: the canonical index path is a prefix
+        // of every sibling in the folder, and applying it would wrongly highlight the
+        // index entry on every sibling page.
+        private void RenderSidebarMatchHelper(StringBuilder sb)
+        {
+            sb.AppendLine("        function nekoCanonicalPath(p) {");
+            sb.AppendLine("            if (!p) return p;");
+            sb.AppendLine("            if (p.endsWith('.html')) p = p.substring(0, p.length - 5);");
+            sb.AppendLine("            if (p.length > 1 && p.endsWith('/')) p = p.substring(0, p.length - 1);");
+            sb.AppendLine("            if (p.endsWith('/index')) p = p.substring(0, p.length - 6) || '/';");
+            sb.AppendLine("            return p;");
+            sb.AppendLine("        }");
+            sb.AppendLine("        function nekoSidebarLinkMatches(href, currentPath) {");
+            sb.AppendLine("            if (!href || href === '#') return false;");
+            sb.AppendLine("            const isIndex = href.endsWith('/index') || href === '/index' || href.endsWith('/');");
+            sb.AppendLine("            const cHref = nekoCanonicalPath(href);");
+            sb.AppendLine("            const cCur = nekoCanonicalPath(currentPath);");
+            sb.AppendLine("            if (cHref === cCur) return true;");
+            sb.AppendLine("            if (isIndex || cHref === '/') return false;");
+            sb.AppendLine("            return cCur.startsWith(cHref) && cCur.charAt(cHref.length) === '/';");
+            sb.AppendLine("        }");
+        }
+
         private void RenderActiveSidebarLinkScript(StringBuilder sb)
         {
             sb.AppendLine("        document.addEventListener('DOMContentLoaded', () => {");
-            sb.AppendLine("            let currentPath = window.location.pathname;");
-            sb.AppendLine("            if (currentPath.endsWith('.html')) currentPath = currentPath.substring(0, currentPath.length - 5);");
+            sb.AppendLine("            const currentPath = window.location.pathname;");
             sb.AppendLine("            const sidebarLinks = document.querySelectorAll('#sidebar-list a');");
             sb.AppendLine("            sidebarLinks.forEach(link => {");
             sb.AppendLine("                const href = link.getAttribute('href');");
-            sb.AppendLine("                if (href === currentPath || (href !== '/' && currentPath.startsWith(href) && (href.endsWith('/') || currentPath.charAt(href.length) === '/'))) {");
+            sb.AppendLine("                if (nekoSidebarLinkMatches(href, currentPath)) {");
             sb.AppendLine("                    link.classList.add('bg-primary-50', 'dark:bg-primary-900', 'text-primary-700', 'dark:text-primary-300', 'font-medium');");
             sb.AppendLine("                    link.classList.remove('text-gray-700', 'dark:text-gray-200');");
             sb.AppendLine("                    // (Revealing the parent <details> is handled synchronously by the section-state script.)");
@@ -170,11 +205,10 @@ namespace Neko.Builder
             sb.AppendLine("                if (Object.prototype.hasOwnProperty.call(sectionState, key)) { d.open = !!sectionState[key]; }");
             sb.AppendLine("            });");
             sb.AppendLine("            // 2) Always reveal the section(s) containing the current page (transient, not saved).");
-            sb.AppendLine("            let currentPath = window.location.pathname;");
-            sb.AppendLine("            if (currentPath.endsWith('.html')) currentPath = currentPath.substring(0, currentPath.length - 5);");
+            sb.AppendLine("            const currentPath = window.location.pathname;");
             sb.AppendLine("            sidebar.querySelectorAll('#sidebar-list a').forEach(link => {");
             sb.AppendLine("                const href = link.getAttribute('href');");
-            sb.AppendLine("                if (href === currentPath || (href !== '/' && currentPath.startsWith(href) && (href.endsWith('/') || currentPath.charAt(href.length) === '/'))) {");
+            sb.AppendLine("                if (nekoSidebarLinkMatches(href, currentPath)) {");
             sb.AppendLine("                    let parent = link.parentElement;");
             sb.AppendLine("                    while (parent && parent.id !== 'sidebar-list') {");
             sb.AppendLine("                        if (parent.tagName === 'DETAILS') parent.open = true;");

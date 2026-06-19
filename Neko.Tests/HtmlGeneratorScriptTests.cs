@@ -57,10 +57,15 @@ namespace Neko.Tests
 
             var html = _generator.Generate(doc);
 
-            // Verify the highlighting logic includes boundary check and path normalization
-            Assert.That(html, Contains.Substring("let currentPath = window.location.pathname;"));
-            Assert.That(html, Contains.Substring("if (currentPath.endsWith('.html')) currentPath = currentPath.substring(0, currentPath.length - 5);"));
-            Assert.That(html, Contains.Substring("if (href === currentPath || (href !== '/' && currentPath.startsWith(href) && (href.endsWith('/') || currentPath.charAt(href.length) === '/')))"));
+            // Verify the shared matching helper is emitted and used by the active-link
+            // highlighter. The helper canonicalises a folder index link (.../index)
+            // against the folder URL it is served at, and restricts index links to an
+            // exact match so they don't light up for sibling pages.
+            Assert.That(html, Contains.Substring("function nekoSidebarLinkMatches(href, currentPath)"));
+            Assert.That(html, Contains.Substring("function nekoCanonicalPath(p)"));
+            Assert.That(html, Contains.Substring("if (p.endsWith('/index')) p = p.substring(0, p.length - 6) || '/';"));
+            Assert.That(html, Contains.Substring("const isIndex = href.endsWith('/index') || href === '/index' || href.endsWith('/');"));
+            Assert.That(html, Contains.Substring("if (nekoSidebarLinkMatches(href, currentPath)) {"));
         }
 
         [Test]
