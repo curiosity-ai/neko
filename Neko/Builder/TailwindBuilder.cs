@@ -175,11 +175,10 @@ namespace Neko.Builder
             sb.AppendLine("    files: [");
             sb.AppendLine($"      '{root}/**/*.html',");
             sb.AppendLine($"      '{root}/**/*.js',");
-            // Exclude minified vendor blobs and the embedded Play-CDN build —
-            // their source contains every Tailwind utility name as a string,
-            // which would otherwise be picked up as "used" and bloat the output.
+            // Exclude minified vendor blobs — their source contains many strings
+            // that look like Tailwind utilities and would otherwise be picked up
+            // as "used" and bloat the output.
             sb.AppendLine($"      '!{root}/**/*.min.js',");
-            sb.AppendLine($"      '!{root}/**/tailwind.js',");
             sb.AppendLine("    ],");
             sb.AppendLine("  },");
             sb.AppendLine("  darkMode: 'class',");
