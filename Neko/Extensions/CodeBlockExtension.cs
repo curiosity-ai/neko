@@ -533,7 +533,10 @@ namespace Neko.Extensions
 
             // Wrapper
             // Using a darker style matching the image reference.
-            renderer.Write("<div class=\"relative group my-6 bg-gray-50 dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden\">");
+            // The `neko-code-block` class lets us reset Tailwind Typography's <pre>
+            // defaults (dark background, margin, padding, rounding) so the code fills
+            // the wrapper card instead of floating as a dark inset box. See HtmlGenerator.Head.cs.
+            renderer.Write("<div class=\"neko-code-block relative group my-6 bg-gray-50 dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden\">");
 
             // Header (always render if chrome is set or title exists)
             if (!string.IsNullOrEmpty(title) || !string.IsNullOrEmpty(chrome))
