@@ -76,18 +76,26 @@ namespace Neko.Extensions
                         // Code Tab (Hidden)
                         renderer.Write($"<div id=\"tab-{groupId}-1\" class=\"tab-content hidden\">");
 
-                        // Fake a csharp code block to render it
-                        fencedBlock.Info = "csharp";
                         fencedBlock.GetAttributes().AddClass("tesserae-code");
                     }
-                    else
-                    {
-                        // Compilation failed (e.g. an offline build with no Tesserae
-                        // toolchain). Fall back to rendering the source as a normal C#
-                        // code block so it stays syntax-highlighted and legible instead
-                        // of an unhighlighted `language-tesserae` block in flat grey.
-                        fencedBlock.Info = "csharp";
-                    }
+                    // else: compile failed (e.g. an offline build with no Tesserae
+                    // toolchain) — fall through and render the source as a normal,
+                    // syntax-highlighted C# block instead of a flat `language-tesserae` one.
+
+                    // Render the Tesserae source as C#. Markdig tags the block
+                    // `language-<info>` while parsing, so setting Info alone does NOT
+                    // change the emitted class — swap the class too so highlight.js
+                    // recognises it as C#. That also makes <code> `display:block`,
+                    // which fixes the inline `p-4` padding rendering as a first-line
+                    // indent with the rest of the lines flush against the edge. The
+                    // chosen filename uses a .js extension though the source is C#,
+                    // so present it as .cs.
+                    fencedBlock.Info = "csharp";
+                    var codeAttrs = fencedBlock.GetAttributes();
+                    codeAttrs.Classes?.Remove("language-tesserae");
+                    codeAttrs.AddClass("language-csharp");
+                    if (!string.IsNullOrEmpty(fencedBlock.Arguments))
+                        fencedBlock.Arguments = Regex.Replace(fencedBlock.Arguments, @"\.js\b", ".cs");
                 }
             }
 
