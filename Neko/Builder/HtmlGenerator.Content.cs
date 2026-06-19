@@ -402,9 +402,14 @@ namespace Neko.Builder
                 // Sticky version header: stays pinned while its release scrolls past,
                 // then the next version's header takes its place at the top. The glassy
                 // background spans the full width of the timeline (negative left margin
-                // cancels the section's `pl-8`) and is flush at the top so body content
-                // slides cleanly underneath it instead of peeking around a rounded box.
-                sb.AppendLine("        <div class=\"neko-changelog-version -ml-8 sticky top-0 z-20 flex items-center gap-3 flex-wrap py-3 pl-12 pr-4 border-b border-gray-200/70 dark:border-white/10 bg-white/90 dark:bg-gray-900/90 backdrop-blur supports-[backdrop-filter]:bg-white/75 dark:supports-[backdrop-filter]:bg-gray-900/75\">");
+                // cancels the section's `pl-8`) and pins flush against the top of the
+                // scroll area so body content slides cleanly underneath it instead of
+                // peeking around a rounded box or through the gap above it.
+                //
+                // The negative sticky `top` cancels `#main-scroll`'s own top padding
+                // (`p-4 md:p-8`) — without it the header would pin one padding-step below
+                // the visible top and entries would scroll through the exposed strip.
+                sb.AppendLine("        <div class=\"neko-changelog-version -ml-8 sticky -top-4 md:-top-8 z-20 flex items-center gap-3 flex-wrap py-3 pl-12 pr-4 border-b border-gray-200/70 dark:border-white/10 bg-white/95 dark:bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 dark:supports-[backdrop-filter]:bg-gray-900/85\">");
 
                 // Timeline dot, sitting on the rail.
                 sb.AppendLine("            <span class=\"absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full ring-4 ring-white dark:ring-gray-900 bg-primary-600\" aria-hidden=\"true\"></span>");
