@@ -68,7 +68,7 @@ line 3   ← highlighted, no gutter
 
 ```` text
 ```js chrome="mac" main.js
-// macOS-style traffic-light header
+// macOS-style traffic-light header (aliases: chrome="macos", chrome="osx")
 ```
 
 ```js chrome="windows" main.js

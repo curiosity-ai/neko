@@ -82,11 +82,11 @@ If a code language is used, separate the `title` from the `lang` by one space. T
 
 You can customize the top window-chrome of your code blocks to mimic standard operating system window styles.
 
-To use a chrome modifier, add the `chrome="..."` attribute to the first line after the reference language. Neko supports `mac` and `windows`.
+To use a chrome modifier, add the `chrome="..."` attribute to the first line after the reference language. Neko supports `mac` (aliases: `macos`, `osx`) and `windows`.
 
 ### macOS Chrome
 
-The `chrome="mac"` modifier adds the standard three-dot window control buttons to the left of your title.
+The `chrome="mac"` modifier (also `chrome="macos"` or `chrome="osx"`) adds the standard three-dot window control buttons to the left of your title.
 
 +++ :icon-code-simple: Source
 ~~~

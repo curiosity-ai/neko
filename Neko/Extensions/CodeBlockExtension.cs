@@ -559,7 +559,7 @@ namespace Neko.Extensions
             {
                 renderer.Write("<div class=\"flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-gray-100/50 dark:bg-transparent\">");
 
-                if (chrome == "mac")
+                if (chrome == "mac" || chrome == "macos" || chrome == "osx")
                 {
                     renderer.Write("<div class=\"flex items-center gap-1.5\">");
                     renderer.Write("<div class=\"w-3 h-3 rounded-full bg-[#ff5f56]\"></div>");
