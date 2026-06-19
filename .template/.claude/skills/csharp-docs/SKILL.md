@@ -33,17 +33,23 @@ reference section.
 
 ## Layout
 
-When the block wraps an enclosing type (class / struct / interface / record /
-enum), the page is split in two:
+The layout mirrors a Microsoft Learn / DocFX API reference page. When the block
+wraps an enclosing type (class / struct / interface / record / enum), Neko
+renders:
 
 1. A **sticky header** with the type kind badge ("class", "interface", …),
    the type name (with a small permalink icon after it), the signature, and
    the summary. The header stays pinned to the top of the `csharp-docs`
    section while the visitor scrolls through the rest of the API.
-2. The type's documented members grouped by kind, in this order:
-   **Constructors → Properties → Methods → Events → Fields**. Each member is
-   prefixed with a kind badge ("Constructor", "Method", "Property", …) and
-   qualified with the parent type, e.g. `DetailsList.OnColumnClick`.
+2. A **Definition** block listing the type's `Namespace` (from the enclosing
+   `namespace` declaration), its `Inheritance` chain (`Base → Type`), and the
+   interfaces it `Implements`. Rows with nothing to show are omitted.
+3. For each member kind, a **summary table** (`Name` → anchor link,
+   `Description`) followed by the full per-member documentation. Members are
+   grouped in this order: **Constructors → Properties → Methods → Events →
+   Fields**. Each member is prefixed with a kind badge ("Constructor",
+   "Method", "Property", …) and qualified with the parent type, e.g.
+   `DetailsList.OnColumnClick`.
 
 The parent class body is **not** included in the type signature — only the
 modifiers, keyword, identifier, type parameters, base list, and constraint
