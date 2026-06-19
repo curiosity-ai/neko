@@ -10,12 +10,17 @@ namespace Neko.Builder
         private readonly NekoConfig _config;
         private readonly bool _isWatchMode;
         private readonly string _headIncludes;
+        // When true, the head links a build-time-generated /assets/tailwind.css
+        // instead of the Tailwind Play CDN. Set by SiteBuilder once the Tailwind
+        // CLI has been resolved for this build.
+        private readonly bool _staticTailwind;
 
-        public HtmlGenerator(NekoConfig config, bool isWatchMode = false, string headIncludes = null)
+        public HtmlGenerator(NekoConfig config, bool isWatchMode = false, string headIncludes = null, bool staticTailwind = false)
         {
             _config = config;
             _isWatchMode = isWatchMode;
             _headIncludes = headIncludes;
+            _staticTailwind = staticTailwind;
         }
 
         public string GenerateNotFound(NotFoundConfig config)
