@@ -400,11 +400,14 @@ namespace Neko.Builder
                 sb.AppendLine($"    <section class=\"relative pl-8 scroll-mt-24\"{(string.IsNullOrEmpty(anchor) ? string.Empty : $" id=\"{EscapeHtmlAttr(anchor)}\"")}>");
 
                 // Sticky version header: stays pinned while its release scrolls past,
-                // then the next version's header takes its place at the top.
-                sb.AppendLine("        <div class=\"neko-changelog-version rounded-2xl p-4 sticky top-0 z-20 flex items-center gap-3 flex-wrap py-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur supports-[backdrop-filter]:bg-white/75 dark:supports-[backdrop-filter]:bg-gray-900/75\">");
+                // then the next version's header takes its place at the top. The glassy
+                // background spans the full width of the timeline (negative left margin
+                // cancels the section's `pl-8`) and is flush at the top so body content
+                // slides cleanly underneath it instead of peeking around a rounded box.
+                sb.AppendLine("        <div class=\"neko-changelog-version -ml-8 sticky top-0 z-20 flex items-center gap-3 flex-wrap py-3 pl-12 pr-4 border-b border-gray-200/70 dark:border-white/10 bg-white/90 dark:bg-gray-900/90 backdrop-blur supports-[backdrop-filter]:bg-white/75 dark:supports-[backdrop-filter]:bg-gray-900/75\">");
 
                 // Timeline dot, sitting on the rail.
-                sb.AppendLine("            <span class=\"absolute -left-6 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full ring-4 ring-white dark:ring-gray-900 bg-primary-600\" aria-hidden=\"true\"></span>");
+                sb.AppendLine("            <span class=\"absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full ring-4 ring-white dark:ring-gray-900 bg-primary-600\" aria-hidden=\"true\"></span>");
 
                 RenderChangelogVersionBadge(sb, version, link);
 
