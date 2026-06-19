@@ -11,7 +11,7 @@ Neko Flavored [Markdown](/guides/formatting.md) (RFM) supports custom **Componen
 | Text | Layout | Code |
 | --   | --     | --   |
 | [:icon-id-badge: Badge](badge.md) | [:icon-columns-3: Column](column.md) | [:icon-square-code: Code Block](code-block.md) |
-| [:icon-tags: Version Badge](version-badge.md) | [:icon-list-check: Link Card](link-card.md) | |
+| [:icon-tags: Version Badge](version-badge.md) | [:icon-list-check: Link Card](link-card.md) | [:icon-cloud: API Endpoint](endpoint.md) |
 | [:+1: Emoji](emoji.md) | [:icon-box-open: Container](container.md) | [:icon-code-simple: Code Snippet](code-snippet.md) |
 | [:icon-smile: Icon](icon.md) | [:icon-table-rows: Panel](panel.md) | [:icon-plus: Math Formulas](math-formulas.md) |
 | [:icon-smile: UIcons](uicons.md) | [:icon-browser: Tab](tab.md) | [:mermaid: Mermaid](mermaid.md) |
