@@ -13,6 +13,36 @@ namespace Neko.Tests
             var config = ConfigParser.Parse(configPath);
             Assert.That(config.Input, Is.EqualTo(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(configPath) ?? string.Empty, "."))));
             Assert.That(config.Output, Is.EqualTo(".neko"));
+            // Sidebar icons are hidden by default and must be opted into.
+            Assert.That(config.Nav.Icons.Mode, Is.EqualTo("none"));
+        }
+
+        [Test]
+        public void TestNavIconsModeParsesFromYaml()
+        {
+            var tempFile = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(tempFile, "nav:\n  icons:\n    mode: all\n");
+                var config = ConfigParser.Parse(tempFile);
+                Assert.That(config.Nav.Icons.Mode, Is.EqualTo("all"));
+            }
+            finally
+            {
+                File.Delete(tempFile);
+            }
+        }
+
+        [Test]
+        public void TestNavIconsModeInheritsFromParent()
+        {
+            var child = new NekoConfig();                 // default "none"
+            var parent = new NekoConfig();
+            parent.Nav.Icons.Mode = "folders";
+
+            child.MergeWith(parent);
+
+            Assert.That(child.Nav.Icons.Mode, Is.EqualTo("folders"));
         }
 
         [Test]
