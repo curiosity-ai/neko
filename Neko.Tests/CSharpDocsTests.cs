@@ -68,11 +68,12 @@ namespace Tesserae
         }
 
         [Test]
-        public void RendersClassAsStickyHeader()
+        public void RendersClassTypeHeader()
         {
             var doc = _parser.Parse(DetailsListColumnSource);
             Assert.That(doc.Html, Contains.Substring("csharp-type-header"));
-            Assert.That(doc.Html, Contains.Substring("sticky"));
+            // The type header is intentionally not sticky (see commit "csharp-docs: type header no longer sticky").
+            Assert.That(doc.Html, Does.Not.Contain("sticky"));
         }
 
         [Test]
