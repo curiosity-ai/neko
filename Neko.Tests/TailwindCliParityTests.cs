@@ -43,6 +43,13 @@ namespace Neko.Tests
             var cliCss = RunCli(cli!, tokens);
             var cliRules = ParseRules(cliCss);
 
+            // Guard against a vacuous pass: if the CLI produced nothing (broken
+            // binary, bad config, network), every assertion below would trivially
+            // hold. The docs vocabulary must yield hundreds of utility rules.
+            Assert.That(cliRules.Count, Is.GreaterThan(100),
+                $"The Tailwind CLI produced only {cliRules.Count} utility rules — it likely failed to run. " +
+                $"CLI: {cli}");
+
             // Our generator's utilities for the same tokens.
             var theme = new TailwindTheme(new NekoConfig());
             var ourCss = TailwindGenerator.GenerateUtilitiesCss(tokens, theme, minify: false);
