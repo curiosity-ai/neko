@@ -37,6 +37,9 @@ namespace Neko.Tests
                 new LinkConfig { Text = "Home", Link = "/" }
             };
 
+            // Icons are opted into via nav.icons.mode; "all" reserves the spacer.
+            _config.Nav.Icons.Mode = "all";
+
             var html = _generator.Generate(doc, sidebarLinks: sidebar);
 
             Assert.That(html, Contains.Substring("<title>Test Docs - Page Title</title>"));
@@ -155,6 +158,9 @@ pageLinks:
                 new LinkConfig { Text = "Without Icon", Link = "/without-icon" }
             };
 
+            // Icons are opt-in: with nav.icons.mode = all both render (icon + spacer).
+            _config.Nav.Icons.Mode = "all";
+
             var html = _generator.Generate(doc, sidebarLinks: sidebar);
 
             // Check item with icon
@@ -162,6 +168,30 @@ pageLinks:
 
             // Check item without icon (should have invisible circle)
             Assert.That(html, Contains.Substring("<i class=\"fi fi-rr-circle opacity-0\"></i> <span class=\"truncate\">Without Icon</span>"));
+        }
+
+        [Test]
+        public void TestSidebarIconsHiddenByDefault()
+        {
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Content</p>",
+                FrontMatter = new FrontMatter { Title = "Page Title" }
+            };
+
+            var sidebar = new System.Collections.Generic.List<LinkConfig>
+            {
+                new LinkConfig { Text = "With Icon", Link = "/with-icon", Icon = "home" },
+                new LinkConfig { Text = "Without Icon", Link = "/without-icon" }
+            };
+
+            // Default nav.icons.mode is "none": no icons and no reserved spacer.
+            var html = _generator.Generate(doc, sidebarLinks: sidebar);
+
+            Assert.That(html, Does.Not.Contain("<i class=\"fi fi-rr-home\"></i> <span class=\"truncate\">With Icon</span>"));
+            Assert.That(html, Does.Not.Contain("<i class=\"fi fi-rr-circle opacity-0\"></i> <span class=\"truncate\">Without Icon</span>"));
+            // The link itself still renders, just without an icon element.
+            Assert.That(html, Contains.Substring("<span class=\"truncate\">With Icon</span>"));
         }
     }
 }

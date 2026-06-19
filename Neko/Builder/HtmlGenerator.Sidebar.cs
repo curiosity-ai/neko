@@ -34,17 +34,24 @@ namespace Neko.Builder
         {
             if (links == null || links.Count == 0) return;
 
+            var iconsMode = (_config.Nav?.Icons?.Mode ?? "none").Trim().ToLowerInvariant();
+
             foreach (var link in links)
             {
+                bool isFolder = link.Items != null && link.Items.Count > 0;
+
                 var iconHtml = "";
-                if (!string.IsNullOrEmpty(link.Icon))
+                if (ShouldShowSidebarIcon(iconsMode, level, isFolder))
                 {
-                    iconHtml = Neko.Builder.IconHelper.RenderIcon(link.Icon);
-                }
-                else
-                {
-                     // Add invisible icon spacer to align with siblings
-                     iconHtml = "<i class=\"fi fi-rr-circle opacity-0\"></i>";
+                    if (!string.IsNullOrEmpty(link.Icon))
+                    {
+                        iconHtml = Neko.Builder.IconHelper.RenderIcon(link.Icon);
+                    }
+                    else
+                    {
+                         // Add invisible icon spacer to align with siblings
+                         iconHtml = "<i class=\"fi fi-rr-circle opacity-0\"></i>";
+                    }
                 }
 
                 string editHtml = "";
@@ -180,6 +187,24 @@ namespace Neko.Builder
 
                     sb.AppendLine($"                    <li class=\"{liClasses}\"{itemAttributes}{reorderAttrs}><a href=\"{href}\" class=\"block py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-[13px] text-gray-700 dark:text-gray-300 truncate\">{iconHtml} <span class=\"truncate\">{displayTitle}</span></a></li>");
                 }
+            }
+        }
+
+        /// <summary>
+        /// Decides whether a sidebar item should render an icon (or its reserved
+        /// spacer), based on the project's <c>nav.icons.mode</c> setting. Icons
+        /// are hidden by default (<c>none</c>) and must be opted into explicitly.
+        /// </summary>
+        private static bool ShouldShowSidebarIcon(string iconsMode, int level, bool isFolder)
+        {
+            switch (iconsMode)
+            {
+                case "all":     return true;
+                case "folders": return isFolder;
+                case "pages":   return !isFolder;
+                case "top":     return level == 0;
+                case "none":
+                default:        return false;
             }
         }
     }
