@@ -324,6 +324,10 @@ namespace Neko.Builder
             sb.AppendLine("        /* mode at higher specificity; highlighted .hljs-* spans keep their colours. */");
             sb.AppendLine("        .prose .neko-code-block pre code { color: #24292e; }");
             sb.AppendLine("        .dark .prose .neko-code-block pre code { color: #9aa5ce; }");
+            sb.AppendLine("        /* Blocks highlight.js doesn't recognise never get .hljs (which sets */");
+            sb.AppendLine("        /* display:block), so the <code>'s p-4 padding renders as inline padding */");
+            sb.AppendLine("        /* — first line indented, the rest flush. Force block so padding is even. */");
+            sb.AppendLine("        .prose .neko-code-block pre code { display: block; }");
             sb.AppendLine("");
             sb.AppendLine("        /* Highlight.js Line Numbers CSS */");
             sb.AppendLine("        .prose table.hljs-ln tr { border: none !important; }");
