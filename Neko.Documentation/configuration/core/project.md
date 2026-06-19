@@ -274,6 +274,26 @@ breadcrumb:
 ```
 ===
 
+### label
+
+=== label : `string`
+The friendly name for this project in the **cross-project search breadcrumb** —
+the first crumb shown above each search result. In a multi-repo site, search is
+aggregated across every sub-project, so each result leads with the project it
+belongs to (e.g. `Connect & Ingest › Guides`).
+
+```yml
+breadcrumb:
+  label: Connect & Ingest
+```
+
+When `label` is unset, the name falls back to [`branding.label`](#label),
+then [`branding.title`](#branding-title), then a title-cased version of the
+project's mount path. The key is project-local — it is **not** inherited from a
+parent config, so each sub-project names itself — and has no effect on the root
+project, which has no mount path.
+===
+
 ### separator
 
 === separator : `string`

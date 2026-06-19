@@ -522,12 +522,13 @@ Body text.
         }
 
         [Test]
-        public async Task SearchIndex_PrependsRoutePrefix_ToSubProjectBreadcrumbs()
+        public async Task SearchIndex_PrependsProjectName_ToSubProjectBreadcrumbs()
         {
             // A multi-repo sub-project mounted at /landlock-sharp. Its sidebar
             // breadcrumbs start *inside* the project ("Advanced"), so the project
-            // segment must be prepended to keep results distinguishable in the
-            // aggregated root index.
+            // name must be prepended to keep results distinguishable in the
+            // aggregated root index. With no branding configured, the project name
+            // falls back to a title-cased version of the route-prefix segment.
             var project = Path.Combine(_sampleDir, "landlock-sharp");
             Directory.CreateDirectory(Path.Combine(project, "advanced"));
 
@@ -563,21 +564,81 @@ Overview.
             Assert.That(page.TryGetProperty("breadcrumbs", out var pageCrumbs), Is.True,
                 "Sub-project pages should carry a breadcrumb trail");
             Assert.That(pageCrumbs.EnumerateArray().Select(c => c.GetString()),
-                Is.EqualTo(new[] { "landlock-sharp", "Advanced" }),
-                "The route-prefix segment should be the first crumb, ahead of the sidebar trail");
+                Is.EqualTo(new[] { "Landlock-Sharp", "Advanced" }),
+                "The project name should be the first crumb, ahead of the sidebar trail");
 
             var section = docs.First(d => d.GetProperty("id").GetString() == "landlock-sharp/advanced/testing.html#pattern-1");
             Assert.That(section.TryGetProperty("breadcrumbs", out var sectionCrumbs), Is.True);
             Assert.That(sectionCrumbs.EnumerateArray().Select(c => c.GetString()),
-                Is.EqualTo(new[] { "landlock-sharp", "Advanced" }),
+                Is.EqualTo(new[] { "Landlock-Sharp", "Advanced" }),
                 "Section documents inherit the prefixed trail");
 
             // A root-level sub-project page with no sidebar ancestors still gets
-            // the project segment as its sole crumb.
+            // the project name as its sole crumb.
             var home = docs.First(d => d.GetProperty("id").GetString() == "landlock-sharp/index.html");
             Assert.That(home.TryGetProperty("breadcrumbs", out var homeCrumbs), Is.True);
             Assert.That(homeCrumbs.EnumerateArray().Select(c => c.GetString()),
-                Is.EqualTo(new[] { "landlock-sharp" }));
+                Is.EqualTo(new[] { "Landlock-Sharp" }));
+        }
+
+        [Test]
+        public async Task SearchIndex_UsesFriendlyProjectName_FromBreadcrumbLabelThenBrandingLabel()
+        {
+            // `breadcrumb.label` wins over `branding.label`/`branding.title`, and
+            // is preferred even though the page sits under a navbar/sidebar trail.
+            var explicitProj = Path.Combine(_sampleDir, "workspace-data-and-integrations");
+            Directory.CreateDirectory(Path.Combine(explicitProj, "guides"));
+            await File.WriteAllTextAsync(Path.Combine(explicitProj, "neko.yml"), @"
+url: https://example.com
+branding:
+  title: Curiosity
+  label: Data & Integrations
+breadcrumb:
+  label: Connect & Ingest
+");
+            await File.WriteAllTextAsync(Path.Combine(explicitProj, "guides", "csv.md"), @"---
+title: CSV recipe
+---
+# CSV recipe
+
+Body text.
+");
+            var explicitOut = Path.Combine(explicitProj, ".neko-out");
+            await new SiteBuilder(explicitProj, explicitOut, false, "/workspace-data-and-integrations").BuildAsync();
+
+            using var explicitDoc = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(explicitOut, "search.json")));
+            var csv = explicitDoc.RootElement.EnumerateArray()
+                .First(d => d.GetProperty("id").GetString() == "workspace-data-and-integrations/guides/csv.html");
+            Assert.That(csv.GetProperty("breadcrumbs").EnumerateArray().Select(c => c.GetString()),
+                Is.EqualTo(new[] { "Connect & Ingest", "Guides" }),
+                "breadcrumb.label should be the leading crumb");
+
+            // With no explicit breadcrumb.label, branding.label is used as the name
+            // (branding.title alone would be the generic, non-distinguishing one).
+            var brandedProj = Path.Combine(_sampleDir, "workspace-build");
+            Directory.CreateDirectory(brandedProj);
+            await File.WriteAllTextAsync(Path.Combine(brandedProj, "neko.yml"), @"
+url: https://example.com
+branding:
+  title: Curiosity
+  label: Build Enterprise AI Apps
+");
+            await File.WriteAllTextAsync(Path.Combine(brandedProj, "endpoints.md"), @"---
+title: Endpoints
+---
+# Endpoints
+
+Body text.
+");
+            var brandedOut = Path.Combine(brandedProj, ".neko-out");
+            await new SiteBuilder(brandedProj, brandedOut, false, "/workspace-build").BuildAsync();
+
+            using var brandedDoc = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(brandedOut, "search.json")));
+            var endpoints = brandedDoc.RootElement.EnumerateArray()
+                .First(d => d.GetProperty("id").GetString() == "workspace-build/endpoints.html");
+            Assert.That(endpoints.GetProperty("breadcrumbs").EnumerateArray().Select(c => c.GetString()),
+                Is.EqualTo(new[] { "Build Enterprise AI Apps" }),
+                "branding.label should be used when no breadcrumb.label is set");
         }
 
         [Test]

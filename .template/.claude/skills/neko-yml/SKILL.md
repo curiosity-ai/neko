@@ -37,6 +37,7 @@ links:
 | `cname`     | Value written to `CNAME` for GitHub Pages.                                 |
 | `sitemap`   | Generate `sitemap.xml`. Default `true`; skipped when `url` is unset.       |
 | `branding`  | Logo, title, label, colours.                                               |
+| `breadcrumb`| Friendly project name shown as the leading crumb in cross-project search.   |
 | `theme`     | Theme name and overrides.                                                  |
 | `meta`      | Default `<meta>` tags (description, keywords, author, image, og:type).     |
 | `links`     | Header navigation.                                                         |
@@ -65,6 +66,22 @@ branding:
   baseColor: "#5495f1"
   repository: https://github.com/owner/repo
 ```
+
+## Breadcrumb (cross-project search)
+
+In a multi-repo site, every search result leads with a crumb naming the
+sub-project it belongs to (e.g. `Connect & Ingest › Guides`). Set the friendly
+name explicitly with `breadcrumb.label`:
+
+```yml
+breadcrumb:
+  label: Connect & Ingest
+```
+
+When `breadcrumb.label` is unset the name falls back to `branding.label`, then
+`branding.title`, then a title-cased version of the project's mount path. The
+key is project-local — it is **not** inherited from a parent config — so each
+sub-project names itself. It has no effect on the root project (no mount path).
 
 ## Theme
 

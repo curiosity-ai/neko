@@ -16,6 +16,12 @@ namespace Neko.Builder
         private readonly string? _routePrefix;
         private NekoConfig _config;
 
+        // Friendly name for this sub-project, shown as the leading crumb of every
+        // search result so cross-project hits name the project they belong to.
+        // Computed from the project's *own* config before it inherits the parent's
+        // branding. Null for the root project (no route prefix).
+        private string _projectBreadcrumbName;
+
         public string OutputDirectory { get; private set; }
 
         public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false, string? routePrefix = null)
@@ -42,6 +48,14 @@ namespace Neko.Builder
                 try
                 {
                     _config = ConfigParser.Parse(configPath);
+
+                    // Resolve the project's breadcrumb name from its *own* config,
+                    // before the merge below pulls the parent's branding down (the
+                    // parent's title/label would otherwise mask this sub-project's).
+                    if (!string.IsNullOrEmpty(_routePrefix))
+                    {
+                        _projectBreadcrumbName = ResolveProjectBreadcrumbName(_config, _routePrefix);
+                    }
 
                     // If we are a sub-project (indicated by having a routePrefix), attempt to inherit from root config
                     if (!string.IsNullOrEmpty(_routePrefix))
@@ -164,7 +178,7 @@ namespace Neko.Builder
                 }
 
                 var generator = new HtmlGenerator(_config, _isWatchMode, headIncludes);
-                var searchIndexer = new SearchIndexGenerator(_routePrefix);
+                var searchIndexer = new SearchIndexGenerator(_routePrefix, _projectBreadcrumbName);
 
                 // Collect folders whose root yml opts the folder out of search indexing.
                 var searchExcludedFolders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -963,6 +977,53 @@ namespace Neko.Builder
 
             Walk(links, new List<string>());
             return map;
+        }
+
+        // Picks the friendly name shown as the leading search-breadcrumb crumb for
+        // a sub-project: an explicit `breadcrumb.label`, else the header
+        // `branding.label`, else `branding.title` (ignoring the default "Neko"),
+        // else a title-cased version of the last route-prefix segment.
+        private static string ResolveProjectBreadcrumbName(NekoConfig config, string routePrefix)
+        {
+            var explicitLabel = config?.Breadcrumb?.Label;
+            if (!string.IsNullOrWhiteSpace(explicitLabel)) return explicitLabel.Trim();
+
+            var brandingLabel = config?.Branding?.Label;
+            if (!string.IsNullOrWhiteSpace(brandingLabel)) return brandingLabel.Trim();
+
+            var brandingTitle = config?.Branding?.Title;
+            if (!string.IsNullOrWhiteSpace(brandingTitle)
+                && !string.Equals(brandingTitle, "Neko", StringComparison.Ordinal))
+            {
+                return brandingTitle.Trim();
+            }
+
+            var segment = (routePrefix ?? string.Empty)
+                .Replace('\\', '/')
+                .Split('/', StringSplitOptions.RemoveEmptyEntries)
+                .LastOrDefault();
+            return string.IsNullOrEmpty(segment) ? null : ToFriendlyName(segment);
+        }
+
+        // "landlock-sharp" → "Landlock-Sharp": capitalise the first letter of each
+        // word while leaving separators (-, _, spaces) intact.
+        private static string ToFriendlyName(string slug)
+        {
+            var chars = slug.ToCharArray();
+            var atWordStart = true;
+            for (var i = 0; i < chars.Length; i++)
+            {
+                if (char.IsLetterOrDigit(chars[i]))
+                {
+                    if (atWordStart) chars[i] = char.ToUpperInvariant(chars[i]);
+                    atWordStart = false;
+                }
+                else
+                {
+                    atWordStart = true;
+                }
+            }
+            return new string(chars);
         }
 
         private List<(string Url, string Title, List<NavigationItem> Breadcrumbs)> BuildNavigationMap(List<LinkConfig> links)

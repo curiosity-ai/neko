@@ -41,10 +41,28 @@ namespace Neko.Builder
 
         private readonly List<SearchDocument> _documents = new List<SearchDocument>();
         private readonly string _routePrefix;
+        private readonly string[] _projectCrumbs;
 
-        public SearchIndexGenerator(string routePrefix = null)
+        public SearchIndexGenerator(string routePrefix = null, string projectName = null)
         {
             _routePrefix = NormalizeRoutePrefix(routePrefix);
+
+            // The leading breadcrumb(s) naming the (sub-)project every document
+            // belongs to. Prefer the caller-supplied friendly name; fall back to
+            // the raw route-prefix segments so a result still names its project
+            // even when no friendly name was resolved.
+            if (!string.IsNullOrWhiteSpace(projectName))
+            {
+                _projectCrumbs = new[] { projectName.Trim() };
+            }
+            else if (!string.IsNullOrEmpty(_routePrefix))
+            {
+                _projectCrumbs = _routePrefix.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            }
+            else
+            {
+                _projectCrumbs = Array.Empty<string>();
+            }
         }
 
         // Prefix becomes part of the document id (e.g. `workspace/foo.html`) so
@@ -78,16 +96,13 @@ namespace Neko.Builder
             //
             // In multi-repo mode the supplied trail comes from the sub-project's
             // own sidebar/navbar and therefore starts *inside* the sub-project
-            // (e.g. "Advanced"). Prepend the route-prefix segments — the
-            // sub-project's mount path (e.g. "landlock-sharp") — so a result in
-            // the aggregated root index always names the project it belongs to as
-            // the first crumb. This restores the project segment that the path
-            // fallback in search.js only adds when the trail is empty.
-            var crumbList = new List<string>();
-            if (!string.IsNullOrEmpty(_routePrefix))
-            {
-                crumbList.AddRange(_routePrefix.Split('/', StringSplitOptions.RemoveEmptyEntries));
-            }
+            // (e.g. "Advanced"). Prepend the project crumb — its friendly name
+            // (e.g. "Connect & Ingest") or, failing that, its mount path — so a
+            // result in the aggregated root index always names the project it
+            // belongs to as the first crumb. This restores the project segment
+            // that the path fallback in search.js only adds when the trail is
+            // empty.
+            var crumbList = new List<string>(_projectCrumbs);
             if (breadcrumbs != null)
             {
                 crumbList.AddRange(breadcrumbs.Where(b => !string.IsNullOrWhiteSpace(b)));
