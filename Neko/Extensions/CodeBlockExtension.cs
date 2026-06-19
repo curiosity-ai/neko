@@ -990,8 +990,8 @@ namespace Neko.Extensions
 
             renderer.Write($"<section class=\"csharp-type mb-12\" id=\"{System.Net.WebUtility.HtmlEncode(anchor)}\">");
 
-            // Sticky type header
-            renderer.Write("<header class=\"csharp-type-header sticky top-0 z-10 -mx-2 px-2 pt-4 pb-3 mb-6 bg-white/95 dark:bg-gray-900/95 backdrop-blur border-b border-gray-200 dark:border-gray-700\">");
+            // Type header (scrolls with the page — not sticky)
+            renderer.Write("<header class=\"csharp-type-header -mx-2 px-2 pt-4 pb-3 mb-6 border-b border-gray-200 dark:border-gray-700\">");
 
             renderer.Write("<div class=\"flex items-center gap-2 flex-wrap\">");
             renderer.Write($"<span class=\"csharp-kind-badge inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300\">{System.Net.WebUtility.HtmlEncode(kindLabel)}</span>");
