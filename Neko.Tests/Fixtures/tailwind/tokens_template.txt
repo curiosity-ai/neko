@@ -9,7 +9,6 @@
 -top-4
 -translate-x-full
 -translate-y-1/2
-[a-zA-Z:_]
 absolute
 align-middle
 animate-spin

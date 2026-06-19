@@ -124,6 +124,53 @@ namespace Neko.Tests
             Assert.That(first.Length, Is.GreaterThan(1000));
         }
 
+        // The extractor harvests many candidate substrings that are not real
+        // utilities — CSS property names, icon-name fragments, URLs, pipe-delimited
+        // enum strings in inlined scripts, bare prefixes. Each must produce NO rule
+        // (and never an empty-value or otherwise invalid declaration). The Tailwind
+        // CLI rejects these too; a couple it emits as bogus empty-value rules
+        // (e.g. the regex literal [a-zA-Z:_]) which we deliberately do NOT, so the
+        // generated stylesheet stays valid. Guards against the over-permissive
+        // matching that previously emitted `.cursor{cursor:}`, `.object-group`, etc.
+        [Test]
+        public void Junk_Tokens_Produce_No_Rules()
+        {
+            var junk = new[]
+            {
+                // bare prefixes (a harvested CSS property name, not a utility)
+                "cursor", "overflow", "overflow-x", "object", "float", "select",
+                "whitespace", "leading", "origin", "rotate", "outline-offset",
+                // icon-name / enum fragments that collide with utility prefixes
+                "cursor-finger", "cursor-plus", "object-group", "object-ungroup",
+                "overflow-wrap", "overflow-anchor", "rotate-left", "rotate-square",
+                "select-keys", "whitespace-normalized",
+                // arbitrary properties harvested from URLs / paths
+                "[http://tools.ietf.org/html/rfc3629]", "[template.md:1]",
+                // arbitrary property whose value is empty (CLI emits a bogus rule)
+                "[a-zA-Z:_]",
+                // unknown values
+                "leading-foo", "cursor-bogus", "origin-nope",
+            };
+            var theme = new TailwindTheme(new NekoConfig());
+            var rules = TailwindGenerator.GenerateRules(junk, theme);
+            Assert.That(rules, Is.Empty,
+                "These tokens are not valid utilities and must produce no rules:\n  " +
+                string.Join("\n  ", rules.Select(r => r.Selector)));
+        }
+
+        // No generated declaration may have an empty value — that is always a bug
+        // (a bare prefix or unresolved value leaking through).
+        [Test]
+        public void No_Empty_Value_Declarations()
+        {
+            var tokens = LoadTokens("tokens_docs.txt").Concat(LoadTokens("tokens_template.txt")).ToList();
+            var rules = TailwindGenerator.GenerateRules(tokens, new TailwindTheme(new NekoConfig()));
+            static bool Empty(string val) => string.IsNullOrWhiteSpace(val.Replace("!important", "").Trim());
+            var bad = rules.Where(r => r.Declarations.Any(d => Empty(d.Val)))
+                           .Select(r => r.Selector).ToList();
+            Assert.That(bad, Is.Empty, "Rules with empty declaration values:\n  " + string.Join("\n  ", bad));
+        }
+
         [Test]
         public void Template_Site_Matches_Cli_Utilities() =>
             AssertParity("tokens_template.txt", "utilities_template.jsonl");

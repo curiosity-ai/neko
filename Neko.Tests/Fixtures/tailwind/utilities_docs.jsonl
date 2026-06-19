@@ -589,7 +589,6 @@
 {"ctx": [], "sel": ".duration-500", "decls": ["transition-duration: 500ms"]}
 {"ctx": [], "sel": ".ease-in-out", "decls": ["transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1)"]}
 {"ctx": [], "sel": ".ease-out", "decls": ["transition-timing-function: cubic-bezier(0, 0, 0.2, 1)"]}
-{"ctx": [], "sel": ".\\[a-zA-Z\\:_\\]", "decls": ["a-z-a--z:"]}
 {"ctx": [], "sel": ".first\\:mt-0:first-child", "decls": ["margin-top: 0px"]}
 {"ctx": [], "sel": ".last\\:border-0:last-child", "decls": ["border-width: 0px"]}
 {"ctx": [], "sel": ".last\\:pb-4:last-child", "decls": ["padding-bottom: 1rem"]}

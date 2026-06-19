@@ -34,16 +34,20 @@ namespace Neko.Builder.Tailwind
             var v = c.Core;
             var neg = c.Negative;
 
-            // Arbitrary properties: [property:value] → property: value.
+            // Arbitrary properties: [property:value] → property: value. The
+            // property must be a real CSS property name (kebab ident or custom
+            // property) and the value must be sane — otherwise harvested junk like
+            // [http://example.com] or [template.md:1] would become bogus rules.
             if (v.Length >= 2 && v[0] == '[' && v[v.Length - 1] == ']')
             {
                 var inner = v.Substring(1, v.Length - 2);
                 int colon = inner.IndexOf(':');
                 if (colon > 0)
                 {
-                    var prop = Kebab(inner.Substring(0, colon));
+                    var rawProp = inner.Substring(0, colon);
                     var val = inner.Substring(colon + 1).Replace('_', ' ').Trim();
-                    return UtilityResult.Of((prop, val));
+                    if (IsValidPropertyName(rawProp) && val.Length > 0 && !val.Contains('/') && !val.Contains(':'))
+                        return UtilityResult.Of((Kebab(rawProp), val));
                 }
                 return null;
             }
@@ -844,7 +848,10 @@ namespace Neko.Builder.Tailwind
                 return null;
             }
             if (TryValue(v, "leading", out var lv))
-                return UtilityResult.Of(("line-height", ResolveLineHeight(lv)));
+            {
+                var lh = ResolveLineHeight(lv);
+                return lh == null ? null : UtilityResult.Of(("line-height", lh));
+            }
             if (TryValue(v, "tracking", out var trv))
             {
                 if (IsArbitrary(trv, out var inner)) return UtilityResult.Of(("letter-spacing", inner));
@@ -876,15 +883,18 @@ namespace Neko.Builder.Tailwind
             }
             if (TryValue(v, "line-clamp", out var lc) && int.TryParse(lc, out var lcn))
                 return UtilityResult.Of(("overflow", "hidden"), ("display", "-webkit-box"), ("-webkit-box-orient", "vertical"), ("-webkit-line-clamp", lcn.ToString()));
-            if (TryValue(v, "whitespace", out var ws)) return UtilityResult.Of(("white-space", ws));
+            if (TryValue(v, "whitespace", out var ws))
+                return _whitespace.Contains(ws) ? UtilityResult.Of(("white-space", ws)) : null;
             return null;
         }
+
+        private static readonly HashSet<string> _whitespace = new(StringComparer.Ordinal)
+        { "normal", "nowrap", "pre", "pre-line", "pre-wrap", "break-spaces" };
 
         private string ResolveLineHeight(string key)
         {
             if (IsArbitrary(key, out var inner)) return inner;
-            if (_t.LineHeight.TryGetValue(key, out var lh)) return lh;
-            return key;
+            return _t.LineHeight.TryGetValue(key, out var lh) ? lh : null;
         }
 
         private UtilityResult TryTransform(string v, bool neg)
@@ -910,21 +920,33 @@ namespace Neko.Builder.Tailwind
             }
             if (TryValue(v, "rotate", out var rot))
             {
-                var val = IsArbitrary(rot, out var ri) ? ri : rot + "deg";
-                if (neg) val = "-" + val;
-                return UtilityResult.Of(("--tw-rotate", val), ("transform", Transform));
+                var val = AngleValue(rot, neg);
+                return val == null ? null : UtilityResult.Of(("--tw-rotate", val), ("transform", Transform));
             }
-            if (TryValue(v, "skew-x", out var skx)) { var val = (neg ? "-" : "") + (IsArbitrary(skx, out var i) ? i : skx + "deg"); return UtilityResult.Of(("--tw-skew-x", val), ("transform", Transform)); }
-            if (TryValue(v, "skew-y", out var sky)) { var val = (neg ? "-" : "") + (IsArbitrary(sky, out var i) ? i : sky + "deg"); return UtilityResult.Of(("--tw-skew-y", val), ("transform", Transform)); }
+            if (TryValue(v, "skew-x", out var skx)) { var val = AngleValue(skx, neg); return val == null ? null : UtilityResult.Of(("--tw-skew-x", val), ("transform", Transform)); }
+            if (TryValue(v, "skew-y", out var sky)) { var val = AngleValue(sky, neg); return val == null ? null : UtilityResult.Of(("--tw-skew-y", val), ("transform", Transform)); }
 
             if (TryValue(v, "origin", out var org))
             {
-                var val = org.Replace("-", " ");
-                if (IsArbitrary(org, out var oi)) val = oi;
-                return UtilityResult.Of(("transform-origin", val));
+                if (IsArbitrary(org, out var oi)) return UtilityResult.Of(("transform-origin", oi));
+                return _origin.Contains(org) ? UtilityResult.Of(("transform-origin", org.Replace("-", " "))) : null;
             }
             return null;
         }
+
+        // An angle utility value: a number (→ Ndeg) or an arbitrary [..]. Rejects
+        // non-numeric tokens (e.g. icon-name fragments like rotate-left).
+        private static string AngleValue(string s, bool neg)
+        {
+            string val;
+            if (IsArbitrary(s, out var arb)) val = arb;
+            else if (double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out _)) val = s + "deg";
+            else return null;
+            return neg ? "-" + val : val;
+        }
+
+        private static readonly HashSet<string> _origin = new(StringComparer.Ordinal)
+        { "center", "top", "top-right", "right", "bottom-right", "bottom", "bottom-left", "left", "top-left" };
 
         private UtilityResult ScaleVal(string s, bool neg, string varName)
         {
@@ -1053,20 +1075,40 @@ namespace Neko.Builder.Tailwind
             return null;
         }
 
+        private static readonly HashSet<string> _overflow = new(StringComparer.Ordinal) { "auto", "hidden", "clip", "visible", "scroll" };
+        private static readonly HashSet<string> _objectFit = new(StringComparer.Ordinal) { "contain", "cover", "fill", "none", "scale-down" };
+        private static readonly HashSet<string> _objectPos = new(StringComparer.Ordinal) { "bottom", "center", "left", "left-bottom", "left-top", "right", "right-bottom", "right-top", "top" };
+        private static readonly HashSet<string> _float = new(StringComparer.Ordinal) { "left", "right", "none", "start", "end", "inline-start", "inline-end" };
+        private static readonly HashSet<string> _select = new(StringComparer.Ordinal) { "none", "text", "all", "auto", "contain" };
+        // The cursor keywords Tailwind ships, plus any arbitrary value.
+        private static readonly HashSet<string> _cursor = new(StringComparer.Ordinal)
+        {
+            "auto","default","pointer","wait","text","move","help","not-allowed","none","context-menu",
+            "progress","cell","crosshair","vertical-text","alias","copy","no-drop","grab","grabbing",
+            "all-scroll","col-resize","row-resize","n-resize","e-resize","s-resize","w-resize",
+            "ne-resize","nw-resize","se-resize","sw-resize","ew-resize","ns-resize","nesw-resize",
+            "nwse-resize","zoom-in","zoom-out",
+        };
+
         private UtilityResult TryLayoutValue(string v)
         {
-            if (TryValue(v, "overflow-x", out var oxv)) return UtilityResult.Of(("overflow-x", oxv));
-            if (TryValue(v, "overflow-y", out var oyv)) return UtilityResult.Of(("overflow-y", oyv));
-            if (TryValue(v, "overflow", out var ovv)) return UtilityResult.Of(("overflow", ovv));
+            if (TryValue(v, "overflow-x", out var oxv)) return _overflow.Contains(oxv) ? UtilityResult.Of(("overflow-x", oxv)) : null;
+            if (TryValue(v, "overflow-y", out var oyv)) return _overflow.Contains(oyv) ? UtilityResult.Of(("overflow-y", oyv)) : null;
+            if (TryValue(v, "overflow", out var ovv)) return _overflow.Contains(ovv) ? UtilityResult.Of(("overflow", ovv)) : null;
             if (TryValue(v, "object", out var obv))
             {
-                if (obv == "contain" || obv == "cover" || obv == "fill" || obv == "none" || obv == "scale-down")
-                    return UtilityResult.Of(("-o-object-fit", obv), ("object-fit", obv));
-                return UtilityResult.Of(("-o-object-position", obv.Replace("-", " ")), ("object-position", obv.Replace("-", " ")));
+                if (_objectFit.Contains(obv)) return UtilityResult.Of(("-o-object-fit", obv), ("object-fit", obv));
+                if (IsArbitrary(obv, out var oarb)) return UtilityResult.Of(("-o-object-position", oarb), ("object-position", oarb));
+                if (_objectPos.Contains(obv)) { var pos = obv.Replace("-", " "); return UtilityResult.Of(("-o-object-position", pos), ("object-position", pos)); }
+                return null;
             }
-            if (TryValue(v, "cursor", out var cv)) return UtilityResult.Of(("cursor", cv));
-            if (TryValue(v, "float", out var flv)) return UtilityResult.Of(("float", flv));
-            if (TryValue(v, "select", out var slv)) return UtilityResult.Of(("-webkit-user-select", slv), ("-moz-user-select", slv), ("user-select", slv));
+            if (TryValue(v, "cursor", out var cv))
+            {
+                if (IsArbitrary(cv, out var carb)) return UtilityResult.Of(("cursor", carb));
+                return _cursor.Contains(cv) ? UtilityResult.Of(("cursor", cv)) : null;
+            }
+            if (TryValue(v, "float", out var flv)) return _float.Contains(flv) ? UtilityResult.Of(("float", flv)) : null;
+            if (TryValue(v, "select", out var slv)) return _select.Contains(slv) ? UtilityResult.Of(("-webkit-user-select", slv), ("-moz-user-select", slv), ("user-select", slv)) : null;
             return null;
         }
 
@@ -1105,10 +1147,14 @@ namespace Neko.Builder.Tailwind
 
         // ---- small utilities ----------------------------------------------
 
+        // Matches "prefix-<value>" with a NON-EMPTY value. A bare prefix never
+        // matches here — utilities whose bare form is valid (border, ring,
+        // rounded, shadow, transition, …) are handled by explicit checks. This
+        // prevents bogus empty-value rules (e.g. `.cursor { cursor: }`) when the
+        // extractor harvests a CSS property name as a candidate.
         private static bool TryValue(string core, string prefix, out string value)
         {
             value = null;
-            if (core == prefix) { value = ""; return true; }
             if (core.Length > prefix.Length + 1 && core[prefix.Length] == '-' && core.StartsWith(prefix, StringComparison.Ordinal))
             {
                 value = core.Substring(prefix.Length + 1);
@@ -1131,6 +1177,23 @@ namespace Neko.Builder.Tailwind
             foreach (var unit in new[] { "px", "rem", "em", "vh", "vw", "%", "ch", "pt", "ex" })
                 if (v.EndsWith(unit)) return true;
             return double.TryParse(v, NumberStyles.Any, CultureInfo.InvariantCulture, out _);
+        }
+
+        // A plausible CSS property: a kebab identifier (must contain a dash, e.g.
+        // mask-type) or a custom property (--x). Single words and anything with
+        // dots/slashes are rejected, which filters out harvested URLs/paths.
+        private static bool IsValidPropertyName(string p)
+        {
+            if (string.IsNullOrEmpty(p)) return false;
+            if (p.StartsWith("--")) p = p.Substring(2);
+            bool hasDash = false;
+            for (int i = 0; i < p.Length; i++)
+            {
+                char c = p[i];
+                if (c == '-') { hasDash = true; continue; }
+                if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))) return false;
+            }
+            return hasDash && p[0] != '-' && p[p.Length - 1] != '-';
         }
 
         // camelCase → kebab-case (matches Tailwind's arbitrary-property dasherizing).
