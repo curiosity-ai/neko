@@ -145,32 +145,6 @@ namespace Neko.Configuration
             return Themes.TryGetValue(name, out var theme) ? theme : Themes[DefaultThemeName];
         }
 
-        /// <summary>
-        /// Resolves the effective <c>primary</c> and <c>accent</c> colour ramps for a
-        /// project: the named base theme overlaid with any per-site overrides from
-        /// <c>neko.yml</c> (<c>theme.colors</c> / <c>theme.accent</c>). Shared by the
-        /// page head (inline CSS variables) and the build-time Tailwind config so the
-        /// two never drift.
-        /// </summary>
-        public static (Dictionary<string, string> Primary, Dictionary<string, string> Accent) ResolvePalettes(NekoConfig config)
-        {
-            var primary = new Dictionary<string, string>(GetTheme(config.Theme.Name));
-            if (config.Theme.Colors != null)
-            {
-                foreach (var kvp in config.Theme.Colors)
-                    primary[kvp.Key] = kvp.Value;
-            }
-
-            var accent = new Dictionary<string, string>(AccentTheme);
-            if (config.Theme.Accent != null)
-            {
-                foreach (var kvp in config.Theme.Accent)
-                    accent[kvp.Key] = kvp.Value;
-            }
-
-            return (primary, accent);
-        }
-
         public static readonly Dictionary<string, string> AccentTheme = new()
         {
             { "50",  "#f5f3ff" },

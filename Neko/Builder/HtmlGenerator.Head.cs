@@ -67,30 +67,32 @@ namespace Neko.Builder
 
         private void RenderHeadTailwindAndTheme(StringBuilder sb)
         {
-            var (primaryTheme, accentTheme) = ThemeDefinitions.ResolvePalettes(_config);
+            // Tailwind CSS
+            // Use CDN to ensure plugins (like typography) are available.
+            // The local resource might be missing the typography plugin.
+            sb.AppendLine("    <script src=\"https://cdn.tailwindcss.com?plugins=typography\"></script>");
+
+            var primaryTheme = new Dictionary<string, string>(ThemeDefinitions.GetTheme(_config.Theme.Name));
+            if (_config.Theme.Colors != null && _config.Theme.Colors.Count > 0)
+            {
+                foreach (var kvp in _config.Theme.Colors)
+                {
+                    primaryTheme[kvp.Key] = kvp.Value;
+                }
+            }
+
+            var accentTheme = new Dictionary<string, string>(ThemeDefinitions.AccentTheme);
+            if (_config.Theme.Accent != null && _config.Theme.Accent.Count > 0)
+            {
+                foreach (var kvp in _config.Theme.Accent)
+                {
+                    accentTheme[kvp.Key] = kvp.Value;
+                }
+            }
+
             var themeJson = System.Text.Json.JsonSerializer.Serialize(primaryTheme);
             var accentJson = System.Text.Json.JsonSerializer.Serialize(accentTheme);
-
-            if (_staticTailwind)
-            {
-                // Build-time static stylesheet (see TailwindBuilder). A real CSS
-                // file parsed before first paint — no in-browser CSS generation,
-                // so no flash of unstyled/white content on navigation. Each
-                // (sub-)site links its OWN tailwind.css under its route prefix,
-                // because the used-class set and palette differ per project.
-                var prefix = SiteBuilder.CurrentRoutePrefix ?? string.Empty;
-                sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/tailwind.css\">");
-                // Keep the palette globals available to scripts (mermaid, force-graph).
-                sb.AppendLine($"    <script>window.nekoThemeColors = {themeJson}; window.nekoAccentColors = {accentJson};</script>");
-            }
-            else
-            {
-                // Fallback: Tailwind Play CDN. Generates CSS in the browser at
-                // runtime (and so flashes on navigation), but keeps the site
-                // working when no Tailwind CLI is available at build time.
-                sb.AppendLine("    <script src=\"https://cdn.tailwindcss.com?plugins=typography\"></script>");
-                sb.AppendLine($"    <script>tailwind.config = {{ darkMode: 'class', theme: {{ extend: {{ colors: {{ primary: {themeJson}, accent: {accentJson} }} }} }} }}; window.nekoThemeColors = {themeJson}; window.nekoAccentColors = {accentJson};</script>");
-            }
+            sb.AppendLine($"    <script>tailwind.config = {{ darkMode: 'class', theme: {{ extend: {{ colors: {{ primary: {themeJson}, accent: {accentJson} }} }} }} }}; window.nekoThemeColors = {themeJson}; window.nekoAccentColors = {accentJson};</script>");
 
             // Curiosity-inspired neutral palette overrides (deep navy in dark mode, soft white in light mode)
             sb.AppendLine("    <style>");
