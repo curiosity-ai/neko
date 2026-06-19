@@ -107,25 +107,17 @@ links:
       - text: GitHub
         link: https://github.com/...
         icon: brands-github
-  - text: Reference           # pivot: items become a tab bar below the header
-    pivot: true               # ...but only while the reader is inside the section
-    items:
-      - text: Guides
-        link: /guides/
-        icon: book
-      - text: API
-        link: /api/
-        icon: code
   - text: GitHub
     link: https://github.com/...
     icon: brands-github
 ```
 
-`pivot: true` on a group that has `items` renders those items as a contextual
-tab bar directly below the header — shown only when the current page sits under
-one of the item links, with the active tab highlighted. The flyout dropdown
-still works, so a group can act as both a header dropdown and an in-section
-pivot. See the [project config docs](https://neko.curiosity.ai/configuration/core/project#pivot).
+Any group with `items` also doubles as a **contextual pivot**: while the reader
+is inside the section, the items render as a tab bar directly below the header,
+with the active tab highlighted. A page is "inside" when its URL sits under one
+of the item links. This is the default — no extra key is needed — and the flyout
+dropdown still works on top of it. See the
+[project config docs](https://neko.curiosity.ai/configuration/core/project#items).
 
 ## Page links (`pageLinks:`)
 

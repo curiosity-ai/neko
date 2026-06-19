@@ -101,7 +101,6 @@ namespace Neko.Tests
             return new LinkConfig
             {
                 Text = "Workspace",
-                Pivot = true,
                 Items = new List<LinkConfig>
                 {
                     new LinkConfig { Text = "Learn", Link = "/workspace/", Icon = "graduation-cap" },
@@ -153,11 +152,13 @@ namespace Neko.Tests
         }
 
         [Test]
-        public void TestPivotNotRenderedWithoutPivotFlag()
+        public void TestPivotNotRenderedForGroupWithoutItems()
         {
-            var group = MakePivotGroup();
-            group.Pivot = false;
-            _config.Links = new List<LinkConfig> { group };
+            // A plain top-nav link (no items) is never a pivot section.
+            _config.Links = new List<LinkConfig>
+            {
+                new LinkConfig { Text = "Home", Link = "/workspace-build/" }
+            };
             var doc = new ParsedDocument { Html = "<p>Content</p>", FrontMatter = new FrontMatter { Title = "Page" } };
 
             var html = _generator.Generate(doc, currentUrl: "/workspace-build/intro");

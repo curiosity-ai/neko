@@ -7,10 +7,11 @@ namespace Neko.Builder
     public partial class HtmlGenerator
     {
         // The "pivot" is a contextual secondary navigation bar shown directly below
-        // the header. A top-nav link group flagged with `pivot: true` renders its
-        // `items` as a horizontal row of tabs — but only when the current page lives
-        // inside that group (i.e. its URL falls under one of the items). The tab for
-        // the section the reader is currently in is highlighted.
+        // the header. Any top-nav link group that has `items` renders those items as
+        // a horizontal row of tabs — but only when the current page lives inside the
+        // group (i.e. its URL falls under one of the items). The tab for the section
+        // the reader is currently in is highlighted. This is the default behaviour
+        // for dropdown groups; no extra configuration is required.
         //
         // This lets a single site expose several "sections" (e.g. documentation
         // pillars vs. a developer/API area) and surface the right set of tabs
@@ -22,16 +23,16 @@ namespace Neko.Builder
 
             var currentPath = BuildCurrentPivotPath(currentUrl);
 
-            // Find the most specific matching item across all pivot groups. The
-            // longest matching item link wins, so `/workspace-build` is preferred
-            // over a shorter sibling that happens to share a prefix.
+            // Find the most specific matching item across all groups. The longest
+            // matching item link wins, so `/workspace-build` is preferred over a
+            // shorter sibling that happens to share a prefix.
             LinkConfig activeGroup = null;
             LinkConfig activeItem = null;
             var bestLength = -1;
 
             foreach (var link in _config.Links)
             {
-                if (!link.Pivot || link.Items == null || link.Items.Count == 0) continue;
+                if (link.Items == null || link.Items.Count == 0) continue;
 
                 foreach (var item in link.Items)
                 {
