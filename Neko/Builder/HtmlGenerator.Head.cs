@@ -327,6 +327,16 @@ namespace Neko.Builder
             sb.AppendLine("        /* background, spacing and corners; the inner <code> keeps its padding. */");
             sb.AppendLine("        .prose .neko-code-block > pre { margin: 0 !important; padding: 0 !important; background: transparent !important; border: 0 !important; border-radius: 0 !important; }");
             sb.AppendLine("");
+            sb.AppendLine("        /* Keep unhighlighted code text legible. Tailwind Typography colours */");
+            sb.AppendLine("        /* <pre>/<code> with low-specificity :where() rules at the same (0,1,0) */");
+            sb.AppendLine("        /* weight as the highlight theme's .hljs, so whichever loads last wins — */");
+            sb.AppendLine("        /* and the prose pre-code colour (a light grey tuned for prose's dark */");
+            sb.AppendLine("        /* <pre>) can override .hljs and wash out plain tokens on the light card. */");
+            sb.AppendLine("        /* Re-assert the active default theme's base text colour at higher */");
+            sb.AppendLine("        /* specificity; highlighted .hljs-* spans keep their own colours. */");
+            sb.AppendLine("        .prose .neko-code-block pre code.hljs { color: #24292e; }");
+            sb.AppendLine("        .dark .prose .neko-code-block pre code.hljs { color: #9aa5ce; }");
+            sb.AppendLine("");
             sb.AppendLine("        /* Highlight.js Line Numbers CSS */");
             sb.AppendLine("        .prose table.hljs-ln tr { border: none !important; }");
             sb.AppendLine("        .prose table.hljs-ln td { padding: 0 !important; }");
