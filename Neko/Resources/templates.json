@@ -30,6 +30,7 @@
   "neko-include": "{{ include \"file.md\" }}",
   "neko-card": "::: card {image=\"\" icon=\"\"}\nCard content\n:::",
   "neko-link-card": "```links title=\"Current packages\" icon=\"box\"\nWorkspace · Docker | https://example.com | curiosityai/curiosity:67298\nCuriosity.FrontEnd | https://example.com | v26.6.1753\n```",
+  "neko-endpoint": "```endpoint\nPOST /api/login/create\nExchange a username/password for a session JWT.\n\nAuth: Bearer (session JWT)\nBody: `{ \"user\": \"...\", \"password\": \"...\" }`\nReturns: `{ \"token\": \"...\" }`\n```",
   "neko-card-grid": ":::: card-grid\n::: card {image=\"\" icon=\"\" variant=\"grid\"}\nCard content\n:::\n::::",
   "neko-example": "::: example\nDescription of the example goes here.\n\n```csharp\n// Code goes here\n```\n:::",
   "neko-mermaid": "```mermaid\ngraph LR\n    A[Hard edge] -->|Link text| B(Round edge)\n    B --> C{Decision}\n    C -->|One| D[Result one]\n```",

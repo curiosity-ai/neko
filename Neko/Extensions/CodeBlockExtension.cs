@@ -117,6 +117,13 @@ namespace Neko.Extensions
                 return;
             }
 
+            // Handle API endpoint reference entry
+            if ((fencedBlock.Info ?? "").ToLower() == "endpoint")
+            {
+                ApiEndpointComponent.Write(renderer, fencedBlock);
+                return;
+            }
+
             // Handle CSharp Docs
             if ((fencedBlock.Info ?? "").ToLower() == "csharp-docs")
             {
