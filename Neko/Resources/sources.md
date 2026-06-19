@@ -17,6 +17,7 @@
 ### Tailwind CSS
 - **Source**: https://tailwindcss.com
 - **License**: MIT
+- **File**: `Neko/Resources/tailwind.js` (Downloaded from CDN)
 - **Build-time CLI**: the official Tailwind **standalone** CLI (v3.4.x) is
   fetched on demand into a per-user cache and run during `neko build` to emit a
   static `assets/tailwind.css` (see `Neko/Builder/TailwindBuilder.cs`). It is not
