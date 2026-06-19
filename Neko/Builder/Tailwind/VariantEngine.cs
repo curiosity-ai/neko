@@ -25,11 +25,12 @@ namespace Neko.Builder.Tailwind
             var atRules = new List<string>();
             var suffixes = new List<(int Prio, string Text)>();
             var extraLeadingDecls = new List<(string, string)>();
-            long bp = 0;                             // breakpoint sort weight
+            int mediaRank = 0;                       // responsive group (0 = non-media)
+            int variantRank = 0;                     // non-media variant group (0 = unvariant)
 
             foreach (var variant in c.Variants)
             {
-                if (!ApplyVariant(variant, prefixes, atRules, suffixes, extraLeadingDecls, ref bp))
+                if (!ApplyVariant(variant, prefixes, atRules, suffixes, extraLeadingDecls, ref mediaRank, ref variantRank))
                     return null;
             }
 
@@ -56,8 +57,8 @@ namespace Neko.Builder.Tailwind
                 }
             }
 
-            // Responsive rules sort after non-responsive, grouped by breakpoint.
-            rule.SortKey = bp;
+            rule.MediaRank = mediaRank;
+            rule.VariantRank = variantRank;
             return rule;
         }
 
@@ -67,21 +68,25 @@ namespace Neko.Builder.Tailwind
             List<string> atRules,
             List<(int, string)> suffixes,
             List<(string, string)> extraLeadingDecls,
-            ref long bp)
+            ref int mediaRank,
+            ref int variantRank)
         {
             // Responsive (min-width) and max-* (max-width).
             if (_t.Screens.TryGetValue(variant, out var screen))
             {
                 atRules.Add($"@media (min-width: {screen})");
-                bp = BreakpointWeight(variant, false);
+                mediaRank = BreakpointWeight(variant, false);
                 return true;
             }
             if (variant.StartsWith("max-") && _t.Screens.TryGetValue(variant.Substring(4), out var maxScreen))
             {
                 atRules.Add($"@media not all and (min-width: {maxScreen})");
-                bp = BreakpointWeight(variant.Substring(4), true);
+                mediaRank = BreakpointWeight(variant.Substring(4), true);
                 return true;
             }
+
+            // Any remaining (non-media) variant groups after unvariant utilities.
+            variantRank = Math.Max(variantRank, 1);
 
             // dark (class strategy → :is(.dark *)).
             if (variant == "dark")
@@ -182,9 +187,9 @@ namespace Neko.Builder.Tailwind
             _ => null
         };
 
-        private static long BreakpointWeight(string screen, bool max)
+        private static int BreakpointWeight(string screen, bool max)
         {
-            long baseW = screen switch
+            int baseW = screen switch
             {
                 "sm" => 1, "md" => 2, "lg" => 3, "xl" => 4, "2xl" => 5, _ => 9
             };

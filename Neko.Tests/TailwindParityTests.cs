@@ -108,6 +108,22 @@ namespace Neko.Tests
                 $"Generator did not reproduce every CLI utility rule for {goldenFile}.");
         }
 
+        // The generated CSS must be byte-identical across runs. Rule generation
+        // iterates a hash set whose order is randomised per process, so without a
+        // total cascade sort the output (and same-specificity conflict resolution)
+        // would vary between builds — the bug that made pages render differently
+        // on different machines. This locks the output down.
+        [Test]
+        public void Output_Is_Deterministic_Across_Runs()
+        {
+            var tokens = LoadTokens("tokens_docs.txt");
+            string Gen() => TailwindGenerator.GenerateUtilitiesCss(tokens, new TailwindTheme(new NekoConfig()), minify: true);
+            var first = Gen();
+            for (int i = 0; i < 5; i++)
+                Assert.That(Gen(), Is.EqualTo(first), $"Generated CSS differed on run {i + 2} — output is not deterministic.");
+            Assert.That(first.Length, Is.GreaterThan(1000));
+        }
+
         [Test]
         public void Template_Site_Matches_Cli_Utilities() =>
             AssertParity("tokens_template.txt", "utilities_template.jsonl");

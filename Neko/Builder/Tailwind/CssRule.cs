@@ -5,7 +5,7 @@ namespace Neko.Builder.Tailwind
     /// <summary>
     /// A single generated CSS rule: one selector, an ordered list of
     /// declarations, and an optional list of wrapping at-rules (e.g.
-    /// <c>@media (min-width: 1024px)</c>). The <see cref="SortKey"/> places the
+    /// <c>@media (min-width: 1024px)</c>). The rank fields place the
     /// rule in Tailwind's cascade order when the final stylesheet is assembled.
     /// </summary>
     internal sealed class CssRule
@@ -20,11 +20,18 @@ namespace Neko.Builder.Tailwind
         public string Token { get; set; }
 
         /// <summary>
-        /// Cascade ordering. Lower sorts earlier. Responsive rules (with an
-        /// <c>@media min-width</c>) sort after non-responsive ones, grouped by
-        /// breakpoint, matching Tailwind's output.
+        /// Cascade ordering components, applied lexicographically by
+        /// <see cref="RuleSorter"/> to reproduce Tailwind's deterministic order:
+        /// media group (responsive last, by breakpoint) → variant group
+        /// (unvariant first) → utility/property order → value order. A fully
+        /// ordered key is essential — without it, conflicting same-specificity
+        /// utilities (e.g. <c>p-4</c> vs <c>px-2</c>) would resolve by source
+        /// order, which must be stable and correct, not hash-dependent.
         /// </summary>
-        public long SortKey { get; set; }
+        public int MediaRank { get; set; }
+        public int VariantRank { get; set; }
+        public int UtilityRank { get; set; }
+        public int ValueRank { get; set; }
 
         public CssRule(string selector)
         {
