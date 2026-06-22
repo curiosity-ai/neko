@@ -42,6 +42,24 @@ public class TodoApp
 - For arbitrary C# code blocks, use a plain
   [`code-block`](../code-block/SKILL.md) with ` ```csharp `.
 
+## Preview sizing
+
+- The live preview renders in an `<iframe>`. By default it uses a fixed
+  placeholder height, so short samples leave empty space and tall ones scroll.
+- Run **`neko gen-tesserae-heights`** to size every preview exactly: it compiles
+  each sample, measures its rendered height with a headless browser, and bakes a
+  `height=NNN` token into the fence info line
+  (e.g. ` ```tesserae sample.js height=360 `). Commit the rewritten Markdown.
+- A normal `build`/`watch` just reads that token and reserves the right space up
+  front — no browser runs during a build, so there's no layout shift. Samples
+  without a token keep the placeholder height.
+- The command is **incremental/resumable**: it skips samples that already have a
+  `height=` token and saves each file as it goes, so re-running only measures new
+  samples. Pass `--force` to re-measure everything. Tune the measurement width
+  with `tesserae.measureWidth`.
+- You can also set/override the token by hand (`height=NNN`); the preview stays
+  manually resizable via the iframe's drag handle either way.
+
 ## Caching and performance
 
 - Each compiled sample is cached on disk under a `.neko-cache/` folder in the

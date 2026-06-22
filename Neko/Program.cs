@@ -445,10 +445,26 @@ namespace Neko
                 Neko.Builder.ApiDocsSync.Run(Path.GetFullPath(input), cliRoots.Count > 0 ? cliRoots : null, verbose, dryRun);
             }, syncInputOption, syncRootOption, syncVerboseOption, syncDryRunOption);
 
+            // Gen-Tesserae-Heights Command — measure each `tesserae` live sample's
+            // rendered height with a headless browser and bake a `height=NNN` token
+            // into its fence, so normal builds size the preview iframe up front
+            // without ever launching a browser.
+            var tesseraeHeightsCommand = new Command("gen-tesserae-heights", "Measure tesserae live samples and bake iframe heights into their fences");
+            var thInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
+            var thForceOption = new Option<bool>(new[] { "--force", "-f" }, () => false, "Re-measure every sample, even ones that already have a height token");
+            tesseraeHeightsCommand.AddOption(thInputOption);
+            tesseraeHeightsCommand.AddOption(thForceOption);
+            tesseraeHeightsCommand.SetHandler(async (string input, bool force) =>
+            {
+                var cmd = new Neko.Builder.TesseraeHeightsCommand(input, force);
+                Environment.ExitCode = await cmd.RunAsync();
+            }, thInputOption, thForceOption);
+
             rootCommand.AddCommand(buildCommand);
             rootCommand.AddCommand(watchCommand);
             rootCommand.AddCommand(syncApiDocsCommand);
             rootCommand.AddCommand(checkLinksCommand);
+            rootCommand.AddCommand(tesseraeHeightsCommand);
             rootCommand.AddCommand(snapCommand);
             rootCommand.AddCommand(genImagesCommand);
             rootCommand.AddCommand(darkImagesCommand);
