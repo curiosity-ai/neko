@@ -224,6 +224,70 @@ namespace Demo
             Assert.That(html, Contains.Substring("Gets or sets the sorting key."));
         }
 
+        private const string OverloadSource = @"```csharp-docs
+namespace Demo
+{
+    /// <summary>The client.</summary>
+    public class Client
+    {
+        /// <overloads>Opens an authenticated connection to a workspace.</overloads>
+        /// <summary>Connects using an API token.</summary>
+        /// <param name=""endpoint"">The workspace base URL.</param>
+        /// <param name=""token"">An API token.</param>
+        /// <param name=""connectorName"">A stable connector name.</param>
+        public static Client Connect(string endpoint, string token, string connectorName) => null;
+
+        /// <summary>Connects using a client certificate.</summary>
+        /// <param name=""endpoint"">The workspace base URL.</param>
+        /// <param name=""clientCertificate"">A client certificate for mutual-TLS.</param>
+        /// <param name=""connectorName"">A stable connector name.</param>
+        public static Client Connect(string endpoint, object clientCertificate, string connectorName) => null;
+    }
+}
+```";
+
+        [Test]
+        public void OverloadsRenderAsOneGroupWithSharedAnchor()
+        {
+            var doc = _parser.Parse(OverloadSource);
+            var html = doc.Html;
+            // Single grouped block with one stable anchor (the base name, no type params).
+            Assert.That(html, Contains.Substring("csharp-overload-group"));
+            Assert.That(html, Contains.Substring("id=\"Client.Connect\""));
+            // Only one detail block, not one per overload.
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(html, "csharp-overload-group").Count, Is.EqualTo(1));
+            // The shared summary comes from <overloads>, not the per-overload <summary>.
+            Assert.That(html, Contains.Substring("Opens an authenticated connection"));
+            // Both signatures are shown.
+            Assert.That(html, Contains.Substring("string token"));
+            Assert.That(html, Contains.Substring("object clientCertificate"));
+        }
+
+        [Test]
+        public void OverloadUnionParametersAnnotateNonUniversalOnes()
+        {
+            var doc = _parser.Parse(OverloadSource);
+            var html = doc.Html;
+            // Shared params appear once and unannotated; the auth params are attributed.
+            Assert.That(html, Contains.Substring("endpoint"));
+            Assert.That(html, Contains.Substring("token <em"));
+            Assert.That(html, Contains.Substring("(overload 1)"));
+            Assert.That(html, Contains.Substring("clientCertificate <em"));
+            Assert.That(html, Contains.Substring("(overload 2)"));
+            // A universal parameter carries no overload note next to its name.
+            Assert.That(html, Does.Not.Contain("endpoint <em"));
+        }
+
+        [Test]
+        public void OverloadSummaryTableHasOneRow()
+        {
+            var doc = _parser.Parse(OverloadSource);
+            var html = doc.Html;
+            // The table lists the overload set once (the detail block's permalink also
+            // points at #Client.Connect, so match the table row's link text instead).
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(html, ">Connect</a>").Count, Is.EqualTo(1));
+        }
+
         [Test]
         public void StandaloneMemberStillRenders()
         {
