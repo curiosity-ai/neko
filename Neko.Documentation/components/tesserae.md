@@ -129,8 +129,13 @@ headless browser ([snapframe](/components/snapframe)/Playwright), and bakes a
 A normal `neko build` / `neko start` then reads that token and sizes the iframe
 up front — no browser runs during a build, so there's no layout shift and no
 browser dependency in your build pipeline. Commit the updated Markdown so the
-heights ship with your docs. Re-run the command after changing a sample (or when
-adding new ones); samples without a token keep the placeholder height.
+heights ship with your docs.
+
+The command is **incremental**: it skips any sample that already has a `height=`
+token and saves each file as soon as its sample is measured, so re-running only
+measures new samples and an interrupted run is resumable. Pass `--force` to
+re-measure everything; samples without a token keep the placeholder height until
+measured.
 
 The measurement viewport width is configurable via
 [`tesserae.measureWidth`](/configuration/core/project#tesserae). The preview
