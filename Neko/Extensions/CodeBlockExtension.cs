@@ -6,7 +6,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -70,38 +69,12 @@ namespace Neko.Extensions
 
                         // Live Preview Tab (Active)
                         renderer.Write($"<div id=\"tab-{groupId}-0\" class=\"tab-content\">");
-
-                        // Prefer loading the preview from a real, same-origin URL via
-                        // `src` rather than inlining it through `srcdoc`. A `srcdoc`
-                        // document has the URL `about:srcdoc`, which makes the History
-                        // API unusable: `history.pushState`/`replaceState` throw a
-                        // SecurityError when the sample navigates (e.g. Tesserae's
-                        // Router). Writing the compiled document to a file under the
-                        // output and pointing the iframe at it gives the sample a real
-                        // URL, so routing and other History-API samples work.
-                        var previewHtml = result.OutputHtml ?? string.Empty;
-                        var isFullDocument = previewHtml.TrimStart().StartsWith("<!DOCTYPE", System.StringComparison.OrdinalIgnoreCase);
-
-                        if (isFullDocument)
-                        {
-                            var previewHash = Neko.Builder.TesseraeCompiler.ComputeHash(previewHtml);
-                            var previewDir = Path.Combine(siteOutputRoot, "assets", "tesserae", "previews");
-                            Directory.CreateDirectory(previewDir);
-                            var previewFile = Path.Combine(previewDir, previewHash + ".html");
-                            if (!File.Exists(previewFile))
-                            {
-                                File.WriteAllText(previewFile, previewHtml);
-                            }
-                            var previewUrl = $"{Neko.Builder.SiteBuilder.CurrentRoutePrefix}/assets/tesserae/previews/{previewHash}.html";
-                            renderer.Write($"<iframe class=\"w-full rounded border border-gray-200 dark:border-gray-700\" style=\"min-height: 400px; resize: vertical;\" src=\"{previewUrl}\"></iframe>");
-                        }
-                        else
-                        {
-                            // Not a full document (e.g. the compile-failed placeholder).
-                            // Inline it through srcdoc as before.
-                            var encodedHtml = System.Net.WebUtility.HtmlEncode(previewHtml);
-                            renderer.Write($"<iframe class=\"w-full rounded border border-gray-200 dark:border-gray-700\" style=\"min-height: 400px; resize: vertical;\" srcdoc=\"{encodedHtml}\"></iframe>");
-                        }
+                        // The preview is inlined through `srcdoc` so each sample runs in
+                        // a sandboxed `about:srcdoc` document. Note that the History API
+                        // (history.pushState/replaceState) is unavailable in such a
+                        // document, so samples must not rely on real URL navigation.
+                        var encodedHtml = System.Net.WebUtility.HtmlEncode(result.OutputHtml);
+                        renderer.Write($"<iframe class=\"w-full rounded border border-gray-200 dark:border-gray-700\" style=\"min-height: 400px; resize: vertical;\" srcdoc=\"{encodedHtml}\"></iframe>");
                         renderer.Write("</div>");
 
                         // Code Tab (Hidden)
