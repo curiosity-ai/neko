@@ -912,6 +912,12 @@ namespace Neko.Builder
                 var markdown = await File.ReadAllTextAsync(fullPath);
                 var parser = new MarkdownParser(_config);
 
+                // Tesserae's renderer (and asset restore) keys off the current
+                // directory being the output folder, exactly as the full build does
+                // before its parse pass — set it up front, before the warm + parse,
+                // so live samples and their runtime assets land in the output.
+                Environment.CurrentDirectory = OutputDirectory;
+
                 // Warm the Tesserae cache for any live samples on this page so the
                 // (synchronous) parse below is a fast cache hit.
                 Builder.TesseraeCompiler.Configure(_config.Tesserae?.Version, _config.Tesserae?.MaxParallelism ?? 0);
@@ -928,8 +934,6 @@ namespace Neko.Builder
                 // backlinks, search-affecting flags, …) a single-page rebuild would
                 // leave the rest of the site stale — bail to a full rebuild.
                 if (RequiresFullRebuild(old.Doc, doc)) return false;
-
-                Environment.CurrentDirectory = OutputDirectory;
 
                 var newItem = (old.FilePath, old.RelativePath, doc, markdown);
                 var request = await RenderAndWritePageAsync(
