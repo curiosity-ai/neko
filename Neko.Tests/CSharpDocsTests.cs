@@ -254,37 +254,50 @@ namespace Demo
             // Single grouped block with one stable anchor (the base name, no type params).
             Assert.That(html, Contains.Substring("csharp-overload-group"));
             Assert.That(html, Contains.Substring("id=\"Client.Connect\""));
-            // Only one detail block, not one per overload.
+            // Only one group block, not one per overload.
             Assert.That(System.Text.RegularExpressions.Regex.Matches(html, "csharp-overload-group").Count, Is.EqualTo(1));
-            // The shared summary comes from <overloads>, not the per-overload <summary>.
+            // The <overloads> tag becomes the shared intro above the overloads table.
             Assert.That(html, Contains.Substring("Opens an authenticated connection"));
-            // Both signatures are shown.
+        }
+
+        [Test]
+        public void OverloadsTableListsEverySignature()
+        {
+            var doc = _parser.Parse(OverloadSource);
+            var html = doc.Html;
+            // MS Learn-style "Overloads" table with one typed signature per row.
+            Assert.That(html, Contains.Substring("csharp-overloads-table"));
+            Assert.That(html, Contains.Substring("Connect(string, string, string)"));
+            Assert.That(html, Contains.Substring("Connect(string, object, string)"));
+            // Each row carries that overload's own summary.
+            Assert.That(html, Contains.Substring("Connects using an API token."));
+            Assert.That(html, Contains.Substring("Connects using a client certificate."));
+        }
+
+        [Test]
+        public void EachOverloadHasItsOwnSectionWithTypedParameters()
+        {
+            var doc = _parser.Parse(OverloadSource);
+            var html = doc.Html;
+            // A self-contained section per overload, with a type-disambiguated anchor.
+            Assert.That(html, Contains.Substring("id=\"Client.Connect--string-string-string\""));
+            Assert.That(html, Contains.Substring("id=\"Client.Connect--string-object-string\""));
+            // Both signatures appear in full (one per section).
             Assert.That(html, Contains.Substring("string token"));
             Assert.That(html, Contains.Substring("object clientCertificate"));
+            // Parameters are repeated per overload (MS Learn style), not merged: endpoint
+            // is documented in both sections.
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(html, ">endpoint<").Count, Is.EqualTo(2));
+            // The union-list annotation style is gone.
+            Assert.That(html, Does.Not.Contain("(overload 1)"));
         }
 
         [Test]
-        public void OverloadUnionParametersAnnotateNonUniversalOnes()
+        public void OverloadTypeTableHasOneRow()
         {
             var doc = _parser.Parse(OverloadSource);
             var html = doc.Html;
-            // Shared params appear once and unannotated; the auth params are attributed.
-            Assert.That(html, Contains.Substring("endpoint"));
-            Assert.That(html, Contains.Substring("token <em"));
-            Assert.That(html, Contains.Substring("(overload 1)"));
-            Assert.That(html, Contains.Substring("clientCertificate <em"));
-            Assert.That(html, Contains.Substring("(overload 2)"));
-            // A universal parameter carries no overload note next to its name.
-            Assert.That(html, Does.Not.Contain("endpoint <em"));
-        }
-
-        [Test]
-        public void OverloadSummaryTableHasOneRow()
-        {
-            var doc = _parser.Parse(OverloadSource);
-            var html = doc.Html;
-            // The table lists the overload set once (the detail block's permalink also
-            // points at #Client.Connect, so match the table row's link text instead).
+            // The type-level member table lists the overload set once, by bare name.
             Assert.That(System.Text.RegularExpressions.Regex.Matches(html, ">Connect</a>").Count, Is.EqualTo(1));
         }
 

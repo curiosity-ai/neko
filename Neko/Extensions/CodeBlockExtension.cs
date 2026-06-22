@@ -947,13 +947,6 @@ namespace Neko.Extensions
             return groups;
         }
 
-        private static List<string> GetParameterNames(MemberDeclarationSyntax node) => node switch
-        {
-            BaseMethodDeclarationSyntax m => m.ParameterList.Parameters.Select(p => p.Identifier.Text).ToList(),
-            IndexerDeclarationSyntax i    => i.ParameterList.Parameters.Select(p => p.Identifier.Text).ToList(),
-            _                             => new List<string>(),
-        };
-
         private static (string Group, string Badge) GetMemberKind(MemberDeclarationSyntax node) => node switch
         {
             ConstructorDeclarationSyntax => ("constructors", "Constructor"),
@@ -1216,10 +1209,11 @@ namespace Neko.Extensions
             renderer.Write("</div>");
         }
 
-        // Renders a set of overloads as one entry: a single header and anchor, every
-        // signature stacked, one shared summary (the <overloads> tag when present, else
-        // the first overload's <summary>), and a union of parameters/type-parameters
-        // annotated with the overloads they belong to when they aren't universal.
+        // Renders a set of overloads in the Microsoft Learn / DocFX style: one header and
+        // stable anchor for the method name, an optional shared intro (the <overloads>
+        // tag), an "Overloads" table summarising each signature, and then one complete,
+        // self-contained subsection per overload (typed parameters, returns, exceptions,
+        // remarks) — each disambiguated by its parameter-type signature.
         private static void RenderCSharpOverloadGroup(HtmlRenderer renderer, List<MemberDeclarationSyntax> overloads, string classPrefix)
         {
             var first = overloads[0];
@@ -1228,204 +1222,137 @@ namespace Neko.Extensions
             var displayName = !string.IsNullOrEmpty(classPrefix) && !(first is ConstructorDeclarationSyntax)
                 ? $"{classPrefix}.{baseName}"
                 : baseName;
-            var anchor = SlugifyId(!string.IsNullOrEmpty(classPrefix) ? $"{classPrefix}.{baseName}" : baseName);
+            var groupAnchor = SlugifyId(!string.IsNullOrEmpty(classPrefix) ? $"{classPrefix}.{baseName}" : baseName);
 
             var docs = overloads.Select(o => ParseXmlDoc(GetXmlDoc(o))).ToList();
 
-            renderer.Write($"<div class=\"csharp-member-doc csharp-overload-group mb-8\" id=\"{System.Net.WebUtility.HtmlEncode(anchor)}\">");
+            string OverloadAnchor(MemberDeclarationSyntax o)
+            {
+                var typeKey = string.Join("-", GetParametersWithTypes(o).Select(p => p.Type));
+                return groupAnchor + "--" + SlugifyId(typeKey);
+            }
+
+            renderer.Write($"<div class=\"csharp-member-doc csharp-overload-group mb-8\" id=\"{System.Net.WebUtility.HtmlEncode(groupAnchor)}\">");
 
             renderer.Write("<div class=\"flex items-center gap-2 flex-wrap mb-2\">");
             renderer.Write($"<span class=\"csharp-kind-badge inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(badge)}</span>");
             renderer.Write($"<h5 class=\"text-lg font-semibold m-0 text-gray-900 dark:text-gray-100\">{System.Net.WebUtility.HtmlEncode(displayName)}");
-            renderer.Write($"<a href=\"#{System.Net.WebUtility.HtmlEncode(anchor)}\" class=\"csharp-anchor no-underline text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-2 text-xs align-middle\" aria-label=\"Permalink\"><i class=\"fi fi-rr-link\"></i></a>");
+            renderer.Write($"<a href=\"#{System.Net.WebUtility.HtmlEncode(groupAnchor)}\" class=\"csharp-anchor no-underline text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-2 text-xs align-middle\" aria-label=\"Permalink\"><i class=\"fi fi-rr-link\"></i></a>");
             renderer.Write("</h5>");
-            renderer.Write($"<span class=\"csharp-overload-count text-xs text-gray-500 dark:text-gray-400\">{overloads.Count} overloads</span>");
             renderer.Write("</div>");
 
-            // Every signature, stacked one per line in a single code box.
-            renderer.Write("<div class=\"bg-gray-50 dark:bg-[#1a1a1a] rounded-md p-3 font-mono text-sm text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-white/10 overflow-x-auto my-3\">");
-            renderer.Write("<pre class=\"!m-0 !p-0 !bg-transparent !border-0\"><code>");
-            renderer.Write(string.Join("\n", overloads.Select(o => System.Net.WebUtility.HtmlEncode(BuildMemberSignature(o)))));
-            renderer.Write("</code></pre>");
-            renderer.Write("</div>");
-
-            // Shared summary: prefer the dedicated <overloads> tag, else the first summary.
-            var shared = docs.Select(d => d.Overloads).FirstOrDefault(s => !string.IsNullOrEmpty(s));
-            if (string.IsNullOrEmpty(shared))
+            // Shared intro: the <overloads> tag if present (its dedicated purpose).
+            var intro = docs.Select(d => d.Overloads).FirstOrDefault(s => !string.IsNullOrEmpty(s));
+            if (!string.IsNullOrEmpty(intro))
             {
-                shared = docs.Select(d => d.Summary).FirstOrDefault(s => !string.IsNullOrEmpty(s)) ?? "";
-            }
-            if (!string.IsNullOrEmpty(shared))
-            {
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{System.Net.WebUtility.HtmlEncode(shared)}</p>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{System.Net.WebUtility.HtmlEncode(intro)}</p>");
             }
 
-            RenderOverloadDetails(renderer, overloads, docs, shared);
-
-            renderer.Write("</div>");
-        }
-
-        // Union view of the per-overload XML docs. Parameters and type-parameters are
-        // documented once; any that don't appear in every overload carry an "(overload N)"
-        // note. Per-overload summaries that differ from the shared lead are listed so no
-        // detail is silently dropped.
-        private static void RenderOverloadDetails(HtmlRenderer renderer, List<MemberDeclarationSyntax> overloads, List<CSharpXmlDoc> docs, string shared)
-        {
-            const string h4 = "font-semibold text-base mt-4 mb-2 text-gray-900 dark:text-gray-100";
-            int n = overloads.Count;
-
-            string OverloadNote(List<int> owners)
-            {
-                if (owners.Count >= n) return "";
-                var which = string.Join(", ", owners.Select(i => (i + 1).ToString()));
-                var word = owners.Count == 1 ? "overload" : "overloads";
-                return $" <em class=\"font-normal text-gray-500 dark:text-gray-400\">({word} {which})</em>";
-            }
-
-            void RenderAnnotatedList(string heading, List<(string Name, string Text, List<int> Owners)> items)
-            {
-                if (items.Count == 0) return;
-                renderer.Write($"<h4 class=\"{h4}\">{heading}</h4>");
-                renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
-                foreach (var it in items)
-                {
-                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(it.Name)}{OverloadNote(it.Owners)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(it.Text)}</dd></div>");
-                }
-                renderer.Write("</dl>");
-            }
-
-            // Per-overload summaries that add information beyond the shared lead.
-            var extra = new List<(int Index, string Text)>();
-            for (int i = 0; i < n; i++)
-            {
-                var s = docs[i].Summary;
-                if (!string.IsNullOrEmpty(s) && s != shared) extra.Add((i, s));
-            }
-            if (extra.Count > 0)
-            {
-                renderer.Write($"<h4 class=\"{h4}\">Overloads</h4>");
-                renderer.Write("<ul class=\"list-disc pl-5 my-2 text-gray-700 dark:text-gray-300 space-y-1\">");
-                foreach (var (i, s) in extra)
-                {
-                    renderer.Write($"<li><span class=\"font-semibold\">Overload {i + 1}.</span> {System.Net.WebUtility.HtmlEncode(s)}</li>");
-                }
-                renderer.Write("</ul>");
-            }
-
-            // Union of type parameters, then parameters, ordered by first appearance.
-            var typeParams = MergeAnnotated(overloads, docs, isTypeParam: true);
-            RenderAnnotatedList("Type Parameters", typeParams);
-
-            var parameters = MergeAnnotated(overloads, docs, isTypeParam: false);
-            RenderAnnotatedList("Parameters", parameters);
-
-            // Returns: collapse to one when every overload agrees, else annotate.
-            var returns = new List<(int Index, string Text)>();
-            for (int i = 0; i < n; i++)
-            {
-                if (!string.IsNullOrEmpty(docs[i].Returns)) returns.Add((i, docs[i].Returns));
-            }
-            var distinctReturns = returns.Select(r => r.Text).Distinct().ToList();
-            if (distinctReturns.Count == 1)
-            {
-                renderer.Write($"<h4 class=\"{h4}\">Returns</h4>");
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mb-3\">{System.Net.WebUtility.HtmlEncode(distinctReturns[0])}</p>");
-            }
-            else if (distinctReturns.Count > 1)
-            {
-                renderer.Write($"<h4 class=\"{h4}\">Returns</h4>");
-                renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
-                foreach (var (i, t) in returns)
-                {
-                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"text-sm font-semibold text-gray-500 dark:text-gray-400 min-w-[120px]\">Overload {i + 1}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(t)}</dd></div>");
-                }
-                renderer.Write("</dl>");
-            }
-
-            // Exceptions: union, de-duplicated by cref/name.
-            var exceptions = new List<(string Name, string Text)>();
-            foreach (var d in docs)
-            {
-                foreach (var ex in d.Exceptions)
-                {
-                    if (!exceptions.Any(e => e.Name == ex.Name)) exceptions.Add(ex);
-                }
-            }
-            if (exceptions.Count > 0)
-            {
-                renderer.Write($"<h4 class=\"{h4}\">Exceptions</h4>");
-                renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
-                foreach (var ex in exceptions)
-                {
-                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(ex.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(ex.Text)}</dd></div>");
-                }
-                renderer.Write("</dl>");
-            }
-
-            // Remarks: first overload that has them (or the <remarks> on the overloads tag).
-            var remarks = docs.Select(d => d.Remarks).FirstOrDefault(r => !string.IsNullOrEmpty(r));
-            if (!string.IsNullOrEmpty(remarks))
-            {
-                renderer.Write($"<h4 class=\"{h4}\">Remarks</h4>");
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mb-3\">{System.Net.WebUtility.HtmlEncode(remarks)}</p>");
-            }
-        }
-
-        // Builds the union list of parameters (or type parameters) across overloads.
-        // Order follows first appearance; the doc text is the first non-empty one found;
-        // owners records which overloads (by index) declare each name.
-        private static List<(string Name, string Text, List<int> Owners)> MergeAnnotated(
-            List<MemberDeclarationSyntax> overloads, List<CSharpXmlDoc> docs, bool isTypeParam)
-        {
-            var order = new List<string>();
-            var text = new Dictionary<string, string>();
-            var owners = new Dictionary<string, List<int>>();
-
+            // "Overloads" summary table: one row per signature, linking to its section.
+            renderer.Write("<div class=\"csharp-overloads-table csharp-member-table overflow-x-auto my-4 rounded-md border border-gray-200 dark:border-white/10\">");
+            renderer.Write("<table class=\"w-full text-sm border-collapse m-0\">");
+            renderer.Write("<thead><tr class=\"bg-gray-50 dark:bg-gray-800/60 text-left\">");
+            renderer.Write("<th class=\"font-semibold text-gray-700 dark:text-gray-300 px-3 py-2 border-b border-gray-200 dark:border-white/10\">Overload</th>");
+            renderer.Write("<th class=\"font-semibold text-gray-700 dark:text-gray-300 px-3 py-2 border-b border-gray-200 dark:border-white/10\"></th>");
+            renderer.Write("</tr></thead><tbody>");
             for (int i = 0; i < overloads.Count; i++)
             {
-                var declared = isTypeParam
-                    ? GetTypeParameterNames(overloads[i])
-                    : GetParameterNames(overloads[i]);
-                var documented = isTypeParam ? docs[i].TypeParams : docs[i].Params;
+                var label = BuildOverloadSignatureLabel(overloads[i]);
+                renderer.Write("<tr class=\"border-b border-gray-100 dark:border-white/5 last:border-0 align-top\">");
+                renderer.Write($"<td class=\"px-3 py-2\"><a href=\"#{System.Net.WebUtility.HtmlEncode(OverloadAnchor(overloads[i]))}\" class=\"font-mono text-primary-600 dark:text-primary-400 no-underline hover:underline\">{System.Net.WebUtility.HtmlEncode(label)}</a></td>");
+                renderer.Write($"<td class=\"px-3 py-2 text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(docs[i].Summary)}</td>");
+                renderer.Write("</tr>");
+            }
+            renderer.Write("</tbody></table></div>");
 
-                foreach (var name in declared)
-                {
-                    if (!owners.ContainsKey(name))
-                    {
-                        owners[name] = new List<int>();
-                        order.Add(name);
-                        text[name] = "";
-                    }
-                    if (!owners[name].Contains(i)) owners[name].Add(i);
-                }
-
-                foreach (var (pName, pText) in documented)
-                {
-                    if (!owners.ContainsKey(pName))
-                    {
-                        owners[pName] = new List<int>();
-                        order.Add(pName);
-                        text[pName] = "";
-                    }
-                    if (!owners[pName].Contains(i)) owners[pName].Add(i);
-                    if (string.IsNullOrEmpty(text[pName]) && !string.IsNullOrEmpty(pText)) text[pName] = pText;
-                }
+            // One complete subsection per overload.
+            for (int i = 0; i < overloads.Count; i++)
+            {
+                RenderOverloadSection(renderer, overloads[i], docs[i], OverloadAnchor(overloads[i]));
             }
 
-            return order
-                .Where(name => !string.IsNullOrEmpty(text[name]))
-                .Select(name => (name, text[name], owners[name]))
-                .ToList();
+            renderer.Write("</div>");
         }
 
-        private static List<string> GetTypeParameterNames(MemberDeclarationSyntax node) => node switch
+        // One overload's self-contained section: its typed signature heading and anchor,
+        // the signature, its summary, and its own typed parameter / returns / exception /
+        // remarks blocks. Shared parameters are repeated here by design, so each overload
+        // reads on its own.
+        private static void RenderOverloadSection(HtmlRenderer renderer, MemberDeclarationSyntax node, CSharpXmlDoc doc, string anchor)
         {
-            MethodDeclarationSyntax m   => m.TypeParameterList?.Parameters.Select(p => p.Identifier.Text).ToList() ?? new List<string>(),
-            DelegateDeclarationSyntax d => d.TypeParameterList?.Parameters.Select(p => p.Identifier.Text).ToList() ?? new List<string>(),
-            _                           => new List<string>(),
+            var label = BuildOverloadSignatureLabel(node);
+            var signature = BuildMemberSignature(node);
+
+            renderer.Write($"<div class=\"csharp-overload-member mt-6 pt-2 pl-3 border-l-2 border-gray-200 dark:border-gray-700\" id=\"{System.Net.WebUtility.HtmlEncode(anchor)}\">");
+
+            renderer.Write($"<h6 class=\"font-mono text-base font-semibold m-0 text-gray-900 dark:text-gray-100\">{System.Net.WebUtility.HtmlEncode(label)}");
+            renderer.Write($"<a href=\"#{System.Net.WebUtility.HtmlEncode(anchor)}\" class=\"csharp-anchor no-underline text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-2 text-xs align-middle\" aria-label=\"Permalink\"><i class=\"fi fi-rr-link\"></i></a>");
+            renderer.Write("</h6>");
+
+            if (!string.IsNullOrEmpty(signature))
+            {
+                renderer.Write("<div class=\"bg-gray-50 dark:bg-[#1a1a1a] rounded-md p-3 font-mono text-sm text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-white/10 overflow-x-auto my-3\">");
+                renderer.Write($"<pre class=\"!m-0 !p-0 !bg-transparent !border-0\"><code>{System.Net.WebUtility.HtmlEncode(signature)}</code></pre>");
+                renderer.Write("</div>");
+            }
+
+            if (!string.IsNullOrEmpty(doc.Summary))
+            {
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{System.Net.WebUtility.HtmlEncode(doc.Summary)}</p>");
+            }
+
+            RenderTypedParameters(renderer, node, doc);
+            // Type parameters, returns, exceptions, remarks — parameters handled above.
+            RenderXmlDocDetails(renderer, doc, includeSummary: false, includeReturns: true, compact: false, includeParams: false);
+
+            renderer.Write("</div>");
+        }
+
+        // Parameters block listing each declared parameter with its type (from the
+        // signature) and description (from the matching <param> doc), MS Learn style.
+        private static void RenderTypedParameters(HtmlRenderer renderer, MemberDeclarationSyntax node, CSharpXmlDoc doc)
+        {
+            var parameters = GetParametersWithTypes(node);
+            if (parameters.Count == 0) return;
+
+            renderer.Write("<h4 class=\"font-semibold text-base mt-4 mb-2 text-gray-900 dark:text-gray-100\">Parameters</h4>");
+            renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
+            foreach (var (name, type) in parameters)
+            {
+                var desc = doc.Params.FirstOrDefault(p => p.Name == name).Text ?? "";
+                renderer.Write("<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\">");
+                renderer.Write($"<dt class=\"min-w-[120px]\"><span class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400\">{System.Net.WebUtility.HtmlEncode(name)}</span> <span class=\"font-mono text-xs text-gray-500 dark:text-gray-400\">{System.Net.WebUtility.HtmlEncode(type)}</span></dt>");
+                renderer.Write($"<dd class=\"text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(desc)}</dd>");
+                renderer.Write("</div>");
+            }
+            renderer.Write("</dl>");
+        }
+
+        // The disambiguating label for one overload: the member name (with type
+        // parameters) followed by its parameter types, e.g. "Connect(string, string)".
+        private static string BuildOverloadSignatureLabel(MemberDeclarationSyntax node)
+        {
+            string name = node switch
+            {
+                MethodDeclarationSyntax m              => m.Identifier.Text + (m.TypeParameterList?.ToString() ?? ""),
+                ConstructorDeclarationSyntax c         => c.Identifier.Text,
+                OperatorDeclarationSyntax op           => "operator " + op.OperatorToken.Text,
+                ConversionOperatorDeclarationSyntax cv => cv.ImplicitOrExplicitKeyword.Text + " operator " + cv.Type,
+                IndexerDeclarationSyntax               => "this",
+                _                                      => GetMemberName(node),
+            };
+            var types = string.Join(", ", GetParametersWithTypes(node).Select(p => p.Type));
+            return node is IndexerDeclarationSyntax ? $"{name}[{types}]" : $"{name}({types})";
+        }
+
+        private static List<(string Name, string Type)> GetParametersWithTypes(MemberDeclarationSyntax node) => node switch
+        {
+            BaseMethodDeclarationSyntax m => m.ParameterList.Parameters.Select(p => (p.Identifier.Text, p.Type?.ToString() ?? "")).ToList(),
+            IndexerDeclarationSyntax i    => i.ParameterList.Parameters.Select(p => (p.Identifier.Text, p.Type?.ToString() ?? "")).ToList(),
+            _                             => new List<(string, string)>(),
         };
 
-        private static void RenderXmlDocDetails(HtmlRenderer renderer, CSharpXmlDoc doc, bool includeSummary, bool includeReturns, bool compact)
+        private static void RenderXmlDocDetails(HtmlRenderer renderer, CSharpXmlDoc doc, bool includeSummary, bool includeReturns, bool compact, bool includeParams = true)
         {
             string h4 = compact
                 ? "font-semibold text-sm uppercase tracking-wide mt-3 mb-1 text-gray-500 dark:text-gray-400"
@@ -1447,7 +1374,7 @@ namespace Neko.Extensions
                 renderer.Write("</dl>");
             }
 
-            if (doc.Params.Any())
+            if (includeParams && doc.Params.Any())
             {
                 renderer.Write($"<h4 class=\"{h4}\">Parameters</h4>");
                 renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
