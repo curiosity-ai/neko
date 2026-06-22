@@ -103,6 +103,11 @@ namespace Neko.Builder
             var heightByCode = new Dictionary<string, int>();
             int measured = 0, failed = 0, updated = 0, filesChanged = 0;
 
+            // One headless render per unique sample; report progress against that.
+            var totalToMeasure = allSamples.Select(s => s.Code).Distinct().Count();
+            int measureIndex = 0;
+            Console.WriteLine($"[tesserae-heights] Measuring {totalToMeasure} unique sample(s) with the headless browser...");
+
             foreach (var (file, blocks) in fileBlocks)
             {
                 var lines = File.ReadAllLines(file).ToList();
@@ -113,6 +118,8 @@ namespace Neko.Builder
                     if (!heightByCode.TryGetValue(b.Code, out var height))
                     {
                         var label = string.IsNullOrWhiteSpace(b.Rest) ? Path.GetFileName(file) : b.Rest.Trim();
+                        measureIndex++;
+                        Console.WriteLine($"[tesserae-heights] [{measureIndex}/{totalToMeasure}] measuring {label} ...");
                         var result = await TesseraeCompiler.CompileAsync(label, b.Code, tempOutputRoot);
                         height = result?.OutputHtml != null
                             ? await TesseraeCompiler.MeasureHeightAsync(result.OutputHtml, tempOutputRoot, label)
