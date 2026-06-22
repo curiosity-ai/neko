@@ -106,3 +106,19 @@ namespace Neko.Documentation
     }
 }
 ```
+
+## Preview sizing
+
+The live preview renders inside an `<iframe>`. To avoid the page reflowing once a
+sample finishes rendering, Neko measures each compiled sample's rendered height
+with a headless browser at build time and bakes an exact height into the iframe,
+so the right space is reserved up front. The measured value is stored in the
+sample cache alongside the compiled output, so the browser runs only once per
+unique sample.
+
+This is controlled by the project-level
+[`tesserae.measureHeight`](/configuration/core/project#tesserae) /
+[`tesserae.measureWidth`](/configuration/core/project#tesserae) settings. Set
+`measureHeight: false` for offline builds with no browser toolchain — iframes
+then fall back to a fixed placeholder height. The preview remains
+manually resizable via the iframe's bottom-right drag handle regardless.

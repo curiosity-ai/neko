@@ -23,6 +23,12 @@ namespace Neko.Builder
         public string AppJsContent { get; set; }
         public List<string> AssetsPath { get; set; } = new List<string>();
         public string OutputHtml { get; set; }
+
+        // Rendered content height (CSS px) measured headlessly at build time, or 0
+        // when measurement is disabled / unavailable. Baked into the live-preview
+        // iframe so the page reserves the right space up front and doesn't reflow
+        // once the sample finishes rendering.
+        public int MeasuredHeight { get; set; }
     }
 
     public static class TesseraeCompiler
@@ -51,20 +57,46 @@ namespace Neko.Builder
         // newer one — otherwise the cached HTML can reference asset variants the new
         // build no longer writes (e.g. `h5.min.js` vs `h5.js`), 404ing the runtime
         // and leaving the live preview blank.
-        private const string CacheFormatVersion = "2";
+        private const string CacheFormatVersion = "3";
+
+        // Default viewport width (CSS px) used when measuring sample heights. Chosen
+        // to approximate the live-preview iframe width inside the docs content column
+        // (`max-w-4xl` minus the preview box's padding).
+        private const int DefaultMeasureWidth = 820;
+
+        // Viewport height used while measuring. A full-page capture returns
+        // max(contentHeight, viewportHeight), so this must be small to recover the
+        // true natural height of short samples — it doubles as a sensible minimum
+        // iframe height. Kept above zero to avoid collapsing the rare sample that
+        // sizes itself relative to the viewport.
+        private const int MeasureViewportHeight = 40;
 
         // Build configuration, set from neko.yml before the build runs.
         private static string _pinnedTesseraeVersion;
         private static int _maxParallelism = Environment.ProcessorCount;
+        private static bool _measureHeight = true;
+        private static int _measureWidth = DefaultMeasureWidth;
 
         public static int MaxParallelism => _maxParallelism;
 
+        // Headless height measurement spins up a Chromium page per unique sample.
+        // Cap how many run at once so a high compile parallelism doesn't open a
+        // browser tab per core; the heavy H5 compilation stays at _maxParallelism.
+        private static readonly SemaphoreSlim _measureLock = new SemaphoreSlim(Math.Max(1, Math.Min(4, Environment.ProcessorCount)));
+
+        // Whether the snapframe toolchain is usable, resolved once on first measure.
+        private static bool? _measureToolAvailable;
+        private static readonly object _measureToolLock = new object();
+
         // Apply project configuration. `pinnedVersion` empty => resolve latest;
-        // `maxParallelism` <= 0 => Environment.ProcessorCount.
-        public static void Configure(string pinnedVersion, int maxParallelism)
+        // `maxParallelism` <= 0 => Environment.ProcessorCount; `measureHeight` null
+        // => enabled; `measureWidth` <= 0 => DefaultMeasureWidth.
+        public static void Configure(string pinnedVersion, int maxParallelism, bool? measureHeight = null, int measureWidth = 0)
         {
             _pinnedTesseraeVersion = string.IsNullOrWhiteSpace(pinnedVersion) ? null : pinnedVersion.Trim();
             _maxParallelism = maxParallelism > 0 ? maxParallelism : Environment.ProcessorCount;
+            _measureHeight = measureHeight ?? true;
+            _measureWidth = measureWidth > 0 ? measureWidth : DefaultMeasureWidth;
         }
 
         // Root for all on-disk Tesserae build artifacts (compiled samples, shared
@@ -580,6 +612,13 @@ namespace Neko.Builder
 
                 Console.WriteLine($"Compiled Tesserae code for {codeBlockArguments} in {sw.Elapsed.TotalSeconds:n1}s");
 
+                // Measure the rendered height once, here, so the value is baked into
+                // the cached result and the browser never runs again for this sample.
+                if (_measureHeight)
+                {
+                    result.MeasuredHeight = await MeasureHeightAsync(result.OutputHtml, siteAssetsDir, codeBlockArguments);
+                }
+
             }
             catch (System.Exception ex)
             {
@@ -610,6 +649,193 @@ namespace Neko.Builder
             }
 
             return result;
+        }
+
+        // ---- headless height measurement ----
+
+        // Render the compiled sample HTML in a headless browser and return its
+        // content height in CSS px, or 0 when measurement is disabled or fails.
+        // Best-effort: any failure leaves the caller to fall back to a placeholder
+        // height, and never aborts the build.
+        private static async Task<int> MeasureHeightAsync(string outputHtml, string siteAssetsDir, string codeBlockArguments)
+        {
+            if (string.IsNullOrEmpty(outputHtml)) return 0;
+            if (!EnsureMeasureToolAvailable()) return 0;
+
+            await _measureLock.WaitAsync();
+            try
+            {
+                return await Task.Run(() => MeasureHeightCore(outputHtml, siteAssetsDir, codeBlockArguments));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Tesserae] Height measurement failed for {codeBlockArguments}: {ex.Message}");
+                return 0;
+            }
+            finally
+            {
+                _measureLock.Release();
+            }
+        }
+
+        private static bool EnsureMeasureToolAvailable()
+        {
+            if (_measureToolAvailable.HasValue) return _measureToolAvailable.Value;
+            lock (_measureToolLock)
+            {
+                if (_measureToolAvailable.HasValue) return _measureToolAvailable.Value;
+                bool ok;
+                try
+                {
+                    ok = Neko.Extensions.SnapFrameExtension.EnsureToolInstalled();
+                }
+                catch
+                {
+                    ok = false;
+                }
+                if (!ok)
+                {
+                    Console.WriteLine("[Tesserae] snapframe unavailable; skipping height measurement (live-preview iframes fall back to a placeholder height).");
+                }
+                _measureToolAvailable = ok;
+                return ok;
+            }
+        }
+
+        private static int MeasureHeightCore(string outputHtml, string siteAssetsDir, string codeBlockArguments)
+        {
+            // The compiled HTML references runtime assets with site-root-absolute URLs
+            // (`/assets/tesserae/...`, optionally route-prefixed). Those don't resolve
+            // from a file:// page, so rewrite them to absolute file URIs pointing at
+            // the assets already written to the output directory.
+            var assetsBaseUri = new Uri(siteAssetsDir.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? siteAssetsDir
+                : siteAssetsDir + Path.DirectorySeparatorChar).AbsoluteUri;
+
+            var routePrefix = SiteBuilder.CurrentRoutePrefix ?? string.Empty;
+            var measureHtml = outputHtml;
+            if (!string.IsNullOrEmpty(routePrefix))
+            {
+                measureHtml = measureHtml.Replace(routePrefix + AssetUrlPrefix, assetsBaseUri);
+            }
+            measureHtml = measureHtml.Replace(AssetUrlPrefix, assetsBaseUri);
+
+            var tmpDir = Path.Combine(GetCacheDir(), "measure");
+            Directory.CreateDirectory(tmpDir);
+            var token = Guid.NewGuid().ToString("N");
+            var htmlPath = Path.Combine(tmpDir, token + ".html");
+            var pngPath = Path.Combine(tmpDir, token + ".png");
+
+            try
+            {
+                File.WriteAllText(htmlPath, measureHtml);
+                var pageUrl = new Uri(htmlPath).AbsoluteUri;
+
+                var pageId = SnapFrameNavigate(pageUrl, _measureWidth);
+                if (string.IsNullOrEmpty(pageId)) return 0;
+
+                try
+                {
+                    // Let the H5/Tesserae app paint before measuring.
+                    Thread.Sleep(800);
+                    if (!SnapFrameCaptureFullPage(pageId, pngPath)) return 0;
+                }
+                finally
+                {
+                    SnapFrameClose(pageId);
+                }
+
+                if (!TryReadPngSize(pngPath, out _, out var height) || height <= 0) return 0;
+
+                Console.WriteLine($"[Tesserae] Measured height {height}px for {codeBlockArguments}");
+                return height;
+            }
+            finally
+            {
+                try { if (File.Exists(htmlPath)) File.Delete(htmlPath); } catch { }
+                try { if (File.Exists(pngPath)) File.Delete(pngPath); } catch { }
+            }
+        }
+
+        private static string RunSnapFrame(string arguments, out int exitCode, out string stdErr)
+        {
+            var isWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows);
+            var exeName = isWindows ? "snapframe.exe" : "snapframe";
+
+            using var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = exeName,
+                    Arguments = arguments,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+            process.Start();
+            var stdOut = process.StandardOutput.ReadToEnd();
+            stdErr = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            exitCode = process.ExitCode;
+            return stdOut;
+        }
+
+        private static string SnapFrameNavigate(string url, int width)
+        {
+            var output = RunSnapFrame($"navigate-json --size {width}x{MeasureViewportHeight} \"{url}\"", out var exit, out var err);
+            if (exit != 0)
+            {
+                Console.WriteLine($"[Tesserae] snapframe navigate failed: {err}");
+                return null;
+            }
+            var match = System.Text.RegularExpressions.Regex.Match(output, "\"PageId\"\\s*:\\s*\"([^\"]+)\"");
+            return match.Success ? match.Groups[1].Value : null;
+        }
+
+        private static bool SnapFrameCaptureFullPage(string pageId, string targetPath)
+        {
+            RunSnapFrame($"capture {pageId} \"{targetPath}\" --full-page --delay 1", out var exit, out var err);
+            if (exit != 0)
+            {
+                Console.WriteLine($"[Tesserae] snapframe capture failed: {err}");
+                return false;
+            }
+            return File.Exists(targetPath);
+        }
+
+        private static void SnapFrameClose(string pageId)
+        {
+            try { RunSnapFrame($"close {pageId}", out _, out _); } catch { }
+        }
+
+        // Read a PNG's pixel dimensions straight from its IHDR chunk (bytes 16..24).
+        private static bool TryReadPngSize(string path, out int width, out int height)
+        {
+            width = 0;
+            height = 0;
+            try
+            {
+                Span<byte> head = stackalloc byte[24];
+                using var fs = File.OpenRead(path);
+                int read = 0;
+                while (read < head.Length)
+                {
+                    int n = fs.Read(head.Slice(read));
+                    if (n <= 0) return false;
+                    read += n;
+                }
+                // PNG signature + IHDR length/type precede the 8-byte width/height.
+                if (head[0] != 0x89 || head[1] != 0x50 || head[2] != 0x4E || head[3] != 0x47) return false;
+                width = (head[16] << 24) | (head[17] << 16) | (head[18] << 8) | head[19];
+                height = (head[20] << 24) | (head[21] << 16) | (head[22] << 8) | head[23];
+                return width > 0 && height > 0;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

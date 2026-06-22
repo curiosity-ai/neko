@@ -2310,6 +2310,39 @@ tesserae:
 ```
 ===
 
+### measureHeight
+
+=== measureHeight : `boolean`
+
+Whether to measure each compiled sample's rendered height with a headless
+browser ([snapframe](/components/snapframe)/Playwright) at build time and bake an
+exact height into the live-preview `<iframe>`. This reserves the right space up
+front so the page doesn't reflow once a sample finishes rendering. Defaults to
+enabled. The measured value is stored in the sample cache, so the browser runs
+only once per unique sample. Set to `false` for offline builds with no browser
+toolchain — iframes then fall back to a fixed placeholder height.
+
+```yml
+tesserae:
+  measureHeight: false
+```
+===
+
+### measureWidth
+
+=== measureWidth : `number`
+
+Viewport width (in CSS px) used when measuring sample heights. Approximates the
+rendered width of the live-preview iframe in the docs content column. Defaults to
+`0`, meaning Neko's built-in default (`820`). Only relevant when `measureHeight`
+is enabled.
+
+```yml
+tesserae:
+  measureWidth: 760
+```
+===
+
 ---
 
 ## theme

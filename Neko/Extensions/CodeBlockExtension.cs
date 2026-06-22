@@ -70,7 +70,16 @@ namespace Neko.Extensions
                         // Live Preview Tab (Active)
                         renderer.Write($"<div id=\"tab-{groupId}-0\" class=\"tab-content\">");
                         var encodedHtml = System.Net.WebUtility.HtmlEncode(result.OutputHtml);
-                        renderer.Write($"<iframe class=\"w-full rounded border border-gray-200 dark:border-gray-700\" style=\"min-height: 400px; resize: vertical;\" srcdoc=\"{encodedHtml}\"></iframe>");
+                        // When the sample's rendered height was measured at build time,
+                        // bake it in so the page reserves the right space up front and
+                        // doesn't reflow once the live preview finishes rendering. The
+                        // small buffer covers the iframe's borders (border-box) and
+                        // avoids a 1px scrollbar. Fall back to a fixed placeholder when
+                        // measurement was disabled or unavailable.
+                        var iframeStyle = result.MeasuredHeight > 0
+                            ? $"height: {result.MeasuredHeight + 4}px; resize: vertical;"
+                            : "min-height: 400px; resize: vertical;";
+                        renderer.Write($"<iframe class=\"w-full rounded border border-gray-200 dark:border-gray-700\" style=\"{iframeStyle}\" srcdoc=\"{encodedHtml}\"></iframe>");
                         renderer.Write("</div>");
 
                         // Code Tab (Hidden)
