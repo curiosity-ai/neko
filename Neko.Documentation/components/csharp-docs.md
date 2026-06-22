@@ -101,10 +101,47 @@ namespace Geometry
 }
 ```
 
+## Overloads
+
+Members that share a name but differ in signature are **grouped into one entry**
+instead of being repeated. Neko renders a single header and permalink anchor (the
+plain method name, e.g. `#Client.Connect`), stacks every signature in one code
+box, and shows one shared description. Parameters are merged into a single union
+list: those common to every overload appear once and unannotated, while a
+parameter that belongs to only some overloads is tagged `(overload N)`.
+
+The shared description comes from the standard `<overloads>` XML tag when present;
+otherwise the first overload's `<summary>` is used. Per-overload `<summary>` text
+that differs from the shared lead is preserved in a short **Overloads** list, so
+no detail is lost.
+
+```csharp-docs
+namespace Demo
+{
+    /// <summary>The .NET client for a workspace.</summary>
+    public class Client
+    {
+        /// <overloads>Opens an authenticated connection to a workspace.</overloads>
+        /// <summary>Connects using an API token.</summary>
+        /// <param name="endpoint">The workspace base URL.</param>
+        /// <param name="token">An API token whose scopes gate access.</param>
+        /// <param name="connectorName">A stable name recorded in audit logs.</param>
+        public static Client Connect(string endpoint, string token, string connectorName) => null;
+
+        /// <summary>Connects using a client certificate (mutual-TLS).</summary>
+        /// <param name="endpoint">The workspace base URL.</param>
+        /// <param name="clientCertificate">A certificate presented for mutual-TLS.</param>
+        /// <param name="connectorName">A stable name recorded in audit logs.</param>
+        public static Client Connect(string endpoint, X509Certificate2 clientCertificate, string connectorName) => null;
+    }
+}
+```
+
 ## Supported Tags
 
 Neko currently looks for the following XML documentation tags:
 * `<summary>`
+* `<overloads>` — shared description for an overload set (see [Overloads](#overloads))
 * `<param>`
 * `<returns>`
 * `<remarks>`

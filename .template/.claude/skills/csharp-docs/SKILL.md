@@ -60,9 +60,38 @@ so column-aligned source (`public void        OnColumnClick()`) shows as
 For fragments without an enclosing type (e.g. a single method like the
 example above), members render inline in source order without the grouping.
 
+## Overloads
+
+Members that share a name but differ in signature are rendered as **one entry**,
+not repeated. Neko gives the set a single header and permalink anchor (the plain
+name, e.g. `#Client.Connect`), stacks every signature in one code box, and shows
+one shared description. Parameters are merged into a **union list**: those shared
+by all overloads appear once, while a parameter present in only some of them is
+tagged `(overload N)`.
+
+The shared description is taken from the standard `<overloads>` tag if present;
+otherwise the first overload's `<summary>` is used. Any per-overload `<summary>`
+that differs from the shared lead is kept in a short **Overloads** list.
+
+````markdown
+```csharp-docs
+/// <overloads>Opens an authenticated connection to a workspace.</overloads>
+/// <summary>Connects using an API token.</summary>
+/// <param name="endpoint">The workspace base URL.</param>
+/// <param name="token">An API token.</param>
+public static Client Connect(string endpoint, string token) => null;
+
+/// <summary>Connects using a client certificate (mutual-TLS).</summary>
+/// <param name="endpoint">The workspace base URL.</param>
+/// <param name="clientCertificate">A certificate for mutual-TLS.</param>
+public static Client Connect(string endpoint, X509Certificate2 clientCertificate) => null;
+```
+````
+
 ## Supported XML tags
 
 - `<summary>` — short description.
+- `<overloads>` — shared description for an overload set (see Overloads above).
 - `<remarks>` — long-form notes.
 - `<param name="…">` — per-parameter docs.
 - `<returns>` — return value.
