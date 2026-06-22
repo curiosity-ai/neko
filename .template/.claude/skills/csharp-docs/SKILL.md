@@ -89,6 +89,8 @@ public static Client Connect(string endpoint, X509Certificate2 clientCertificate
 
 ## Supported XML tags
 
+Block tags:
+
 - `<summary>` — short description.
 - `<overloads>` — shared description for an overload set (see Overloads above).
 - `<remarks>` — long-form notes.
@@ -96,7 +98,11 @@ public static Client Connect(string endpoint, X509Certificate2 clientCertificate
 - `<returns>` — return value.
 - `<typeparam name="…">` — generic type parameters.
 - `<exception cref="…">` — thrown exceptions.
-- `<example>` — usage examples.
+- `<example>` — rendered under an **Examples** heading; nested `<code>` becomes a code box.
+
+Inline tags (rendered, not dropped): `<c>`, `<see cref/langword>`,
+`<paramref>`, `<typeparamref>` → inline code; `<para>` → paragraph break. So
+comments copied from real source keep their inline code and cross-references.
 
 ## Tips
 

@@ -144,7 +144,7 @@ namespace Demo
 
 ## Supported Tags
 
-Neko currently looks for the following XML documentation tags:
+Neko looks for the following **block** XML documentation tags:
 * `<summary>`
 * `<overloads>` — shared description for an overload set (see [Overloads](#overloads))
 * `<param>`
@@ -152,3 +152,13 @@ Neko currently looks for the following XML documentation tags:
 * `<remarks>`
 * `<typeparam>`
 * `<exception>`
+* `<example>` — rendered under an **Examples** heading; any nested `<code>` becomes a code box.
+
+Inside those, the common **inline** tags are rendered (rather than dropped):
+* `<c>…</c>` and `<see cref="…"/>` / `<see langword="…"/>` → inline `code`
+* `<paramref name="…"/>` / `<typeparamref name="…"/>` → inline `code`
+* `<para>…</para>` → paragraph break
+
+This means doc comments copied from real source (which lean on `<see cref>`,
+`<c>`, and `<example>`) render with their inline code and cross-references
+intact.

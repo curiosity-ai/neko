@@ -302,6 +302,37 @@ namespace Demo
         }
 
         [Test]
+        public void RendersInlineDocTagsAndExamples()
+        {
+            const string source = @"```csharp-docs
+namespace Demo
+{
+    public class Client
+    {
+        /// <summary>Connects, then call <see cref=""Flush""/> with the <c>token</c>.</summary>
+        /// <param name=""token"">Pass <paramref name=""token""/> verbatim.</param>
+        /// <example>
+        /// <code>
+        /// var c = Client.Open(""t"");
+        /// </code>
+        /// </example>
+        public void Connect(string token) { }
+    }
+}
+```";
+            var doc = _parser.Parse(source);
+            var html = doc.Html;
+            // <see cref> and <c> become inline <code>, not dropped or escaped.
+            Assert.That(html, Contains.Substring("<code>Flush</code>"));
+            Assert.That(html, Contains.Substring("<code>token</code>"));
+            // <paramref> in a param description becomes inline code too.
+            Assert.That(html, Contains.Substring("Pass <code>token</code> verbatim."));
+            // <example>/<code> renders an Examples section with a code box.
+            Assert.That(html, Contains.Substring(">Examples<"));
+            Assert.That(html, Contains.Substring("Client.Open(&quot;t&quot;)"));
+        }
+
+        [Test]
         public void StandaloneMemberStillRenders()
         {
             const string source = @"```csharp-docs
