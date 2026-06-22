@@ -106,3 +106,32 @@ namespace Neko.Documentation
     }
 }
 ```
+
+## Preview sizing
+
+The live preview renders inside an `<iframe>`. By default the iframe uses a fixed
+placeholder height, which means short samples leave empty space and tall ones
+scroll. To size each preview exactly — and avoid the page reflowing once a sample
+finishes rendering — run:
+
+```bash
+neko gen-tesserae-heights
+```
+
+This compiles every `tesserae` sample, measures its rendered height with a
+headless browser ([snapframe](/components/snapframe)/Playwright), and bakes a
+`height=` token into the fence info line:
+
+````markdown
+```tesserae chrome="macos" sample.js height=360
+````
+
+A normal `neko build` / `neko start` then reads that token and sizes the iframe
+up front — no browser runs during a build, so there's no layout shift and no
+browser dependency in your build pipeline. Commit the updated Markdown so the
+heights ship with your docs. Re-run the command after changing a sample (or when
+adding new ones); samples without a token keep the placeholder height.
+
+The measurement viewport width is configurable via
+[`tesserae.measureWidth`](/configuration/core/project#tesserae). The preview
+stays manually resizable via the iframe's bottom-right drag handle regardless.

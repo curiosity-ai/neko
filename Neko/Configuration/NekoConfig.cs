@@ -183,6 +183,7 @@ namespace Neko.Configuration
             {
                 if (string.IsNullOrEmpty(Tesserae.Version)) Tesserae.Version = parent.Tesserae.Version;
                 if (Tesserae.MaxParallelism == 0)           Tesserae.MaxParallelism = parent.Tesserae.MaxParallelism;
+                if (Tesserae.MeasureWidth == 0)             Tesserae.MeasureWidth = parent.Tesserae.MeasureWidth;
             }
         }
     }
@@ -200,6 +201,13 @@ namespace Neko.Configuration
         // build's cache-warming pre-pass. 0 (default) means Environment.ProcessorCount.
         [YamlMember(Alias = "maxParallelism")]
         public int MaxParallelism { get; set; }
+
+        // Viewport width (in CSS px) used by the `gen-tesserae-heights` command
+        // when measuring sample heights with a headless browser. Should approximate
+        // the rendered width of the live-preview iframe in the docs content column.
+        // 0 (default) means use the built-in default. Normal builds never measure.
+        [YamlMember(Alias = "measureWidth")]
+        public int MeasureWidth { get; set; }
     }
 
     public class NavConfig
