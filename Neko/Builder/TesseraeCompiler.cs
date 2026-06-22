@@ -506,7 +506,15 @@ namespace Neko.Builder
                 foreach (var file in compiledJavascript.Output.DistinctBy(v => v.Key.Replace(".min.", ".")))
                 {
                     var fileName = Path.GetFileName(file.Key);
-                    if (fileName.Equals("app.js", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    // Skip the per-sample app, both the readable `app.js` (inlined
+                    // above as AppJsContent) and its minified `App.min.js` sibling.
+                    // The app is unique to each sample, so it must never be written
+                    // to the shared, per-version assets directory: doing so makes
+                    // every sample on a page load whichever sample compiled last and
+                    // then throw "Class 'App' is already defined" on the inline copy.
+                    var normalizedName = fileName.Replace(".min.", ".");
+                    if (normalizedName.Equals("app.js", StringComparison.OrdinalIgnoreCase)) continue;
 
                     var relativePath = file.Key.Replace("\\", "/");
 

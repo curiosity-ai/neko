@@ -69,6 +69,10 @@ namespace Neko.Extensions
 
                         // Live Preview Tab (Active)
                         renderer.Write($"<div id=\"tab-{groupId}-0\" class=\"tab-content\">");
+                        // The preview is inlined through `srcdoc` so each sample runs in
+                        // a sandboxed `about:srcdoc` document. Note that the History API
+                        // (history.pushState/replaceState) is unavailable in such a
+                        // document, so samples must not rely on real URL navigation.
                         var encodedHtml = System.Net.WebUtility.HtmlEncode(result.OutputHtml);
                         renderer.Write($"<iframe class=\"w-full rounded border border-gray-200 dark:border-gray-700\" style=\"min-height: 400px; resize: vertical;\" srcdoc=\"{encodedHtml}\"></iframe>");
                         renderer.Write("</div>");
