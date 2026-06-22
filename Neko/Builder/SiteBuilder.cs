@@ -24,6 +24,23 @@ namespace Neko.Builder
 
         public string OutputDirectory { get; private set; }
 
+        // State captured at the end of the last full BuildAsync so a subsequent
+        // single-file change (watch mode) can regenerate just that page via
+        // TryRebuildSinglePageAsync instead of rebuilding the whole project. Null
+        // until the first full build completes.
+        private List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)> _lastParsedDocs;
+        private List<LinkConfig> _lastSidebarLinks;
+        private List<(string Url, string Title, List<NavigationItem> Breadcrumbs)> _lastNavigationMap;
+        private Dictionary<string, List<(string Url, string Title)>> _lastBacklinkMap;
+        private List<(ParsedDocument Doc, string Url)> _lastBlogPosts;
+        private HashSet<string> _lastSearchExcludedFolders;
+        private Dictionary<string, List<string>> _lastSidebarBreadcrumbMap;
+        private HashSet<string> _lastChangelogManagedFiles;
+        private HtmlGenerator _lastGenerator;
+        private string _lastProjectName;
+        private (string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs)?[] _lastIndexRequests;
+        private List<(string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs)> _lastChangelogIndexRequests;
+
         public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false, string? routePrefix = null)
         {
             _inputDirectory = Path.GetFullPath(inputDirectory);
@@ -430,133 +447,10 @@ namespace Neko.Builder
                     new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
                     async (pageIndex, ct) =>
                 {
-                    var item = parsedDocs[pageIndex];
-
-                    // Files inside a changelog folder are aggregated into a single page
-                    // (generated below), so they are not emitted individually here.
-                    if (changelogManagedFiles.Contains(Path.GetFullPath(item.FilePath)))
-                    {
-                        return;
-                    }
-
-                    Console.WriteLine($"Generating {Path.GetFileName(item.FilePath)}...");
-
-                    // Get backlinks
-                    List<(string Url, string Title)> backlinks = null;
-                    if (backlinkMap.TryGetValue(item.RelativePath, out var links))
-                    {
-                        backlinks = links;
-                    }
-
-                    // Determine Navigation Context
-                    var relativeUrl = "/" + item.RelativePath.Replace("\\", "/");
-                    if (relativeUrl.EndsWith(".md")) relativeUrl = relativeUrl.Substring(0, relativeUrl.Length - 3);
-                    if (relativeUrl.EndsWith(".html")) relativeUrl = relativeUrl.Substring(0, relativeUrl.Length - 5);
-
-                    if (!string.IsNullOrEmpty(_routePrefix))
-                    {
-                        relativeUrl = _routePrefix + relativeUrl;
-                    }
-
-                    var navContext = new NavigationContext();
-
-                    // Find in navigation map
-                    var index = navigationMap.FindIndex(n => n.Url.Equals(relativeUrl, StringComparison.OrdinalIgnoreCase));
-                    if (index >= 0)
-                    {
-                        var entry = navigationMap[index];
-                        navContext.Breadcrumbs = entry.Breadcrumbs;
-
-                        if (index > 0)
-                        {
-                            var prev = navigationMap[index - 1];
-                            navContext.Prev = new NavigationItem { Title = prev.Title, Url = prev.Url };
-                        }
-
-                        if (index < navigationMap.Count - 1)
-                        {
-                            var next = navigationMap[index + 1];
-                            navContext.Next = new NavigationItem { Title = next.Title, Url = next.Url };
-                        }
-                    }
-
-                    // Lesson-step navigation: if this page lives inside a [!lesson] folder,
-                    // expose prev/next siblings in the curriculum's own order.
-                    var (lessonPrev, lessonNext) = Neko.Extensions.LessonExtension.GetLessonStepNavigation(item.FilePath, _inputDirectory);
-                    if (lessonPrev != null || lessonNext != null)
-                    {
-                        navContext.IsLessonStep = true;
-                        if (lessonPrev != null) navContext.LessonPrev = new NavigationItem { Title = lessonPrev.Title, Url = lessonPrev.Url };
-                        if (lessonNext != null) navContext.LessonNext = new NavigationItem { Title = lessonNext.Title, Url = lessonNext.Url };
-                    }
-
-                    var html = generator.Generate(item.Doc, backlinks, navContext, sidebarLinks, blogPosts, null, relativeUrl);
-
-                    var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html");
-                    var outputPath = Path.Combine(OutputDirectory, htmlFileName);
-
-                    var outputDirForFile = Path.GetDirectoryName(outputPath);
-                    if (outputDirForFile != null && !Directory.Exists(outputDirForFile))
-                    {
-                        Directory.CreateDirectory(outputDirForFile);
-                    }
-
-                    await File.WriteAllTextAsync(outputPath, html, ct);
-
-                    // Index only pages whose content is publicly visible. Pages with a
-                    // per-page password (or a site-wide password without `password: none`)
-                    // would otherwise leak plaintext into search.json.
-                    var pagePassword = item.Doc.FrontMatter.Password;
-                    var isPageOptedOut = !string.IsNullOrEmpty(pagePassword)
-                        && pagePassword.Equals("none", StringComparison.OrdinalIgnoreCase);
-                    var isProtected = !string.IsNullOrEmpty(pagePassword) && !isPageOptedOut
-                        || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password);
-
-                    var isSearchExcluded = item.Doc.FrontMatter.SearchExclude
-                        || SidebarGenerator.IsHiddenVisibility(item.Doc.FrontMatter.Visibility)
-                        || IsInSearchExcludedFolder(item.FilePath, searchExcludedFolders)
-                        || IsInDotOrUnderscoreFolder(item.RelativePath);
-
-                    if (!isProtected && !isSearchExcluded)
-                    {
-                        var indexableContent = generator.BuildIndexableContent(item.Doc, blogPosts, null, relativeUrl);
-                        var indexTitle = item.Doc.FrontMatter.Title;
-                        if (string.IsNullOrWhiteSpace(indexTitle))
-                        {
-                            indexTitle = item.Doc.FrontMatter.Label;
-                        }
-                        if (string.IsNullOrWhiteSpace(indexTitle))
-                        {
-                            // Prefer an H1, but accept the first heading at any level —
-                            // some pages open with `## Title` (e.g. when the sidebar
-                            // already shows the label) and would otherwise fall through
-                            // to the bare filename.
-                            indexTitle = item.Doc.Toc.FirstOrDefault(x => x.Level == 1)?.Title
-                                ?? item.Doc.Toc.FirstOrDefault()?.Title;
-                        }
-                        if (string.IsNullOrWhiteSpace(indexTitle))
-                        {
-                            indexTitle = Path.GetFileNameWithoutExtension(item.FilePath);
-                        }
-                        // Ancestor group titles shown by the search UI as a breadcrumb
-                        // trail instead of the raw file path. Root-level pages have no
-                        // sidebar ancestors; for those, fall back to the navbar trail so
-                        // pages nested under navbar dropdown groups still get a crumb.
-                        var crumbSource = sidebarBreadcrumbMap.TryGetValue(relativeUrl, out var sidebarCrumbs) && sidebarCrumbs.Count > 0
-                            ? sidebarCrumbs
-                            : navContext.Breadcrumbs.Select(b => b.Title).ToList();
-                        var breadcrumbTitles = crumbSource
-                            .Where(t => !string.IsNullOrWhiteSpace(t))
-                            .ToArray();
-
-                        indexRequests[pageIndex] = (
-                            htmlFileName,
-                            indexTitle,
-                            indexableContent,
-                            item.Doc.FrontMatter.Description,
-                            item.Doc.FrontMatter.Tags,
-                            breadcrumbTitles.Length > 0 ? breadcrumbTitles : null);
-                    }
+                    indexRequests[pageIndex] = await RenderAndWritePageAsync(
+                        parsedDocs[pageIndex], generator, sidebarLinks, navigationMap,
+                        backlinkMap, blogPosts, searchExcludedFolders, sidebarBreadcrumbMap,
+                        changelogManagedFiles, ct);
                 });
 
                 // Add the collected search documents in deterministic source order so
@@ -569,6 +463,10 @@ namespace Neko.Builder
                 }
 
                 // Pass 4: Generate one aggregated timeline page per changelog folder.
+                // Collect their search-index entries here (rather than adding them to
+                // the indexer inline) so the cached state can rebuild search.json on an
+                // incremental page rebuild.
+                var changelogIndexRequests = new List<(string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs)>();
                 foreach (var (folderFullPath, folderConfig) in changelogFolders)
                 {
                     if (!changelogEntriesByFolder.TryGetValue(folderFullPath, out var entries)) continue;
@@ -642,13 +540,19 @@ namespace Neko.Builder
                         var indexTitle = !string.IsNullOrWhiteSpace(pageDoc.FrontMatter.Title)
                             ? pageDoc.FrontMatter.Title
                             : (folderConfig.Label ?? "Changelog");
-                        searchIndexer.AddDocument(
+                        changelogIndexRequests.Add((
                             relativeFolder + "/index.html",
                             indexTitle,
                             indexable,
                             pageDoc.FrontMatter.Description,
-                            pageDoc.FrontMatter.Tags);
+                            pageDoc.FrontMatter.Tags,
+                            null));
                     }
+                }
+
+                foreach (var r in changelogIndexRequests)
+                {
+                    searchIndexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs);
                 }
 
                 await searchIndexer.WriteIndexAsync(OutputDirectory);
@@ -802,6 +706,22 @@ namespace Neko.Builder
                     }
                 }
 
+                // Cache this build's cross-page state so a subsequent single-file
+                // change can regenerate just that page (watch mode) instead of
+                // rebuilding the whole project. See TryRebuildSinglePageAsync.
+                _lastParsedDocs             = parsedDocs;
+                _lastSidebarLinks           = sidebarLinks;
+                _lastNavigationMap          = navigationMap;
+                _lastBacklinkMap            = backlinkMap;
+                _lastBlogPosts              = blogPosts;
+                _lastSearchExcludedFolders  = searchExcludedFolders;
+                _lastSidebarBreadcrumbMap   = sidebarBreadcrumbMap;
+                _lastChangelogManagedFiles  = changelogManagedFiles;
+                _lastGenerator              = generator;
+                _lastProjectName            = searchIndexer.ProjectName;
+                _lastIndexRequests          = indexRequests;
+                _lastChangelogIndexRequests = changelogIndexRequests;
+
                 Console.WriteLine($"Build complete. Output in {OutputDirectory}");
             }
             finally
@@ -809,6 +729,313 @@ namespace Neko.Builder
                 _singleBuild.Release();
                 Environment.CurrentDirectory = curDir;
             }
+        }
+
+        // Renders one page to HTML, writes it to the output directory, and returns
+        // the page's search-index request (or null when the page is changelog-managed,
+        // password-protected, or search-excluded). Shared by the full build (run in
+        // parallel across all pages) and the watch-mode single-page fast path.
+        private async Task<(string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs)?> RenderAndWritePageAsync(
+            (string FilePath, string RelativePath, ParsedDocument Doc, string Markdown) item,
+            HtmlGenerator generator,
+            List<LinkConfig> sidebarLinks,
+            List<(string Url, string Title, List<NavigationItem> Breadcrumbs)> navigationMap,
+            Dictionary<string, List<(string Url, string Title)>> backlinkMap,
+            List<(ParsedDocument Doc, string Url)> blogPosts,
+            HashSet<string> searchExcludedFolders,
+            Dictionary<string, List<string>> sidebarBreadcrumbMap,
+            HashSet<string> changelogManagedFiles,
+            CancellationToken ct)
+        {
+            // Files inside a changelog folder are aggregated into a single page
+            // (generated separately), so they are not emitted individually here.
+            if (changelogManagedFiles.Contains(Path.GetFullPath(item.FilePath)))
+            {
+                return null;
+            }
+
+            Console.WriteLine($"Generating {Path.GetFileName(item.FilePath)}...");
+
+            // Get backlinks
+            List<(string Url, string Title)> backlinks = null;
+            if (backlinkMap.TryGetValue(item.RelativePath, out var links))
+            {
+                backlinks = links;
+            }
+
+            // Determine Navigation Context
+            var relativeUrl = "/" + item.RelativePath.Replace("\\", "/");
+            if (relativeUrl.EndsWith(".md")) relativeUrl = relativeUrl.Substring(0, relativeUrl.Length - 3);
+            if (relativeUrl.EndsWith(".html")) relativeUrl = relativeUrl.Substring(0, relativeUrl.Length - 5);
+
+            if (!string.IsNullOrEmpty(_routePrefix))
+            {
+                relativeUrl = _routePrefix + relativeUrl;
+            }
+
+            var navContext = new NavigationContext();
+
+            // Find in navigation map
+            var index = navigationMap.FindIndex(n => n.Url.Equals(relativeUrl, StringComparison.OrdinalIgnoreCase));
+            if (index >= 0)
+            {
+                var entry = navigationMap[index];
+                navContext.Breadcrumbs = entry.Breadcrumbs;
+
+                if (index > 0)
+                {
+                    var prev = navigationMap[index - 1];
+                    navContext.Prev = new NavigationItem { Title = prev.Title, Url = prev.Url };
+                }
+
+                if (index < navigationMap.Count - 1)
+                {
+                    var next = navigationMap[index + 1];
+                    navContext.Next = new NavigationItem { Title = next.Title, Url = next.Url };
+                }
+            }
+
+            // Lesson-step navigation: if this page lives inside a [!lesson] folder,
+            // expose prev/next siblings in the curriculum's own order.
+            var (lessonPrev, lessonNext) = Neko.Extensions.LessonExtension.GetLessonStepNavigation(item.FilePath, _inputDirectory);
+            if (lessonPrev != null || lessonNext != null)
+            {
+                navContext.IsLessonStep = true;
+                if (lessonPrev != null) navContext.LessonPrev = new NavigationItem { Title = lessonPrev.Title, Url = lessonPrev.Url };
+                if (lessonNext != null) navContext.LessonNext = new NavigationItem { Title = lessonNext.Title, Url = lessonNext.Url };
+            }
+
+            var html = generator.Generate(item.Doc, backlinks, navContext, sidebarLinks, blogPosts, null, relativeUrl);
+
+            var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html");
+            var outputPath = Path.Combine(OutputDirectory, htmlFileName);
+
+            var outputDirForFile = Path.GetDirectoryName(outputPath);
+            if (outputDirForFile != null && !Directory.Exists(outputDirForFile))
+            {
+                Directory.CreateDirectory(outputDirForFile);
+            }
+
+            await File.WriteAllTextAsync(outputPath, html, ct);
+
+            // Index only pages whose content is publicly visible. Pages with a
+            // per-page password (or a site-wide password without `password: none`)
+            // would otherwise leak plaintext into search.json.
+            var pagePassword = item.Doc.FrontMatter.Password;
+            var isPageOptedOut = !string.IsNullOrEmpty(pagePassword)
+                && pagePassword.Equals("none", StringComparison.OrdinalIgnoreCase);
+            var isProtected = !string.IsNullOrEmpty(pagePassword) && !isPageOptedOut
+                || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password);
+
+            var isSearchExcluded = item.Doc.FrontMatter.SearchExclude
+                || SidebarGenerator.IsHiddenVisibility(item.Doc.FrontMatter.Visibility)
+                || IsInSearchExcludedFolder(item.FilePath, searchExcludedFolders)
+                || IsInDotOrUnderscoreFolder(item.RelativePath);
+
+            if (isProtected || isSearchExcluded)
+            {
+                return null;
+            }
+
+            var indexableContent = generator.BuildIndexableContent(item.Doc, blogPosts, null, relativeUrl);
+            var indexTitle = item.Doc.FrontMatter.Title;
+            if (string.IsNullOrWhiteSpace(indexTitle))
+            {
+                indexTitle = item.Doc.FrontMatter.Label;
+            }
+            if (string.IsNullOrWhiteSpace(indexTitle))
+            {
+                // Prefer an H1, but accept the first heading at any level — some pages
+                // open with `## Title` (e.g. when the sidebar already shows the label)
+                // and would otherwise fall through to the bare filename.
+                indexTitle = item.Doc.Toc.FirstOrDefault(x => x.Level == 1)?.Title
+                    ?? item.Doc.Toc.FirstOrDefault()?.Title;
+            }
+            if (string.IsNullOrWhiteSpace(indexTitle))
+            {
+                indexTitle = Path.GetFileNameWithoutExtension(item.FilePath);
+            }
+            // Ancestor group titles shown by the search UI as a breadcrumb trail
+            // instead of the raw file path. Root-level pages have no sidebar
+            // ancestors; for those, fall back to the navbar trail so pages nested
+            // under navbar dropdown groups still get a crumb.
+            var crumbSource = sidebarBreadcrumbMap.TryGetValue(relativeUrl, out var sidebarCrumbs) && sidebarCrumbs.Count > 0
+                ? sidebarCrumbs
+                : navContext.Breadcrumbs.Select(b => b.Title).ToList();
+            var breadcrumbTitles = crumbSource
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .ToArray();
+
+            return (
+                htmlFileName,
+                indexTitle,
+                indexableContent,
+                item.Doc.FrontMatter.Description,
+                item.Doc.FrontMatter.Tags,
+                breadcrumbTitles.Length > 0 ? breadcrumbTitles : null);
+        }
+
+        /// <summary>
+        /// Watch-mode fast path: regenerate just the single page whose source file
+        /// changed, reusing the navigation/sidebar/backlink/search state captured by
+        /// the last full <see cref="BuildAsync"/>. Returns <c>false</c> when the
+        /// change can't be handled in isolation (no prior build, a new/deleted file,
+        /// a non-Markdown file, a changelog-managed file, or a change to frontmatter /
+        /// outgoing links that affects other pages) so the caller can fall back to a
+        /// full rebuild.
+        /// </summary>
+        public async Task<bool> TryRebuildSinglePageAsync(string changedFullPath)
+        {
+            // No prior full build to reuse, or output was never produced.
+            if (_lastParsedDocs == null || string.IsNullOrEmpty(OutputDirectory)) return false;
+
+            // Only Markdown body edits qualify. yml/config/asset changes can move
+            // pages, retitle the sidebar, or change the project layout.
+            if (!changedFullPath.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) return false;
+
+            var fullPath = Path.GetFullPath(changedFullPath);
+
+            // A file not present in the last build (newly created) or one that was
+            // deleted is structural — fall back to a full rebuild.
+            var idx = _lastParsedDocs.FindIndex(d =>
+                string.Equals(Path.GetFullPath(d.FilePath), fullPath, StringComparison.OrdinalIgnoreCase));
+            if (idx < 0) return false;
+            if (!File.Exists(fullPath)) return false;
+            if (_lastChangelogManagedFiles != null && _lastChangelogManagedFiles.Contains(fullPath)) return false;
+
+            await _singleBuild.WaitAsync();
+            var curDir = Environment.CurrentDirectory;
+            CurrentRoutePrefix = _routePrefix;
+            try
+            {
+                var old = _lastParsedDocs[idx];
+                var markdown = await File.ReadAllTextAsync(fullPath);
+                var parser = new MarkdownParser(_config);
+
+                // Warm the Tesserae cache for any live samples on this page so the
+                // (synchronous) parse below is a fast cache hit.
+                Builder.TesseraeCompiler.Configure(_config.Tesserae?.Version, _config.Tesserae?.MaxParallelism ?? 0);
+                var samples = parser.ExtractTesseraeSamples(markdown, fullPath, _inputDirectory);
+                if (samples.Count > 0)
+                {
+                    await Builder.TesseraeCompiler.WarmAsync(samples, OutputDirectory);
+                }
+
+                var doc = parser.Parse(markdown, fullPath, _inputDirectory);
+
+                // If anything other pages depend on changed (sidebar label, order,
+                // the title shown in their prev/next, outgoing links feeding their
+                // backlinks, search-affecting flags, …) a single-page rebuild would
+                // leave the rest of the site stale — bail to a full rebuild.
+                if (RequiresFullRebuild(old.Doc, doc)) return false;
+
+                Environment.CurrentDirectory = OutputDirectory;
+
+                var newItem = (old.FilePath, old.RelativePath, doc, markdown);
+                var request = await RenderAndWritePageAsync(
+                    newItem, _lastGenerator, _lastSidebarLinks, _lastNavigationMap,
+                    _lastBacklinkMap, _lastBlogPosts, _lastSearchExcludedFolders,
+                    _lastSidebarBreadcrumbMap, _lastChangelogManagedFiles, CancellationToken.None);
+
+                // Keep the cached state consistent for the next incremental rebuild.
+                _lastParsedDocs[idx]    = newItem;
+                _lastIndexRequests[idx] = request;
+
+                // search.json and the Tailwind stylesheet are whole-site artifacts;
+                // refresh them from the (now-updated) cached state and emitted HTML.
+                await RewriteSearchIndexAsync();
+                await GenerateTailwindAsync(OutputDirectory);
+
+                Console.WriteLine($"Incrementally rebuilt {old.RelativePath}.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Incremental rebuild failed ({ex.Message}); falling back to a full build.");
+                return false;
+            }
+            finally
+            {
+                _singleBuild.Release();
+                Environment.CurrentDirectory = curDir;
+            }
+        }
+
+        // Frontmatter fields (and the outgoing-link set) that, when changed, affect
+        // pages other than the one edited — sidebar entries, prev/next titles, blog
+        // ordering, backlinks, and search-index membership. Body-only edits leave all
+        // of these untouched, so the single-page fast path is safe; otherwise the
+        // caller must do a full rebuild.
+        private static bool RequiresFullRebuild(ParsedDocument oldDoc, ParsedDocument newDoc)
+        {
+            var a = oldDoc.FrontMatter;
+            var b = newDoc.FrontMatter;
+
+            if (!string.Equals(a.Title, b.Title, StringComparison.Ordinal)) return true;
+            if (!string.Equals(a.Label, b.Label, StringComparison.Ordinal)) return true;
+            if (!string.Equals(a.Icon, b.Icon, StringComparison.Ordinal)) return true;
+            if (a.Order != b.Order) return true;
+            if (!string.Equals(a.Visibility, b.Visibility, StringComparison.OrdinalIgnoreCase)) return true;
+            if (!string.Equals(a.Layout, b.Layout, StringComparison.OrdinalIgnoreCase)) return true;
+            if (!string.Equals(a.RedirectSlug, b.RedirectSlug, StringComparison.Ordinal)) return true;
+            if (!string.Equals(a.Password, b.Password, StringComparison.Ordinal)) return true;
+            if (a.SearchExclude != b.SearchExclude) return true;
+            // Date drives blog/changelog ordering on other pages.
+            if (!string.Equals(a.Date, b.Date, StringComparison.Ordinal)) return true;
+            if (!StringArraysEqual(a.Tags, b.Tags)) return true;
+            // Outgoing links feed other pages' backlink lists.
+            if (!StringListsEqual(oldDoc.OutgoingLinks, newDoc.OutgoingLinks)) return true;
+
+            return false;
+        }
+
+        private static bool StringArraysEqual(string[] a, string[] b)
+        {
+            if (ReferenceEquals(a, b)) return true;
+            var la = a?.Length ?? 0;
+            var lb = b?.Length ?? 0;
+            if (la != lb) return false;
+            for (int i = 0; i < la; i++)
+                if (!string.Equals(a[i], b[i], StringComparison.Ordinal)) return false;
+            return true;
+        }
+
+        private static bool StringListsEqual(List<string> a, List<string> b)
+        {
+            var ca = a?.Count ?? 0;
+            var cb = b?.Count ?? 0;
+            if (ca != cb) return false;
+            for (int i = 0; i < ca; i++)
+                if (!string.Equals(a[i], b[i], StringComparison.Ordinal)) return false;
+            return true;
+        }
+
+        // Rebuilds search.json from the cached per-page and changelog index requests
+        // (with the changed page's entry already updated). Reproduces the exact same
+        // document set and order a full build would, without re-parsing every page.
+        private async Task RewriteSearchIndexAsync()
+        {
+            var indexer = new SearchIndexGenerator(_routePrefix) { ProjectName = _lastProjectName };
+
+            if (_lastIndexRequests != null)
+            {
+                foreach (var request in _lastIndexRequests)
+                {
+                    if (request == null) continue;
+                    var r = request.Value;
+                    indexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs);
+                }
+            }
+
+            if (_lastChangelogIndexRequests != null)
+            {
+                foreach (var r in _lastChangelogIndexRequests)
+                {
+                    indexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs);
+                }
+            }
+
+            await indexer.WriteIndexAsync(OutputDirectory);
         }
 
         private async Task GenerateRedirectPagesAsync(List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)> parsedDocs)
