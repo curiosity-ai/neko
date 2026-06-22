@@ -768,6 +768,12 @@ namespace Neko.Builder
             }
         }
 
+        // Hard ceiling on any single snapframe invocation. A wedged browser
+        // (e.g. Chromium failing to launch) must not hang the whole command — on
+        // timeout the process is killed and the call reports failure, so the sample
+        // is skipped and keeps its placeholder height.
+        private const int SnapFrameTimeoutMs = 60_000;
+
         private static string RunSnapFrame(string arguments, out int exitCode, out string stdErr)
         {
             var isWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows);
@@ -786,11 +792,22 @@ namespace Neko.Builder
                 }
             };
             process.Start();
-            var stdOut = process.StandardOutput.ReadToEnd();
-            stdErr = process.StandardError.ReadToEnd();
-            process.WaitForExit();
+            var stdOutTask = process.StandardOutput.ReadToEndAsync();
+            var stdErrTask = process.StandardError.ReadToEndAsync();
+
+            if (!process.WaitForExit(SnapFrameTimeoutMs))
+            {
+                try { process.Kill(entireProcessTree: true); } catch { /* best-effort */ }
+                stdErr = $"snapframe timed out after {SnapFrameTimeoutMs / 1000}s";
+                exitCode = -1;
+                return string.Empty;
+            }
+
+            // Ensure the async stdout/stderr reads complete after exit.
+            try { Task.WaitAll(new Task[] { stdOutTask, stdErrTask }, 5_000); } catch { /* best-effort */ }
+            stdErr = stdErrTask.IsCompletedSuccessfully ? stdErrTask.Result : string.Empty;
             exitCode = process.ExitCode;
-            return stdOut;
+            return stdOutTask.IsCompletedSuccessfully ? stdOutTask.Result : string.Empty;
         }
 
         private static string SnapFrameNavigate(string url, int width)
