@@ -23,12 +23,6 @@ namespace Neko.Builder
         public string AppJsContent { get; set; }
         public List<string> AssetsPath { get; set; } = new List<string>();
         public string OutputHtml { get; set; }
-
-        // Rendered content height (CSS px) measured headlessly at build time, or 0
-        // when measurement is disabled / unavailable. Baked into the live-preview
-        // iframe so the page reserves the right space up front and doesn't reflow
-        // once the sample finishes rendering.
-        public int MeasuredHeight { get; set; }
     }
 
     public static class TesseraeCompiler
@@ -74,7 +68,9 @@ namespace Neko.Builder
         // Build configuration, set from neko.yml before the build runs.
         private static string _pinnedTesseraeVersion;
         private static int _maxParallelism = Environment.ProcessorCount;
-        private static bool _measureHeight = true;
+
+        // Viewport width used by the `gen-tesserae-heights` command when measuring.
+        // Normal builds never measure, so this is only consulted by that command.
         private static int _measureWidth = DefaultMeasureWidth;
 
         public static int MaxParallelism => _maxParallelism;
@@ -89,13 +85,12 @@ namespace Neko.Builder
         private static readonly object _measureToolLock = new object();
 
         // Apply project configuration. `pinnedVersion` empty => resolve latest;
-        // `maxParallelism` <= 0 => Environment.ProcessorCount; `measureHeight` null
-        // => enabled; `measureWidth` <= 0 => DefaultMeasureWidth.
-        public static void Configure(string pinnedVersion, int maxParallelism, bool? measureHeight = null, int measureWidth = 0)
+        // `maxParallelism` <= 0 => Environment.ProcessorCount; `measureWidth` <= 0
+        // => DefaultMeasureWidth (only used by `gen-tesserae-heights`).
+        public static void Configure(string pinnedVersion, int maxParallelism, int measureWidth = 0)
         {
             _pinnedTesseraeVersion = string.IsNullOrWhiteSpace(pinnedVersion) ? null : pinnedVersion.Trim();
             _maxParallelism = maxParallelism > 0 ? maxParallelism : Environment.ProcessorCount;
-            _measureHeight = measureHeight ?? true;
             _measureWidth = measureWidth > 0 ? measureWidth : DefaultMeasureWidth;
         }
 
@@ -612,13 +607,6 @@ namespace Neko.Builder
 
                 Console.WriteLine($"Compiled Tesserae code for {codeBlockArguments} in {sw.Elapsed.TotalSeconds:n1}s");
 
-                // Measure the rendered height once, here, so the value is baked into
-                // the cached result and the browser never runs again for this sample.
-                if (_measureHeight)
-                {
-                    result.MeasuredHeight = await MeasureHeightAsync(result.OutputHtml, siteAssetsDir, codeBlockArguments);
-                }
-
             }
             catch (System.Exception ex)
             {
@@ -654,22 +642,27 @@ namespace Neko.Builder
         // ---- headless height measurement ----
 
         // Render the compiled sample HTML in a headless browser and return its
-        // content height in CSS px, or 0 when measurement is disabled or fails.
+        // content height in CSS px, or 0 when measurement is unavailable or fails.
         // Best-effort: any failure leaves the caller to fall back to a placeholder
-        // height, and never aborts the build.
-        private static async Task<int> MeasureHeightAsync(string outputHtml, string siteAssetsDir, string codeBlockArguments)
+        // height. `siteOutputRoot` is the build output root whose
+        // `assets/tesserae/` folder holds the runtime the sample references.
+        // Invoked only by the `gen-tesserae-heights` command — normal builds never
+        // measure.
+        public static async Task<int> MeasureHeightAsync(string outputHtml, string siteOutputRoot, string label)
         {
             if (string.IsNullOrEmpty(outputHtml)) return 0;
             if (!EnsureMeasureToolAvailable()) return 0;
 
+            var siteAssetsDir = Path.Combine(siteOutputRoot, "assets", "tesserae");
+
             await _measureLock.WaitAsync();
             try
             {
-                return await Task.Run(() => MeasureHeightCore(outputHtml, siteAssetsDir, codeBlockArguments));
+                return await Task.Run(() => MeasureHeightCore(outputHtml, siteAssetsDir, label));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Tesserae] Height measurement failed for {codeBlockArguments}: {ex.Message}");
+                Console.WriteLine($"[Tesserae] Height measurement failed for {label}: {ex.Message}");
                 return 0;
             }
             finally
@@ -702,7 +695,7 @@ namespace Neko.Builder
             }
         }
 
-        private static int MeasureHeightCore(string outputHtml, string siteAssetsDir, string codeBlockArguments)
+        private static int MeasureHeightCore(string outputHtml, string siteAssetsDir, string label)
         {
             // The compiled HTML references runtime assets with site-root-absolute URLs
             // (`/assets/tesserae/...`, optionally route-prefixed). Those don't resolve
@@ -736,19 +729,37 @@ namespace Neko.Builder
 
                 try
                 {
-                    // Let the H5/Tesserae app paint before measuring.
-                    Thread.Sleep(800);
-                    if (!SnapFrameCaptureFullPage(pageId, pngPath)) return 0;
+                    // The H5 runtime compiles and mounts the app asynchronously, so a
+                    // capture taken too early grabs a blank page — a full-page shot of
+                    // which is just the (tiny) viewport, i.e. a bogus ~viewport-height
+                    // reading. Retry with growing settle/capture delays, and reject a
+                    // capture that is still blank or collapsed to the viewport height.
+                    int[] settleMs = { 1200, 2500, 4000 };
+                    int[] captureDelay = { 2, 3, 4 };
+                    for (int attempt = 0; attempt < settleMs.Length; attempt++)
+                    {
+                        Thread.Sleep(settleMs[attempt]);
+                        if (!SnapFrameCaptureFullPage(pageId, pngPath, captureDelay[attempt])) continue;
+                        if (!TryReadPngSize(pngPath, out _, out var height) || height <= 0) continue;
+
+                        var blank = Neko.Extensions.SnapFrameExtension.IsBlankImage(pngPath, out _);
+                        if (blank || height <= MeasureViewportHeight)
+                        {
+                            // Not rendered yet (or collapsed) — give it another, longer pass.
+                            continue;
+                        }
+
+                        Console.WriteLine($"[Tesserae] Measured height {height}px for {label}");
+                        return height;
+                    }
+
+                    Console.WriteLine($"[Tesserae] Could not measure a rendered height for {label} (kept default).");
+                    return 0;
                 }
                 finally
                 {
                     SnapFrameClose(pageId);
                 }
-
-                if (!TryReadPngSize(pngPath, out _, out var height) || height <= 0) return 0;
-
-                Console.WriteLine($"[Tesserae] Measured height {height}px for {codeBlockArguments}");
-                return height;
             }
             finally
             {
@@ -794,9 +805,9 @@ namespace Neko.Builder
             return match.Success ? match.Groups[1].Value : null;
         }
 
-        private static bool SnapFrameCaptureFullPage(string pageId, string targetPath)
+        private static bool SnapFrameCaptureFullPage(string pageId, string targetPath, int delaySeconds = 2)
         {
-            RunSnapFrame($"capture {pageId} \"{targetPath}\" --full-page --delay 1", out var exit, out var err);
+            RunSnapFrame($"capture {pageId} \"{targetPath}\" --full-page --delay {delaySeconds}", out var exit, out var err);
             if (exit != 0)
             {
                 Console.WriteLine($"[Tesserae] snapframe capture failed: {err}");

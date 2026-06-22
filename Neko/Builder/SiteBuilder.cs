@@ -223,7 +223,7 @@ namespace Neko.Builder
                 // below — one sample at a time — because Markdig's renderer can't be
                 // awaited. Compiling every sample up front turns each parse into a fast
                 // cache hit and lets independent samples build concurrently.
-                Builder.TesseraeCompiler.Configure(_config.Tesserae?.Version, _config.Tesserae?.MaxParallelism ?? 0, _config.Tesserae?.MeasureHeight, _config.Tesserae?.MeasureWidth ?? 0);
+                Builder.TesseraeCompiler.Configure(_config.Tesserae?.Version, _config.Tesserae?.MaxParallelism ?? 0);
                 var tesseraeSamples = new List<(string Arguments, string Code)>();
                 foreach (var file in files)
                 {
@@ -920,7 +920,7 @@ namespace Neko.Builder
 
                 // Warm the Tesserae cache for any live samples on this page so the
                 // (synchronous) parse below is a fast cache hit.
-                Builder.TesseraeCompiler.Configure(_config.Tesserae?.Version, _config.Tesserae?.MaxParallelism ?? 0, _config.Tesserae?.MeasureHeight, _config.Tesserae?.MeasureWidth ?? 0);
+                Builder.TesseraeCompiler.Configure(_config.Tesserae?.Version, _config.Tesserae?.MaxParallelism ?? 0);
                 var samples = parser.ExtractTesseraeSamples(markdown, fullPath, _inputDirectory);
                 if (samples.Count > 0)
                 {

@@ -50,6 +50,19 @@ namespace Neko.Extensions
                     // SiteBuilder always set Environment.CurrentDirectory to the output folder
                     var siteOutputRoot = Environment.CurrentDirectory;
 
+                    // The `gen-tesserae-heights` command bakes a `height=NNN` token
+                    // into the fence info line; read it here so the iframe reserves
+                    // the right space up front. Strip it from Arguments so it doesn't
+                    // leak into the Code tab's filename. Normal builds never measure —
+                    // when the token is absent the iframe uses a fixed placeholder.
+                    var sampleHeight = 0;
+                    if (!string.IsNullOrEmpty(fencedBlock.Arguments))
+                    {
+                        var hm = Regex.Match(fencedBlock.Arguments, @"\bheight\s*=\s*(\d+)");
+                        if (hm.Success) int.TryParse(hm.Groups[1].Value, out sampleHeight);
+                        fencedBlock.Arguments = Regex.Replace(fencedBlock.Arguments, @"\s*\bheight\s*=\s*\d+", "").Trim();
+                    }
+
                     var result = Neko.Builder.TesseraeCompiler.CompileAsync(fencedBlock.Arguments, codeString, siteOutputRoot).GetAwaiter().GetResult(); //Can't use async as Markdig doesn't expose an async method
 
                     if (result != null)
@@ -70,14 +83,13 @@ namespace Neko.Extensions
                         // Live Preview Tab (Active)
                         renderer.Write($"<div id=\"tab-{groupId}-0\" class=\"tab-content\">");
                         var encodedHtml = System.Net.WebUtility.HtmlEncode(result.OutputHtml);
-                        // When the sample's rendered height was measured at build time,
-                        // bake it in so the page reserves the right space up front and
-                        // doesn't reflow once the live preview finishes rendering. The
-                        // small buffer covers the iframe's borders (border-box) and
-                        // avoids a 1px scrollbar. Fall back to a fixed placeholder when
-                        // measurement was disabled or unavailable.
-                        var iframeStyle = result.MeasuredHeight > 0
-                            ? $"height: {result.MeasuredHeight + 4}px; resize: vertical;"
+                        // When a height was baked in by `gen-tesserae-heights`, use it so
+                        // the page reserves the right space up front and doesn't reflow
+                        // once the live preview renders. The small buffer covers the
+                        // iframe's borders (border-box) and avoids a 1px scrollbar.
+                        // Otherwise fall back to a fixed placeholder height.
+                        var iframeStyle = sampleHeight > 0
+                            ? $"height: {sampleHeight + 4}px; resize: vertical;"
                             : "min-height: 400px; resize: vertical;";
                         renderer.Write($"<iframe class=\"w-full rounded border border-gray-200 dark:border-gray-700\" style=\"{iframeStyle}\" srcdoc=\"{encodedHtml}\"></iframe>");
                         renderer.Write("</div>");

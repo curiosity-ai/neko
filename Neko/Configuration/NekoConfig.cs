@@ -183,7 +183,6 @@ namespace Neko.Configuration
             {
                 if (string.IsNullOrEmpty(Tesserae.Version)) Tesserae.Version = parent.Tesserae.Version;
                 if (Tesserae.MaxParallelism == 0)           Tesserae.MaxParallelism = parent.Tesserae.MaxParallelism;
-                if (Tesserae.MeasureHeight == null)         Tesserae.MeasureHeight = parent.Tesserae.MeasureHeight;
                 if (Tesserae.MeasureWidth == 0)             Tesserae.MeasureWidth = parent.Tesserae.MeasureWidth;
             }
         }
@@ -203,20 +202,10 @@ namespace Neko.Configuration
         [YamlMember(Alias = "maxParallelism")]
         public int MaxParallelism { get; set; }
 
-        // Whether to measure each compiled sample's rendered height with a headless
-        // browser (snapframe/Playwright) at build time and bake an exact iframe
-        // height into the page. This removes the layout shift that a fixed
-        // placeholder height causes once a live preview finishes rendering.
-        // Null (default) means enabled; set to false to fall back to a fixed
-        // placeholder height (useful for offline builds with no browser toolchain).
-        // The measured value is stored in the sample cache, so the browser only
-        // runs once per unique sample.
-        [YamlMember(Alias = "measureHeight")]
-        public bool? MeasureHeight { get; set; }
-
-        // Viewport width (in CSS px) used when measuring sample heights. Should
-        // approximate the rendered width of the live-preview iframe in the docs
-        // content column. 0 (default) means use the built-in default.
+        // Viewport width (in CSS px) used by the `gen-tesserae-heights` command
+        // when measuring sample heights with a headless browser. Should approximate
+        // the rendered width of the live-preview iframe in the docs content column.
+        // 0 (default) means use the built-in default. Normal builds never measure.
         [YamlMember(Alias = "measureWidth")]
         public int MeasureWidth { get; set; }
     }

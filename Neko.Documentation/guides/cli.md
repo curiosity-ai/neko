@@ -314,6 +314,44 @@ Options:
 
 ---
 
+## `neko gen-tesserae-heights`
+
+The `neko gen-tesserae-heights` command measures the rendered height of every
+[`tesserae`](/components/tesserae) live sample and bakes the result back into
+each fence as a `height=NNN` token. A normal `neko build` / `neko start` then
+reads that token to size the live-preview iframe up front, so the page reserves
+the right space and never reflows once a sample renders — without launching a
+browser during the build.
+
+It compiles each sample into a throwaway folder under `.neko-cache`, renders it
+with a headless browser ([snapframe](/components/snapframe)/Playwright), and
+rewrites only the fences whose height actually changes. Run it after adding or
+editing samples, then commit the updated Markdown so the heights ship with your
+docs.
+
+```bash
+neko gen-tesserae-heights
+```
+
+The measurement viewport width can be tuned with
+[`tesserae.measureWidth`](/configuration/core/project#tesserae) in `neko.yml`.
+
+### Options
+
+```
+Description:
+  Measure tesserae live samples and bake iframe heights into their fences
+
+Usage:
+  neko gen-tesserae-heights [options]
+
+Options:
+  -i, --input <input>  Input directory path [default: .]
+  -?, -h, --help       Show help and usage information
+```
+
+---
+
 ## `neko serve`
 
 The `neko serve` command starts a local development only web server and hosts your website.
