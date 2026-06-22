@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -50,6 +51,8 @@ namespace Neko.Builder
                 return 2;
             }
 
+            var swTotal = Stopwatch.StartNew();
+
             // Keep build artifacts inside the project's .neko-cache (never OS temp),
             // matching the rest of the CLI.
             TesseraeCompiler.SetCacheRoot(Path.Combine(inputFullPath, ".neko-cache"));
@@ -97,7 +100,10 @@ namespace Neko.Builder
             var sampleCount = fileBlocks.Sum(kv => kv.Value.Count);
             Console.WriteLine($"[tesserae-heights] {sampleCount} sample(s) across {fileBlocks.Count} file(s). Compiling...");
 
+            var swCompile = Stopwatch.StartNew();
             await TesseraeCompiler.WarmAsync(allSamples, tempOutputRoot);
+            swCompile.Stop();
+            Console.WriteLine($"[tesserae-heights] Compile phase took {swCompile.Elapsed.TotalSeconds:n1}s.");
 
             // Measure each unique sample once (keyed by code), then rewrite files.
             var heightByCode = new Dictionary<string, int>();
@@ -106,6 +112,7 @@ namespace Neko.Builder
             // One headless render per unique sample; report progress against that.
             var totalToMeasure = allSamples.Select(s => s.Code).Distinct().Count();
             int measureIndex = 0;
+            var swMeasure = Stopwatch.StartNew();
             Console.WriteLine($"[tesserae-heights] Measuring {totalToMeasure} unique sample(s) with the headless browser...");
 
             foreach (var (file, blocks) in fileBlocks)
@@ -120,12 +127,15 @@ namespace Neko.Builder
                         var label = string.IsNullOrWhiteSpace(b.Rest) ? Path.GetFileName(file) : b.Rest.Trim();
                         measureIndex++;
                         Console.WriteLine($"[tesserae-heights] [{measureIndex}/{totalToMeasure}] measuring {label} ...");
+                        var swSample = Stopwatch.StartNew();
                         var result = await TesseraeCompiler.CompileAsync(label, b.Code, tempOutputRoot);
                         height = result?.OutputHtml != null
                             ? await TesseraeCompiler.MeasureHeightAsync(result.OutputHtml, tempOutputRoot, label)
                             : 0;
+                        swSample.Stop();
                         heightByCode[b.Code] = height;
                         if (height > 0) measured++; else failed++;
+                        Console.WriteLine($"[tesserae-heights] [{measureIndex}/{totalToMeasure}] {label} -> {(height > 0 ? height + "px" : "no measurement")} in {swSample.Elapsed.TotalSeconds:n1}s");
                     }
 
                     if (height <= 0) continue; // measurement failed — leave the fence as-is
@@ -151,7 +161,9 @@ namespace Neko.Builder
                 }
             }
 
-            Console.WriteLine($"[tesserae-heights] Done. Measured {measured}, failed {failed}, tokens updated {updated} in {filesChanged} file(s).");
+            swMeasure.Stop();
+            Console.WriteLine($"[tesserae-heights] Measure phase took {swMeasure.Elapsed.TotalSeconds:n1}s.");
+            Console.WriteLine($"[tesserae-heights] Done in {swTotal.Elapsed.TotalSeconds:n1}s. Measured {measured}, failed {failed}, tokens updated {updated} in {filesChanged} file(s).");
             return 0;
         }
 
