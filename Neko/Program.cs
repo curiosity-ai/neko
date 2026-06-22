@@ -9,6 +9,7 @@ using System;
 using Neko.Configuration;
 using System.Text;
 using Microsoft.Build.Locator;
+using System.Runtime.InteropServices;
 
 namespace Neko
 {
@@ -51,7 +52,10 @@ namespace Neko
 
             // Watch Command
             var watchCommand = new Command("watch", "Watch for changes and rebuild");
-            var portOption   = new Option<int?>(new[] { "--port", "-p" }, "Port to use (default: 5000)");
+            // macOS' AirPlay Receiver (ControlCenter) binds port 5000 and answers
+            // with HTTP 403, so default to 5050 there to avoid the collision.
+            var defaultPort  = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 5050 : 5000;
+            var portOption   = new Option<int?>(new[] { "--port", "-p" }, $"Port to use (default: {defaultPort})");
             var watchInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var watchOutputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
 
@@ -63,7 +67,7 @@ namespace Neko
             {
                 var input = context.ParseResult.GetValueForOption(watchInputOption) ?? ".";
                 var output = context.ParseResult.GetValueForOption(watchOutputOption);
-                var port = context.ParseResult.GetValueForOption(portOption) ?? 5000;
+                var port = context.ParseResult.GetValueForOption(portOption) ?? defaultPort;
                 var token = context.GetCancellationToken();
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
