@@ -333,6 +333,17 @@ docs.
 neko gen-tesserae-heights
 ```
 
+The run is **incremental and resumable**: a sample whose fence already has a
+`height=` token is skipped, so re-running only measures new samples. Each file is
+**saved as soon as one of its samples is measured**, so an interrupted run keeps
+the heights it already computed — just run again to finish the rest. To force a
+full re-measure (e.g. after a Tesserae upgrade changes how samples render), pass
+`--force`:
+
+```bash
+neko gen-tesserae-heights --force
+```
+
 The measurement viewport width can be tuned with
 [`tesserae.measureWidth`](/configuration/core/project#tesserae) in `neko.yml`.
 
@@ -347,6 +358,7 @@ Usage:
 
 Options:
   -i, --input <input>  Input directory path [default: .]
+  -f, --force          Re-measure every sample, even ones that already have a height token
   -?, -h, --help       Show help and usage information
 ```
 

@@ -18,13 +18,15 @@ namespace Neko.Builder
     /// this command is the only place the browser runs (analogous to
     /// <c>gen-images</c> / <c>check-links</c>).
     ///
-    /// Samples are compiled into a throwaway folder under <c>.neko-cache</c> (so the
-    /// runtime assets exist for the headless render), each unique sample is measured
-    /// once, and only files whose tokens actually change are rewritten.
+    /// The run is incremental and resumable: a sample whose fence already carries a
+    /// <c>height=</c> token is left untouched (pass <c>--force</c> to recompute
+    /// everything), and each file is saved as soon as one of its samples is
+    /// measured, so an interrupted run keeps the heights it already computed.
     /// </summary>
     public class TesseraeHeightsCommand
     {
         private readonly string _input;
+        private readonly bool _force;
 
         // Opening fence of a tesserae block: optional indent, 3+ backticks, the
         // `tesserae` info word, then the rest of the info string (args).
@@ -35,12 +37,16 @@ namespace Neko.Builder
         private static readonly Regex HeightTokenRegex = new(
             @"\s*\bheight\s*=\s*\d+\b", RegexOptions.Compiled);
 
-        public TesseraeHeightsCommand(string input)
+        private static readonly Regex HeightValueRegex = new(
+            @"\bheight\s*=\s*(\d+)\b", RegexOptions.Compiled);
+
+        public TesseraeHeightsCommand(string input, bool force = false)
         {
             _input = input;
+            _force = force;
         }
 
-        private sealed record Block(int OpenLine, int CloseLine, string Indent, string Fence, string Rest, string Code);
+        private sealed record Block(int OpenLine, int CloseLine, string Indent, string Fence, string Rest, string Code, int ExistingHeight);
 
         public async Task<int> RunAsync()
         {
@@ -75,10 +81,7 @@ namespace Neko.Builder
                 .OrderBy(f => f, StringComparer.Ordinal)
                 .ToList();
 
-            // Parse blocks per file first so we can warm-compile every unique sample
-            // in parallel before the (serial) measurement pass.
             var fileBlocks = new Dictionary<string, List<Block>>();
-            var allSamples = new List<(string Arguments, string Code)>();
             foreach (var file in markdownFiles)
             {
                 string[] lines;
@@ -86,9 +89,7 @@ namespace Neko.Builder
                 catch (Exception ex) { Console.WriteLine($"[tesserae-heights] Could not read {file}: {ex.Message}"); continue; }
 
                 var blocks = ParseBlocks(lines);
-                if (blocks.Count == 0) continue;
-                fileBlocks[file] = blocks;
-                foreach (var b in blocks) allSamples.Add((b.Rest.Trim(), b.Code));
+                if (blocks.Count > 0) fileBlocks[file] = blocks;
             }
 
             if (fileBlocks.Count == 0)
@@ -97,31 +98,56 @@ namespace Neko.Builder
                 return 0;
             }
 
+            // A sample needs measuring when its fence has no height yet — unless
+            // --force recomputes everything. Already-sized samples are skipped, so
+            // re-runs only do the new work.
+            bool NeedsMeasure(Block b) => _force || b.ExistingHeight <= 0;
+
             var sampleCount = fileBlocks.Sum(kv => kv.Value.Count);
-            Console.WriteLine($"[tesserae-heights] {sampleCount} sample(s) across {fileBlocks.Count} file(s). Compiling...");
+            var skippedExisting = fileBlocks.Sum(kv => kv.Value.Count(b => !NeedsMeasure(b)));
+
+            // Compile only the samples we will actually measure.
+            var toMeasureSamples = fileBlocks
+                .SelectMany(kv => kv.Value)
+                .Where(NeedsMeasure)
+                .Select(b => (Arguments: b.Rest.Trim(), b.Code))
+                .ToList();
+
+            var totalToMeasure = toMeasureSamples.Select(s => s.Code).Distinct().Count();
+
+            Console.WriteLine($"[tesserae-heights] {sampleCount} sample(s) across {fileBlocks.Count} file(s): "
+                + $"{totalToMeasure} to measure, {skippedExisting} already sized"
+                + (_force ? " (--force: recomputing all)." : "."));
+
+            if (totalToMeasure == 0)
+            {
+                Console.WriteLine("[tesserae-heights] Nothing to do — every sample already has a height (use --force to recompute).");
+                return 0;
+            }
 
             var swCompile = Stopwatch.StartNew();
-            await TesseraeCompiler.WarmAsync(allSamples, tempOutputRoot);
+            await TesseraeCompiler.WarmAsync(toMeasureSamples, tempOutputRoot);
             swCompile.Stop();
             Console.WriteLine($"[tesserae-heights] Compile phase took {swCompile.Elapsed.TotalSeconds:n1}s.");
 
-            // Measure each unique sample once (keyed by code), then rewrite files.
+            // Measure each unique sample once (keyed by code), updating files as we go.
             var heightByCode = new Dictionary<string, int>();
             int measured = 0, failed = 0, updated = 0, filesChanged = 0;
-
-            // One headless render per unique sample; report progress against that.
-            var totalToMeasure = allSamples.Select(s => s.Code).Distinct().Count();
             int measureIndex = 0;
             var swMeasure = Stopwatch.StartNew();
             Console.WriteLine($"[tesserae-heights] Measuring {totalToMeasure} unique sample(s) with the headless browser...");
 
             foreach (var (file, blocks) in fileBlocks)
             {
+                var rel = Path.GetRelativePath(inputFullPath, file);
                 var lines = File.ReadAllLines(file).ToList();
-                bool fileDirty = false;
+                var endsWithNewline = File.ReadAllText(file).EndsWith("\n");
+                bool fileChanged = false;
 
                 foreach (var b in blocks)
                 {
+                    if (!NeedsMeasure(b)) continue; // already sized — don't recompute
+
                     if (!heightByCode.TryGetValue(b.Code, out var height))
                     {
                         var label = string.IsNullOrWhiteSpace(b.Rest) ? Path.GetFileName(file) : b.Rest.Trim();
@@ -141,30 +167,30 @@ namespace Neko.Builder
                     if (height <= 0) continue; // measurement failed — leave the fence as-is
 
                     var newOpen = BuildOpenLine(b, height);
-                    if (newOpen != lines[b.OpenLine])
-                    {
-                        lines[b.OpenLine] = newOpen;
-                        fileDirty = true;
-                        updated++;
-                    }
-                }
+                    if (newOpen == lines[b.OpenLine]) continue;
 
-                if (fileDirty)
-                {
-                    // Preserve the file's trailing newline convention.
-                    var text = string.Join("\n", lines);
-                    var original = File.ReadAllText(file);
-                    if (original.EndsWith("\n")) text += "\n";
-                    File.WriteAllText(file, text);
-                    filesChanged++;
-                    Console.WriteLine($"[tesserae-heights] Updated {Path.GetRelativePath(inputFullPath, file)}");
+                    lines[b.OpenLine] = newOpen;
+                    updated++;
+
+                    // Save immediately so an interrupted run keeps what it measured.
+                    WriteLines(file, lines, endsWithNewline);
+                    if (!fileChanged) { fileChanged = true; filesChanged++; }
+                    Console.WriteLine($"[tesserae-heights] Saved {rel} ({b.Indent}{b.Fence}tesserae … height={height})");
                 }
             }
 
             swMeasure.Stop();
             Console.WriteLine($"[tesserae-heights] Measure phase took {swMeasure.Elapsed.TotalSeconds:n1}s.");
-            Console.WriteLine($"[tesserae-heights] Done in {swTotal.Elapsed.TotalSeconds:n1}s. Measured {measured}, failed {failed}, tokens updated {updated} in {filesChanged} file(s).");
+            Console.WriteLine($"[tesserae-heights] Done in {swTotal.Elapsed.TotalSeconds:n1}s. "
+                + $"Measured {measured}, failed {failed}, skipped {skippedExisting}, tokens updated {updated} in {filesChanged} file(s).");
             return 0;
+        }
+
+        private static void WriteLines(string file, List<string> lines, bool endsWithNewline)
+        {
+            var text = string.Join("\n", lines);
+            if (endsWithNewline) text += "\n";
+            File.WriteAllText(file, text);
         }
 
         // Build the rewritten opening fence with the height token set/replaced,
@@ -190,6 +216,9 @@ namespace Neko.Builder
                 var fence = open.Groups["fence"].Value;
                 var rest = open.Groups["rest"].Value;
 
+                var hm = HeightValueRegex.Match(rest);
+                var existingHeight = hm.Success && int.TryParse(hm.Groups[1].Value, out var h) ? h : 0;
+
                 int close = -1;
                 var code = new StringBuilder();
                 for (int j = i + 1; j < lines.Length; j++)
@@ -203,7 +232,7 @@ namespace Neko.Builder
                 }
 
                 if (close < 0) break; // unterminated fence — leave the rest alone
-                blocks.Add(new Block(i, close, indent, fence, rest, code.ToString()));
+                blocks.Add(new Block(i, close, indent, fence, rest, code.ToString(), existingHeight));
                 i = close;
             }
             return blocks;

@@ -52,8 +52,11 @@ public class TodoApp
   (e.g. ` ```tesserae sample.js height=360 `). Commit the rewritten Markdown.
 - A normal `build`/`watch` just reads that token and reserves the right space up
   front — no browser runs during a build, so there's no layout shift. Samples
-  without a token keep the placeholder height. Re-run the command after editing
-  or adding samples. Tune the measurement width with `tesserae.measureWidth`.
+  without a token keep the placeholder height.
+- The command is **incremental/resumable**: it skips samples that already have a
+  `height=` token and saves each file as it goes, so re-running only measures new
+  samples. Pass `--force` to re-measure everything. Tune the measurement width
+  with `tesserae.measureWidth`.
 - You can also set/override the token by hand (`height=NNN`); the preview stays
   manually resizable via the iframe's drag handle either way.
 
