@@ -62,16 +62,15 @@ example above), members render inline in source order without the grouping.
 
 ## Overloads
 
-Members that share a name but differ in signature are rendered as **one entry**,
-not repeated. Neko gives the set a single header and permalink anchor (the plain
-name, e.g. `#Client.Connect`), stacks every signature in one code box, and shows
-one shared description. Parameters are merged into a **union list**: those shared
-by all overloads appear once, while a parameter present in only some of them is
-tagged `(overload N)`.
-
-The shared description is taken from the standard `<overloads>` tag if present;
-otherwise the first overload's `<summary>` is used. Any per-overload `<summary>`
-that differs from the shared lead is kept in a short **Overloads** list.
+Members that share a name but differ in signature are grouped and rendered in the
+**Microsoft Learn / DocFX** style: one header and stable anchor for the method
+name (e.g. `#Client.Connect`), an optional shared intro from the `<overloads>`
+tag, an **Overloads table** listing each signature (disambiguated by its
+parameter types) with its own summary, and then **one complete section per
+overload** — typed signature heading, the signature, its summary, and its own
+typed `Parameters` / `Returns` / `Exceptions` / `Remarks`. Parameters are
+documented in full inside each overload (shared ones are repeated), so every
+overload reads on its own.
 
 ````markdown
 ```csharp-docs

@@ -103,17 +103,22 @@ namespace Geometry
 
 ## Overloads
 
-Members that share a name but differ in signature are **grouped into one entry**
-instead of being repeated. Neko renders a single header and permalink anchor (the
-plain method name, e.g. `#Client.Connect`), stacks every signature in one code
-box, and shows one shared description. Parameters are merged into a single union
-list: those common to every overload appear once and unannotated, while a
-parameter that belongs to only some overloads is tagged `(overload N)`.
+Members that share a name but differ in signature are grouped, then rendered in
+the **Microsoft Learn / DocFX** style:
 
-The shared description comes from the standard `<overloads>` XML tag when present;
-otherwise the first overload's `<summary>` is used. Per-overload `<summary>` text
-that differs from the shared lead is preserved in a short **Overloads** list, so
-no detail is lost.
+1. One header and a stable permalink anchor for the method name (e.g.
+   `#Client.Connect`).
+2. An optional shared intro, taken from the standard `<overloads>` XML tag.
+3. An **Overloads table** — one row per signature (disambiguated by its
+   parameter types, e.g. `Connect(string, string, string)`) linking to that
+   overload's section, with the overload's own `<summary>` beside it.
+4. One **complete, self-contained section per overload**: its typed signature
+   heading and anchor, the signature, its summary, and its own typed
+   `Parameters` / `Returns` / `Exceptions` / `Remarks` blocks.
+
+Parameters are documented **in full inside each overload** — shared parameters
+are repeated by design, so every overload reads on its own and the layout scales
+to any number of overloads.
 
 ```csharp-docs
 namespace Demo
