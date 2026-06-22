@@ -66,6 +66,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "tesserae")]
         public TesseraeConfig Tesserae { get; set; } = new TesseraeConfig();
 
+        [YamlMember(Alias = "apiDocs")]
+        public ApiDocsConfig ApiDocs { get; set; } = new ApiDocsConfig();
+
         public void NormalizeLinks()
         {
             if (Banner != null)
@@ -200,6 +203,17 @@ namespace Neko.Configuration
         // build's cache-warming pre-pass. 0 (default) means Environment.ProcessorCount.
         [YamlMember(Alias = "maxParallelism")]
         public int MaxParallelism { get; set; }
+    }
+
+    // Configures `neko sync-api-docs` (also run by default before build/watch).
+    // Maps a source-root name used in `<!-- api:source repo="…" -->` markers to a
+    // local checkout. Paths are resolved relative to this neko.yml; a missing root
+    // is skipped (the committed block is left intact), and the `<NAME>_DIR` env var
+    // or a `/home/user/<name>` checkout are tried as fallbacks.
+    public class ApiDocsConfig
+    {
+        [YamlMember(Alias = "roots")]
+        public Dictionary<string, string> Roots { get; set; }
     }
 
     public class NavConfig

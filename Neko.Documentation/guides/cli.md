@@ -243,13 +243,68 @@ Options:
   --password <password>  Private page password
   --override <override>  JSON configuration overriding project config values
   --strict               Return a non-zero exit code if the build had errors or warnings
+  --no-api-sync          Skip refreshing API-reference pages from source before building
   -w, --watch            Watch for file changes
   -v, --verbose          Enable verbose logging
   -a, --api              Watch for API changes
   -?, -h, --help         Show help and usage information
 ```
 
+Before building, `neko build` (and `neko watch`, on startup) refreshes any
+[`csharp-docs` API-reference pages](/components/csharp-docs#overloads) that carry
+`<!-- api:source … -->` markers — see [`neko sync-api-docs`](#neko-sync-api-docs).
+Pass `--no-api-sync` to skip that step.
+
 {{ include "cli.md#override" }}
+
+---
+
+## `neko sync-api-docs`
+
+Regenerates the `csharp-docs` blocks on API-reference pages from the **public
+surface** of real source code, so signatures and XML doc comments never drift
+from the code that ships. Each page marks a block with a source pointer:
+
+```markdown
+<!-- api:source start repo="mosaik" file="src/Graph.cs" type="Graph" -->
+<!-- api:source end -->
+```
+
+Neko reads the named type(s), keeps only public/protected members with their doc
+comments, strips method bodies and every private/internal member, and writes the
+result between the markers. The block is **fully regenerated** every run.
+
+This runs **by default before `build` and `watch`** (disable with `--no-api-sync`);
+the standalone command is for running it on demand or in CI.
+
+Source roots are resolved from `apiDocs.roots` in `neko.yml` (paths relative to
+the config), overridden by `--root <name>=<path>`, then by a `<NAME>_DIR`
+environment variable or a `/home/user/<name>` checkout. When a root can't be
+found the block is left untouched and a notice is printed, so a build without the
+source checked out still succeeds against the committed snapshot.
+
+```yml
+apiDocs:
+  roots:
+    mosaik: ../mosaik
+```
+
+### Options
+
+```
+Description:
+  Refresh API-reference pages from source (public surface only)
+
+Usage:
+  neko sync-api-docs [options]
+
+Options:
+  -i, --input <input>   Input directory path [default: .]
+  -r, --root <spec>     Map a source-root name to a checkout, e.g. mosaik=/path/to/mosaik (repeatable)
+  -v, --verbose         List each updated page
+      --dry-run         Report changes without writing
+  -?, -h, --help        Show help and usage information
+```
 
 ---
 

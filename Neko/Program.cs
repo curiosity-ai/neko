@@ -28,13 +28,17 @@ namespace Neko
             var inputOption  = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var outputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
 
+            var buildNoApiSyncOption = new Option<bool>(new[] { "--no-api-sync" }, () => false, "Skip refreshing API-reference pages from source before building");
+
             buildCommand.AddOption(inputOption);
             buildCommand.AddOption(outputOption);
+            buildCommand.AddOption(buildNoApiSyncOption);
 
-            buildCommand.SetHandler(async (string input, string? output) =>
+            buildCommand.SetHandler(async (string input, string? output, bool noApiSync) =>
             {
+                if (!noApiSync) ApiDocsSync.Run(Path.GetFullPath(input));
                 await BuildRunner.RunAsync(input, output);
-            }, inputOption, outputOption);
+            }, inputOption, outputOption, buildNoApiSyncOption);
 
             // Snap Command
             var snapCommand = new Command("snap", "Capture screenshots referenced by [!snapframe ...] directives via Playwright");
@@ -59,15 +63,19 @@ namespace Neko
             var watchInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var watchOutputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
 
+            var watchNoApiSyncOption = new Option<bool>(new[] { "--no-api-sync" }, () => false, "Skip refreshing API-reference pages from source on startup");
+
             watchCommand.AddOption(watchInputOption);
             watchCommand.AddOption(portOption);
             watchCommand.AddOption(watchOutputOption);
+            watchCommand.AddOption(watchNoApiSyncOption);
 
             watchCommand.SetHandler(async (context) =>
             {
                 var input = context.ParseResult.GetValueForOption(watchInputOption) ?? ".";
                 var output = context.ParseResult.GetValueForOption(watchOutputOption);
                 var port = context.ParseResult.GetValueForOption(portOption) ?? defaultPort;
+                var noApiSync = context.ParseResult.GetValueForOption(watchNoApiSyncOption);
                 var token = context.GetCancellationToken();
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -183,6 +191,10 @@ namespace Neko
                         Console.WriteLine("Warning: no documentation projects (neko.yml) found.");
                     }
                 }
+
+                // Refresh API-reference pages from source once, before the first build.
+                // (Not re-run on every file-change rebuild.)
+                if (!noApiSync) ApiDocsSync.Run(inputFullPath);
 
                 await BuildAsync();
 
@@ -408,8 +420,34 @@ namespace Neko
                 Environment.ExitCode = exitCode;
             }, updateSkillsPathOption, updateSkillsDryRunOption);
 
+            // Sync-Api-Docs Command — regenerate every `<!-- api:source ... -->`
+            // block from the public surface of real source. Runs by default before
+            // `build`/`watch` (disable with --no-api-sync); exposed standalone so it
+            // can be run on demand or in CI.
+            var syncApiDocsCommand = new Command("sync-api-docs", "Refresh API-reference pages from source (public surface only)");
+            var syncInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
+            var syncRootOption = new Option<string[]>(new[] { "--root", "-r" }, "Map a source-root name to a checkout, e.g. mosaik=/path/to/mosaik (repeatable)") { Arity = ArgumentArity.ZeroOrMore };
+            var syncVerboseOption = new Option<bool>(new[] { "--verbose", "-v" }, () => false, "List each updated page");
+            var syncDryRunOption = new Option<bool>(new[] { "--dry-run" }, () => false, "Report changes without writing");
+            syncApiDocsCommand.AddOption(syncInputOption);
+            syncApiDocsCommand.AddOption(syncRootOption);
+            syncApiDocsCommand.AddOption(syncVerboseOption);
+            syncApiDocsCommand.AddOption(syncDryRunOption);
+
+            syncApiDocsCommand.SetHandler((string input, string[] roots, bool verbose, bool dryRun) =>
+            {
+                var cliRoots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var spec in roots ?? Array.Empty<string>())
+                {
+                    var split = spec.IndexOf('=');
+                    if (split > 0) cliRoots[spec[..split].Trim()] = Path.GetFullPath(spec[(split + 1)..].Trim());
+                }
+                Neko.Builder.ApiDocsSync.Run(Path.GetFullPath(input), cliRoots.Count > 0 ? cliRoots : null, verbose, dryRun);
+            }, syncInputOption, syncRootOption, syncVerboseOption, syncDryRunOption);
+
             rootCommand.AddCommand(buildCommand);
             rootCommand.AddCommand(watchCommand);
+            rootCommand.AddCommand(syncApiDocsCommand);
             rootCommand.AddCommand(checkLinksCommand);
             rootCommand.AddCommand(snapCommand);
             rootCommand.AddCommand(genImagesCommand);
