@@ -687,6 +687,7 @@ namespace Neko.Extensions
             public readonly List<(string Name, string Text)> Params = new();
             public readonly List<(string Name, string Text)> TypeParams = new();
             public readonly List<(string Name, string Text)> Exceptions = new();
+            public readonly List<string> Examples = new();
         }
 
         private static bool HasXmlDoc(SyntaxNode node) => GetXmlDoc(node) != null;
@@ -699,11 +700,106 @@ namespace Neko.Extensions
                 .FirstOrDefault();
         }
 
-        private static string ReadElementText(XmlElementSyntax el)
+        // Renders the inline content of a doc element to safe HTML: text is encoded, and
+        // the common inline doc tags (<c>, <see>, <paramref>, <para>) become markup so
+        // cross-references and inline code survive instead of being dropped.
+        private static string RenderDocInline(SyntaxList<XmlNodeSyntax> content)
         {
-            return string.Join("", el.Content
-                .OfType<XmlTextSyntax>()
-                .SelectMany(t => t.TextTokens.Select(tk => tk.ValueText))).Trim();
+            var sb = new StringBuilder();
+            foreach (var node in content) AppendInline(sb, node);
+            return Regex.Replace(sb.ToString(), @"\s+", " ").Trim();
+        }
+
+        private static void AppendInline(StringBuilder sb, XmlNodeSyntax node)
+        {
+            switch (node)
+            {
+                case XmlTextSyntax t:
+                    foreach (var tk in t.TextTokens) sb.Append(System.Net.WebUtility.HtmlEncode(tk.ValueText));
+                    break;
+                case XmlEmptyElementSyntax e:
+                    AppendInlineElement(sb, e.Name.ToString(), e.Attributes, default);
+                    break;
+                case XmlElementSyntax el:
+                    AppendInlineElement(sb, el.StartTag.Name.ToString(), el.StartTag.Attributes, el.Content);
+                    break;
+            }
+        }
+
+        private static void AppendInlineElement(StringBuilder sb, string name, SyntaxList<XmlAttributeSyntax> attrs, SyntaxList<XmlNodeSyntax> content)
+        {
+            switch (name)
+            {
+                case "c":
+                    sb.Append("<code>").Append(RenderDocInline(content)).Append("</code>");
+                    break;
+                case "see":
+                case "seealso":
+                {
+                    var inner = content.Count > 0 ? RenderDocInline(content) : "";
+                    var cref = attrs.OfType<XmlCrefAttributeSyntax>().FirstOrDefault()?.Cref.ToString();
+                    var langword = attrs.OfType<XmlTextAttributeSyntax>().FirstOrDefault(a => a.Name.ToString() == "langword")?.TextTokens.ToString();
+                    string label = !string.IsNullOrEmpty(inner) ? inner
+                                 : !string.IsNullOrEmpty(cref) ? System.Net.WebUtility.HtmlEncode(CrefSimpleName(cref))
+                                 : !string.IsNullOrEmpty(langword) ? System.Net.WebUtility.HtmlEncode(langword)
+                                 : "";
+                    if (!string.IsNullOrEmpty(label)) sb.Append("<code>").Append(label).Append("</code>");
+                    break;
+                }
+                case "paramref":
+                case "typeparamref":
+                {
+                    var nm = attrs.OfType<XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText ?? "";
+                    if (!string.IsNullOrEmpty(nm)) sb.Append("<code>").Append(System.Net.WebUtility.HtmlEncode(nm)).Append("</code>");
+                    break;
+                }
+                case "para":
+                    sb.Append(' ').Append(RenderDocInline(content)).Append(' ');
+                    break;
+                default:
+                    if (content.Count > 0) sb.Append(RenderDocInline(content));
+                    break;
+            }
+        }
+
+        // The simple name of a cref: strips a leading "T:"/"M:"… prefix, any method
+        // parameter list, and the declaring-type/namespace qualifier.
+        private static string CrefSimpleName(string cref)
+        {
+            if (string.IsNullOrEmpty(cref)) return "";
+            var s = cref.Trim();
+            int colon = s.IndexOf(':');
+            if (colon >= 0 && colon <= 2) s = s.Substring(colon + 1);
+            int paren = s.IndexOf('(');
+            if (paren >= 0) s = s.Substring(0, paren);
+            int dot = s.LastIndexOf('.');
+            if (dot >= 0) s = s.Substring(dot + 1);
+            return s;
+        }
+
+        // Renders an <example> block: each nested <code> becomes a code box (raw text
+        // preserved), surrounding prose becomes a paragraph.
+        private static string RenderExample(XmlElementSyntax el)
+        {
+            var sb = new StringBuilder();
+            foreach (var node in el.Content)
+            {
+                if (node is XmlElementSyntax inner &&
+                    (inner.StartTag.Name.ToString() == "code" || inner.StartTag.Name.ToString() == "pre"))
+                {
+                    var raw = string.Concat(inner.Content.OfType<XmlTextSyntax>()
+                        .SelectMany(t => t.TextTokens.Select(tk => tk.ValueText))).Trim('\r', '\n');
+                    sb.Append("<div class=\"bg-gray-50 dark:bg-[#1a1a1a] rounded-md p-3 font-mono text-sm text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-white/10 overflow-x-auto my-3\"><pre class=\"!m-0 !p-0 !bg-transparent !border-0\"><code>");
+                    sb.Append(System.Net.WebUtility.HtmlEncode(raw));
+                    sb.Append("</code></pre></div>");
+                }
+                else
+                {
+                    var prose = RenderDocInline(new SyntaxList<XmlNodeSyntax>(node));
+                    if (!string.IsNullOrEmpty(prose)) sb.Append($"<p class=\"text-gray-700 dark:text-gray-300 my-2\">{prose}</p>");
+                }
+            }
+            return sb.ToString();
         }
 
         private static CSharpXmlDoc ParseXmlDoc(DocumentationCommentTriviaSyntax xml)
@@ -716,20 +812,21 @@ namespace Neko.Extensions
                 var tag = el.StartTag.Name.ToString();
                 switch (tag)
                 {
-                    case "summary": doc.Summary = ReadElementText(el); break;
-                    case "overloads": doc.Overloads = ReadElementText(el); break;
-                    case "returns": doc.Returns = ReadElementText(el); break;
-                    case "remarks": doc.Remarks = ReadElementText(el); break;
+                    case "summary": doc.Summary = RenderDocInline(el.Content); break;
+                    case "overloads": doc.Overloads = RenderDocInline(el.Content); break;
+                    case "returns": doc.Returns = RenderDocInline(el.Content); break;
+                    case "remarks": doc.Remarks = RenderDocInline(el.Content); break;
+                    case "example": doc.Examples.Add(RenderExample(el)); break;
                     case "param":
                     {
                         var name = el.StartTag.Attributes.OfType<XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText ?? "";
-                        doc.Params.Add((name, ReadElementText(el)));
+                        doc.Params.Add((name, RenderDocInline(el.Content)));
                         break;
                     }
                     case "typeparam":
                     {
                         var name = el.StartTag.Attributes.OfType<XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText ?? "";
-                        doc.TypeParams.Add((name, ReadElementText(el)));
+                        doc.TypeParams.Add((name, RenderDocInline(el.Content)));
                         break;
                     }
                     case "exception":
@@ -737,7 +834,7 @@ namespace Neko.Extensions
                         var name = el.StartTag.Attributes.OfType<XmlCrefAttributeSyntax>().FirstOrDefault()?.Cref.ToFullString().Trim()
                                  ?? el.StartTag.Attributes.OfType<XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText
                                  ?? "";
-                        doc.Exceptions.Add((name, ReadElementText(el)));
+                        doc.Exceptions.Add((CrefSimpleName(name), RenderDocInline(el.Content)));
                         break;
                     }
                 }
@@ -1067,7 +1164,7 @@ namespace Neko.Extensions
 
                 renderer.Write("<tr class=\"border-b border-gray-100 dark:border-white/5 last:border-0 align-top\">");
                 renderer.Write($"<td class=\"px-3 py-2 whitespace-nowrap\"><a href=\"#{System.Net.WebUtility.HtmlEncode(anchor)}\" class=\"font-mono text-primary-600 dark:text-primary-400 no-underline hover:underline\">{System.Net.WebUtility.HtmlEncode(memberName)}</a></td>");
-                renderer.Write($"<td class=\"px-3 py-2 text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(summary)}</td>");
+                renderer.Write($"<td class=\"px-3 py-2 text-gray-700 dark:text-gray-300\">{summary}</td>");
                 renderer.Write("</tr>");
             }
 
@@ -1105,7 +1202,7 @@ namespace Neko.Extensions
 
             if (!string.IsNullOrEmpty(doc.Summary))
             {
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mt-3 mb-0 leading-relaxed\">{System.Net.WebUtility.HtmlEncode(doc.Summary)}</p>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mt-3 mb-0 leading-relaxed\">{doc.Summary}</p>");
             }
 
             RenderXmlDocDetails(renderer, doc, includeSummary: false, includeReturns: false, compact: true);
@@ -1201,7 +1298,7 @@ namespace Neko.Extensions
 
             if (!string.IsNullOrEmpty(doc.Summary))
             {
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{System.Net.WebUtility.HtmlEncode(doc.Summary)}</p>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{doc.Summary}</p>");
             }
 
             RenderXmlDocDetails(renderer, doc, includeSummary: false, includeReturns: true, compact: false);
@@ -1245,7 +1342,7 @@ namespace Neko.Extensions
             var intro = docs.Select(d => d.Overloads).FirstOrDefault(s => !string.IsNullOrEmpty(s));
             if (!string.IsNullOrEmpty(intro))
             {
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{System.Net.WebUtility.HtmlEncode(intro)}</p>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{intro}</p>");
             }
 
             // "Overloads" summary table: one row per signature, linking to its section.
@@ -1260,7 +1357,7 @@ namespace Neko.Extensions
                 var label = BuildOverloadSignatureLabel(overloads[i]);
                 renderer.Write("<tr class=\"border-b border-gray-100 dark:border-white/5 last:border-0 align-top\">");
                 renderer.Write($"<td class=\"px-3 py-2\"><a href=\"#{System.Net.WebUtility.HtmlEncode(OverloadAnchor(overloads[i]))}\" class=\"font-mono text-primary-600 dark:text-primary-400 no-underline hover:underline\">{System.Net.WebUtility.HtmlEncode(label)}</a></td>");
-                renderer.Write($"<td class=\"px-3 py-2 text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(docs[i].Summary)}</td>");
+                renderer.Write($"<td class=\"px-3 py-2 text-gray-700 dark:text-gray-300\">{docs[i].Summary}</td>");
                 renderer.Write("</tr>");
             }
             renderer.Write("</tbody></table></div>");
@@ -1298,7 +1395,7 @@ namespace Neko.Extensions
 
             if (!string.IsNullOrEmpty(doc.Summary))
             {
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{System.Net.WebUtility.HtmlEncode(doc.Summary)}</p>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{doc.Summary}</p>");
             }
 
             RenderTypedParameters(renderer, node, doc);
@@ -1322,7 +1419,7 @@ namespace Neko.Extensions
                 var desc = doc.Params.FirstOrDefault(p => p.Name == name).Text ?? "";
                 renderer.Write("<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\">");
                 renderer.Write($"<dt class=\"min-w-[120px]\"><span class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400\">{System.Net.WebUtility.HtmlEncode(name)}</span> <span class=\"font-mono text-xs text-gray-500 dark:text-gray-400\">{System.Net.WebUtility.HtmlEncode(type)}</span></dt>");
-                renderer.Write($"<dd class=\"text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(desc)}</dd>");
+                renderer.Write($"<dd class=\"text-gray-700 dark:text-gray-300\">{desc}</dd>");
                 renderer.Write("</div>");
             }
             renderer.Write("</dl>");
@@ -1360,7 +1457,7 @@ namespace Neko.Extensions
 
             if (includeSummary && !string.IsNullOrEmpty(doc.Summary))
             {
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{System.Net.WebUtility.HtmlEncode(doc.Summary)}</p>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{doc.Summary}</p>");
             }
 
             if (doc.TypeParams.Any())
@@ -1369,7 +1466,7 @@ namespace Neko.Extensions
                 renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
                 foreach (var p in doc.TypeParams)
                 {
-                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(p.Text)}</dd></div>");
+                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{p.Text}</dd></div>");
                 }
                 renderer.Write("</dl>");
             }
@@ -1380,7 +1477,7 @@ namespace Neko.Extensions
                 renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
                 foreach (var p in doc.Params)
                 {
-                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(p.Text)}</dd></div>");
+                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{p.Text}</dd></div>");
                 }
                 renderer.Write("</dl>");
             }
@@ -1388,7 +1485,7 @@ namespace Neko.Extensions
             if (includeReturns && !string.IsNullOrEmpty(doc.Returns))
             {
                 renderer.Write($"<h4 class=\"{h4}\">Returns</h4>");
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mb-3\">{System.Net.WebUtility.HtmlEncode(doc.Returns)}</p>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mb-3\">{doc.Returns}</p>");
             }
 
             if (doc.Exceptions.Any())
@@ -1397,7 +1494,7 @@ namespace Neko.Extensions
                 renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
                 foreach (var p in doc.Exceptions)
                 {
-                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(p.Text)}</dd></div>");
+                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{p.Text}</dd></div>");
                 }
                 renderer.Write("</dl>");
             }
@@ -1405,7 +1502,13 @@ namespace Neko.Extensions
             if (!string.IsNullOrEmpty(doc.Remarks))
             {
                 renderer.Write($"<h4 class=\"{h4}\">Remarks</h4>");
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mb-3\">{System.Net.WebUtility.HtmlEncode(doc.Remarks)}</p>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mb-3\">{doc.Remarks}</p>");
+            }
+
+            if (doc.Examples.Count > 0)
+            {
+                renderer.Write($"<h4 class=\"{h4}\">Examples</h4>");
+                foreach (var ex in doc.Examples) renderer.Write(ex);
             }
         }
     }
