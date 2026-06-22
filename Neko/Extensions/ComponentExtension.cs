@@ -999,7 +999,8 @@ namespace Neko.Extensions
                 }
                 else
                 {
-                     renderer.Write($"<i class=\"{Neko.Builder.IconHelper.GetIconClass(icon)} mr-2\"></i>");
+                     // Handles UIcon names and image-path icons (rendered as <img>).
+                     renderer.Write(Neko.Builder.IconHelper.RenderIcon(icon, "mr-2"));
                 }
             }
 

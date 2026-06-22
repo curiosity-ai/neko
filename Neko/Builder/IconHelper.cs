@@ -82,6 +82,14 @@ namespace Neko.Builder
 
         private static void WarnIfInvalid(string iconName)
         {
+            // Image paths / URLs and raw SVG are valid icon values that don't
+            // live in the UIcons catalog — never warn about them.
+            if (IsImagePath(iconName) ||
+                iconName.TrimStart().StartsWith("<svg", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
             var catalog = _validIcons.Value;
             // If the catalog failed to load, skip validation rather than emitting
             // a warning for every icon on the page.
