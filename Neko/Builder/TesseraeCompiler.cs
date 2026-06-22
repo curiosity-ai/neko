@@ -45,6 +45,14 @@ namespace Neko.Builder
         // once. The heavy H5 compilation itself stays parallel.
         private static readonly object _assetWriteLock = new object();
 
+        // Bumped whenever the *shape* of a compiled result changes (the generated
+        // OutputHtml, the asset file names it references, …). It is part of the cache
+        // key so a stale `.neko-cache` written by an older neko isn't reused by a
+        // newer one — otherwise the cached HTML can reference asset variants the new
+        // build no longer writes (e.g. `h5.min.js` vs `h5.js`), 404ing the runtime
+        // and leaving the live preview blank.
+        private const string CacheFormatVersion = "2";
+
         // Build configuration, set from neko.yml before the build runs.
         private static string _pinnedTesseraeVersion;
         private static int _maxParallelism = Environment.ProcessorCount;
@@ -362,7 +370,7 @@ namespace Neko.Builder
             var distinct = new List<(string Arguments, string Code)>();
             foreach (var s in samples)
             {
-                if (seen.Add(ComputeHash(s.Code + " " + routePrefix)))
+                if (seen.Add(ComputeHash(s.Code + " " + routePrefix + " " + CacheFormatVersion)))
                 {
                     distinct.Add(s);
                 }
@@ -399,7 +407,7 @@ namespace Neko.Builder
             // The compiled HTML bakes in the route prefix (asset <script>/<link>
             // hrefs), so it is part of the cache key — otherwise a multi-site build
             // could serve one sub-site's prefix to another.
-            var hash = ComputeHash(csharpCode + " " + (SiteBuilder.CurrentRoutePrefix ?? string.Empty));
+            var hash = ComputeHash(csharpCode + " " + (SiteBuilder.CurrentRoutePrefix ?? string.Empty) + " " + CacheFormatVersion);
             var tesseraeVersion = await ResolveTesseraeVersionAsync();
             var cacheKey = $"{hash}_{tesseraeVersion}";
             var cacheFilePath = GetCacheFilePath(hash, tesseraeVersion);
@@ -503,7 +511,14 @@ namespace Neko.Builder
                 var jsFiles = new List<string>();
                 var cssFiles = new List<string>();
 
-                foreach (var file in compiledJavascript.Output.DistinctBy(v => v.Key.Replace(".min.", ".")))
+                // Collapse each runtime file's min/non-min pair to a single variant.
+                // Order first so the kept representative is deterministic across builds
+                // (".js" sorts before ".min.js"): otherwise the generated <script>/<link>
+                // hrefs could pick a different variant than a previous build wrote to
+                // disk, 404ing the runtime in the live preview.
+                foreach (var file in compiledJavascript.Output
+                             .OrderBy(v => v.Key, StringComparer.Ordinal)
+                             .DistinctBy(v => v.Key.Replace(".min.", ".")))
                 {
                     var fileName = Path.GetFileName(file.Key);
                     if (fileName.Equals("app.js", StringComparison.OrdinalIgnoreCase)) continue;
