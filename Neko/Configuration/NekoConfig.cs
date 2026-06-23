@@ -66,6 +66,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "tesserae")]
         public TesseraeConfig Tesserae { get; set; } = new TesseraeConfig();
 
+        [YamlMember(Alias = "apiDocs")]
+        public ApiDocsConfig ApiDocs { get; set; } = new ApiDocsConfig();
+
         public void NormalizeLinks()
         {
             if (Banner != null)
@@ -183,6 +186,7 @@ namespace Neko.Configuration
             {
                 if (string.IsNullOrEmpty(Tesserae.Version)) Tesserae.Version = parent.Tesserae.Version;
                 if (Tesserae.MaxParallelism == 0)           Tesserae.MaxParallelism = parent.Tesserae.MaxParallelism;
+                if (Tesserae.MeasureWidth == 0)             Tesserae.MeasureWidth = parent.Tesserae.MeasureWidth;
             }
         }
     }
@@ -200,6 +204,25 @@ namespace Neko.Configuration
         // build's cache-warming pre-pass. 0 (default) means Environment.ProcessorCount.
         [YamlMember(Alias = "maxParallelism")]
         public int MaxParallelism { get; set; }
+
+        // Viewport width (in CSS px) used by the `gen-tesserae-heights` command
+        // when measuring sample heights with a headless browser. Should approximate
+        // the rendered width of the live-preview iframe in the docs content column.
+        // 0 (default) means use the built-in default. Normal builds never measure.
+        [YamlMember(Alias = "measureWidth")]
+        public int MeasureWidth { get; set; }
+    }
+
+    // Configures `neko sync-api-docs` (also run by default before build/watch).
+    // Maps a source-root name used in `<!-- api:source repo="…" -->` markers to a
+    // local checkout. Only the root neko.yml is consulted; paths are resolved
+    // relative to it. A missing root is skipped (the committed block is left
+    // intact). There is no CLI override, environment-variable, or hard-coded path
+    // fallback.
+    public class ApiDocsConfig
+    {
+        [YamlMember(Alias = "roots")]
+        public Dictionary<string, string> Roots { get; set; }
     }
 
     public class NavConfig

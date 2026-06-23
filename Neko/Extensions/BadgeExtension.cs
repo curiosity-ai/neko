@@ -316,7 +316,8 @@ namespace Neko.Extensions
             }
             else
             {
-                 renderer.Write($"<i class=\"{Neko.Builder.IconHelper.GetIconClass(icon)} {marginClass}\"></i>");
+                 // Handles UIcon names and image-path icons (rendered as <img>).
+                 renderer.Write(Neko.Builder.IconHelper.RenderIcon(icon, marginClass));
             }
         }
     }

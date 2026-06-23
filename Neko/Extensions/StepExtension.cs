@@ -62,11 +62,26 @@ namespace Neko.Extensions
 
                 var currentContainer = processor.CurrentContainer;
 
-                // If we are in a StepBlock, close it.
-                if (currentContainer is StepBlock)
+                // The cursor may be nested inside the current step's content — for
+                // example inside a list that was left open at the end of the step
+                // (a `>>>` line right after a bullet list). Walk up to the enclosing
+                // StepBlock so we can close it cleanly instead of treating the
+                // delimiter as the start of a brand-new, nested step group.
+                var ancestor = currentContainer;
+                while (ancestor != null && !(ancestor is StepBlock) && !(ancestor is StepGroupBlock))
                 {
-                    processor.Close(currentContainer);
-                    currentContainer = currentContainer.Parent;
+                    ancestor = ancestor.Parent;
+                }
+
+                // If we are in (or inside) a StepBlock, close it.
+                if (ancestor is StepBlock)
+                {
+                    processor.Close(ancestor);
+                    currentContainer = ancestor.Parent;
+                }
+                else if (ancestor is StepGroupBlock)
+                {
+                    currentContainer = ancestor;
                 }
 
                 // If we are in a StepGroupBlock (after closing StepBlock if any)

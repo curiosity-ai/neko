@@ -107,23 +107,39 @@ namespace Neko.Documentation
 }
 ```
 
-## Preview height
+## Preview sizing
 
-A `height=<px>` argument on the block pins its live-preview iframe to a fixed
-height; without it the iframe uses a resizable 400px minimum:
+The live preview renders inside an `<iframe>`. By default the iframe uses a fixed
+placeholder height, which means short samples leave empty space and tall ones
+scroll. To size each preview exactly — and avoid the page reflowing once a sample
+finishes rendering — run:
+
+```bash
+neko gen-tesserae-heights
+```
+
+This compiles every `tesserae` sample, measures its rendered height with a
+headless browser ([snapframe](/components/snapframe)/Playwright), and bakes a
+`height=` token into the fence info line:
 
 ````markdown
-```tesserae chrome="macos" demo.js height=420
-…
-```
+```tesserae chrome="macos" sample.js height=360
 ````
 
-Rather than hand-tuning the value, run `neko gen-tesserae-heights`, which renders
-each sample, measures its content height, and writes the `height=` argument back
-onto the block. Scope it to one file with `--file <path>` and rerun it after
-editing a sample — it is file-targeted with no hash cache, so the file you target
-is exactly what gets regenerated. Measurement uses the same Playwright/snapframe
-harness as `neko snap`.
+A normal `neko build` / `neko start` then reads that token and sizes the iframe
+up front — no browser runs during a build, so there's no layout shift and no
+browser dependency in your build pipeline. Commit the updated Markdown so the
+heights ship with your docs.
+
+The command is **incremental**: it skips any sample that already has a `height=`
+token and saves each file as soon as its sample is measured, so re-running only
+measures new samples and an interrupted run is resumable. Pass `--force` to
+re-measure everything; samples without a token keep the placeholder height until
+measured.
+
+The measurement viewport width is configurable via
+[`tesserae.measureWidth`](/configuration/core/project#tesserae). The preview
+stays manually resizable via the iframe's bottom-right drag handle regardless.
 
 ## Showing different code than what runs
 

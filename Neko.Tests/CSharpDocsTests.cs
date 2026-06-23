@@ -183,6 +183,11 @@ namespace Tesserae
             Assert.That(html, Contains.Substring("csharp-definition"));
             // Namespace metadata derived from the enclosing namespace declaration.
             Assert.That(html, Contains.Substring(">Namespace<"));
+            // The definition labels reset their margin so they stay aligned with
+            // their values inside the grid — prose typography otherwise adds a
+            // top margin to <dt>, pushing the label out of line (see #namespace
+            // alignment regression).
+            Assert.That(html, Contains.Substring("<dt class=\"m-0"));
             Assert.That(html, Contains.Substring("Tesserae"));
             // The interface in the base list is surfaced as "Implements".
             Assert.That(html, Contains.Substring(">Implements<"));
@@ -222,6 +227,114 @@ namespace Demo
             Assert.That(html, Contains.Substring("href=\"#DetailsListColumn.SortingKey\""));
             // Both the summary table row and the detail section carry the description text.
             Assert.That(html, Contains.Substring("Gets or sets the sorting key."));
+        }
+
+        private const string OverloadSource = @"```csharp-docs
+namespace Demo
+{
+    /// <summary>The client.</summary>
+    public class Client
+    {
+        /// <overloads>Opens an authenticated connection to a workspace.</overloads>
+        /// <summary>Connects using an API token.</summary>
+        /// <param name=""endpoint"">The workspace base URL.</param>
+        /// <param name=""token"">An API token.</param>
+        /// <param name=""connectorName"">A stable connector name.</param>
+        public static Client Connect(string endpoint, string token, string connectorName) => null;
+
+        /// <summary>Connects using a client certificate.</summary>
+        /// <param name=""endpoint"">The workspace base URL.</param>
+        /// <param name=""clientCertificate"">A client certificate for mutual-TLS.</param>
+        /// <param name=""connectorName"">A stable connector name.</param>
+        public static Client Connect(string endpoint, object clientCertificate, string connectorName) => null;
+    }
+}
+```";
+
+        [Test]
+        public void OverloadsRenderAsOneGroupWithSharedAnchor()
+        {
+            var doc = _parser.Parse(OverloadSource);
+            var html = doc.Html;
+            // Single grouped block with one stable anchor (the base name, no type params).
+            Assert.That(html, Contains.Substring("csharp-overload-group"));
+            Assert.That(html, Contains.Substring("id=\"Client.Connect\""));
+            // Only one group block, not one per overload.
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(html, "csharp-overload-group").Count, Is.EqualTo(1));
+            // The <overloads> tag becomes the shared intro above the overloads table.
+            Assert.That(html, Contains.Substring("Opens an authenticated connection"));
+        }
+
+        [Test]
+        public void OverloadsTableListsEverySignature()
+        {
+            var doc = _parser.Parse(OverloadSource);
+            var html = doc.Html;
+            // MS Learn-style "Overloads" table with one typed signature per row.
+            Assert.That(html, Contains.Substring("csharp-overloads-table"));
+            Assert.That(html, Contains.Substring("Connect(string, string, string)"));
+            Assert.That(html, Contains.Substring("Connect(string, object, string)"));
+            // Each row carries that overload's own summary.
+            Assert.That(html, Contains.Substring("Connects using an API token."));
+            Assert.That(html, Contains.Substring("Connects using a client certificate."));
+        }
+
+        [Test]
+        public void EachOverloadHasItsOwnSectionWithTypedParameters()
+        {
+            var doc = _parser.Parse(OverloadSource);
+            var html = doc.Html;
+            // A self-contained section per overload, with a type-disambiguated anchor.
+            Assert.That(html, Contains.Substring("id=\"Client.Connect--string-string-string\""));
+            Assert.That(html, Contains.Substring("id=\"Client.Connect--string-object-string\""));
+            // Both signatures appear in full (one per section).
+            Assert.That(html, Contains.Substring("string token"));
+            Assert.That(html, Contains.Substring("object clientCertificate"));
+            // Parameters are repeated per overload (MS Learn style), not merged: endpoint
+            // is documented in both sections.
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(html, ">endpoint<").Count, Is.EqualTo(2));
+            // The union-list annotation style is gone.
+            Assert.That(html, Does.Not.Contain("(overload 1)"));
+        }
+
+        [Test]
+        public void OverloadTypeTableHasOneRow()
+        {
+            var doc = _parser.Parse(OverloadSource);
+            var html = doc.Html;
+            // The type-level member table lists the overload set once, by bare name.
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(html, ">Connect</a>").Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void RendersInlineDocTagsAndExamples()
+        {
+            const string source = @"```csharp-docs
+namespace Demo
+{
+    public class Client
+    {
+        /// <summary>Connects, then call <see cref=""Flush""/> with the <c>token</c>.</summary>
+        /// <param name=""token"">Pass <paramref name=""token""/> verbatim.</param>
+        /// <example>
+        /// <code>
+        /// var c = Client.Open(""t"");
+        /// </code>
+        /// </example>
+        public void Connect(string token) { }
+    }
+}
+```";
+            var doc = _parser.Parse(source);
+            var html = doc.Html;
+            // <see cref> and <c> become inline <code>, not dropped or escaped.
+            Assert.That(html, Contains.Substring("<code>Flush</code>"));
+            Assert.That(html, Contains.Substring("<code>token</code>"));
+            // <paramref> in a param description becomes inline code too.
+            Assert.That(html, Contains.Substring("Pass <code>token</code> verbatim."));
+            // <example>/<code> renders an Examples section with a code box.
+            Assert.That(html, Contains.Substring(">Examples<"));
+            Assert.That(html, Contains.Substring("Client.Open(&quot;t&quot;)"));
         }
 
         [Test]

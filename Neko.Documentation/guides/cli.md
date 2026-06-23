@@ -243,13 +243,68 @@ Options:
   --password <password>  Private page password
   --override <override>  JSON configuration overriding project config values
   --strict               Return a non-zero exit code if the build had errors or warnings
+  --no-api-sync          Skip refreshing API-reference pages from source before building
   -w, --watch            Watch for file changes
   -v, --verbose          Enable verbose logging
   -a, --api              Watch for API changes
   -?, -h, --help         Show help and usage information
 ```
 
+Before building, `neko build` (and `neko watch`, on startup) refreshes any
+[`csharp-docs` API-reference pages](/components/csharp-docs#overloads) that carry
+`<!-- api:source … -->` markers — see [`neko sync-api-docs`](#neko-sync-api-docs).
+Pass `--no-api-sync` to skip that step.
+
 {{ include "cli.md#override" }}
+
+---
+
+## `neko sync-api-docs`
+
+Regenerates the `csharp-docs` blocks on API-reference pages from the **public
+surface** of real source code, so signatures and XML doc comments never drift
+from the code that ships. Each page marks a block with a source pointer:
+
+```markdown
+<!-- api:source start repo="mosaik" file="src/Graph.cs" type="Graph" -->
+<!-- api:source end -->
+```
+
+Neko reads the named type(s), keeps only public/protected members with their doc
+comments, strips method bodies and every private/internal member, and writes the
+result between the markers. The block is **fully regenerated** every run.
+
+This runs **by default before `build` and `watch`** (disable with `--no-api-sync`);
+the standalone command is for running it on demand or in CI.
+
+Source roots are resolved solely from `apiDocs.roots` in the **root `neko.yml`**
+(paths relative to that file). Only the root config is consulted — nested
+sub-project `neko.yml` files are not — and there is no CLI override,
+environment-variable, or hard-coded path fallback. When a root can't be found
+the block is left untouched and a notice is printed, so a build without the
+source checked out still succeeds against the committed snapshot.
+
+```yml
+apiDocs:
+  roots:
+    mosaik: ../mosaik
+```
+
+### Options
+
+```
+Description:
+  Refresh API-reference pages from source (public surface only)
+
+Usage:
+  neko sync-api-docs [options]
+
+Options:
+  -i, --input <input>   Input directory path [default: .]
+  -v, --verbose         List each updated page
+      --dry-run         Report changes without writing
+  -?, -h, --help        Show help and usage information
+```
 
 ---
 
@@ -309,6 +364,56 @@ Options:
   --external           Also verify external http(s) links over the network
   --no-anchors         Skip validation of #fragment anchors
   --redirects          Report external links that resolve via an HTTP redirect (implies --external)
+  -?, -h, --help       Show help and usage information
+```
+
+---
+
+## `neko gen-tesserae-heights`
+
+The `neko gen-tesserae-heights` command measures the rendered height of every
+[`tesserae`](/components/tesserae) live sample and bakes the result back into
+each fence as a `height=NNN` token. A normal `neko build` / `neko start` then
+reads that token to size the live-preview iframe up front, so the page reserves
+the right space and never reflows once a sample renders — without launching a
+browser during the build.
+
+It compiles each sample into a throwaway folder under `.neko-cache`, renders it
+with a headless browser ([snapframe](/components/snapframe)/Playwright), and
+rewrites only the fences whose height actually changes. Run it after adding or
+editing samples, then commit the updated Markdown so the heights ship with your
+docs.
+
+```bash
+neko gen-tesserae-heights
+```
+
+The run is **incremental and resumable**: a sample whose fence already has a
+`height=` token is skipped, so re-running only measures new samples. Each file is
+**saved as soon as one of its samples is measured**, so an interrupted run keeps
+the heights it already computed — just run again to finish the rest. To force a
+full re-measure (e.g. after a Tesserae upgrade changes how samples render), pass
+`--force`:
+
+```bash
+neko gen-tesserae-heights --force
+```
+
+The measurement viewport width can be tuned with
+[`tesserae.measureWidth`](/configuration/core/project#tesserae) in `neko.yml`.
+
+### Options
+
+```
+Description:
+  Measure tesserae live samples and bake iframe heights into their fences
+
+Usage:
+  neko gen-tesserae-heights [options]
+
+Options:
+  -i, --input <input>  Input directory path [default: .]
+  -f, --force          Re-measure every sample, even ones that already have a height token
   -?, -h, --help       Show help and usage information
 ```
 

@@ -9,6 +9,7 @@ using System;
 using Neko.Configuration;
 using System.Text;
 using Microsoft.Build.Locator;
+using System.Runtime.InteropServices;
 
 namespace Neko
 {
@@ -27,13 +28,17 @@ namespace Neko
             var inputOption  = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var outputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
 
+            var buildNoApiSyncOption = new Option<bool>(new[] { "--no-api-sync" }, () => false, "Skip refreshing API-reference pages from source before building");
+
             buildCommand.AddOption(inputOption);
             buildCommand.AddOption(outputOption);
+            buildCommand.AddOption(buildNoApiSyncOption);
 
-            buildCommand.SetHandler(async (string input, string? output) =>
+            buildCommand.SetHandler(async (string input, string? output, bool noApiSync) =>
             {
+                if (!noApiSync) ApiDocsSync.Run(Path.GetFullPath(input));
                 await BuildRunner.RunAsync(input, output);
-            }, inputOption, outputOption);
+            }, inputOption, outputOption, buildNoApiSyncOption);
 
             // Snap Command
             var snapCommand = new Command("snap", "Capture screenshots referenced by [!snapframe ...] directives via Playwright");
@@ -49,35 +54,28 @@ namespace Neko
                 snap.Run();
             }, snapInputOption, snapAllOption);
 
-            // Gen Tesserae Heights Command
-            var heightsCommand = new Command("gen-tesserae-heights", "Measure the rendered height of `tesserae` live samples and write it back onto each block as a height=<px> argument");
-            var heightsInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
-            var heightsFileOption = new Option<string>(new[] { "--file", "-f" }, "Only regenerate heights for samples in this markdown file (path relative to --input or absolute)");
-            heightsCommand.AddOption(heightsInputOption);
-            heightsCommand.AddOption(heightsFileOption);
-
-            heightsCommand.SetHandler((string input, string file) =>
-            {
-                var inputFullPath = Path.GetFullPath(input);
-                var heights = new Neko.Builder.GenTesseraeHeightsCommand(inputFullPath, file);
-                heights.Run();
-            }, heightsInputOption, heightsFileOption);
-
             // Watch Command
             var watchCommand = new Command("watch", "Watch for changes and rebuild");
-            var portOption   = new Option<int?>(new[] { "--port", "-p" }, "Port to use (default: 5000)");
+            // macOS' AirPlay Receiver (ControlCenter) binds port 5000 and answers
+            // with HTTP 403, so default to 5050 there to avoid the collision.
+            var defaultPort  = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 5050 : 5000;
+            var portOption   = new Option<int?>(new[] { "--port", "-p" }, $"Port to use (default: {defaultPort})");
             var watchInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
             var watchOutputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
+
+            var watchNoApiSyncOption = new Option<bool>(new[] { "--no-api-sync" }, () => false, "Skip refreshing API-reference pages from source on startup");
 
             watchCommand.AddOption(watchInputOption);
             watchCommand.AddOption(portOption);
             watchCommand.AddOption(watchOutputOption);
+            watchCommand.AddOption(watchNoApiSyncOption);
 
             watchCommand.SetHandler(async (context) =>
             {
                 var input = context.ParseResult.GetValueForOption(watchInputOption) ?? ".";
                 var output = context.ParseResult.GetValueForOption(watchOutputOption);
-                var port = context.ParseResult.GetValueForOption(portOption) ?? 5000;
+                var port = context.ParseResult.GetValueForOption(portOption) ?? defaultPort;
+                var noApiSync = context.ParseResult.GetValueForOption(watchNoApiSyncOption);
                 var token = context.GetCancellationToken();
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -105,67 +103,98 @@ namespace Neko
                 var sites    = new List<SiteInfo>();
                 var builders = new Dictionary<string, SiteBuilder>();
 
-                async Task BuildAsync ()
+                // Resolve the (sub-)projects once and create a persistent SiteBuilder
+                // for each. Builders are reused across rebuilds so each can cache its
+                // last build state and regenerate a single changed page incrementally
+                // (see SiteBuilder.TryRebuildSinglePageAsync) instead of rebuilding the
+                // whole project on every change.
+                var projects = new List<(string Dir, string? Output, string? RoutePrefix, bool IsRoot)>();
+                if (isMultiRepo)
                 {
-                    if (isMultiRepo)
+                    foreach (var configFile in configFiles)
                     {
-                        if (Directory.Exists(inputFullPath))
-                        {
-                            string rootOutputW = null;
-                            var subProjectOutputsW = new List<string>();
-                            foreach (var configFile in configFiles)
-                            {
-                                var subDir = Path.GetDirectoryName(configFile);
-                                if (subDir == null) continue;
+                        var subDir = Path.GetDirectoryName(configFile);
+                        if (subDir == null) continue;
 
-                                var subDirRelative = Path.GetRelativePath(inputFullPath, subDir).Replace("\\", "/");
-                                var isRoot = subDir == inputFullPath;
-                                var routePrefix = isRoot ? "" : "/" + subDirRelative;
-                                var siteOutput = output != null
-                                    ? (isRoot ? output : Path.Combine(output, subDirRelative))
-                                    : Path.Combine(subDir, ".neko");
+                        var subDirRelative = Path.GetRelativePath(inputFullPath, subDir).Replace("\\", "/");
+                        var isRoot = subDir == inputFullPath;
+                        var routePrefix = isRoot ? null : "/" + subDirRelative;
+                        var siteOutput = output != null
+                            ? (isRoot ? output : Path.Combine(output, subDirRelative))
+                            : Path.Combine(subDir, ".neko");
+                        projects.Add((Path.GetFullPath(subDir), siteOutput, routePrefix, isRoot));
+                    }
+                }
+                else
+                {
+                    projects.Add((inputFullPath, output, null, true));
+                }
 
-                                var builder = new SiteBuilder(subDir, siteOutput, true, isRoot ? null : routePrefix);
-                                await builder.BuildAsync();
+                foreach (var p in projects)
+                {
+                    builders[p.Dir] = new SiteBuilder(p.Dir, p.Output, true, p.RoutePrefix);
+                }
 
-                                var siteInfo = new Neko.Server.SiteInfo
-                                {
-                                    RoutePrefix = routePrefix,
-                                    InputPath = subDir,
-                                    OutputPath = builder.OutputDirectory
-                                };
+                string rootOutput = null;
 
-                                sites.Add(siteInfo);
-                                builders[subDir] = builder;
-                                if (isRoot) rootOutputW = builder.OutputDirectory;
-                                subProjectOutputsW.Add(builder.OutputDirectory);
-                            }
+                // Re-merge each sub-project's search.json into the root aggregated index.
+                async Task ReaggregateSearchAsync()
+                {
+                    if (!isMultiRepo || rootOutput == null) return;
+                    var subOutputs = sites.Select(s => s.OutputPath).Where(o => !string.IsNullOrEmpty(o)).ToList();
+                    await Neko.Builder.SearchIndexGenerator.AggregateAsync(rootOutput, subOutputs);
+                }
 
-                            if (rootOutputW != null)
-                            {
-                                await Neko.Builder.SearchIndexGenerator.AggregateAsync(rootOutputW, subProjectOutputsW);
-                            }
-                        }
+                // Full build of a single project, registering (or refreshing) its SiteInfo.
+                async Task BuildProjectAsync((string Dir, string? Output, string? RoutePrefix, bool IsRoot) p)
+                {
+                    var builder = builders[p.Dir];
+                    await builder.BuildAsync();
 
-                        if (sites.Count == 0)
-                        {
-                            Console.WriteLine("Warning: Multi-repo mode detected but no directories with neko.yml found.");
-                        }
+                    var existing = sites.FirstOrDefault(s =>
+                        string.Equals(Path.GetFullPath(s.InputPath), p.Dir, StringComparison.OrdinalIgnoreCase));
+                    if (existing != null)
+                    {
+                        existing.OutputPath = builder.OutputDirectory;
                     }
                     else
                     {
-                        var builder = new SiteBuilder(input, output, true, null);
-                        await builder.BuildAsync();
-
                         sites.Add(new Neko.Server.SiteInfo
                         {
-                            RoutePrefix = "",
-                            InputPath = input,
+                            RoutePrefix = p.IsRoot ? "" : p.RoutePrefix,
+                            InputPath = p.Dir,
                             OutputPath = builder.OutputDirectory
                         });
-                        builders[Path.GetFullPath(input)] = builder;
+                    }
+
+                    if (p.IsRoot) rootOutput = builder.OutputDirectory;
+                }
+
+                // Full build of every project (startup and structural-change fallback).
+                async Task BuildAsync()
+                {
+                    if (isMultiRepo && !Directory.Exists(inputFullPath))
+                    {
+                        Console.WriteLine("Warning: Multi-repo mode detected but the input path does not exist.");
+                        return;
+                    }
+
+                    foreach (var p in projects)
+                    {
+                        await BuildProjectAsync(p);
+                    }
+
+                    await ReaggregateSearchAsync();
+
+                    if (sites.Count == 0)
+                    {
+                        Console.WriteLine("Warning: no documentation projects (neko.yml) found.");
                     }
                 }
+
+                // Refresh API-reference pages from source once, before the first build.
+                // (Not re-run on every file-change rebuild.)
+                if (!noApiSync) ApiDocsSync.Run(inputFullPath);
 
                 await BuildAsync();
 
@@ -176,8 +205,9 @@ namespace Neko
                 // Watch file changes
                 var watchers = new System.Collections.Generic.List<FileSystemWatcher>();
                 DateTime lastBuild = DateTime.MinValue;
+                var rebuildLock = new object();
 
-                foreach (var site in sites)
+                foreach (var site in sites.ToList())
                 {
                     var watcher = new FileSystemWatcher(site.InputPath);
                     watcher.IncludeSubdirectories = true;
@@ -186,20 +216,57 @@ namespace Neko
 
                     FileSystemEventHandler onChanged = async (sender, e) =>
                     {
-                        var fullOutput = Path.GetFullPath(site.OutputPath);
-                        if (e.FullPath.Contains(fullOutput)) return;
+                        var changed = Path.GetFullPath(e.FullPath);
+
                         // Never rebuild in response to our own build artifacts /
                         // the Tesserae cache being written.
-                        if (e.FullPath.Contains($"{Path.DirectorySeparatorChar}.neko-cache{Path.DirectorySeparatorChar}")) return;
+                        foreach (var s in sites)
+                        {
+                            if (!string.IsNullOrEmpty(s.OutputPath)
+                                && changed.StartsWith(Path.GetFullPath(s.OutputPath), StringComparison.OrdinalIgnoreCase))
+                                return;
+                        }
+                        if (changed.Contains($"{Path.DirectorySeparatorChar}.neko-cache{Path.DirectorySeparatorChar}")) return;
 
-                        if ((DateTime.Now - lastBuild).TotalMilliseconds < 500) return;
-                        lastBuild = DateTime.Now;
+                        lock (rebuildLock)
+                        {
+                            if ((DateTime.Now - lastBuild).TotalMilliseconds < 500) return;
+                            lastBuild = DateTime.Now;
+                        }
 
-                        Console.WriteLine($"Change detected in {site.RoutePrefix}: {e.Name}. Rebuilding...");
+                        Console.WriteLine($"Change detected: {e.Name}. Rebuilding...");
 
                         try
                         {
-                            await BuildAsync();
+                            // Attribute the change to the most specific project that owns it.
+                            (string Dir, string? Output, string? RoutePrefix, bool IsRoot)? owner = null;
+                            foreach (var p in projects)
+                            {
+                                var root = p.Dir.EndsWith(Path.DirectorySeparatorChar) ? p.Dir : p.Dir + Path.DirectorySeparatorChar;
+                                if (changed.StartsWith(root, StringComparison.OrdinalIgnoreCase)
+                                    && (owner == null || p.Dir.Length > owner.Value.Dir.Length))
+                                {
+                                    owner = p;
+                                }
+                            }
+
+                            if (owner != null)
+                            {
+                                // Fast path: regenerate just the changed page when possible;
+                                // otherwise rebuild only the owning sub-project.
+                                var builder = builders[owner.Value.Dir];
+                                if (!await builder.TryRebuildSinglePageAsync(changed))
+                                {
+                                    await BuildProjectAsync(owner.Value);
+                                }
+                                await ReaggregateSearchAsync();
+                            }
+                            else
+                            {
+                                // Couldn't attribute the change to a project — full rebuild.
+                                await BuildAsync();
+                            }
+
                             await server.NotifyChange();
                         }
                         catch (Exception ex)
@@ -353,11 +420,44 @@ namespace Neko
                 Environment.ExitCode = exitCode;
             }, updateSkillsPathOption, updateSkillsDryRunOption);
 
+            // Sync-Api-Docs Command — regenerate every `<!-- api:source ... -->`
+            // block from the public surface of real source. Runs by default before
+            // `build`/`watch` (disable with --no-api-sync); exposed standalone so it
+            // can be run on demand or in CI.
+            var syncApiDocsCommand = new Command("sync-api-docs", "Refresh API-reference pages from source (public surface only)");
+            var syncInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
+            var syncVerboseOption = new Option<bool>(new[] { "--verbose", "-v" }, () => false, "List each updated page");
+            var syncDryRunOption = new Option<bool>(new[] { "--dry-run" }, () => false, "Report changes without writing");
+            syncApiDocsCommand.AddOption(syncInputOption);
+            syncApiDocsCommand.AddOption(syncVerboseOption);
+            syncApiDocsCommand.AddOption(syncDryRunOption);
+
+            syncApiDocsCommand.SetHandler((string input, bool verbose, bool dryRun) =>
+            {
+                Neko.Builder.ApiDocsSync.Run(Path.GetFullPath(input), verbose, dryRun);
+            }, syncInputOption, syncVerboseOption, syncDryRunOption);
+
+            // Gen-Tesserae-Heights Command — measure each `tesserae` live sample's
+            // rendered height with a headless browser and bake a `height=NNN` token
+            // into its fence, so normal builds size the preview iframe up front
+            // without ever launching a browser.
+            var tesseraeHeightsCommand = new Command("gen-tesserae-heights", "Measure tesserae live samples and bake iframe heights into their fences");
+            var thInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
+            var thForceOption = new Option<bool>(new[] { "--force", "-f" }, () => false, "Re-measure every sample, even ones that already have a height token");
+            tesseraeHeightsCommand.AddOption(thInputOption);
+            tesseraeHeightsCommand.AddOption(thForceOption);
+            tesseraeHeightsCommand.SetHandler(async (string input, bool force) =>
+            {
+                var cmd = new Neko.Builder.TesseraeHeightsCommand(input, force);
+                Environment.ExitCode = await cmd.RunAsync();
+            }, thInputOption, thForceOption);
+
             rootCommand.AddCommand(buildCommand);
             rootCommand.AddCommand(watchCommand);
+            rootCommand.AddCommand(syncApiDocsCommand);
             rootCommand.AddCommand(checkLinksCommand);
+            rootCommand.AddCommand(tesseraeHeightsCommand);
             rootCommand.AddCommand(snapCommand);
-            rootCommand.AddCommand(heightsCommand);
             rootCommand.AddCommand(genImagesCommand);
             rootCommand.AddCommand(darkImagesCommand);
             rootCommand.AddCommand(newCommand);

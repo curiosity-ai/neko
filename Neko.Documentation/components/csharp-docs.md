@@ -101,12 +101,64 @@ namespace Geometry
 }
 ```
 
+## Overloads
+
+Members that share a name but differ in signature are grouped, then rendered in
+the **Microsoft Learn / DocFX** style:
+
+1. One header and a stable permalink anchor for the method name (e.g.
+   `#Client.Connect`).
+2. An optional shared intro, taken from the standard `<overloads>` XML tag.
+3. An **Overloads table** — one row per signature (disambiguated by its
+   parameter types, e.g. `Connect(string, string, string)`) linking to that
+   overload's section, with the overload's own `<summary>` beside it.
+4. One **complete, self-contained section per overload**: its typed signature
+   heading and anchor, the signature, its summary, and its own typed
+   `Parameters` / `Returns` / `Exceptions` / `Remarks` blocks.
+
+Parameters are documented **in full inside each overload** — shared parameters
+are repeated by design, so every overload reads on its own and the layout scales
+to any number of overloads.
+
+```csharp-docs
+namespace Demo
+{
+    /// <summary>The .NET client for a workspace.</summary>
+    public class Client
+    {
+        /// <overloads>Opens an authenticated connection to a workspace.</overloads>
+        /// <summary>Connects using an API token.</summary>
+        /// <param name="endpoint">The workspace base URL.</param>
+        /// <param name="token">An API token whose scopes gate access.</param>
+        /// <param name="connectorName">A stable name recorded in audit logs.</param>
+        public static Client Connect(string endpoint, string token, string connectorName) => null;
+
+        /// <summary>Connects using a client certificate (mutual-TLS).</summary>
+        /// <param name="endpoint">The workspace base URL.</param>
+        /// <param name="clientCertificate">A certificate presented for mutual-TLS.</param>
+        /// <param name="connectorName">A stable name recorded in audit logs.</param>
+        public static Client Connect(string endpoint, X509Certificate2 clientCertificate, string connectorName) => null;
+    }
+}
+```
+
 ## Supported Tags
 
-Neko currently looks for the following XML documentation tags:
+Neko looks for the following **block** XML documentation tags:
 * `<summary>`
+* `<overloads>` — shared description for an overload set (see [Overloads](#overloads))
 * `<param>`
 * `<returns>`
 * `<remarks>`
 * `<typeparam>`
 * `<exception>`
+* `<example>` — rendered under an **Examples** heading; any nested `<code>` becomes a code box.
+
+Inside those, the common **inline** tags are rendered (rather than dropped):
+* `<c>…</c>` and `<see cref="…"/>` / `<see langword="…"/>` → inline `code`
+* `<paramref name="…"/>` / `<typeparamref name="…"/>` → inline `code`
+* `<para>…</para>` → paragraph break
+
+This means doc comments copied from real source (which lean on `<see cref>`,
+`<c>`, and `<example>`) render with their inline code and cross-references
+intact.

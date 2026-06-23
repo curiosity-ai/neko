@@ -60,15 +60,49 @@ so column-aligned source (`public void        OnColumnClick()`) shows as
 For fragments without an enclosing type (e.g. a single method like the
 example above), members render inline in source order without the grouping.
 
+## Overloads
+
+Members that share a name but differ in signature are grouped and rendered in the
+**Microsoft Learn / DocFX** style: one header and stable anchor for the method
+name (e.g. `#Client.Connect`), an optional shared intro from the `<overloads>`
+tag, an **Overloads table** listing each signature (disambiguated by its
+parameter types) with its own summary, and then **one complete section per
+overload** — typed signature heading, the signature, its summary, and its own
+typed `Parameters` / `Returns` / `Exceptions` / `Remarks`. Parameters are
+documented in full inside each overload (shared ones are repeated), so every
+overload reads on its own.
+
+````markdown
+```csharp-docs
+/// <overloads>Opens an authenticated connection to a workspace.</overloads>
+/// <summary>Connects using an API token.</summary>
+/// <param name="endpoint">The workspace base URL.</param>
+/// <param name="token">An API token.</param>
+public static Client Connect(string endpoint, string token) => null;
+
+/// <summary>Connects using a client certificate (mutual-TLS).</summary>
+/// <param name="endpoint">The workspace base URL.</param>
+/// <param name="clientCertificate">A certificate for mutual-TLS.</param>
+public static Client Connect(string endpoint, X509Certificate2 clientCertificate) => null;
+```
+````
+
 ## Supported XML tags
 
+Block tags:
+
 - `<summary>` — short description.
+- `<overloads>` — shared description for an overload set (see Overloads above).
 - `<remarks>` — long-form notes.
 - `<param name="…">` — per-parameter docs.
 - `<returns>` — return value.
 - `<typeparam name="…">` — generic type parameters.
 - `<exception cref="…">` — thrown exceptions.
-- `<example>` — usage examples.
+- `<example>` — rendered under an **Examples** heading; nested `<code>` becomes a code box.
+
+Inline tags (rendered, not dropped): `<c>`, `<see cref/langword>`,
+`<paramref>`, `<typeparamref>` → inline code; `<para>` → paragraph break. So
+comments copied from real source keep their inline code and cross-references.
 
 ## Tips
 

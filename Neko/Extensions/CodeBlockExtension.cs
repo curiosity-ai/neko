@@ -69,6 +69,19 @@ namespace Neko.Extensions
                     // SiteBuilder always set Environment.CurrentDirectory to the output folder
                     var siteOutputRoot = Environment.CurrentDirectory;
 
+                    // The `gen-tesserae-heights` command bakes a `height=NNN` token
+                    // into the fence info line; read it here so the iframe reserves
+                    // the right space up front. Strip it from Arguments so it doesn't
+                    // leak into the Code tab's filename. Normal builds never measure —
+                    // when the token is absent the iframe uses a fixed placeholder.
+                    var sampleHeight = 0;
+                    if (!string.IsNullOrEmpty(fencedBlock.Arguments))
+                    {
+                        var hm = Regex.Match(fencedBlock.Arguments, @"\bheight\s*=\s*(\d+)");
+                        if (hm.Success) int.TryParse(hm.Groups[1].Value, out sampleHeight);
+                        fencedBlock.Arguments = Regex.Replace(fencedBlock.Arguments, @"\s*\bheight\s*=\s*\d+", "").Trim();
+                    }
+
                     var result = Neko.Builder.TesseraeCompiler.CompileAsync(fencedBlock.Arguments, codeString, siteOutputRoot).GetAwaiter().GetResult(); //Can't use async as Markdig doesn't expose an async method
 
                     if (result != null)
@@ -92,20 +105,15 @@ namespace Neko.Extensions
                         // a sandboxed `about:srcdoc` document. Note that the History API
                         // (history.pushState/replaceState) is unavailable in such a
                         // document, so samples must not rely on real URL navigation.
-                        //
-                        // A `height=<px>` argument on the block (written by
-                        // `neko gen-tesserae-heights`) pins the iframe to its measured
-                        // content height; without it the iframe falls back to a resizable
-                        // 400px minimum.
-                        var heightMatch = Regex.Match(fencedBlock.Arguments ?? string.Empty, @"\bheight\s*=\s*(\d+)");
-                        var iframeStyle = heightMatch.Success
-                            ? $"height: {heightMatch.Groups[1].Value}px;"
-                            : "min-height: 400px; resize: vertical;";
-                        // Drop the height token so it doesn't leak into the Code tab's
-                        // filename label below.
-                        if (heightMatch.Success)
-                            fencedBlock.Arguments = Regex.Replace(fencedBlock.Arguments, @"\s*\bheight\s*=\s*\d+", "").Trim();
                         var encodedHtml = System.Net.WebUtility.HtmlEncode(result.OutputHtml);
+                        // When a height was baked in by `gen-tesserae-heights`, use it so
+                        // the page reserves the right space up front and doesn't reflow
+                        // once the live preview renders. The small buffer covers the
+                        // iframe's borders (border-box) and avoids a 1px scrollbar.
+                        // Otherwise fall back to a fixed placeholder height.
+                        var iframeStyle = sampleHeight > 0
+                            ? $"height: {sampleHeight + 4}px; resize: vertical;"
+                            : "min-height: 400px; resize: vertical;";
                         renderer.Write($"<iframe class=\"w-full rounded border border-gray-200 dark:border-gray-700\" style=\"{iframeStyle}\" srcdoc=\"{encodedHtml}\"></iframe>");
                         renderer.Write("</div>");
 
@@ -225,17 +233,32 @@ namespace Neko.Extensions
                     }
                     Collect(root, "");
 
+                    // Buffer standalone members so overloads group together; a type
+                    // declaration flushes the buffer so document order is preserved.
+                    var pending = new List<MemberDeclarationSyntax>();
+                    void FlushPending()
+                    {
+                        foreach (var overloadSet in GroupOverloads(pending))
+                        {
+                            if (overloadSet.Count == 1) RenderCSharpMember(renderer, overloadSet[0], classPrefix: null);
+                            else RenderCSharpOverloadGroup(renderer, overloadSet, classPrefix: null);
+                        }
+                        pending.Clear();
+                    }
+
                     foreach (var (member, ns) in topLevel)
                     {
                         if (member is BaseTypeDeclarationSyntax typeDecl)
                         {
+                            FlushPending();
                             RenderCSharpType(renderer, typeDecl, ns);
                         }
                         else if (HasXmlDoc(member))
                         {
-                            RenderCSharpMember(renderer, member, classPrefix: null);
+                            pending.Add(member);
                         }
                     }
+                    FlushPending();
 
                     renderer.Write("</div>"); // Close csharp-docs
                 }
@@ -702,11 +725,13 @@ namespace Neko.Extensions
         private sealed class CSharpXmlDoc
         {
             public string Summary = "";
+            public string Overloads = "";
             public string Returns = "";
             public string Remarks = "";
             public readonly List<(string Name, string Text)> Params = new();
             public readonly List<(string Name, string Text)> TypeParams = new();
             public readonly List<(string Name, string Text)> Exceptions = new();
+            public readonly List<string> Examples = new();
         }
 
         private static bool HasXmlDoc(SyntaxNode node) => GetXmlDoc(node) != null;
@@ -719,11 +744,106 @@ namespace Neko.Extensions
                 .FirstOrDefault();
         }
 
-        private static string ReadElementText(XmlElementSyntax el)
+        // Renders the inline content of a doc element to safe HTML: text is encoded, and
+        // the common inline doc tags (<c>, <see>, <paramref>, <para>) become markup so
+        // cross-references and inline code survive instead of being dropped.
+        private static string RenderDocInline(SyntaxList<XmlNodeSyntax> content)
         {
-            return string.Join("", el.Content
-                .OfType<XmlTextSyntax>()
-                .SelectMany(t => t.TextTokens.Select(tk => tk.ValueText))).Trim();
+            var sb = new StringBuilder();
+            foreach (var node in content) AppendInline(sb, node);
+            return Regex.Replace(sb.ToString(), @"\s+", " ").Trim();
+        }
+
+        private static void AppendInline(StringBuilder sb, XmlNodeSyntax node)
+        {
+            switch (node)
+            {
+                case XmlTextSyntax t:
+                    foreach (var tk in t.TextTokens) sb.Append(System.Net.WebUtility.HtmlEncode(tk.ValueText));
+                    break;
+                case XmlEmptyElementSyntax e:
+                    AppendInlineElement(sb, e.Name.ToString(), e.Attributes, default);
+                    break;
+                case XmlElementSyntax el:
+                    AppendInlineElement(sb, el.StartTag.Name.ToString(), el.StartTag.Attributes, el.Content);
+                    break;
+            }
+        }
+
+        private static void AppendInlineElement(StringBuilder sb, string name, SyntaxList<XmlAttributeSyntax> attrs, SyntaxList<XmlNodeSyntax> content)
+        {
+            switch (name)
+            {
+                case "c":
+                    sb.Append("<code>").Append(RenderDocInline(content)).Append("</code>");
+                    break;
+                case "see":
+                case "seealso":
+                {
+                    var inner = content.Count > 0 ? RenderDocInline(content) : "";
+                    var cref = attrs.OfType<XmlCrefAttributeSyntax>().FirstOrDefault()?.Cref.ToString();
+                    var langword = attrs.OfType<XmlTextAttributeSyntax>().FirstOrDefault(a => a.Name.ToString() == "langword")?.TextTokens.ToString();
+                    string label = !string.IsNullOrEmpty(inner) ? inner
+                                 : !string.IsNullOrEmpty(cref) ? System.Net.WebUtility.HtmlEncode(CrefSimpleName(cref))
+                                 : !string.IsNullOrEmpty(langword) ? System.Net.WebUtility.HtmlEncode(langword)
+                                 : "";
+                    if (!string.IsNullOrEmpty(label)) sb.Append("<code>").Append(label).Append("</code>");
+                    break;
+                }
+                case "paramref":
+                case "typeparamref":
+                {
+                    var nm = attrs.OfType<XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText ?? "";
+                    if (!string.IsNullOrEmpty(nm)) sb.Append("<code>").Append(System.Net.WebUtility.HtmlEncode(nm)).Append("</code>");
+                    break;
+                }
+                case "para":
+                    sb.Append(' ').Append(RenderDocInline(content)).Append(' ');
+                    break;
+                default:
+                    if (content.Count > 0) sb.Append(RenderDocInline(content));
+                    break;
+            }
+        }
+
+        // The simple name of a cref: strips a leading "T:"/"M:"… prefix, any method
+        // parameter list, and the declaring-type/namespace qualifier.
+        private static string CrefSimpleName(string cref)
+        {
+            if (string.IsNullOrEmpty(cref)) return "";
+            var s = cref.Trim();
+            int colon = s.IndexOf(':');
+            if (colon >= 0 && colon <= 2) s = s.Substring(colon + 1);
+            int paren = s.IndexOf('(');
+            if (paren >= 0) s = s.Substring(0, paren);
+            int dot = s.LastIndexOf('.');
+            if (dot >= 0) s = s.Substring(dot + 1);
+            return s;
+        }
+
+        // Renders an <example> block: each nested <code> becomes a code box (raw text
+        // preserved), surrounding prose becomes a paragraph.
+        private static string RenderExample(XmlElementSyntax el)
+        {
+            var sb = new StringBuilder();
+            foreach (var node in el.Content)
+            {
+                if (node is XmlElementSyntax inner &&
+                    (inner.StartTag.Name.ToString() == "code" || inner.StartTag.Name.ToString() == "pre"))
+                {
+                    var raw = string.Concat(inner.Content.OfType<XmlTextSyntax>()
+                        .SelectMany(t => t.TextTokens.Select(tk => tk.ValueText))).Trim('\r', '\n');
+                    sb.Append("<div class=\"bg-gray-50 dark:bg-[#1a1a1a] rounded-md p-3 font-mono text-sm text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-white/10 overflow-x-auto my-3\"><pre class=\"!m-0 !p-0 !bg-transparent !border-0\"><code>");
+                    sb.Append(System.Net.WebUtility.HtmlEncode(raw));
+                    sb.Append("</code></pre></div>");
+                }
+                else
+                {
+                    var prose = RenderDocInline(new SyntaxList<XmlNodeSyntax>(node));
+                    if (!string.IsNullOrEmpty(prose)) sb.Append($"<p class=\"text-gray-700 dark:text-gray-300 my-2\">{prose}</p>");
+                }
+            }
+            return sb.ToString();
         }
 
         private static CSharpXmlDoc ParseXmlDoc(DocumentationCommentTriviaSyntax xml)
@@ -736,19 +856,21 @@ namespace Neko.Extensions
                 var tag = el.StartTag.Name.ToString();
                 switch (tag)
                 {
-                    case "summary": doc.Summary = ReadElementText(el); break;
-                    case "returns": doc.Returns = ReadElementText(el); break;
-                    case "remarks": doc.Remarks = ReadElementText(el); break;
+                    case "summary": doc.Summary = RenderDocInline(el.Content); break;
+                    case "overloads": doc.Overloads = RenderDocInline(el.Content); break;
+                    case "returns": doc.Returns = RenderDocInline(el.Content); break;
+                    case "remarks": doc.Remarks = RenderDocInline(el.Content); break;
+                    case "example": doc.Examples.Add(RenderExample(el)); break;
                     case "param":
                     {
                         var name = el.StartTag.Attributes.OfType<XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText ?? "";
-                        doc.Params.Add((name, ReadElementText(el)));
+                        doc.Params.Add((name, RenderDocInline(el.Content)));
                         break;
                     }
                     case "typeparam":
                     {
                         var name = el.StartTag.Attributes.OfType<XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText ?? "";
-                        doc.TypeParams.Add((name, ReadElementText(el)));
+                        doc.TypeParams.Add((name, RenderDocInline(el.Content)));
                         break;
                     }
                     case "exception":
@@ -756,7 +878,7 @@ namespace Neko.Extensions
                         var name = el.StartTag.Attributes.OfType<XmlCrefAttributeSyntax>().FirstOrDefault()?.Cref.ToFullString().Trim()
                                  ?? el.StartTag.Attributes.OfType<XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText
                                  ?? "";
-                        doc.Exceptions.Add((name, ReadElementText(el)));
+                        doc.Exceptions.Add((CrefSimpleName(name), RenderDocInline(el.Content)));
                         break;
                     }
                 }
@@ -917,6 +1039,55 @@ namespace Neko.Extensions
             _ => "",
         };
 
+        // Members that share a name but differ in signature are overloads. The key
+        // identifies the overload set; non-overloadable members return null so each
+        // forms a group of its own.
+        private static string GetOverloadKey(MemberDeclarationSyntax node) => node switch
+        {
+            MethodDeclarationSyntax m              => "M:" + m.Identifier.Text,
+            ConstructorDeclarationSyntax c         => "C:" + c.Identifier.Text,
+            OperatorDeclarationSyntax op           => "O:" + op.OperatorToken.Text,
+            ConversionOperatorDeclarationSyntax cv => "V:" + cv.ImplicitOrExplicitKeyword.Text + ":" + cv.Type,
+            IndexerDeclarationSyntax               => "I:this",
+            _                                      => null,
+        };
+
+        // The shared name shown for an overload set — the plain identifier without the
+        // per-overload type-parameter list, so every overload shares one anchor.
+        private static string GetOverloadBaseName(MemberDeclarationSyntax node) => node switch
+        {
+            MethodDeclarationSyntax m              => m.Identifier.Text,
+            ConstructorDeclarationSyntax c         => c.Identifier.Text,
+            OperatorDeclarationSyntax op           => "operator " + op.OperatorToken.Text,
+            ConversionOperatorDeclarationSyntax cv => cv.ImplicitOrExplicitKeyword.Text + " operator " + cv.Type,
+            IndexerDeclarationSyntax               => "this[]",
+            _                                      => GetMemberName(node),
+        };
+
+        // Partitions members into overload sets, preserving first-appearance order. A set
+        // with more than one member is rendered as a grouped overload block; singletons
+        // render exactly as before (so non-overloaded output is unchanged).
+        private static List<List<MemberDeclarationSyntax>> GroupOverloads(IEnumerable<MemberDeclarationSyntax> members)
+        {
+            var groups = new List<List<MemberDeclarationSyntax>>();
+            var index = new Dictionary<string, List<MemberDeclarationSyntax>>();
+            foreach (var m in members)
+            {
+                var key = GetOverloadKey(m);
+                if (key != null && index.TryGetValue(key, out var existing))
+                {
+                    existing.Add(m);
+                }
+                else
+                {
+                    var list = new List<MemberDeclarationSyntax> { m };
+                    groups.Add(list);
+                    if (key != null) index[key] = list;
+                }
+            }
+            return groups;
+        }
+
         private static (string Group, string Badge) GetMemberKind(MemberDeclarationSyntax node) => node switch
         {
             ConstructorDeclarationSyntax => ("constructors", "Constructor"),
@@ -989,7 +1160,7 @@ namespace Neko.Extensions
 
             void Row(string label, string value, bool mono)
             {
-                renderer.Write($"<dt class=\"font-semibold text-gray-500 dark:text-gray-400\">{System.Net.WebUtility.HtmlEncode(label)}</dt>");
+                renderer.Write($"<dt class=\"m-0 font-semibold text-gray-500 dark:text-gray-400\">{System.Net.WebUtility.HtmlEncode(label)}</dt>");
                 var cls = mono ? "font-mono text-gray-800 dark:text-gray-200" : "text-gray-800 dark:text-gray-200";
                 renderer.Write($"<dd class=\"m-0 {cls}\">{System.Net.WebUtility.HtmlEncode(value)}</dd>");
             }
@@ -1012,18 +1183,32 @@ namespace Neko.Extensions
             renderer.Write("<th class=\"font-semibold text-gray-700 dark:text-gray-300 px-3 py-2 border-b border-gray-200 dark:border-white/10\">Description</th>");
             renderer.Write("</tr></thead><tbody>");
 
-            foreach (var node in members)
+            foreach (var overloadSet in GroupOverloads(members))
             {
-                var memberName = GetMemberName(node);
-                // Must match the detail anchor produced by RenderCSharpMember.
-                var anchor = SlugifyId(!string.IsNullOrEmpty(classPrefix)
-                    ? $"{classPrefix}.{memberName}"
-                    : memberName);
-                var summary = ParseXmlDoc(GetXmlDoc(node)).Summary;
+                string memberName, anchor, summary;
+                if (overloadSet.Count == 1)
+                {
+                    var node = overloadSet[0];
+                    memberName = GetMemberName(node);
+                    // Must match the detail anchor produced by RenderCSharpMember.
+                    anchor = SlugifyId(!string.IsNullOrEmpty(classPrefix) ? $"{classPrefix}.{memberName}" : memberName);
+                    summary = ParseXmlDoc(GetXmlDoc(node)).Summary;
+                }
+                else
+                {
+                    // One row for the whole overload set, matching RenderCSharpOverloadGroup.
+                    var baseName = GetOverloadBaseName(overloadSet[0]);
+                    memberName = baseName;
+                    anchor = SlugifyId(!string.IsNullOrEmpty(classPrefix) ? $"{classPrefix}.{baseName}" : baseName);
+                    var docs = overloadSet.Select(o => ParseXmlDoc(GetXmlDoc(o))).ToList();
+                    summary = docs.Select(d => d.Overloads).FirstOrDefault(s => !string.IsNullOrEmpty(s))
+                           ?? docs.Select(d => d.Summary).FirstOrDefault(s => !string.IsNullOrEmpty(s))
+                           ?? "";
+                }
 
                 renderer.Write("<tr class=\"border-b border-gray-100 dark:border-white/5 last:border-0 align-top\">");
                 renderer.Write($"<td class=\"px-3 py-2 whitespace-nowrap\"><a href=\"#{System.Net.WebUtility.HtmlEncode(anchor)}\" class=\"font-mono text-primary-600 dark:text-primary-400 no-underline hover:underline\">{System.Net.WebUtility.HtmlEncode(memberName)}</a></td>");
-                renderer.Write($"<td class=\"px-3 py-2 text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(summary)}</td>");
+                renderer.Write($"<td class=\"px-3 py-2 text-gray-700 dark:text-gray-300\">{summary}</td>");
                 renderer.Write("</tr>");
             }
 
@@ -1061,7 +1246,7 @@ namespace Neko.Extensions
 
             if (!string.IsNullOrEmpty(doc.Summary))
             {
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mt-3 mb-0 leading-relaxed\">{System.Net.WebUtility.HtmlEncode(doc.Summary)}</p>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mt-3 mb-0 leading-relaxed\">{doc.Summary}</p>");
             }
 
             RenderXmlDocDetails(renderer, doc, includeSummary: false, includeReturns: false, compact: true);
@@ -1097,9 +1282,10 @@ namespace Neko.Extensions
                     renderer.Write("<div class=\"csharp-member-group mt-8\">");
                     renderer.Write($"<h4 class=\"text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100\">{groupLabel}</h4>");
                     RenderCSharpMemberTable(renderer, inGroup, simpleName);
-                    foreach (var m in inGroup)
+                    foreach (var overloadSet in GroupOverloads(inGroup))
                     {
-                        RenderCSharpMember(renderer, m, classPrefix: simpleName);
+                        if (overloadSet.Count == 1) RenderCSharpMember(renderer, overloadSet[0], classPrefix: simpleName);
+                        else RenderCSharpOverloadGroup(renderer, overloadSet, classPrefix: simpleName);
                     }
                     renderer.Write("</div>");
                 }
@@ -1156,7 +1342,7 @@ namespace Neko.Extensions
 
             if (!string.IsNullOrEmpty(doc.Summary))
             {
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{System.Net.WebUtility.HtmlEncode(doc.Summary)}</p>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{doc.Summary}</p>");
             }
 
             RenderXmlDocDetails(renderer, doc, includeSummary: false, includeReturns: true, compact: false);
@@ -1164,7 +1350,150 @@ namespace Neko.Extensions
             renderer.Write("</div>");
         }
 
-        private static void RenderXmlDocDetails(HtmlRenderer renderer, CSharpXmlDoc doc, bool includeSummary, bool includeReturns, bool compact)
+        // Renders a set of overloads in the Microsoft Learn / DocFX style: one header and
+        // stable anchor for the method name, an optional shared intro (the <overloads>
+        // tag), an "Overloads" table summarising each signature, and then one complete,
+        // self-contained subsection per overload (typed parameters, returns, exceptions,
+        // remarks) — each disambiguated by its parameter-type signature.
+        private static void RenderCSharpOverloadGroup(HtmlRenderer renderer, List<MemberDeclarationSyntax> overloads, string classPrefix)
+        {
+            var first = overloads[0];
+            var (_, badge) = GetMemberKind(first);
+            var baseName = GetOverloadBaseName(first);
+            var displayName = !string.IsNullOrEmpty(classPrefix) && !(first is ConstructorDeclarationSyntax)
+                ? $"{classPrefix}.{baseName}"
+                : baseName;
+            var groupAnchor = SlugifyId(!string.IsNullOrEmpty(classPrefix) ? $"{classPrefix}.{baseName}" : baseName);
+
+            var docs = overloads.Select(o => ParseXmlDoc(GetXmlDoc(o))).ToList();
+
+            string OverloadAnchor(MemberDeclarationSyntax o)
+            {
+                var typeKey = string.Join("-", GetParametersWithTypes(o).Select(p => p.Type));
+                return groupAnchor + "--" + SlugifyId(typeKey);
+            }
+
+            renderer.Write($"<div class=\"csharp-member-doc csharp-overload-group mb-8\" id=\"{System.Net.WebUtility.HtmlEncode(groupAnchor)}\">");
+
+            renderer.Write("<div class=\"flex items-center gap-2 flex-wrap mb-2\">");
+            renderer.Write($"<span class=\"csharp-kind-badge inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(badge)}</span>");
+            renderer.Write($"<h5 class=\"text-lg font-semibold m-0 text-gray-900 dark:text-gray-100\">{System.Net.WebUtility.HtmlEncode(displayName)}");
+            renderer.Write($"<a href=\"#{System.Net.WebUtility.HtmlEncode(groupAnchor)}\" class=\"csharp-anchor no-underline text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-2 text-xs align-middle\" aria-label=\"Permalink\"><i class=\"fi fi-rr-link\"></i></a>");
+            renderer.Write("</h5>");
+            renderer.Write("</div>");
+
+            // Shared intro: the <overloads> tag if present (its dedicated purpose).
+            var intro = docs.Select(d => d.Overloads).FirstOrDefault(s => !string.IsNullOrEmpty(s));
+            if (!string.IsNullOrEmpty(intro))
+            {
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{intro}</p>");
+            }
+
+            // "Overloads" summary table: one row per signature, linking to its section.
+            renderer.Write("<div class=\"csharp-overloads-table csharp-member-table overflow-x-auto my-4 rounded-md border border-gray-200 dark:border-white/10\">");
+            renderer.Write("<table class=\"w-full text-sm border-collapse m-0\">");
+            renderer.Write("<thead><tr class=\"bg-gray-50 dark:bg-gray-800/60 text-left\">");
+            renderer.Write("<th class=\"font-semibold text-gray-700 dark:text-gray-300 px-3 py-2 border-b border-gray-200 dark:border-white/10\">Overload</th>");
+            renderer.Write("<th class=\"font-semibold text-gray-700 dark:text-gray-300 px-3 py-2 border-b border-gray-200 dark:border-white/10\"></th>");
+            renderer.Write("</tr></thead><tbody>");
+            for (int i = 0; i < overloads.Count; i++)
+            {
+                var label = BuildOverloadSignatureLabel(overloads[i]);
+                renderer.Write("<tr class=\"border-b border-gray-100 dark:border-white/5 last:border-0 align-top\">");
+                renderer.Write($"<td class=\"px-3 py-2\"><a href=\"#{System.Net.WebUtility.HtmlEncode(OverloadAnchor(overloads[i]))}\" class=\"font-mono text-primary-600 dark:text-primary-400 no-underline hover:underline\">{System.Net.WebUtility.HtmlEncode(label)}</a></td>");
+                renderer.Write($"<td class=\"px-3 py-2 text-gray-700 dark:text-gray-300\">{docs[i].Summary}</td>");
+                renderer.Write("</tr>");
+            }
+            renderer.Write("</tbody></table></div>");
+
+            // One complete subsection per overload.
+            for (int i = 0; i < overloads.Count; i++)
+            {
+                RenderOverloadSection(renderer, overloads[i], docs[i], OverloadAnchor(overloads[i]));
+            }
+
+            renderer.Write("</div>");
+        }
+
+        // One overload's self-contained section: its typed signature heading and anchor,
+        // the signature, its summary, and its own typed parameter / returns / exception /
+        // remarks blocks. Shared parameters are repeated here by design, so each overload
+        // reads on its own.
+        private static void RenderOverloadSection(HtmlRenderer renderer, MemberDeclarationSyntax node, CSharpXmlDoc doc, string anchor)
+        {
+            var label = BuildOverloadSignatureLabel(node);
+            var signature = BuildMemberSignature(node);
+
+            renderer.Write($"<div class=\"csharp-overload-member mt-6 pt-2 pl-3 border-l-2 border-gray-200 dark:border-gray-700\" id=\"{System.Net.WebUtility.HtmlEncode(anchor)}\">");
+
+            renderer.Write($"<h6 class=\"font-mono text-base font-semibold m-0 text-gray-900 dark:text-gray-100\">{System.Net.WebUtility.HtmlEncode(label)}");
+            renderer.Write($"<a href=\"#{System.Net.WebUtility.HtmlEncode(anchor)}\" class=\"csharp-anchor no-underline text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-2 text-xs align-middle\" aria-label=\"Permalink\"><i class=\"fi fi-rr-link\"></i></a>");
+            renderer.Write("</h6>");
+
+            if (!string.IsNullOrEmpty(signature))
+            {
+                renderer.Write("<div class=\"bg-gray-50 dark:bg-[#1a1a1a] rounded-md p-3 font-mono text-sm text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-white/10 overflow-x-auto my-3\">");
+                renderer.Write($"<pre class=\"!m-0 !p-0 !bg-transparent !border-0\"><code>{System.Net.WebUtility.HtmlEncode(signature)}</code></pre>");
+                renderer.Write("</div>");
+            }
+
+            if (!string.IsNullOrEmpty(doc.Summary))
+            {
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{doc.Summary}</p>");
+            }
+
+            RenderTypedParameters(renderer, node, doc);
+            // Type parameters, returns, exceptions, remarks — parameters handled above.
+            RenderXmlDocDetails(renderer, doc, includeSummary: false, includeReturns: true, compact: false, includeParams: false);
+
+            renderer.Write("</div>");
+        }
+
+        // Parameters block listing each declared parameter with its type (from the
+        // signature) and description (from the matching <param> doc), MS Learn style.
+        private static void RenderTypedParameters(HtmlRenderer renderer, MemberDeclarationSyntax node, CSharpXmlDoc doc)
+        {
+            var parameters = GetParametersWithTypes(node);
+            if (parameters.Count == 0) return;
+
+            renderer.Write("<h4 class=\"font-semibold text-base mt-4 mb-2 text-gray-900 dark:text-gray-100\">Parameters</h4>");
+            renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
+            foreach (var (name, type) in parameters)
+            {
+                var desc = doc.Params.FirstOrDefault(p => p.Name == name).Text ?? "";
+                renderer.Write("<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\">");
+                renderer.Write($"<dt class=\"min-w-[120px]\"><span class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400\">{System.Net.WebUtility.HtmlEncode(name)}</span> <span class=\"font-mono text-xs text-gray-500 dark:text-gray-400\">{System.Net.WebUtility.HtmlEncode(type)}</span></dt>");
+                renderer.Write($"<dd class=\"text-gray-700 dark:text-gray-300\">{desc}</dd>");
+                renderer.Write("</div>");
+            }
+            renderer.Write("</dl>");
+        }
+
+        // The disambiguating label for one overload: the member name (with type
+        // parameters) followed by its parameter types, e.g. "Connect(string, string)".
+        private static string BuildOverloadSignatureLabel(MemberDeclarationSyntax node)
+        {
+            string name = node switch
+            {
+                MethodDeclarationSyntax m              => m.Identifier.Text + (m.TypeParameterList?.ToString() ?? ""),
+                ConstructorDeclarationSyntax c         => c.Identifier.Text,
+                OperatorDeclarationSyntax op           => "operator " + op.OperatorToken.Text,
+                ConversionOperatorDeclarationSyntax cv => cv.ImplicitOrExplicitKeyword.Text + " operator " + cv.Type,
+                IndexerDeclarationSyntax               => "this",
+                _                                      => GetMemberName(node),
+            };
+            var types = string.Join(", ", GetParametersWithTypes(node).Select(p => p.Type));
+            return node is IndexerDeclarationSyntax ? $"{name}[{types}]" : $"{name}({types})";
+        }
+
+        private static List<(string Name, string Type)> GetParametersWithTypes(MemberDeclarationSyntax node) => node switch
+        {
+            BaseMethodDeclarationSyntax m => m.ParameterList.Parameters.Select(p => (p.Identifier.Text, p.Type?.ToString() ?? "")).ToList(),
+            IndexerDeclarationSyntax i    => i.ParameterList.Parameters.Select(p => (p.Identifier.Text, p.Type?.ToString() ?? "")).ToList(),
+            _                             => new List<(string, string)>(),
+        };
+
+        private static void RenderXmlDocDetails(HtmlRenderer renderer, CSharpXmlDoc doc, bool includeSummary, bool includeReturns, bool compact, bool includeParams = true)
         {
             string h4 = compact
                 ? "font-semibold text-sm uppercase tracking-wide mt-3 mb-1 text-gray-500 dark:text-gray-400"
@@ -1172,7 +1501,7 @@ namespace Neko.Extensions
 
             if (includeSummary && !string.IsNullOrEmpty(doc.Summary))
             {
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{System.Net.WebUtility.HtmlEncode(doc.Summary)}</p>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 my-3 leading-relaxed\">{doc.Summary}</p>");
             }
 
             if (doc.TypeParams.Any())
@@ -1181,18 +1510,18 @@ namespace Neko.Extensions
                 renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
                 foreach (var p in doc.TypeParams)
                 {
-                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(p.Text)}</dd></div>");
+                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{p.Text}</dd></div>");
                 }
                 renderer.Write("</dl>");
             }
 
-            if (doc.Params.Any())
+            if (includeParams && doc.Params.Any())
             {
                 renderer.Write($"<h4 class=\"{h4}\">Parameters</h4>");
                 renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
                 foreach (var p in doc.Params)
                 {
-                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(p.Text)}</dd></div>");
+                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{p.Text}</dd></div>");
                 }
                 renderer.Write("</dl>");
             }
@@ -1200,7 +1529,7 @@ namespace Neko.Extensions
             if (includeReturns && !string.IsNullOrEmpty(doc.Returns))
             {
                 renderer.Write($"<h4 class=\"{h4}\">Returns</h4>");
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mb-3\">{System.Net.WebUtility.HtmlEncode(doc.Returns)}</p>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mb-3\">{doc.Returns}</p>");
             }
 
             if (doc.Exceptions.Any())
@@ -1209,7 +1538,7 @@ namespace Neko.Extensions
                 renderer.Write("<dl class=\"mt-1 mb-3 space-y-2\">");
                 foreach (var p in doc.Exceptions)
                 {
-                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(p.Text)}</dd></div>");
+                    renderer.Write($"<div class=\"flex flex-col sm:flex-row gap-1 sm:gap-3\"><dt class=\"font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 min-w-[120px]\">{System.Net.WebUtility.HtmlEncode(p.Name)}</dt><dd class=\"text-gray-700 dark:text-gray-300\">{p.Text}</dd></div>");
                 }
                 renderer.Write("</dl>");
             }
@@ -1217,7 +1546,13 @@ namespace Neko.Extensions
             if (!string.IsNullOrEmpty(doc.Remarks))
             {
                 renderer.Write($"<h4 class=\"{h4}\">Remarks</h4>");
-                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mb-3\">{System.Net.WebUtility.HtmlEncode(doc.Remarks)}</p>");
+                renderer.Write($"<p class=\"text-gray-700 dark:text-gray-300 mb-3\">{doc.Remarks}</p>");
+            }
+
+            if (doc.Examples.Count > 0)
+            {
+                renderer.Write($"<h4 class=\"{h4}\">Examples</h4>");
+                foreach (var ex in doc.Examples) renderer.Write(ex);
             }
         }
     }

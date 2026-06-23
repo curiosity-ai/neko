@@ -2310,6 +2310,24 @@ tesserae:
 ```
 ===
 
+### measureWidth
+
+=== measureWidth : `number`
+
+Viewport width (in CSS px) used by the
+[`neko gen-tesserae-heights`](/guides/cli) command when it measures sample
+heights with a headless browser. Approximates the rendered width of the
+live-preview iframe in the docs content column. Defaults to `0`, meaning Neko's
+built-in default (`820`). Normal `build`/`watch` never measure — they read the
+`height=` token that the command bakes into each `tesserae` fence — so this key
+only affects that command.
+
+```yml
+tesserae:
+  measureWidth: 760
+```
+===
+
 ---
 
 ## theme

@@ -72,21 +72,23 @@ public class App { public static void Main() { /* idiomatic version */ } }
 - The displayed (overwrite) code is never compiled, so it is not checked; keep it
   a faithful, complete program (usings, namespace, `Main`).
 
-## Preview height
+## Preview sizing
 
-A `height=<px>` argument pins the live-preview iframe to a fixed height:
-
-````markdown
-```tesserae chrome="macos" demo.js height=420
-…
-```
-````
-
-Without it the iframe uses a resizable 400px minimum. The value is normally
-written for you by `neko gen-tesserae-heights`, which measures each sample's
-rendered height and rewrites the argument. Target a single file with
-`neko gen-tesserae-heights --file <path>` and rerun it after editing a sample —
-it is file-targeted with no hash cache, so nothing tracks staleness for you.
+- The live preview renders in an `<iframe>`. By default it uses a fixed
+  placeholder height, so short samples leave empty space and tall ones scroll.
+- A `height=NNN` token on the fence info line
+  (e.g. ` ```tesserae sample.js height=360 `) pins the iframe to that height. A
+  normal `build`/`watch` just reads the token and reserves the space up front —
+  no browser runs during a build, so there's no layout shift. Samples without a
+  token keep the placeholder height.
+- Run **`neko gen-tesserae-heights`** to fill the tokens in: it compiles each
+  sample, measures its rendered height with a headless browser, and writes the
+  token back. It is **incremental/resumable** — it skips samples that already
+  have a `height=` token and saves each file as it goes, so re-running only
+  measures new samples. Pass `--force` to re-measure everything; tune the
+  measurement width with `tesserae.measureWidth`. Commit the rewritten Markdown.
+- You can also set the token by hand; the preview stays manually resizable via
+  the iframe's drag handle either way.
 
 ## Caching and performance
 
