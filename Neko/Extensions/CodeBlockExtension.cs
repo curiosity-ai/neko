@@ -38,14 +38,38 @@ namespace Neko.Extensions
                 {
                     var slices = leafBlock.Lines;
                     var csharpCode = new System.Text.StringBuilder();
+
+                    // `// <hide>` … `// </hide>` markers fence off setup/plumbing that is
+                    // compiled and run but stripped from the source shown in the Code tab.
+                    // The compiled code keeps the hidden lines; only the markers are dropped.
+                    var hiddenLineIndices = new List<int>();
+                    var inHiddenRegion = false;
                     for (int i = 0; i < slices.Count; i++)
                     {
                         var slice = slices.Lines[i].Slice;
-                        if (slice.Text == null) continue;
-                        csharpCode.AppendLine(slice.ToString());
+                        var lineText = slice.Text == null ? string.Empty : slice.ToString();
+                        var trimmed = lineText.Trim();
+
+                        var isHideStart = trimmed.Equals("//<hide>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// <hide>", StringComparison.OrdinalIgnoreCase);
+                        var isHideEnd = trimmed.Equals("//</hide>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// </hide>", StringComparison.OrdinalIgnoreCase);
+
+                        if (isHideStart) { inHiddenRegion = true; hiddenLineIndices.Add(i); continue; }
+                        if (isHideEnd) { inHiddenRegion = false; hiddenLineIndices.Add(i); continue; }
+
+                        if (slice.Text != null) csharpCode.AppendLine(lineText);
+
+                        if (inHiddenRegion) hiddenLineIndices.Add(i);
                     }
 
                     var codeString = csharpCode.ToString();
+
+                    // Drop the hidden lines (and the markers) from what the Code tab shows,
+                    // leaving the compiled/run source untouched. Remove from the end so the
+                    // earlier indices stay valid.
+                    for (int i = hiddenLineIndices.Count - 1; i >= 0; i--)
+                    {
+                        leafBlock.Lines.RemoveAt(hiddenLineIndices[i]);
+                    }
 
                     // SiteBuilder always set Environment.CurrentDirectory to the output folder
                     var siteOutputRoot = Environment.CurrentDirectory;

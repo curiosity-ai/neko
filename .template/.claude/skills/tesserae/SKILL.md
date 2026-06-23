@@ -60,6 +60,31 @@ public class TodoApp
 - You can also set/override the token by hand (`height=NNN`); the preview stays
   manually resizable via the iframe's drag handle either way.
 
+## Hiding setup code from the displayed source
+
+Lines between `// <hide>` and `// </hide>` markers are **compiled and run** but
+removed from the source shown in the **Code** tab. Use this to keep boilerplate
+(styling, layout chrome, demo-only plumbing) out of the snippet while the live
+preview still shows the full result.
+
+````markdown
+```tesserae
+var navbar = HStack().Children(/* … buttons … */);
+// <hide>
+// Chrome only — not part of what the snippet is teaching.
+navbar.WS().AlignItemsCenter().Gap(8.px()).Background("#f3f4f6").P(10);
+// </hide>
+return Stack().Children(navbar /* … */).Render();
+```
+````
+
+- The markers must be on their own line (leading/trailing whitespace is fine);
+  matching is case-insensitive and a single space after `//` is optional.
+- The marker lines themselves are dropped from both the displayed code and the
+  compiled code, so they never affect the running sample.
+- Hidden code is still executed — a syntax error inside a hidden region still
+  fails the build.
+
 ## Caching and performance
 
 - Each compiled sample is cached on disk under a `.neko-cache/` folder in the
