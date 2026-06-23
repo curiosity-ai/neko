@@ -51,16 +51,43 @@ namespace Neko.Builder
         // newer one — otherwise the cached HTML can reference asset variants the new
         // build no longer writes (e.g. `h5.min.js` vs `h5.js`), 404ing the runtime
         // and leaving the live preview blank.
-        private const string CacheFormatVersion = "4";
+        private const string CacheFormatVersion = "5";
 
-        // Injected into every compiled sample so the live-preview iframe mirrors the
-        // docs page's light/dark mode. Kept dependency-free vanilla JS and resilient
-        // to cross-origin failures (falls back to the OS preference). Changing this
-        // changes the shape of the generated HTML, so bump CacheFormatVersion too.
+        // Tesserae's own surface colours (see tss.common.css): white in light
+        // mode, #222 in dark mode. Hard-coded here so the live-preview iframe can
+        // paint the right background *before* the Tesserae stylesheet has loaded.
+        private const string LightBackground = "#ffffff";
+        private const string DarkBackground = "#222222";
+
+        // Runs in <head>, before the Tesserae stylesheet, so the iframe paints in
+        // the docs page's light/dark surface colour from the very first frame
+        // instead of flashing white while the sample compiles and boots. It sets
+        // the background on <html> directly (covers the pre-CSS phase) and adds
+        // `tss-dark-mode` to <html> so the Tesserae CSS variables cascade dark the
+        // moment the stylesheet loads — long before the body-end bridge runs. Kept
+        // dependency-free vanilla JS and resilient to cross-origin failures (falls
+        // back to the OS preference). Changing this changes the shape of the
+        // generated HTML, so bump CacheFormatVersion too.
+        private const string ThemeBridgeHeadScript =
+            "<script>(function(){try{var p=window.parent;" +
+            "var d=(p&&p!==window)?p.document.documentElement.classList.contains('dark'):" +
+            "(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);" +
+            "var e=document.documentElement;e.classList.toggle('tss-dark-mode',!!d);" +
+            "e.style.background=d?'" + DarkBackground + "':'" + LightBackground + "';" +
+            "e.style.colorScheme=d?'dark':'light';}catch(e){}})();</script>";
+
+        // Runs at the end of <body> once <body> exists. Tesserae's own runtime
+        // detects dark mode via `tss-dark-mode` on <body> (UI.Theme.IsDarkMode),
+        // so the class must live there too — not only on <html>. This also wires
+        // up the postMessage listener so later theme toggles on the docs page are
+        // mirrored into the iframe (see RenderThemeSwitchScript). Keeping <html>
+        // in sync as well preserves the cascading background set in the head.
         private const string ThemeBridgeScript =
             "<script>(function(){" +
             "function apply(d){try{document.body.classList.toggle('tss-dark-mode',!!d);" +
-            "document.documentElement.style.colorScheme=d?'dark':'light';}catch(e){}}" +
+            "var e=document.documentElement;e.classList.toggle('tss-dark-mode',!!d);" +
+            "e.style.background=d?'" + DarkBackground + "':'" + LightBackground + "';" +
+            "e.style.colorScheme=d?'dark':'light';}catch(e){}}" +
             "function parentDark(){try{return window.parent&&window.parent!==window&&" +
             "window.parent.document.documentElement.classList.contains('dark');}" +
             "catch(e){return window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;}}" +
@@ -596,6 +623,10 @@ namespace Neko.Builder
                 htmlBuilder.AppendLine("<head>");
                 htmlBuilder.AppendLine("<meta charset=\"utf-8\" />");
                 htmlBuilder.AppendLine("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />");
+                // Paint the docs page's light/dark surface colour before the
+                // Tesserae stylesheet loads, so the preview never flashes white
+                // while the sample is still compiling/booting.
+                htmlBuilder.AppendLine(ThemeBridgeHeadScript);
 
                 // We need to keep h5.js, h5.core.js first, then other js, then css
                 var jsFiles = new List<string>();
