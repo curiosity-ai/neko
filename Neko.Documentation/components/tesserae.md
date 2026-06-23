@@ -107,12 +107,18 @@ namespace Neko.Documentation
 }
 ```
 
-## Hiding setup code
+## Tailoring the displayed source
 
-Lines between `// <hide>` and `// </hide>` markers are compiled and run but
-removed from the source shown in the **Code** tab. Use it to keep styling,
-layout chrome, or demo-only plumbing out of the snippet while the live preview
-still reflects the full code.
+Two marker pairs let the source shown in the **Code** tab differ from what is
+compiled and run:
+
+- `// <hide>` … `// </hide>` — compiled and run, but **removed** from the Code
+  tab. Use it to keep styling, layout chrome, or demo-only plumbing out of the
+  snippet while the live preview still reflects the full code.
+- `// <docs>` … `// </docs>` — **shown** in the Code tab, but **not compiled**.
+  Use it to display the idiomatic call a sample can't run as-is (for example an
+  API a sandboxed preview can't use) while a `// <hide>` block runs a
+  preview-safe variant.
 
 ```tesserae
 using Tesserae;

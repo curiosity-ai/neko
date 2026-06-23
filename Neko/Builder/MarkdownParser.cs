@@ -220,16 +220,18 @@ namespace Neko.Builder
             {
                 if ((fenced.Info ?? "").ToLower() != "tesserae") continue;
 
-                var code = new System.Text.StringBuilder();
+                // Strip the // <hide>/<docs> markers exactly as the render pass does, so
+                // the warm pass compiles byte-identical source and shares the cache key.
                 var lines = fenced.Lines;
+                var rawLines = new List<string>(lines.Count);
                 for (int i = 0; i < lines.Count; i++)
                 {
                     var slice = lines.Lines[i].Slice;
-                    if (slice.Text == null) continue;
-                    code.AppendLine(slice.ToString());
+                    rawLines.Add(slice.Text == null ? null : slice.ToString());
                 }
 
-                samples.Add((fenced.Arguments, code.ToString()));
+                var (code, _) = TesseraeCompiler.PartitionSampleSource(rawLines);
+                samples.Add((fenced.Arguments, code));
             }
 
             return samples;
