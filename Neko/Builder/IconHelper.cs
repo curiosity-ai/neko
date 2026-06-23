@@ -33,8 +33,9 @@ namespace Neko.Builder
 
         // An icon value points at an image (rather than naming a UIcon) when it
         // looks like a path or URL, or ends in a known image extension.
-        private static bool IsImagePath(string value)
+        public static bool IsImagePath(string value)
         {
+            if (string.IsNullOrEmpty(value)) return false;
             if (value.StartsWith("/") || value.StartsWith("./") || value.StartsWith("../") ||
                 value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
                 value.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
