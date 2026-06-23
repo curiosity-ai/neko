@@ -209,7 +209,7 @@ namespace Neko.Builder
             // curiosity.ai); docs use the muted grey.
             if (_isBlogMode)
             {
-                sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium md:ml-6\" style=\"color:var(--blog-ink)\">");
+                sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-[15px] font-normal md:ml-6\" style=\"color:var(--blog-ink)\">");
             }
             else
             {
@@ -228,7 +228,11 @@ namespace Neko.Builder
                          var href = link.Link ?? "#";
                          var iconHtml = (!_showHeaderIcons || string.IsNullOrEmpty(link.Icon)) ? "" : $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(link.Icon)} mr-2\"></i>";
                          var target = !string.IsNullOrEmpty(link.Target) ? $" target=\"{link.Target}\"" : "";
-                         sb.AppendLine($"            <a href=\"{href}\"{target} class=\"hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center text-sm/3\">{iconHtml}{link.Text}</a>");
+                         // Blog mode sizes links via the container (text-[15px]); docs
+                         // keep the tight text-sm/3 on each link. Inheriting in blog mode
+                         // also keeps plain links the same size as flyout-link triggers.
+                         var sizeClass = _isBlogMode ? "" : " text-sm/3";
+                         sb.AppendLine($"            <a href=\"{href}\"{target} class=\"hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center{sizeClass}\">{iconHtml}{link.Text}</a>");
                     }
                 }
             }
@@ -377,7 +381,7 @@ namespace Neko.Builder
                     // Driven by the blog palette vars so the pills invert with dark
                     // mode: solid = ink fill with page-bg text; outline = ink border
                     // + text. Matches the curiosity.ai pills in light mode.
-                    var blogClass = "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-80 whitespace-nowrap";
+                    var blogClass = "inline-flex items-center gap-2 rounded-full px-[14px] py-2 text-sm font-medium transition-opacity hover:opacity-80 whitespace-nowrap";
                     var style = isOutline
                         ? "border:1px solid var(--blog-ink);color:var(--blog-ink)"
                         : "background-color:var(--blog-ink);color:var(--blog-bg)";

@@ -96,7 +96,15 @@ theme:
   name: curiosity              # built-in: curiosity, …
   baseColor: "#5495f1"
   # full overrides per theme — see https://neko.curiosity.ai
+  font:                        # optional brand font (default: Inter)
+    family: Plus Jakarta Sans
+    url: https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap
 ```
+
+`theme.font` overrides the site's base font. `family` is the CSS font-family
+name (a full comma stack is accepted too); `url` is an optional stylesheet that
+provides it (Google Fonts, a CDN, or a self-hosted `/assets/….css`). Leave it
+unset to keep Neko's bundled Inter. It is inherited by multi-repo child sites.
 
 ## Meta defaults
 
