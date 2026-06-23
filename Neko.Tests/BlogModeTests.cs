@@ -205,7 +205,7 @@ namespace Neko.Tests
 
             // The links group carries the left-cluster margin (curiosity.ai layout),
             // and the links render before the header action buttons.
-            Assert.That(html, Contains.Substring("md:ml-6"));
+            Assert.That(html, Contains.Substring("md:ml-1.5"));
             var linkIdx = html.IndexOf(">Product</a>");
             var actionIdx = html.IndexOf(">Book a Demo</a>");
             Assert.That(linkIdx, Is.GreaterThan(0));

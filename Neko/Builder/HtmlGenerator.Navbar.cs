@@ -59,7 +59,7 @@ namespace Neko.Builder
             // (driven by the `theme.base` palette).
             if (_isBlogMode)
             {
-                sb.AppendLine("    <header style=\"background-color:var(--blog-bg)\" class=\"h-16 shrink-0 flex items-center px-6 z-30\">");
+                sb.AppendLine("    <header style=\"background-color:var(--blog-bg)\" class=\"h-20 shrink-0 flex items-center px-6 z-30\">");
             }
             else
             {
@@ -68,7 +68,11 @@ namespace Neko.Builder
 
             var maxWidthClass = LayoutMaxWidthClass();
             var innerWidthClass = string.IsNullOrEmpty(maxWidthClass) ? string.Empty : $" {maxWidthClass}";
-            sb.AppendLine($"        <div class=\"flex items-center justify-between w-full{innerWidthClass}\">");
+            // Blog mode insets the header content inside the capped row (curiosity.ai
+            // sits its bar ~44px in from the 1280px container edges), lining the logo
+            // up over the footer's columns.
+            var innerPadClass = _isBlogMode ? " md:px-11" : string.Empty;
+            sb.AppendLine($"        <div class=\"flex items-center justify-between w-full{innerWidthClass}{innerPadClass}\">");
 
             sb.AppendLine("        <div class=\"flex items-center gap-4\">");
 
@@ -131,16 +135,19 @@ namespace Neko.Builder
 
         private void RenderNavbarLogoImages(StringBuilder sb, string currentUrl)
         {
+            // Blog mode uses the logo as a compact wordmark (curiosity.ai sizes it at
+            // ~21px tall); docs mode pairs a larger icon-logo with the title.
+            var logoH = _isBlogMode ? "h-[21px]" : "h-8";
             string logoUrl = ResolveLogoPath(currentUrl, _config.Branding.Logo);
-            sb.AppendLine($"                <img src=\"{logoUrl}\" class=\"h-8 w-auto dark:hidden\">");
+            sb.AppendLine($"                <img src=\"{logoUrl}\" class=\"{logoH} w-auto dark:hidden\">");
             if (!string.IsNullOrEmpty(_config.Branding.LogoDark))
             {
                 string logoDarkUrl = ResolveLogoPath(currentUrl, _config.Branding.LogoDark);
-                sb.AppendLine($"                <img src=\"{logoDarkUrl}\" class=\"h-8 w-auto hidden dark:block\">");
+                sb.AppendLine($"                <img src=\"{logoDarkUrl}\" class=\"{logoH} w-auto hidden dark:block\">");
             }
             else
             {
-                sb.AppendLine($"                <img src=\"{logoUrl}\" class=\"h-8 w-auto hidden dark:block\">");
+                sb.AppendLine($"                <img src=\"{logoUrl}\" class=\"{logoH} w-auto hidden dark:block\">");
             }
         }
 
@@ -209,7 +216,7 @@ namespace Neko.Builder
             // curiosity.ai); docs use the muted grey.
             if (_isBlogMode)
             {
-                sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-[15px] font-normal md:ml-6\" style=\"color:var(--blog-ink)\">");
+                sb.AppendLine("        <div class=\"hidden md:flex items-center gap-[22px] text-sm font-medium md:ml-1.5\" style=\"color:var(--blog-ink)\">");
             }
             else
             {
@@ -307,7 +314,10 @@ namespace Neko.Builder
 
         private void RenderNavbarActions(StringBuilder sb)
         {
-            sb.AppendLine("        <div class=\"flex items-center gap-4 hidden md:flex\">");
+            // Blog mode sits its CTA pills closer together (curiosity.ai uses ~10px);
+            // docs keeps the wider gap for its search/history/toggle row.
+            var actionsGap = _isBlogMode ? "gap-2.5" : "gap-4";
+            sb.AppendLine($"        <div class=\"flex items-center {actionsGap} hidden md:flex\">");
             // In blog mode the search box moves out of the header to the top of the
             // post list (see RenderContentSearchBar); docs keep it in the header.
             if (!_isBlogMode)
