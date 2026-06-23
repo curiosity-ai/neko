@@ -44,6 +44,10 @@ namespace Neko.Builder
 
         private static readonly Regex AttrPattern = new(@"(?<k>\w+)\s*=\s*""(?<v>[^""]*)""", RegexOptions.Compiled);
 
+        // Counts documented declarations in an extracted block — one `<summary>` per
+        // type/member carrying XML doc comments — for the per-marker sync log line.
+        private static readonly Regex DocCommentPattern = new(@"///\s*<summary>", RegexOptions.Compiled);
+
         /// <summary>
         /// Regenerates every <c>api:source</c> marker block under <paramref name="inputDir"/>.
         /// Source roots are resolved solely from the root <c>neko.yml</c>'s <c>apiDocs.roots</c>
@@ -132,6 +136,9 @@ namespace Neko.Builder
                     }
                     sb.Append("<!-- api:source end -->");
                     result.MarkerRefreshes++;
+
+                    var docComments = blocks.Sum(b => DocCommentPattern.Matches(b).Count);
+                    Console.WriteLine($"  api-docs: synced {docComments} XML doc comment(s) from {repo}:{fileAttr} → {Path.GetRelativePath(inputDir, mdPath)}");
                     return sb.ToString();
                 });
 
