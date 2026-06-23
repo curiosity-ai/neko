@@ -197,8 +197,10 @@ mode: blog
   the dark-mode toggle, the logo paired with the branding title, the slim
   in-content footer.
 - **`blog`** — the marketing-site look (as on curiosity.ai): a borderless
-  header, the logo used on its own as a **wordmark** (no duplicated title),
-  `actions` CTA buttons, and the full-width marketing footer. The
+  header with the nav `links` **clustered next to the logo** (used on its own as
+  a **wordmark**, no duplicated title) and the `actions` CTA buttons pushed to
+  the right, plus an **edge-to-edge** marketing footer (the dark panel spans the
+  pane width; its inner content is centred at `layout.maxWidth`). The
   page/header/CTA palette comes from `theme.base`. Blog mode is **light-only by
   default** (the theme toggle is hidden and light is locked). Define a
   `theme.dark` palette to **opt into dark mode** and bring the toggle back. The
@@ -255,8 +257,9 @@ footer:
 ```
 
 In **blog mode**, add `columns` / `social` / `badges` (and optionally `logo` /
-`tagline`) to render the full-width, dark marketing footer. When none are set,
-blog mode falls back to a slim centred footer.
+`tagline`) to render the edge-to-edge, dark marketing footer (its inner content
+is centred at `layout.maxWidth`, lining the footer logo up under the header
+logo). When none are set, blog mode falls back to a slim centred footer.
 
 ```yml
 mode: blog

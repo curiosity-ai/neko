@@ -139,7 +139,12 @@ namespace Neko.Builder
             RenderPivot(sb, currentUrl);
 
             var maxWidthClass = LayoutMaxWidthClass();
-            var rowWidthClass = string.IsNullOrEmpty(maxWidthClass) ? string.Empty : $" {maxWidthClass} w-full";
+            // In blog mode the content row is NOT capped at `layout.maxWidth`: `main`
+            // runs full-width so the marketing footer can span the pane edge-to-edge
+            // (the curiosity.ai look). Centering is instead applied per-region — the
+            // navbar caps its own inner row and the content keeps its reading column —
+            // so the header and posts still line up at `maxWidth`.
+            var rowWidthClass = (_isBlogMode || string.IsNullOrEmpty(maxWidthClass)) ? string.Empty : $" {maxWidthClass} w-full";
             sb.AppendLine($"    <div class=\"flex flex-1 overflow-hidden{rowWidthClass}\">");
 
             if (_config.Layout.Sidebar)
