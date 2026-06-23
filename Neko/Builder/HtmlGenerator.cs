@@ -110,7 +110,7 @@ namespace Neko.Builder
             // on a white canvas.
             if (_isBlogMode)
             {
-                sb.AppendLine($"<body style=\"background-color:{BlogBaseBg()};color:{BlogBaseColor()}\" class=\"flex flex-col h-screen overflow-hidden\">");
+                sb.AppendLine("<body style=\"background-color:var(--blog-bg);color:var(--blog-ink)\" class=\"flex flex-col h-screen overflow-hidden\">");
             }
             else
             {
@@ -228,6 +228,20 @@ namespace Neko.Builder
         {
             if (_config.Theme?.Base != null && _config.Theme.Base.TryGetValue("base-color", out var v) && !string.IsNullOrWhiteSpace(v)) return v;
             return "#1f1f1f";
+        }
+
+        // Dark-mode counterparts, from `theme.dark`. Defaults to a near-black page
+        // with light ink so blog mode reads correctly when the site is in dark mode.
+        private string BlogDarkBg()
+        {
+            if (_config.Theme?.Dark != null && _config.Theme.Dark.TryGetValue("base-bg", out var v) && !string.IsNullOrWhiteSpace(v)) return v;
+            return "#0f1115";
+        }
+
+        private string BlogDarkColor()
+        {
+            if (_config.Theme?.Dark != null && _config.Theme.Dark.TryGetValue("base-color", out var v) && !string.IsNullOrWhiteSpace(v)) return v;
+            return "#f1f1f1";
         }
 
         private static string EscapeHtmlAttr(string value)

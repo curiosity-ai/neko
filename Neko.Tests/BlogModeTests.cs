@@ -60,8 +60,9 @@ namespace Neko.Tests
             Assert.That(html, Contains.Substring(">Talk to Sales</a>"));
             // Pills, driven by the base palette (defaults: #1f1f1f ink on #f1f1f1).
             Assert.That(html, Contains.Substring("rounded-full"));
-            Assert.That(html, Contains.Substring("background-color:#1f1f1f;color:#f1f1f1"));   // primary = solid fill
-            Assert.That(html, Contains.Substring("border:1px solid #1f1f1f;color:#1f1f1f"));   // outline = bordered
+            // Pills are driven by the palette vars so they invert with dark mode.
+            Assert.That(html, Contains.Substring("background-color:var(--blog-ink);color:var(--blog-bg)"));   // primary = solid fill
+            Assert.That(html, Contains.Substring("border:1px solid var(--blog-ink);color:var(--blog-ink)"));  // outline = bordered
             // `target: blank` is normalised to a valid _blank target.
             Assert.That(html, Contains.Substring("target=\"_blank\""));
         }
@@ -103,15 +104,33 @@ namespace Neko.Tests
         }
 
         [Test]
-        public void BlogMode_OmitsThemeToggle_AndForcesLight()
+        public void BlogMode_SupportsDarkAndLight()
         {
             var html = new HtmlGenerator(BlogConfig()).Generate(Doc());
 
-            Assert.That(html, Does.Not.Contain("id=\"theme-toggle\""));
-            Assert.That(html, Contains.Substring("localStorage.theme = 'light'"));
-            // Light page background from the base palette, and no history clock.
-            Assert.That(html, Contains.Substring("background-color:#f1f1f1"));
+            // Keeps the theme toggle and does NOT force light — the palette is
+            // exposed as CSS vars that switch on `.dark` (light = theme.base,
+            // dark = theme.dark, with sensible defaults).
+            Assert.That(html, Contains.Substring("id=\"theme-toggle\""));
+            Assert.That(html, Does.Not.Contain("localStorage.theme = 'light'"));
+            Assert.That(html, Contains.Substring("--blog-bg: #f1f1f1"));
+            Assert.That(html, Contains.Substring("--blog-ink: #1f1f1f"));
+            Assert.That(html, Contains.Substring("html.dark { --blog-bg: #0f1115; --blog-ink: #f1f1f1; }"));
+            Assert.That(html, Contains.Substring("background-color:var(--blog-bg)"));
+            // The recent-pages history clock stays out of the marketing header.
             Assert.That(html, Does.Not.Contain("id=\"history-btn\""));
+        }
+
+        [Test]
+        public void BlogMode_DarkPalette_ComesFromThemeDark()
+        {
+            var config = BlogConfig();
+            config.Theme.Dark["base-bg"] = "#101820";
+            config.Theme.Dark["base-color"] = "#dde3ea";
+
+            var html = new HtmlGenerator(config).Generate(Doc());
+
+            Assert.That(html, Contains.Substring("html.dark { --blog-bg: #101820; --blog-ink: #dde3ea; }"));
         }
 
         [Test]

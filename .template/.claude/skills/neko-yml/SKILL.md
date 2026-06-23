@@ -196,12 +196,24 @@ mode: blog
 - **`docs`** (default) — the documentation chrome: a bordered white header with
   the dark-mode toggle, the logo paired with the branding title, the slim
   in-content footer.
-- **`blog`** — the marketing-site look (as on curiosity.ai): a light, borderless
+- **`blog`** — the marketing-site look (as on curiosity.ai): a borderless
   header, the logo used on its own as a **wordmark** (no duplicated title),
-  `actions` CTA buttons, a single (light) palette with **no theme toggle**, a
-  light page background, and the full-width marketing footer. The search box
-  moves out of the header to the **top of the post list** (still openable with
-  `⌘K`).
+  `actions` CTA buttons, and the full-width marketing footer. The
+  page/header/CTA palette comes from `theme.base` (light) and `theme.dark`
+  (dark), so blog mode **supports both light and dark mode** and keeps the
+  theme toggle. The search box moves out of the header to the **top of the post
+  list** (still openable with `⌘K`).
+
+  ```yml
+  mode: blog
+  theme:
+    base:                 # light palette
+      base-bg: "#f1f1f1"
+      base-color: "#1f1f1f"
+    dark:                 # dark palette (optional; sensible defaults otherwise)
+      base-bg: "#0f1115"
+      base-color: "#f1f1f1"
+  ```
 
 Blog mode pairs naturally with `layout.sidebar: false`, `layout.toc: false`,
 `actions:`, and the marketing `footer:` fields below. It is inherited by

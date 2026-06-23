@@ -55,7 +55,7 @@ namespace Neko.Builder
             // (driven by the `theme.base` palette).
             if (_isBlogMode)
             {
-                sb.AppendLine($"    <header style=\"background-color:{BlogBaseBg()}\" class=\"h-16 shrink-0 flex items-center px-6 z-30\">");
+                sb.AppendLine("    <header style=\"background-color:var(--blog-bg)\" class=\"h-16 shrink-0 flex items-center px-6 z-30\">");
             }
             else
             {
@@ -194,7 +194,7 @@ namespace Neko.Builder
             // curiosity.ai); docs use the muted grey.
             if (_isBlogMode)
             {
-                sb.AppendLine($"        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium\" style=\"color:{BlogBaseColor()}\">");
+                sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium\" style=\"color:var(--blog-ink)\">");
             }
             else
             {
@@ -324,16 +324,13 @@ namespace Neko.Builder
                 sb.AppendLine("                <i class=\"fi fi-rr-edit text-lg\"></i>");
                 sb.AppendLine("            </button>");
             }
-            // The light/dark toggle belongs to the documentation chrome. Blog
-            // mode follows the marketing site, which is presented in a single
-            // (light) palette, so the toggle is omitted there.
-            if (!_isBlogMode)
-            {
-                sb.AppendLine("            <button id=\"theme-toggle\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
-                sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
-                sb.AppendLine("                <i class=\"fi fi-rr-sun hidden dark:block text-lg\"></i>");
-                sb.AppendLine("            </button>");
-            }
+            // Light/dark toggle — shown in both modes so blog sites support dark
+            // and light too. In blog mode it inherits the base ink colour.
+            var toggleStyle = _isBlogMode ? " style=\"color:var(--blog-ink)\"" : "";
+            sb.AppendLine($"            <button id=\"theme-toggle\"{toggleStyle} class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
+            sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
+            sb.AppendLine("                <i class=\"fi fi-rr-sun hidden dark:block text-lg\"></i>");
+            sb.AppendLine("            </button>");
 
             RenderNavbarActionButtons(sb);
 
@@ -359,14 +356,13 @@ namespace Neko.Builder
 
                 if (_isBlogMode)
                 {
-                    // Solid = base-colour fill with base-bg text; outline = base-colour
-                    // border + text. Matches the curiosity.ai pills exactly.
-                    var baseColor = BlogBaseColor();
-                    var baseBg = BlogBaseBg();
+                    // Driven by the blog palette vars so the pills invert with dark
+                    // mode: solid = ink fill with page-bg text; outline = ink border
+                    // + text. Matches the curiosity.ai pills in light mode.
                     var blogClass = "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-80 whitespace-nowrap";
                     var style = isOutline
-                        ? $"border:1px solid {baseColor};color:{baseColor}"
-                        : $"background-color:{baseColor};color:{baseBg}";
+                        ? "border:1px solid var(--blog-ink);color:var(--blog-ink)"
+                        : "background-color:var(--blog-ink);color:var(--blog-bg)";
                     sb.AppendLine($"            <a href=\"{href}\"{target}{rel} class=\"{blogClass}\" style=\"{style}\">{iconHtml}{action.Text}</a>");
                     continue;
                 }
