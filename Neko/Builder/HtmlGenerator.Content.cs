@@ -101,13 +101,18 @@ namespace Neko.Builder
 
         private void RenderPasswordProtectedBody(StringBuilder sb, string htmlContent, string effectivePassword, ParsedDocument document)
         {
-            var isGlobalPassword = string.IsNullOrEmpty(document.FrontMatter.Password) && !string.IsNullOrEmpty(_config.Password);
-            sb.AppendLine($"<script>window.nekoIsGlobalPassword = {isGlobalPassword.ToString().ToLower()};</script>");
-
             var encryptionResult = Neko.Encryption.PageEncryptor.Encrypt(htmlContent, effectivePassword);
 
+            // The prompt is hidden by default and only revealed by password.js when
+            // there is no cached key for this password (or a cached key fails). When
+            // the visitor has already unlocked a page protected with the same
+            // password this session, the key is reused from sessionStorage and the
+            // content is decrypted straight away — so navigating between protected
+            // pages never flashes this form. A <noscript> rule reveals it for clients
+            // without JavaScript, who otherwise see an empty page.
+            sb.AppendLine($"<noscript><style>#password-form-container.hidden{{display:flex !important;}}</style></noscript>");
             sb.AppendLine($"<div id=\"content-container\">");
-            sb.AppendLine($"    <div id=\"password-form-container\" class=\"flex flex-col items-center justify-center py-20 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700\">");
+            sb.AppendLine($"    <div id=\"password-form-container\" class=\"hidden flex flex-col items-center justify-center py-20 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700\">");
             sb.AppendLine($"        <div class=\"p-8 bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 max-w-md w-full text-center\">");
             sb.AppendLine($"            <div class=\"w-12 h-12 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-full flex items-center justify-center mx-auto mb-4\">");
             sb.AppendLine($"                <i class=\"fi fi-rr-lock text-xl\"></i>");
