@@ -247,5 +247,12 @@ math-formulas · mermaid · panel · pdf · reference-link · snapframe · steps
 tab · table · tesserae · workflow · youtube · frontmatter · neko-yml ·
 folder-index.
 
+There is also one **workflow** skill that is not tied to a single component:
+
+- **update-documentation** — the routine to follow before editing any docs:
+  base every page on the real source code, warn loudly when the source isn't
+  available instead of guessing, and verify changed `tesserae` samples render
+  correctly (Playwright / `neko snap` / visual check).
+
 When you add a new component to Neko or change a component's syntax, **update
 the matching skill** so this template stays in sync with the engine.
