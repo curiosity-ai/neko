@@ -37,33 +37,21 @@ namespace Neko.Extensions
                 if (leafBlock != null)
                 {
                     var slices = leafBlock.Lines;
-                    var csharpCode = new System.Text.StringBuilder();
 
-                    // `// <hide>` … `// </hide>` markers fence off setup/plumbing that is
-                    // compiled and run but stripped from the source shown in the Code tab.
-                    // The compiled code keeps the hidden lines; only the markers are dropped.
-                    var hiddenLineIndices = new List<int>();
-                    var inHiddenRegion = false;
+                    // Split the block into the source that compiles/runs and the lines to
+                    // hide from the Code tab (// <hide> … // </hide> = run-only,
+                    // // <docs> … // </docs> = display-only). Shared with the cache-warming
+                    // pass so both compile byte-identical source — see TesseraeCompiler.
+                    var rawLines = new List<string>(slices.Count);
                     for (int i = 0; i < slices.Count; i++)
                     {
                         var slice = slices.Lines[i].Slice;
-                        var lineText = slice.Text == null ? string.Empty : slice.ToString();
-                        var trimmed = lineText.Trim();
-
-                        var isHideStart = trimmed.Equals("//<hide>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// <hide>", StringComparison.OrdinalIgnoreCase);
-                        var isHideEnd = trimmed.Equals("//</hide>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// </hide>", StringComparison.OrdinalIgnoreCase);
-
-                        if (isHideStart) { inHiddenRegion = true; hiddenLineIndices.Add(i); continue; }
-                        if (isHideEnd) { inHiddenRegion = false; hiddenLineIndices.Add(i); continue; }
-
-                        if (slice.Text != null) csharpCode.AppendLine(lineText);
-
-                        if (inHiddenRegion) hiddenLineIndices.Add(i);
+                        rawLines.Add(slice.Text == null ? null : slice.ToString());
                     }
 
-                    var codeString = csharpCode.ToString();
+                    var (codeString, hiddenLineIndices) = Neko.Builder.TesseraeCompiler.PartitionSampleSource(rawLines);
 
-                    // Drop the hidden lines (and the markers) from what the Code tab shows,
+                    // Drop the hidden lines (and every marker) from what the Code tab shows,
                     // leaving the compiled/run source untouched. Remove from the end so the
                     // earlier indices stay valid.
                     for (int i = hiddenLineIndices.Count - 1; i >= 0; i--)

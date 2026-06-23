@@ -125,6 +125,46 @@ namespace Neko.Builder
             return input.Hash128().ToString();
         }
 
+        // Partition a sample's raw lines into the source that gets compiled and the
+        // indices to hide from the displayed Code tab. Two marker regions are honoured:
+        //   // <hide> … // </hide>  — compiled and run, hidden from the Code tab.
+        //   // <docs> … // </docs>  — shown in the Code tab, but NOT compiled.
+        // Marker lines themselves are dropped from both. A null entry represents a
+        // blank source line and is never emitted into the compiled source.
+        // Both the cache-warming pass and the render pass call this, so the compiled
+        // source (and therefore the cache key) is identical in both.
+        public static (string Compiled, List<int> HiddenDisplayIndices) PartitionSampleSource(IReadOnlyList<string> lines)
+        {
+            var sb = new StringBuilder();
+            var hidden = new List<int>();
+            var inHide = false;
+            var inDocs = false;
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var lineText = lines[i];
+                var trimmed = (lineText ?? string.Empty).Trim();
+
+                var isHideStart = trimmed.Equals("//<hide>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// <hide>", StringComparison.OrdinalIgnoreCase);
+                var isHideEnd = trimmed.Equals("//</hide>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// </hide>", StringComparison.OrdinalIgnoreCase);
+                var isDocsStart = trimmed.Equals("//<docs>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// <docs>", StringComparison.OrdinalIgnoreCase);
+                var isDocsEnd = trimmed.Equals("//</docs>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// </docs>", StringComparison.OrdinalIgnoreCase);
+
+                if (isHideStart) { inHide = true; hidden.Add(i); continue; }
+                if (isHideEnd) { inHide = false; hidden.Add(i); continue; }
+                if (isDocsStart) { inDocs = true; hidden.Add(i); continue; }
+                if (isDocsEnd) { inDocs = false; hidden.Add(i); continue; }
+
+                // Compiled source includes hidden regions but not docs-only regions.
+                if (!inDocs && lineText != null) sb.AppendLine(lineText);
+
+                // Displayed source includes docs-only regions but not hidden regions.
+                if (inHide) hidden.Add(i);
+            }
+
+            return (sb.ToString(), hidden);
+        }
+
         private static string GetCacheDir()
         {
             // `_cacheRoot` is always set by the CLI entry points before a build.
