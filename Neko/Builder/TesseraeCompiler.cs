@@ -51,7 +51,23 @@ namespace Neko.Builder
         // newer one — otherwise the cached HTML can reference asset variants the new
         // build no longer writes (e.g. `h5.min.js` vs `h5.js`), 404ing the runtime
         // and leaving the live preview blank.
-        private const string CacheFormatVersion = "3";
+        private const string CacheFormatVersion = "4";
+
+        // Injected into every compiled sample so the live-preview iframe mirrors the
+        // docs page's light/dark mode. Kept dependency-free vanilla JS and resilient
+        // to cross-origin failures (falls back to the OS preference). Changing this
+        // changes the shape of the generated HTML, so bump CacheFormatVersion too.
+        private const string ThemeBridgeScript =
+            "<script>(function(){" +
+            "function apply(d){try{document.body.classList.toggle('tss-dark-mode',!!d);" +
+            "document.documentElement.style.colorScheme=d?'dark':'light';}catch(e){}}" +
+            "function parentDark(){try{return window.parent&&window.parent!==window&&" +
+            "window.parent.document.documentElement.classList.contains('dark');}" +
+            "catch(e){return window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;}}" +
+            "apply(parentDark());" +
+            "window.addEventListener('message',function(ev){" +
+            "if(ev&&ev.data&&ev.data.type==='neko-theme')apply(!!ev.data.dark);});" +
+            "})();</script>";
 
         // Default viewport width (CSS px) used when measuring sample heights. Chosen
         // to approximate the live-preview iframe width inside the docs content column
@@ -107,6 +123,46 @@ namespace Neko.Builder
         public static string ComputeHash(string input)
         {
             return input.Hash128().ToString();
+        }
+
+        // Partition a sample's raw lines into the source that gets compiled and the
+        // indices to hide from the displayed Code tab. Two marker regions are honoured:
+        //   // <hide> … // </hide>  — compiled and run, hidden from the Code tab.
+        //   // <docs> … // </docs>  — shown in the Code tab, but NOT compiled.
+        // Marker lines themselves are dropped from both. A null entry represents a
+        // blank source line and is never emitted into the compiled source.
+        // Both the cache-warming pass and the render pass call this, so the compiled
+        // source (and therefore the cache key) is identical in both.
+        public static (string Compiled, List<int> HiddenDisplayIndices) PartitionSampleSource(IReadOnlyList<string> lines)
+        {
+            var sb = new StringBuilder();
+            var hidden = new List<int>();
+            var inHide = false;
+            var inDocs = false;
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var lineText = lines[i];
+                var trimmed = (lineText ?? string.Empty).Trim();
+
+                var isHideStart = trimmed.Equals("//<hide>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// <hide>", StringComparison.OrdinalIgnoreCase);
+                var isHideEnd = trimmed.Equals("//</hide>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// </hide>", StringComparison.OrdinalIgnoreCase);
+                var isDocsStart = trimmed.Equals("//<docs>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// <docs>", StringComparison.OrdinalIgnoreCase);
+                var isDocsEnd = trimmed.Equals("//</docs>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// </docs>", StringComparison.OrdinalIgnoreCase);
+
+                if (isHideStart) { inHide = true; hidden.Add(i); continue; }
+                if (isHideEnd) { inHide = false; hidden.Add(i); continue; }
+                if (isDocsStart) { inDocs = true; hidden.Add(i); continue; }
+                if (isDocsEnd) { inDocs = false; hidden.Add(i); continue; }
+
+                // Compiled source includes hidden regions but not docs-only regions.
+                if (!inDocs && lineText != null) sb.AppendLine(lineText);
+
+                // Displayed source includes docs-only regions but not hidden regions.
+                if (inHide) hidden.Add(i);
+            }
+
+            return (sb.ToString(), hidden);
         }
 
         private static string GetCacheDir()
@@ -606,6 +662,13 @@ namespace Neko.Builder
 
                 htmlBuilder.AppendLine("</head>");
                 htmlBuilder.AppendLine("<body>");
+                // Make the live-preview follow the surrounding docs page's light/dark
+                // mode. Tesserae's dark theme is the `tss-dark-mode` class on <body>;
+                // the docs page marks dark mode with the `dark` class on <html>. This
+                // is an `about:srcdoc` iframe, so it shares the parent's origin and can
+                // read that class directly on load, then react to later toggles which
+                // the page broadcasts via postMessage (see RenderThemeSwitchScript).
+                htmlBuilder.AppendLine(ThemeBridgeScript);
                 htmlBuilder.AppendLine($"<script>{result.AppJsContent}</script>");
                 htmlBuilder.AppendLine("</body>");
                 htmlBuilder.AppendLine("</html>");

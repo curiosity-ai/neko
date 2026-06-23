@@ -62,10 +62,13 @@ public class TodoApp
 
 ## Hiding setup code from the displayed source
 
-Lines between `// <hide>` and `// </hide>` markers are **compiled and run** but
-removed from the source shown in the **Code** tab. Use this to keep boilerplate
-(styling, layout chrome, demo-only plumbing) out of the snippet while the live
-preview still shows the full result.
+Two marker pairs let the displayed source differ from what is compiled and run:
+
+- `// <hide>` … `// </hide>` — **compiled and run, but removed from the Code tab.**
+  Use it for boilerplate (styling, layout chrome, demo-only plumbing).
+- `// <docs>` … `// </docs>` — **shown in the Code tab, but NOT compiled.**
+  Use it to show the idiomatic call a sample can't run as-is (e.g. an API the
+  sandboxed preview can't use), while a hidden block runs a preview-safe variant.
 
 ````markdown
 ```tesserae
@@ -78,12 +81,22 @@ return Stack().Children(navbar /* … */).Render();
 ```
 ````
 
-- The markers must be on their own line (leading/trailing whitespace is fine);
+A show-real-code / run-safe-code pairing looks like:
+
+```csharp
+// <docs>
+button.OnClick((s, e) => Router.Push("#/view/42")); // shown, not compiled
+// </docs>
+// <hide>
+button.OnClick((s, e) => Go("#/view/42"));          // compiled and run
+// </hide>
+```
+
+- Markers must be on their own line (leading/trailing whitespace is fine);
   matching is case-insensitive and a single space after `//` is optional.
-- The marker lines themselves are dropped from both the displayed code and the
-  compiled code, so they never affect the running sample.
-- Hidden code is still executed — a syntax error inside a hidden region still
-  fails the build.
+- The marker lines are dropped from both the displayed and the compiled code.
+- Hidden code still runs — a syntax error inside a `// <hide>` region still
+  fails the build. Code inside `// <docs>` is not compiled, so it is not checked.
 
 ## Caching and performance
 
