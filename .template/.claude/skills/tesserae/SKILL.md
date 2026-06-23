@@ -87,6 +87,9 @@ public class App { public static void Main() { /* idiomatic version */ } }
   have a `height=` token and saves each file as it goes, so re-running only
   measures new samples. Pass `--force` to re-measure everything; tune the
   measurement width with `tesserae.measureWidth`. Commit the rewritten Markdown.
+- Target a single file with **`neko gen-tesserae-heights --file <path>`**. A
+  targeted run always re-measures that file's samples (there is no hash cache),
+  so rerun it after editing a sample to refresh its `height=`.
 - You can also set the token by hand; the preview stays manually resizable via
   the iframe's drag handle either way.
 
