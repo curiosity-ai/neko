@@ -51,6 +51,29 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void TestPasswordProtectedPageHidesPromptByDefault()
+        {
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Secret content</p>",
+                FrontMatter = new FrontMatter { Title = "Secret", Password = "letmein" }
+            };
+
+            var html = _generator.Generate(doc, currentUrl: "/secret");
+
+            // The plaintext must not ship in the page; only the encrypted payload.
+            Assert.That(html, Does.Not.Contain("<p>Secret content</p>"));
+            Assert.That(html, Contains.Substring("id=\"encrypted-data\""));
+            Assert.That(html, Contains.Substring("/assets/password.js"));
+
+            // The prompt is hidden by default so navigating with a cached session
+            // key never flashes it; password.js reveals it only on a cache miss.
+            Assert.That(html, Contains.Substring("id=\"password-form-container\" class=\"hidden "));
+            // The old global-password flag is gone (key caching is keyed by salt).
+            Assert.That(html, Does.Not.Contain("nekoIsGlobalPassword"));
+        }
+
+        [Test]
         public void TestPageLinksRenderedAboveToc()
         {
             _config.Url = "docs.example.com";
