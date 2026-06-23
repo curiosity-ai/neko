@@ -141,7 +141,7 @@ The measurement viewport width is configurable via
 [`tesserae.measureWidth`](/configuration/core/project#tesserae). The preview
 stays manually resizable via the iframe's bottom-right drag handle regardless.
 
-## Showing different code than what runs
+## Tailoring the displayed source
 
 By default a `tesserae` block is **both compiled and displayed as-is** — write a
 complete program and the reader sees exactly what runs.
