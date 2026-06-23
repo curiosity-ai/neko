@@ -11,6 +11,13 @@ namespace Neko.Builder
         private readonly bool _isWatchMode;
         private readonly string _headIncludes;
 
+        // One salt reused for every password-protected payload this generator
+        // emits (page bodies + protected sidebar titles). Sharing the salt means
+        // the browser derives the PBKDF2 key once per page load and reuses it for
+        // all payloads, instead of running ~100k iterations per item. See
+        // PageEncryptor.GenerateSalt.
+        private readonly byte[] _passwordSalt = Neko.Encryption.PageEncryptor.GenerateSalt();
+
         public HtmlGenerator(NekoConfig config, bool isWatchMode = false, string headIncludes = null)
         {
             _config = config;

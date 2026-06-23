@@ -28,6 +28,32 @@ namespace Neko.Builder
             sb.AppendLine("                </div>");
             sb.AppendLine("            </nav>");
             sb.AppendLine("        </aside>");
+
+            // Restore the sidebar's per-navigation state SYNCHRONOUSLY here —
+            // right after the sidebar markup and before the (large) page body is
+            // parsed/painted — so the menu renders in its final state on the first
+            // frame instead of visibly "refreshing" (jumping scroll, collapsing
+            // sections, revealing protected titles) once the end-of-body scripts
+            // run. Every navigation is a full page reload, so without this the
+            // sidebar always paints in its default state first and then snaps.
+            // The end-of-body scripts still attach the persistence listeners; they
+            // re-apply the same state, which is a no-op now that it is already set.
+            var keyBase = System.Text.RegularExpressions.Regex.Replace(_config.Branding?.Title ?? "neko", "[^a-zA-Z0-9]", "-").ToLower();
+            var restore =
+                "<script>(function(){try{" +
+                "var SB=document.getElementById('sidebar');" +
+                // Protected titles from the sessionStorage cache (see password.js).
+                "var c=sessionStorage.getItem('neko-sidebar-cache');if(c){var m=JSON.parse(c);document.querySelectorAll('#sidebar-list .protected-sidebar-item').forEach(function(li){var d=li.querySelector(':scope > details');var a=li.querySelector(':scope > a');var k=d?('s:'+d.getAttribute('data-section-key')):(a?('l:'+a.getAttribute('href')):null);if(k&&m[k]!=null){var t=li.querySelector('.protected-text');if(t)t.innerHTML=m[k];li.classList.remove('hidden');var p=li.parentElement;while(p&&p.id!=='sidebar-list'){p.classList.remove('hidden');if(p.tagName==='DETAILS')p.open=true;p=p.parentElement;}}});}" +
+                // Section open/collapse state from the user's last choice.
+                "var ss={};try{ss=JSON.parse(localStorage.getItem('" + keyBase + "-sidebar-sections')||'{}')||{};}catch(e){}" +
+                "if(SB)SB.querySelectorAll('details[data-section-key]').forEach(function(d){var k=d.getAttribute('data-section-key');if(Object.prototype.hasOwnProperty.call(ss,k))d.open=!!ss[k];});" +
+                // Always reveal the section(s) containing the current page.
+                "var cur=location.pathname;function canon(p){if(!p)return p;if(p.endsWith('.html'))p=p.slice(0,-5);if(p.length>1&&p.endsWith('/'))p=p.slice(0,-1);if(p.endsWith('/index'))p=p.slice(0,-6)||'/';return p;}" +
+                "document.querySelectorAll('#sidebar-list a').forEach(function(a){var h=a.getAttribute('href');if(!h||h==='#')return;var ch=canon(h),cc=canon(cur);var match=(ch===cc)||(ch!=='/'&&!h.endsWith('/index')&&!h.endsWith('/')&&cc.indexOf(ch)===0&&cc.charAt(ch.length)==='/');if(match){a.classList.add('bg-primary-50','dark:bg-primary-900','text-primary-700','dark:text-primary-300','font-medium');a.classList.remove('text-gray-700','dark:text-gray-200');var p=a.parentElement;while(p&&p.id!=='sidebar-list'){if(p.tagName==='DETAILS')p.open=true;p=p.parentElement;}}});" +
+                // Scroll position (kept for 60s) so a long nav doesn't jump to top.
+                "if(SB){var s=localStorage.getItem('" + keyBase + "-sidebar-scroll'),t=localStorage.getItem('" + keyBase + "-sidebar-scroll-time');if(s&&t&&(Date.now()-parseInt(t)<60000))SB.scrollTop=parseInt(s);}" +
+                "}catch(e){}})();</script>";
+            sb.AppendLine("        " + restore);
         }
 
         private void RenderSidebarItems(StringBuilder sb, List<LinkConfig> links, int level, string parentGroupId = "__root__", string parentSectionKey = "")
@@ -112,7 +138,7 @@ namespace Neko.Builder
 
                 if (!string.IsNullOrEmpty(effectivePassword))
                 {
-                    var encryptionResult = Neko.Encryption.PageEncryptor.Encrypt(link.Text ?? "", effectivePassword);
+                    var encryptionResult = Neko.Encryption.PageEncryptor.Encrypt(link.Text ?? "", effectivePassword, _passwordSalt);
                     var payloadObj = new { salt = encryptionResult.Salt, iv = encryptionResult.Iv, data = encryptionResult.Data };
                     var payloadJson = System.Text.Json.JsonSerializer.Serialize(payloadObj);
                     var payloadBase64 = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(payloadJson));

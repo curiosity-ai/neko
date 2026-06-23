@@ -104,7 +104,21 @@ namespace Neko.Builder
             var isGlobalPassword = string.IsNullOrEmpty(document.FrontMatter.Password) && !string.IsNullOrEmpty(_config.Password);
             sb.AppendLine($"<script>window.nekoIsGlobalPassword = {isGlobalPassword.ToString().ToLower()};</script>");
 
-            var encryptionResult = Neko.Encryption.PageEncryptor.Encrypt(htmlContent, effectivePassword);
+            // Prevent the "Password Protected" gate from flashing for visitors who
+            // already hold a valid saved password (e.g. navigating page-to-page inside
+            // a globally-protected site). The gate is server-rendered and would paint
+            // before the async auto-unlock in password.js can swap in the content, so a
+            // synchronous inline script — running before the gate markup is parsed —
+            // adds `neko-unlocking` to <html> when a saved password exists, and the CSS
+            // rule below hides the gate until decryption resolves (decryption is ~25ms
+            // for a returning visitor, so the content area just stays empty for that
+            // brief moment — no loading indicator, which would otherwise flash on the
+            // occasions decryption runs a little long). password.js removes the class
+            // again if auto-unlock fails.
+            sb.AppendLine("<style>.neko-unlocking #password-form-container{display:none}</style>");
+            sb.AppendLine("<script>(function(){try{var s=sessionStorage.getItem('neko-page-password-'+location.pathname)||(window.nekoIsGlobalPassword?sessionStorage.getItem('neko-global-password'):null);if(s)document.documentElement.classList.add('neko-unlocking');}catch(e){}})();</script>");
+
+            var encryptionResult = Neko.Encryption.PageEncryptor.Encrypt(htmlContent, effectivePassword, _passwordSalt);
 
             sb.AppendLine($"<div id=\"content-container\">");
             sb.AppendLine($"    <div id=\"password-form-container\" class=\"flex flex-col items-center justify-center py-20 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700\">");
