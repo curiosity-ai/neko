@@ -185,10 +185,14 @@
 
     // Build the table of contents from the just-decrypted headings — so no heading
     // text ships in the page source — and set the real document title from the H1.
-    // Runs in the same tick as the content injection so the page appears as one unit.
     function revealProtectedChrome(container) {
-        const tocList = document.getElementById('toc-list');
-        if (tocList) {
+        // password.js loads mid-body (right after the content), so the TOC rail,
+        // which sits further down the DOM, may not be parsed yet when we decrypt.
+        // Build the list as soon as the rail exists — now if it's already parsed,
+        // otherwise on DOMContentLoaded.
+        const buildToc = () => {
+            const tocList = document.getElementById('toc-list');
+            if (!tocList || tocList.querySelector('.toc-link')) return;
             container.querySelectorAll('h2[id], h3[id], h4[id]').forEach((h) => {
                 const level = parseInt(h.tagName.substring(1), 10);
                 const li = document.createElement('li');
@@ -202,7 +206,9 @@
             });
             const tocWrap = document.getElementById('toc-protected');
             if (tocWrap) tocWrap.classList.remove('hidden');
-        }
+        };
+        if (document.getElementById('toc-list')) buildToc();
+        else document.addEventListener('DOMContentLoaded', buildToc, { once: true });
 
         const h1 = container.querySelector('h1');
         if (h1) {
