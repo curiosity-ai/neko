@@ -300,7 +300,7 @@ namespace Neko.Builder
             // footer logo lines up under the navbar logo.
             var footerInnerWidth = LayoutMaxWidthClass();
             if (string.IsNullOrEmpty(footerInnerWidth)) footerInnerWidth = "max-w-screen-2xl";
-            sb.AppendLine($"                    <div class=\"{footerInnerWidth} mx-auto px-6 md:px-8 pt-14 md:pt-20 pb-10\">");
+            sb.AppendLine($"                    <div class=\"{footerInnerWidth} mx-auto px-6 md:px-10 pt-14 md:pt-20 pb-10\">");
             sb.AppendLine("                        <div class=\"grid grid-cols-2 gap-10 md:grid-cols-12\">");
 
             // Brand / social / badges column.
@@ -370,7 +370,7 @@ namespace Neko.Builder
                             var href = link.Link ?? "#";
                             var target = !string.IsNullOrEmpty(link.Target) ? $" target=\"{NormalizeTarget(link.Target)}\"" : "";
                             var rel = target.Contains("_blank") ? " rel=\"noopener noreferrer\"" : "";
-                            sb.AppendLine($"                                    <li><a href=\"{href}\"{target}{rel} class=\"text-sm leading-7 text-gray-400 hover:text-white transition-colors no-underline\">{link.Text}</a></li>");
+                            sb.AppendLine($"                                    <li><a href=\"{href}\"{target}{rel} class=\"text-[15px] leading-7 text-gray-200 hover:text-white transition-colors no-underline\">{link.Text}</a></li>");
                         }
                     }
                     sb.AppendLine("                                </ul>");

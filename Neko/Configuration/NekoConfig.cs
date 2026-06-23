@@ -183,6 +183,12 @@ namespace Neko.Configuration
             if (Theme.Highlight.Dark == "tokyo-night-dark" && parent.Theme.Highlight.Dark != "tokyo-night-dark")
                 Theme.Highlight.Dark = parent.Theme.Highlight.Dark;
 
+            if (Theme.Font != null && parent.Theme.Font != null)
+            {
+                if (string.IsNullOrEmpty(Theme.Font.Family)) Theme.Font.Family = parent.Theme.Font.Family;
+                if (string.IsNullOrEmpty(Theme.Font.Url)) Theme.Font.Url = parent.Theme.Font.Url;
+            }
+
             foreach (var kvp in parent.Theme.Accent)
             {
                 if (!Theme.Accent.ContainsKey(kvp.Key)) Theme.Accent[kvp.Key] = kvp.Value;
@@ -615,6 +621,28 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "accent")]
         public Dictionary<string, string> Accent { get; set; } = new Dictionary<string, string>();
+
+        // Optional body font override. When set, Neko loads this font (instead of
+        // its bundled Inter) and uses it as the site's base `font-family`.
+        [YamlMember(Alias = "font")]
+        public FontConfig Font { get; set; } = new FontConfig();
+    }
+
+    // Configures the site's base font. Leave `family` empty to keep Neko's
+    // default (Inter). Set `family` to a CSS font-family name and, optionally,
+    // `url` to a stylesheet that provides it (e.g. a Google Fonts link).
+    public class FontConfig
+    {
+        // The CSS font-family name, e.g. "Plus Jakarta Sans". Neko appends a
+        // `, sans-serif` fallback automatically.
+        [YamlMember(Alias = "family")]
+        public string Family { get; set; }
+
+        // Optional stylesheet URL that provides the font (Google Fonts, a CDN,
+        // or a self-hosted `/assets/….css`). Omit when the font is already
+        // available (system font, or loaded by an include).
+        [YamlMember(Alias = "url")]
+        public string Url { get; set; }
     }
 
     public class HighlightConfig

@@ -2514,6 +2514,32 @@ theme:
 
 ===
 
+### font{#theme-font}
+
+=== font : `object`
+
+Overrides the site's base font. By default Neko loads **Inter**; set `theme.font`
+to use your brand's typeface instead. The chosen family becomes the site's base
+`font-family` (Neko appends a `, sans-serif` fallback), so the header, content,
+and footer all render in it.
+
+| Key      | Description |
+| ---      | --- |
+| `family` | The CSS font-family name, e.g. `Plus Jakarta Sans`. A full comma-separated stack is also accepted and used verbatim. |
+| `url`    | Optional stylesheet that provides the font — a Google Fonts link, another CDN, or a self-hosted `/assets/….css`. Omit for a system font or one loaded via an include. |
+
+```yml Brand font (Google Fonts)
+theme:
+  font:
+    family: Plus Jakarta Sans
+    url: https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap
+```
+
+When `family` is empty Neko keeps its bundled Inter. `theme.font` is inherited by
+[multi-repo](/configuration/core/project) child sites unless they set their own.
+
+===
+
 ---
 
 ## toc

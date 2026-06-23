@@ -118,9 +118,30 @@ namespace Neko.Builder
 
         private void RenderHeadFontsAndIcons(StringBuilder sb)
         {
-            // Inter Font
-            sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
-            sb.AppendLine("    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>");
+            // Base font. By default Neko ships Inter; a site can override it with
+            // `theme.font` (family + optional stylesheet URL) to match its brand —
+            // e.g. curiosity.ai's Plus Jakarta Sans.
+            var font = _config.Theme?.Font;
+            if (font != null && !string.IsNullOrEmpty(font.Family))
+            {
+                if (!string.IsNullOrEmpty(font.Url))
+                {
+                    sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{EscapeHtmlAttr(font.Url)}\">");
+                }
+                var family = font.Family.Trim();
+                // Quote the family name unless the author already quoted it or passed
+                // a full font stack (containing a comma).
+                var cssFamily = (family.Contains(",") || family.StartsWith("'") || family.StartsWith("\""))
+                    ? family
+                    : $"'{family}'";
+                sb.AppendLine($"    <style>:root {{ font-family: {cssFamily}, sans-serif; }}</style>");
+            }
+            else
+            {
+                // Inter Font (default)
+                sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
+                sb.AppendLine("    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>");
+            }
 
             // Flaticon UIcons (self-hosted v4 — see Neko.Tools.UIcons)
             sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/uicons-regular-rounded.css\">");
@@ -377,10 +398,21 @@ namespace Neko.Builder
             sb.AppendLine("        #toc-sidebar { -ms-overflow-style: none; scrollbar-width: none; }");
             sb.AppendLine("");
             sb.AppendLine("        /* Main Content */");
-            sb.AppendLine("        /* Always reserve the scrollbar gutter so content doesn't reflow");
-            sb.AppendLine("           horizontally when the vertical scrollbar appears (e.g. once async");
-            sb.AppendLine("           content — password-decrypted bodies, mermaid, images — grows the page). */");
-            sb.AppendLine("        #main-scroll { scrollbar-gutter: stable; }");
+            if (_isBlogMode)
+            {
+                // Blog mode: do NOT reserve a stable scrollbar gutter. The marketing
+                // footer is full-bleed, and a reserved gutter would leave a sliver of
+                // page background down the footer's right edge. With `auto` the
+                // scrollbar sits at the pane edge (as on curiosity.ai) instead.
+                sb.AppendLine("        #main-scroll { scrollbar-gutter: auto; }");
+            }
+            else
+            {
+                // Always reserve the scrollbar gutter so content doesn't reflow
+                // horizontally when the vertical scrollbar appears (e.g. once async
+                // content — password-decrypted bodies, mermaid, images — grows the page).
+                sb.AppendLine("        #main-scroll { scrollbar-gutter: stable; }");
+            }
             sb.AppendLine("        #main-scroll::-webkit-scrollbar { width: 8px; height: 8px; background-color: transparent; }");
             sb.AppendLine("        #main-scroll::-webkit-scrollbar-track { background-color: transparent; }");
             sb.AppendLine("        #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(209, 213, 219, 0.5); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }");
