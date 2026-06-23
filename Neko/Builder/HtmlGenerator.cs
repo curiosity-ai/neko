@@ -138,16 +138,6 @@ namespace Neko.Builder
             {
                 RenderTocSidebar(sb, document, currentUrl);
             }
-            else if (_config.Layout.Toc)
-            {
-                // Reserve the TOC column even when this page has no headings, so the
-                // content column keeps a constant width across pages. Otherwise a
-                // page with no TOC lets content span the full row and the layout
-                // shifts when navigating to/from pages that do have one — most
-                // visibly as the right rail appearing to slide in under the
-                // cross-document View Transition.
-                RenderTocSpacer(sb);
-            }
 
             sb.AppendLine("        </div>");
             sb.AppendLine("    </div>");

@@ -253,44 +253,21 @@ namespace Neko.Builder
 
         private void RenderTocSidebar(StringBuilder sb, ParsedDocument document, string currentUrl)
         {
-            var tocItems = document.Toc?.Where(i => i.Level >= 2).ToList() ?? new List<TocItem>();
-            var hasPageLinks = _config?.PageLinks != null && _config.PageLinks.Count > 0;
-
-            // Nothing to show (only an H1, and no page links): reserve the column's
-            // width but render no border/header, so the layout stays put without an
-            // empty bordered rail.
-            if (tocItems.Count == 0 && !hasPageLinks)
-            {
-                RenderTocSpacer(sb);
-                return;
-            }
-
             sb.AppendLine("            <aside id=\"toc-sidebar\" class=\"w-64 hidden xl:block shrink-0 overflow-y-auto border-l border-gray-200 dark:border-gray-800 p-6\">");
             sb.AppendLine("                <div class=\"sticky top-0\">");
             RenderPageLinks(sb, document, currentUrl);
-            if (tocItems.Count > 0)
+            sb.AppendLine("                    <h5 class=\"text-xs font-semibold mb-4 text-gray-900 dark:text-gray-100 uppercase tracking-wider\">On this page</h5>");
+            sb.AppendLine("                    <ul class=\"space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800 relative\" id=\"toc-list\">");
+            sb.AppendLine("                        <div id=\"toc-highlight\" class=\"absolute left-0 border-l-2 border-primary-600 dark:border-primary-400 transition-all duration-200 ease-in-out -ml-px\" style=\"top: 0; height: 0; opacity: 0;\"></div>");
+            foreach (var item in document.Toc)
             {
-                sb.AppendLine("                    <h5 class=\"text-xs font-semibold mb-4 text-gray-900 dark:text-gray-100 uppercase tracking-wider\">On this page</h5>");
-                sb.AppendLine("                    <ul class=\"space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800 relative\" id=\"toc-list\">");
-                sb.AppendLine("                        <div id=\"toc-highlight\" class=\"absolute left-0 border-l-2 border-primary-600 dark:border-primary-400 transition-all duration-200 ease-in-out -ml-px\" style=\"top: 0; height: 0; opacity: 0;\"></div>");
-                foreach (var item in tocItems)
-                {
-                    var padding = item.Level == 2 ? "pl-4" : "pl-8";
-                    sb.AppendLine($"                        <li><a href=\"#{item.Id}\" class=\"block {padding} hover:text-primary-600 dark:hover:text-primary-400 transition-colors toc-link\" data-id=\"{item.Id}\">{item.Title}</a></li>");
-                }
-                sb.AppendLine("                    </ul>");
+                if (item.Level < 2) continue;
+                var padding = item.Level == 2 ? "pl-4" : "pl-8";
+                sb.AppendLine($"                        <li><a href=\"#{item.Id}\" class=\"block {padding} hover:text-primary-600 dark:hover:text-primary-400 transition-colors toc-link\" data-id=\"{item.Id}\">{item.Title}</a></li>");
             }
+            sb.AppendLine("                    </ul>");
             sb.AppendLine("                </div>");
             sb.AppendLine("            </aside>");
-        }
-
-        // The TOC column with no content: holds the same width as a populated TOC
-        // (no border, padding, or children) so the content column doesn't change
-        // width — and the layout doesn't shift — when navigating between pages that
-        // have a table of contents and pages that don't.
-        private void RenderTocSpacer(StringBuilder sb)
-        {
-            sb.AppendLine("            <aside id=\"toc-sidebar\" class=\"w-64 hidden xl:block shrink-0\" aria-hidden=\"true\"></aside>");
         }
 
         private void RenderPageLinks(StringBuilder sb, ParsedDocument document, string currentUrl)
