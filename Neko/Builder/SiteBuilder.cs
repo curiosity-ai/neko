@@ -13,6 +13,7 @@ namespace Neko.Builder
         private readonly string _inputDirectory;
         private readonly string? _outputDirectoryOverride;
         private readonly bool _isWatchMode;
+        private readonly bool _editorEnabled;
         private readonly string? _routePrefix;
         private NekoConfig _config;
 
@@ -41,11 +42,12 @@ namespace Neko.Builder
         private (string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs)?[] _lastIndexRequests;
         private List<(string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs)> _lastChangelogIndexRequests;
 
-        public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false, string? routePrefix = null)
+        public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false, string? routePrefix = null, bool editorEnabled = true)
         {
             _inputDirectory = Path.GetFullPath(inputDirectory);
             _outputDirectoryOverride = outputDirectory;
             _isWatchMode = isWatchMode;
+            _editorEnabled = editorEnabled;
             _routePrefix = routePrefix;
         }
 
@@ -195,7 +197,7 @@ namespace Neko.Builder
                     }
                 }
 
-                var generator = new HtmlGenerator(_config, _isWatchMode, headIncludes);
+                var generator = new HtmlGenerator(_config, _isWatchMode, headIncludes, editorEnabled: _editorEnabled);
                 var searchIndexer = new SearchIndexGenerator(_routePrefix);
 
                 // Collect folders whose root yml opts the folder out of search indexing.

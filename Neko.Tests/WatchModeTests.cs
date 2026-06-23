@@ -24,6 +24,25 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void Generate_InWatchMode_LiveOnly_KeepsLiveReloadButHidesEditor()
+        {
+            var config = new NekoConfig();
+            var generator = new HtmlGenerator(config, isWatchMode: true, editorEnabled: false);
+            var doc = new ParsedDocument { Html = "<h1>Title</h1><p>Content</p>" };
+
+            var html = generator.Generate(doc);
+
+            // Live-reload still wired up...
+            Assert.That(html, Does.Contain("neko-live"));
+            // ...but no in-browser editing chrome at all.
+            Assert.That(html, Does.Not.Contain("nekoOpenEditor()"));
+            Assert.That(html, Does.Not.Contain("nekoOpenEditorPath"));
+            Assert.That(html, Does.Not.Contain("monaco-editor"));
+            Assert.That(html, Does.Not.Contain("neko-editor-modal"));
+            Assert.That(html, Does.Not.Contain("data-neko-reorder"));
+        }
+
+        [Test]
         public void Generate_NotInWatchMode_DoesNotInjectScripts()
         {
             var config = new NekoConfig();

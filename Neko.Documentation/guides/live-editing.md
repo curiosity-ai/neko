@@ -36,3 +36,19 @@ While editing a markdown file, type the prefix `neko-` to trigger a dropdown con
 ![Auto-complete Menu](/assets/editor-autocomplete.png)
 
 This ensures you can always access the right snippet structure without leaving the browser or consulting external documentation.
+
+## Live preview only (disable the editor)
+
+Sometimes you want the watch server's live-reload on `localhost` without any of
+the editing chrome — for example, to preview exactly what a release build ships,
+or to demo the site without exposing the edit and reorder controls. Pass
+`--live` (alias `--no-editor`) to `neko watch`:
+
+```bash
+neko watch --input docs/ --live
+```
+
+In this mode Neko still rebuilds and refreshes the browser on every file change,
+but it omits the in-browser editor entirely: the header edit button, the sidebar
+pencil icons, the drag-to-reorder handles, and the Monaco editor modal are all
+left out, just as they are in a `neko build` output.

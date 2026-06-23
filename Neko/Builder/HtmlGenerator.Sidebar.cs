@@ -66,14 +66,14 @@ namespace Neko.Builder
                     }
                     folderYmlPath = string.IsNullOrEmpty(folderRelativePath) ? "index.yml" : folderRelativePath + "/index.yml";
                 }
-                if (_isWatchMode && folderYmlPath != null)
+                if (_showEditor && folderYmlPath != null)
                 {
                     editHtml = $"<button onclick=\"nekoOpenEditorPath('{folderYmlPath}', event)\" class=\"text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors focus:outline-none p-1 rounded hover:bg-gray-300 dark:hover:bg-gray-600 mr-1\" title=\"Edit Folder Config\"><i class=\"fi fi-rr-pencil text-xs\"></i></button>";
                 }
 
                 string reorderAttrs = "";
                 string groupIdForChildren = parentGroupId;
-                if (_isWatchMode)
+                if (_showEditor)
                 {
                     string neonType;
                     string neonPath;

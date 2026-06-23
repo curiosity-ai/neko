@@ -65,10 +65,16 @@ namespace Neko
 
             var watchNoApiSyncOption = new Option<bool>(new[] { "--no-api-sync" }, () => false, "Skip refreshing API-reference pages from source on startup");
 
+            // Live-only preview: keep live-reload but hide all in-browser editing
+            // chrome (header/sidebar edit buttons, drag-reorder, the Monaco modal),
+            // so localhost matches what a release build ships.
+            var watchLiveOption = new Option<bool>(new[] { "--live", "--no-editor" }, () => false, "Live preview only: keep live-reload but hide the in-browser editor (edit buttons, drag-reorder)");
+
             watchCommand.AddOption(watchInputOption);
             watchCommand.AddOption(portOption);
             watchCommand.AddOption(watchOutputOption);
             watchCommand.AddOption(watchNoApiSyncOption);
+            watchCommand.AddOption(watchLiveOption);
 
             watchCommand.SetHandler(async (context) =>
             {
@@ -76,6 +82,7 @@ namespace Neko
                 var output = context.ParseResult.GetValueForOption(watchOutputOption);
                 var port = context.ParseResult.GetValueForOption(portOption) ?? defaultPort;
                 var noApiSync = context.ParseResult.GetValueForOption(watchNoApiSyncOption);
+                var liveOnly = context.ParseResult.GetValueForOption(watchLiveOption);
                 var token = context.GetCancellationToken();
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -98,7 +105,7 @@ namespace Neko
 
                 var isMultiRepo = configFiles.Length > 1 || (configFiles.Length == 1 && Path.GetDirectoryName(configFiles[0]) != inputFullPath);
 
-                Console.WriteLine($"Watching {input}{(isMultiRepo ? " (Multi-Repo Mode)" : "")}...");
+                Console.WriteLine($"Watching {input}{(isMultiRepo ? " (Multi-Repo Mode)" : "")}{(liveOnly ? " (Live preview only — editor disabled)" : "")}...");
 
                 var sites    = new List<SiteInfo>();
                 var builders = new Dictionary<string, SiteBuilder>();
@@ -132,7 +139,7 @@ namespace Neko
 
                 foreach (var p in projects)
                 {
-                    builders[p.Dir] = new SiteBuilder(p.Dir, p.Output, true, p.RoutePrefix);
+                    builders[p.Dir] = new SiteBuilder(p.Dir, p.Output, true, p.RoutePrefix, editorEnabled: !liveOnly);
                 }
 
                 string rootOutput = null;

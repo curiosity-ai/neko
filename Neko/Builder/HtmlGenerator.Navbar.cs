@@ -322,7 +322,7 @@ namespace Neko.Builder
                 sb.AppendLine("                </div>");
                 sb.AppendLine("            </div>");
             }
-            if (_isWatchMode)
+            if (_showEditor)
             {
                 sb.AppendLine("            <button onclick=\"nekoOpenEditor()\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\" title=\"Edit Page\">");
                 sb.AppendLine("                <i class=\"fi fi-rr-edit text-lg\"></i>");

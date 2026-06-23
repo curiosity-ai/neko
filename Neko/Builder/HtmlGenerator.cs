@@ -9,7 +9,15 @@ namespace Neko.Builder
     {
         private readonly NekoConfig _config;
         private readonly bool _isWatchMode;
+        private readonly bool _editorEnabled;
         private readonly string _headIncludes;
+
+        // The in-browser editing chrome (navbar edit button, sidebar edit/reorder
+        // controls, Monaco modal) is only rendered when watch mode is on *and* the
+        // editor hasn't been disabled (e.g. `neko watch --live` for a read-only
+        // localhost preview that still live-reloads). Live reload itself stays tied
+        // to `_isWatchMode` so the preview keeps refreshing on file changes.
+        private bool _showEditor => _isWatchMode && _editorEnabled;
 
         // Utility-class tokens harvested from password-protected pages *before*
         // their HTML is encrypted. The emitted file only carries the encrypted
@@ -19,10 +27,11 @@ namespace Neko.Builder
         // variants). The static stylesheet generator unions these in.
         public HashSet<string> ProtectedPageClassTokens { get; } = new HashSet<string>();
 
-        public HtmlGenerator(NekoConfig config, bool isWatchMode = false, string headIncludes = null)
+        public HtmlGenerator(NekoConfig config, bool isWatchMode = false, string headIncludes = null, bool editorEnabled = true)
         {
             _config = config;
             _isWatchMode = isWatchMode;
+            _editorEnabled = editorEnabled;
             _headIncludes = headIncludes;
         }
 
