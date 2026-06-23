@@ -38,10 +38,12 @@ namespace Neko.Extensions
                 {
                     var slices = leafBlock.Lines;
 
-                    // Split the block into the source that compiles/runs and the lines to
-                    // hide from the Code tab (// <hide> … // </hide> = run-only,
-                    // // <docs> … // </docs> = display-only). Shared with the cache-warming
-                    // pass so both compile byte-identical source — see TesseraeCompiler.
+                    // Split the block into the source that compiles/runs and the source to
+                    // display. By default they are the same block; an
+                    // `// <overwrite-sample-code>` region supplies a display-only version
+                    // for samples that can't run as-is in the sandboxed preview. Shared
+                    // with the cache-warming pass so both compile identical source — see
+                    // TesseraeCompiler.PartitionSampleSource.
                     var rawLines = new List<string>(slices.Count);
                     for (int i = 0; i < slices.Count; i++)
                     {
@@ -49,14 +51,19 @@ namespace Neko.Extensions
                         rawLines.Add(slice.Text == null ? null : slice.ToString());
                     }
 
-                    var (codeString, hiddenLineIndices) = Neko.Builder.TesseraeCompiler.PartitionSampleSource(rawLines);
+                    var (codeString, displayOverride) = Neko.Builder.TesseraeCompiler.PartitionSampleSource(rawLines);
 
-                    // Drop the hidden lines (and every marker) from what the Code tab shows,
-                    // leaving the compiled/run source untouched. Remove from the end so the
-                    // earlier indices stay valid.
-                    for (int i = hiddenLineIndices.Count - 1; i >= 0; i--)
+                    // When the sample provides an overwrite region, show those lines in the
+                    // Code tab instead of the runnable source. Otherwise leave the block's
+                    // lines untouched so it displays exactly as written.
+                    if (displayOverride != null)
                     {
-                        leafBlock.Lines.RemoveAt(hiddenLineIndices[i]);
+                        var displayLines = new Markdig.Helpers.StringLineGroup(displayOverride.Count == 0 ? 1 : displayOverride.Count);
+                        foreach (var line in displayOverride)
+                        {
+                            displayLines.Add(new Markdig.Helpers.StringSlice(line));
+                        }
+                        leafBlock.Lines = displayLines;
                     }
 
                     // SiteBuilder always set Environment.CurrentDirectory to the output folder

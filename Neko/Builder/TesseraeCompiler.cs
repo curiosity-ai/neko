@@ -74,44 +74,51 @@ namespace Neko.Builder
             return input.Hash128().ToString();
         }
 
-        // Partition a sample's raw lines into the source that gets compiled and the
-        // indices to hide from the displayed Code tab. Two marker regions are honoured:
-        //   // <hide> … // </hide>  — compiled and run, hidden from the Code tab.
-        //   // <docs> … // </docs>  — shown in the Code tab, but NOT compiled.
-        // Marker lines themselves are dropped from both. A null entry represents a
-        // blank source line and is never emitted into the compiled source.
-        // Both the cache-warming pass and the render pass call this, so the compiled
-        // source (and therefore the cache key) is identical in both.
-        public static (string Compiled, List<int> HiddenDisplayIndices) PartitionSampleSource(IReadOnlyList<string> lines)
+        // Split a sample's raw lines into the source that is compiled/run and the
+        // (optional) source shown in the Code tab.
+        //
+        // By default the whole block is both compiled and displayed. When a sample
+        // can't run as-is in the sandboxed preview iframe, wrap the version to *show*
+        // in an `// <overwrite-sample-code>` … `// </overwrite-sample-code>` region:
+        // that region is displayed verbatim and never compiled, while everything
+        // outside it is what compiles and runs (and is itself not shown).
+        //
+        // Returns the compiled source plus, when an overwrite region is present, the
+        // exact lines to display instead (otherwise null — display the block as-is).
+        // A null line entry represents a blank line and is never emitted into the
+        // compiled source. Both the cache-warming and render passes call this, so the
+        // compiled source (and cache key) is identical in both.
+        public static (string Compiled, List<string> DisplayOverride) PartitionSampleSource(IReadOnlyList<string> lines)
         {
-            var sb = new StringBuilder();
-            var hidden = new List<int>();
-            var inHide = false;
-            var inDocs = false;
+            var compiled = new StringBuilder();
+            var overrideLines = new List<string>();
+            var inOverride = false;
+            var hasOverride = false;
 
             for (int i = 0; i < lines.Count; i++)
             {
                 var lineText = lines[i];
                 var trimmed = (lineText ?? string.Empty).Trim();
 
-                var isHideStart = trimmed.Equals("//<hide>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// <hide>", StringComparison.OrdinalIgnoreCase);
-                var isHideEnd = trimmed.Equals("//</hide>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// </hide>", StringComparison.OrdinalIgnoreCase);
-                var isDocsStart = trimmed.Equals("//<docs>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// <docs>", StringComparison.OrdinalIgnoreCase);
-                var isDocsEnd = trimmed.Equals("//</docs>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// </docs>", StringComparison.OrdinalIgnoreCase);
+                var isStart = trimmed.Equals("//<overwrite-sample-code>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// <overwrite-sample-code>", StringComparison.OrdinalIgnoreCase);
+                var isEnd = trimmed.Equals("//</overwrite-sample-code>", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("// </overwrite-sample-code>", StringComparison.OrdinalIgnoreCase);
 
-                if (isHideStart) { inHide = true; hidden.Add(i); continue; }
-                if (isHideEnd) { inHide = false; hidden.Add(i); continue; }
-                if (isDocsStart) { inDocs = true; hidden.Add(i); continue; }
-                if (isDocsEnd) { inDocs = false; hidden.Add(i); continue; }
+                if (isStart) { inOverride = true; hasOverride = true; continue; }
+                if (isEnd) { inOverride = false; continue; }
 
-                // Compiled source includes hidden regions but not docs-only regions.
-                if (!inDocs && lineText != null) sb.AppendLine(lineText);
-
-                // Displayed source includes docs-only regions but not hidden regions.
-                if (inHide) hidden.Add(i);
+                if (inOverride)
+                {
+                    // Display-only: shown in the Code tab, never compiled.
+                    overrideLines.Add(lineText ?? string.Empty);
+                }
+                else if (lineText != null)
+                {
+                    // Compiled and run; only shown when there is no overwrite region.
+                    compiled.AppendLine(lineText);
+                }
             }
 
-            return (sb.ToString(), hidden);
+            return (compiled.ToString(), hasOverride ? overrideLines : null);
         }
 
         private static string GetCacheDir()
