@@ -1141,7 +1141,7 @@ namespace Neko.Extensions
 
             void Row(string label, string value, bool mono)
             {
-                renderer.Write($"<dt class=\"font-semibold text-gray-500 dark:text-gray-400\">{System.Net.WebUtility.HtmlEncode(label)}</dt>");
+                renderer.Write($"<dt class=\"m-0 font-semibold text-gray-500 dark:text-gray-400\">{System.Net.WebUtility.HtmlEncode(label)}</dt>");
                 var cls = mono ? "font-mono text-gray-800 dark:text-gray-200" : "text-gray-800 dark:text-gray-200";
                 renderer.Write($"<dd class=\"m-0 {cls}\">{System.Net.WebUtility.HtmlEncode(value)}</dd>");
             }

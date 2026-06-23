@@ -183,6 +183,11 @@ namespace Tesserae
             Assert.That(html, Contains.Substring("csharp-definition"));
             // Namespace metadata derived from the enclosing namespace declaration.
             Assert.That(html, Contains.Substring(">Namespace<"));
+            // The definition labels reset their margin so they stay aligned with
+            // their values inside the grid — prose typography otherwise adds a
+            // top margin to <dt>, pushing the label out of line (see #namespace
+            // alignment regression).
+            Assert.That(html, Contains.Substring("<dt class=\"m-0"));
             Assert.That(html, Contains.Substring("Tesserae"));
             // The interface in the base list is surfaced as "Implements".
             Assert.That(html, Contains.Substring(">Implements<"));
