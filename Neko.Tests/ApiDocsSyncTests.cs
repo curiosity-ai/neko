@@ -102,6 +102,31 @@ namespace Demo
         }
 
         [Test]
+        public void ResolvesRootsFromRootConfigOnlyAndIgnoresNestedConfigs()
+        {
+            // Root neko.yml declares the real source root (relative to itself).
+            File.WriteAllText(Path.Combine(_docs, "neko.yml"),
+                "apiDocs:\n  roots:\n    demo: ../src\n");
+
+            // A nested sub-project config points the same name at a bogus path; it
+            // must be ignored now that only the root config is consulted.
+            var nested = Path.Combine(_docs, "sub");
+            Directory.CreateDirectory(nested);
+            File.WriteAllText(Path.Combine(nested, "neko.yml"),
+                "apiDocs:\n  roots:\n    demo: ./does-not-exist\n");
+
+            var page = Path.Combine(_docs, "foo.md");
+            File.WriteAllText(page, Md(
+                "<!-- api:source start repo=\"demo\" file=\"Foo.cs\" type=\"Foo\" -->\n<!-- api:source end -->"));
+
+            // No cliRoots: resolution must come from the root neko.yml.
+            var result = ApiDocsSync.Run(_docs);
+
+            Assert.That(result.FilesUpdated, Is.EqualTo(1));
+            Assert.That(File.ReadAllText(page), Contains.Substring("public int Bar(int x);"));
+        }
+
+        [Test]
         public void IsIdempotent()
         {
             var page = Path.Combine(_docs, "foo.md");

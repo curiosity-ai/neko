@@ -215,9 +215,10 @@ namespace Neko.Configuration
 
     // Configures `neko sync-api-docs` (also run by default before build/watch).
     // Maps a source-root name used in `<!-- api:source repo="…" -->` markers to a
-    // local checkout. Paths are resolved relative to this neko.yml; a missing root
-    // is skipped (the committed block is left intact), and the `<NAME>_DIR` env var
-    // or a `/home/user/<name>` checkout are tried as fallbacks.
+    // local checkout. Only the root neko.yml is consulted; paths are resolved
+    // relative to it. A missing root is skipped (the committed block is left
+    // intact). The `--root name=path` CLI flag overrides an entry; there is no
+    // environment-variable or hard-coded path fallback.
     public class ApiDocsConfig
     {
         [YamlMember(Alias = "roots")]

@@ -46,9 +46,10 @@ namespace Neko.Builder
 
         /// <summary>
         /// Regenerates every <c>api:source</c> marker block under <paramref name="inputDir"/>.
-        /// Source roots are resolved from each project's <c>neko.yml</c> (<c>apiDocs.roots</c>),
-        /// overridden by <paramref name="cliRoots"/>, then by the <c>&lt;NAME&gt;_DIR</c> env
-        /// var or a <c>/home/user/&lt;name&gt;</c> fallback.
+        /// Source roots are resolved from the root <c>neko.yml</c>'s <c>apiDocs.roots</c>
+        /// (paths relative to that file), overridden by <paramref name="cliRoots"/>. There
+        /// is no environment-variable or hard-coded path fallback: a root the root config
+        /// doesn't declare is treated as missing and its block is left untouched.
         /// </summary>
         public static Result Run(string inputDir, IDictionary<string, string>? cliRoots = null, bool verbose = false, bool dryRun = false)
         {
@@ -150,38 +151,32 @@ namespace Neko.Builder
             return result;
         }
 
-        // Merges apiDocs.roots from every neko.yml under the input tree, resolving
-        // each path relative to the config file's directory.
+        // Reads apiDocs.roots from the root neko.yml only (the project config at
+        // the input directory), resolving each path relative to that file. Nested
+        // sub-project configs are intentionally not consulted: roots are declared
+        // once, at the root, so a multi-repo watch has a single source of truth.
         private static Dictionary<string, string> GatherConfiguredRoots(string inputDir)
         {
             var roots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var cfgPath in BuildRunner.FindProjectConfigs(inputDir))
-            {
-                Configuration.NekoConfig cfg;
-                try { cfg = Configuration.ConfigParser.Parse(cfgPath); }
-                catch { continue; }
+            var cfgPath = Path.Combine(inputDir, "neko.yml");
+            if (!File.Exists(cfgPath)) return roots;
 
-                if (cfg.ApiDocs?.Roots == null) continue;
-                var cfgDir = Path.GetDirectoryName(cfgPath)!;
-                foreach (var kv in cfg.ApiDocs.Roots)
-                {
-                    if (string.IsNullOrWhiteSpace(kv.Value)) continue;
-                    var path = Path.IsPathRooted(kv.Value) ? kv.Value : Path.GetFullPath(Path.Combine(cfgDir, kv.Value));
-                    roots[kv.Key] = path;
-                }
+            Configuration.NekoConfig cfg;
+            try { cfg = Configuration.ConfigParser.Parse(cfgPath); }
+            catch { return roots; }
+
+            if (cfg.ApiDocs?.Roots == null) return roots;
+            foreach (var kv in cfg.ApiDocs.Roots)
+            {
+                if (string.IsNullOrWhiteSpace(kv.Value)) continue;
+                var path = Path.IsPathRooted(kv.Value) ? kv.Value : Path.GetFullPath(Path.Combine(inputDir, kv.Value));
+                roots[kv.Key] = path;
             }
             return roots;
         }
 
-        private static string? ResolveRoot(string repo, IDictionary<string, string> configured)
-        {
-            if (configured.TryGetValue(repo, out var p) && Directory.Exists(p)) return p;
-            var env = Environment.GetEnvironmentVariable(repo.ToUpperInvariant() + "_DIR");
-            if (!string.IsNullOrEmpty(env) && Directory.Exists(env)) return env;
-            var guess = Path.Combine("/home/user", repo);
-            if (Directory.Exists(guess)) return guess;
-            return null;
-        }
+        private static string? ResolveRoot(string repo, IDictionary<string, string> configured) =>
+            configured.TryGetValue(repo, out var p) && Directory.Exists(p) ? p : null;
 
         // True when the offset sits inside a fenced code block (an odd number of
         // ``` / ~~~ fences precede it), so marker examples in docs aren't rewritten.

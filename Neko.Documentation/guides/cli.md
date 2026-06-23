@@ -277,10 +277,11 @@ result between the markers. The block is **fully regenerated** every run.
 This runs **by default before `build` and `watch`** (disable with `--no-api-sync`);
 the standalone command is for running it on demand or in CI.
 
-Source roots are resolved from `apiDocs.roots` in `neko.yml` (paths relative to
-the config), overridden by `--root <name>=<path>`, then by a `<NAME>_DIR`
-environment variable or a `/home/user/<name>` checkout. When a root can't be
-found the block is left untouched and a notice is printed, so a build without the
+Source roots are resolved from `apiDocs.roots` in the **root `neko.yml`** (paths
+relative to that file), overridden by `--root <name>=<path>`. Only the root
+config is consulted — nested sub-project `neko.yml` files are not — and there is
+no environment-variable or hard-coded path fallback. When a root can't be found
+the block is left untouched and a notice is printed, so a build without the
 source checked out still succeeds against the committed snapshot.
 
 ```yml
