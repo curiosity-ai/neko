@@ -141,12 +141,17 @@ The measurement viewport width is configurable via
 [`tesserae.measureWidth`](/configuration/core/project#tesserae). The preview
 stays manually resizable via the iframe's bottom-right drag handle regardless.
 
-## Hiding setup code
+## Tailoring the displayed source
 
-Lines between `// <hide>` and `// </hide>` markers are compiled and run but
-removed from the source shown in the **Code** tab. Use it to keep styling,
-layout chrome, or demo-only plumbing out of the snippet while the live preview
-still reflects the full code.
+By default a `tesserae` block is **both compiled and displayed as-is** — write a
+complete program and the reader sees exactly what runs.
+
+Some samples can't run as-is in the sandboxed preview iframe (an `about:srcdoc`
+document, where the History API and a few other browser features are
+unavailable). For those, put the version to **display** inside an
+`// <overwrite-sample-code>` … `// </overwrite-sample-code>` region: everything
+outside it is compiled and run (and not shown), and everything inside it is shown
+in the Code tab verbatim and never compiled.
 
 ```tesserae
 using Tesserae;
@@ -154,22 +159,34 @@ using static Tesserae.UI;
 
 namespace Neko.Documentation
 {
-    public class HideDemo
+    public class Demo
     {
         public static void Main()
         {
-            var bar = HStack().Children(Button("Home"), Button("About"));
-            // <hide>
-            // Chrome only — keep the styling out of the displayed snippet.
-            bar.WS().AlignItemsCenter().Gap(8.px()).Background("#f3f4f6").P(10);
-            // </hide>
-            MountToBody(bar);
+            // Compiled + run — powers the live preview.
+            MountToBody(TextBlock("Running in the sandboxed preview"));
         }
     }
 }
+// <overwrite-sample-code>
+using Tesserae;
+using static Tesserae.UI;
+
+namespace Neko.Documentation
+{
+    public class Demo
+    {
+        public static void Main()
+        {
+            // Shown in the Code tab — the version you'd write in a real app.
+            MountToBody(TextBlock("Hello, Tesserae!"));
+        }
+    }
+}
+// </overwrite-sample-code>
 ```
 
 The marker lines must sit on their own line (surrounding whitespace is fine);
-matching is case-insensitive and the space after `//` is optional. The markers
-are removed from both the displayed and the compiled code, and hidden code still
-runs — a syntax error inside a hidden region fails the build.
+matching is case-insensitive and the space after `//` is optional. Keep the
+feature rare — most samples should just show what runs. The overwrite code is
+never compiled, so it isn't checked; keep it a faithful, complete program.

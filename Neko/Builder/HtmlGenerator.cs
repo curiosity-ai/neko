@@ -99,11 +99,20 @@ namespace Neko.Builder
                 ? document.FrontMatter.Description
                 : _config.Meta.Description;
 
+            // A protected page ships nothing page-specific in the static HTML: the
+            // whole content column is encrypted, and the <title>/description are
+            // masked to the site defaults. password.js sets the real title from the
+            // decrypted H1 once unlocked.
+            var effectivePassword = ResolveEffectivePassword(document);
+            var isProtected = !string.IsNullOrEmpty(effectivePassword);
+            var headTitle = isProtected ? _config.Branding.Title : title;
+            var headDescription = isProtected ? _config.Meta.Description : description;
+
             var sb = new StringBuilder();
             sb.AppendLine("<!DOCTYPE html>");
             sb.AppendLine("<html lang=\"en\" class=\"scroll-smooth\">");
 
-            GenerateHead(sb, title, description);
+            GenerateHead(sb, headTitle, headDescription);
 
             // Blog mode uses the `theme.base` palette (curiosity.ai: #f1f1f1 page,
             // #1f1f1f ink) so the white post cards and content stand out; docs stay
@@ -134,16 +143,35 @@ namespace Neko.Builder
             sb.AppendLine("            <main class=\"flex-1 overflow-y-auto overflow-x-clip p-4 md:p-8 scroll-smooth\" id=\"main-scroll\">");
             sb.AppendLine("                <div class=\"max-w-4xl mx-auto prose dark:prose-invert\">");
 
-            RenderBreadcrumbs(sb, navContext);
-            RenderBlogPostHeader(sb, document, currentUrl);
-            RenderArticleBody(sb, document, blogPosts, changelogEntries, currentUrl);
-            RenderPageNavigation(sb, navContext);
-            RenderBacklinks(sb, backlinks);
-
             // The marketing (blog-mode) footer breaks out of the reading column to
             // span the full content pane, so it is rendered after the prose div.
             // Everything else keeps the slim in-column footer.
             var deferFooterFullWidth = _isBlogMode && _config.Footer != null && _config.Footer.HasRichContent;
+
+            if (isProtected)
+            {
+                // Encrypt the whole page-specific column as one payload so it reveals
+                // atomically on unlock — and nothing (breadcrumbs, headings, prev/next,
+                // backlinks) is readable in the page source before then.
+                var inner = new StringBuilder();
+                RenderBreadcrumbs(inner, navContext);
+                RenderBlogPostHeader(inner, document, currentUrl);
+                inner.AppendLine(BuildIndexableContent(document, blogPosts, changelogEntries, currentUrl));
+                RenderPageNavigation(inner, navContext);
+                RenderBacklinks(inner, backlinks);
+                RenderProtectedColumn(sb, inner.ToString(), effectivePassword);
+            }
+            else
+            {
+                RenderBreadcrumbs(sb, navContext);
+                RenderBlogPostHeader(sb, document, currentUrl);
+                sb.AppendLine(BuildIndexableContent(document, blogPosts, changelogEntries, currentUrl));
+                RenderPageNavigation(sb, navContext);
+                RenderBacklinks(sb, backlinks);
+            }
+
+            // The full-width marketing footer is site chrome (rendered after the
+            // prose div); otherwise the slim footer stays in the reading column.
             if (!deferFooterFullWidth)
             {
                 RenderFooter(sb);
@@ -160,7 +188,17 @@ namespace Neko.Builder
 
             if (_config.Layout.Toc && document.Toc != null && document.Toc.Any())
             {
-                RenderTocSidebar(sb, document, currentUrl);
+                if (isProtected)
+                {
+                    // The rail keeps its width (no layout shift) but ships no heading
+                    // text. password.js builds the list from the decrypted content and
+                    // reveals the rail together with the body, in one tick.
+                    RenderProtectedTocShell(sb, document, currentUrl);
+                }
+                else
+                {
+                    RenderTocSidebar(sb, document, currentUrl);
+                }
             }
 
             sb.AppendLine("        </div>");

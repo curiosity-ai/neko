@@ -42,48 +42,53 @@ public class TodoApp
 - For arbitrary C# code blocks, use a plain
   [`code-block`](../code-block/SKILL.md) with ` ```csharp `.
 
-## Preview sizing
+## Showing different code than what runs
 
-- The live preview renders in an `<iframe>`. By default it uses a fixed
-  placeholder height, so short samples leave empty space and tall ones scroll.
-- Run **`neko gen-tesserae-heights`** to size every preview exactly: it compiles
-  each sample, measures its rendered height with a headless browser, and bakes a
-  `height=NNN` token into the fence info line
-  (e.g. ` ```tesserae sample.js height=360 `). Commit the rewritten Markdown.
-- A normal `build`/`watch` just reads that token and reserves the right space up
-  front — no browser runs during a build, so there's no layout shift. Samples
-  without a token keep the placeholder height.
-- The command is **incremental/resumable**: it skips samples that already have a
-  `height=` token and saves each file as it goes, so re-running only measures new
-  samples. Pass `--force` to re-measure everything. Tune the measurement width
-  with `tesserae.measureWidth`.
-- You can also set/override the token by hand (`height=NNN`); the preview stays
-  manually resizable via the iframe's drag handle either way.
+By default a `tesserae` block is **both compiled and displayed as-is** — write a
+complete program and the reader sees exactly what runs.
 
-## Hiding setup code from the displayed source
+When a sample can't run as-is in the sandboxed preview iframe (e.g. it needs the
+History API, which `about:srcdoc` forbids), put the version to **display** inside
+an `// <overwrite-sample-code>` … `// </overwrite-sample-code>` region. Then:
 
-Lines between `// <hide>` and `// </hide>` markers are **compiled and run** but
-removed from the source shown in the **Code** tab. Use this to keep boilerplate
-(styling, layout chrome, demo-only plumbing) out of the snippet while the live
-preview still shows the full result.
+- everything **outside** the region is compiled and run (and is *not* shown), and
+- everything **inside** the region is shown in the Code tab verbatim and is
+  *never* compiled.
 
 ````markdown
 ```tesserae
-var navbar = HStack().Children(/* … buttons … */);
-// <hide>
-// Chrome only — not part of what the snippet is teaching.
-navbar.WS().AlignItemsCenter().Gap(8.px()).Background("#f3f4f6").P(10);
-// </hide>
-return Stack().Children(navbar /* … */).Render();
+// Compiled + run (powers the live preview), but not shown:
+public class App { public static void Main() { /* sandbox-safe variant */ } }
+// <overwrite-sample-code>
+// Shown in the Code tab (the real-app version), but not compiled:
+public class App { public static void Main() { /* idiomatic version */ } }
+// </overwrite-sample-code>
 ```
 ````
 
 - The markers must be on their own line (leading/trailing whitespace is fine);
   matching is case-insensitive and a single space after `//` is optional.
-- The marker lines themselves are dropped from both the displayed code and the
-  compiled code, so they never affect the running sample.
-- Hidden code is still executed — a syntax error inside a hidden region still
-  fails the build.
+- Keep it rare. Most samples need no overwrite — show what runs.
+- The displayed (overwrite) code is never compiled, so it is not checked; keep it
+  a faithful, complete program (usings, namespace, `Main`).
+
+## Preview sizing
+
+- The live preview renders in an `<iframe>`. By default it uses a fixed
+  placeholder height, so short samples leave empty space and tall ones scroll.
+- A `height=NNN` token on the fence info line
+  (e.g. ` ```tesserae sample.js height=360 `) pins the iframe to that height. A
+  normal `build`/`watch` just reads the token and reserves the space up front —
+  no browser runs during a build, so there's no layout shift. Samples without a
+  token keep the placeholder height.
+- Run **`neko gen-tesserae-heights`** to fill the tokens in: it compiles each
+  sample, measures its rendered height with a headless browser, and writes the
+  token back. It is **incremental/resumable** — it skips samples that already
+  have a `height=` token and saves each file as it goes, so re-running only
+  measures new samples. Pass `--force` to re-measure everything; tune the
+  measurement width with `tesserae.measureWidth`. Commit the rewritten Markdown.
+- You can also set the token by hand; the preview stays manually resizable via
+  the iframe's drag handle either way.
 
 ## Caching and performance
 

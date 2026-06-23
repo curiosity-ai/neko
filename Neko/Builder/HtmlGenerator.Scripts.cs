@@ -359,6 +359,15 @@ namespace Neko.Builder
             sb.AppendLine("                highlightLink.href = lightHref;");
             sb.AppendLine("            }");
             sb.AppendLine("            if (typeof renderMermaid === 'function') renderMermaid();");
+            sb.AppendLine("            notifyTesseraePreviews(isDark);");
+            sb.AppendLine("        }");
+            sb.AppendLine("");
+            sb.AppendLine("        // Tesserae live-preview samples render in their own iframe; tell each");
+            sb.AppendLine("        // one to follow the docs page's light/dark mode (it reacts in-frame).");
+            sb.AppendLine("        function notifyTesseraePreviews(isDark) {");
+            sb.AppendLine("            document.querySelectorAll('iframe.tesserae-preview').forEach(function (f) {");
+            sb.AppendLine("                try { f.contentWindow.postMessage({ type: 'neko-theme', dark: isDark }, '*'); } catch (e) {}");
+            sb.AppendLine("            });");
             sb.AppendLine("        }");
             sb.AppendLine("");
             sb.AppendLine("        themeToggleBtn.addEventListener('click', () => {");
