@@ -49,6 +49,20 @@ namespace Neko
                 snap.Run();
             }, snapInputOption, snapAllOption);
 
+            // Gen Tesserae Heights Command
+            var heightsCommand = new Command("gen-tesserae-heights", "Measure the rendered height of `tesserae` live samples and write it back onto each block as a height=<px> argument");
+            var heightsInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
+            var heightsFileOption = new Option<string>(new[] { "--file", "-f" }, "Only regenerate heights for samples in this markdown file (path relative to --input or absolute)");
+            heightsCommand.AddOption(heightsInputOption);
+            heightsCommand.AddOption(heightsFileOption);
+
+            heightsCommand.SetHandler((string input, string file) =>
+            {
+                var inputFullPath = Path.GetFullPath(input);
+                var heights = new Neko.Builder.GenTesseraeHeightsCommand(inputFullPath, file);
+                heights.Run();
+            }, heightsInputOption, heightsFileOption);
+
             // Watch Command
             var watchCommand = new Command("watch", "Watch for changes and rebuild");
             var portOption   = new Option<int?>(new[] { "--port", "-p" }, "Port to use (default: 5000)");
@@ -343,6 +357,7 @@ namespace Neko
             rootCommand.AddCommand(watchCommand);
             rootCommand.AddCommand(checkLinksCommand);
             rootCommand.AddCommand(snapCommand);
+            rootCommand.AddCommand(heightsCommand);
             rootCommand.AddCommand(genImagesCommand);
             rootCommand.AddCommand(darkImagesCommand);
             rootCommand.AddCommand(newCommand);

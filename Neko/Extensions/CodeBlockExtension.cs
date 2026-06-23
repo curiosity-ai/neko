@@ -85,8 +85,21 @@ namespace Neko.Extensions
                         // a sandboxed `about:srcdoc` document. Note that the History API
                         // (history.pushState/replaceState) is unavailable in such a
                         // document, so samples must not rely on real URL navigation.
+                        //
+                        // A `height=<px>` argument on the block (written by
+                        // `neko gen-tesserae-heights`) pins the iframe to its measured
+                        // content height; without it the iframe falls back to a resizable
+                        // 400px minimum.
+                        var heightMatch = Regex.Match(fencedBlock.Arguments ?? string.Empty, @"\bheight\s*=\s*(\d+)");
+                        var iframeStyle = heightMatch.Success
+                            ? $"height: {heightMatch.Groups[1].Value}px;"
+                            : "min-height: 400px; resize: vertical;";
+                        // Drop the height token so it doesn't leak into the Code tab's
+                        // filename label below.
+                        if (heightMatch.Success)
+                            fencedBlock.Arguments = Regex.Replace(fencedBlock.Arguments, @"\s*\bheight\s*=\s*\d+", "").Trim();
                         var encodedHtml = System.Net.WebUtility.HtmlEncode(result.OutputHtml);
-                        renderer.Write($"<iframe class=\"w-full rounded border border-gray-200 dark:border-gray-700\" style=\"min-height: 400px; resize: vertical;\" srcdoc=\"{encodedHtml}\"></iframe>");
+                        renderer.Write($"<iframe class=\"w-full rounded border border-gray-200 dark:border-gray-700\" style=\"{iframeStyle}\" srcdoc=\"{encodedHtml}\"></iframe>");
                         renderer.Write("</div>");
 
                         // Code Tab (Hidden)

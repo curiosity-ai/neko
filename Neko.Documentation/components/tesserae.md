@@ -107,6 +107,24 @@ namespace Neko.Documentation
 }
 ```
 
+## Preview height
+
+A `height=<px>` argument on the block pins its live-preview iframe to a fixed
+height; without it the iframe uses a resizable 400px minimum:
+
+````markdown
+```tesserae chrome="macos" demo.js height=420
+…
+```
+````
+
+Rather than hand-tuning the value, run `neko gen-tesserae-heights`, which renders
+each sample, measures its content height, and writes the `height=` argument back
+onto the block. Scope it to one file with `--file <path>` and rerun it after
+editing a sample — it is file-targeted with no hash cache, so the file you target
+is exactly what gets regenerated. Measurement uses the same Playwright/snapframe
+harness as `neko snap`.
+
 ## Tailoring the displayed source
 
 Two marker pairs let the source shown in the **Code** tab differ from what is

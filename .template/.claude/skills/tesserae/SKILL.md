@@ -80,6 +80,22 @@ button.OnClick((s, e) => Go("#/view/42"));          // compiled and run
 - Hidden code still runs — a syntax error inside a `// <hide>` region still
   fails the build. Code inside `// <docs>` is not compiled, so it is not checked.
 
+## Preview height
+
+A `height=<px>` argument pins the live-preview iframe to a fixed height:
+
+````markdown
+```tesserae chrome="macos" demo.js height=420
+…
+```
+````
+
+Without it the iframe uses a resizable 400px minimum. The value is normally
+written for you by `neko gen-tesserae-heights`, which measures each sample's
+rendered height and rewrites the argument. Target a single file with
+`neko gen-tesserae-heights --file <path>` and rerun it after editing a sample —
+it is file-targeted with no hash cache, so nothing tracks staleness for you.
+
 ## Caching and performance
 
 - Each compiled sample is cached on disk under a `.neko-cache/` folder in the
