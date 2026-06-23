@@ -106,3 +106,36 @@ namespace Neko.Documentation
     }
 }
 ```
+
+## Hiding setup code
+
+Lines between `// <hide>` and `// </hide>` markers are compiled and run but
+removed from the source shown in the **Code** tab. Use it to keep styling,
+layout chrome, or demo-only plumbing out of the snippet while the live preview
+still reflects the full code.
+
+```tesserae
+using Tesserae;
+using static Tesserae.UI;
+
+namespace Neko.Documentation
+{
+    public class HideDemo
+    {
+        public static void Main()
+        {
+            var bar = HStack().Children(Button("Home"), Button("About"));
+            // <hide>
+            // Chrome only — keep the styling out of the displayed snippet.
+            bar.WS().AlignItemsCenter().Gap(8.px()).Background("#f3f4f6").P(10);
+            // </hide>
+            MountToBody(bar);
+        }
+    }
+}
+```
+
+The marker lines must sit on their own line (surrounding whitespace is fine);
+matching is case-insensitive and the space after `//` is optional. The markers
+are removed from both the displayed and the compiled code, and hidden code still
+runs — a syntax error inside a hidden region fails the build.
