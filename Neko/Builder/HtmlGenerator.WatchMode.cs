@@ -6,7 +6,12 @@ namespace Neko.Builder
     {
         private void RenderWatchModeUi(StringBuilder sb)
         {
-            RenderWatchEditorModal(sb);
+            // The editor modal/Monaco chrome is skipped in live-only mode
+            // (`neko watch --live`); the live-reload WebSocket below always runs.
+            if (_showEditor)
+            {
+                RenderWatchEditorModal(sb);
+            }
             RenderWatchScript(sb);
         }
 
@@ -50,6 +55,17 @@ namespace Neko.Builder
             sb.AppendLine("        }");
             sb.AppendLine("        connectWs();");
             sb.AppendLine("");
+
+            // Everything below is the in-browser editor (Monaco modal, content
+            // save, sidebar drag-reorder). In live-only mode (`neko watch --live`)
+            // we keep the live-reload above but emit none of the editing chrome,
+            // matching what a release build ships.
+            if (!_showEditor)
+            {
+                sb.AppendLine("    </script>");
+                return;
+            }
+
             sb.AppendLine("        // Monaco Editor");
             sb.AppendLine("        let editor;");
             sb.AppendLine("        const modal = document.getElementById('neko-editor-modal');");
