@@ -13,6 +13,15 @@ namespace Neko.Builder
         private bool _showDropdownIcons => _config.Nav?.DropdownIcons ?? false;
         private bool _showPivotIcons => _config.Nav?.PivotIcons ?? false;
 
+        // `blog` mode renders the marketing-site chrome (borderless header,
+        // logo-as-wordmark, pill CTAs). Anything else is the documentation look.
+        private bool _isBlogMode => string.Equals(_config.Mode, "blog", System.StringComparison.OrdinalIgnoreCase);
+
+        // Blog mode is light-only by default (the curiosity.ai look). Dark mode is
+        // opt-in: a blog enables it — and gets the theme toggle back — by defining
+        // a `theme.dark` palette in neko.yml. Without it, blog mode locks to light.
+        private bool _blogDarkEnabled => _isBlogMode && _config.Theme?.Dark != null && _config.Theme.Dark.Count > 0;
+
         private void RenderBanner(StringBuilder sb)
         {
             if (_config.Banner == null || !_config.Banner.Visible || string.IsNullOrEmpty(_config.Banner.Text)) return;
@@ -45,7 +54,17 @@ namespace Neko.Builder
 
         private void RenderNavbar(StringBuilder sb, string currentUrl)
         {
-            sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center px-6 z-30\">");
+            // Blog mode mirrors curiosity.ai: a light, borderless header with no
+            // drop shadow that blends into the marketing-style page background
+            // (driven by the `theme.base` palette).
+            if (_isBlogMode)
+            {
+                sb.AppendLine("    <header style=\"background-color:var(--blog-bg)\" class=\"h-16 shrink-0 flex items-center px-6 z-30\">");
+            }
+            else
+            {
+                sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center px-6 z-30\">");
+            }
 
             var maxWidthClass = LayoutMaxWidthClass();
             var innerWidthClass = string.IsNullOrEmpty(maxWidthClass) ? string.Empty : $" {maxWidthClass}";
@@ -72,25 +91,46 @@ namespace Neko.Builder
 
         private void RenderNavbarBrand(StringBuilder sb, string currentUrl)
         {
+            // In blog mode the logo image is a full wordmark, so pairing it with
+            // the branding title would duplicate the name (the "Curiosity
+            // Curiosity" overlap). There the logo links home on its own and the
+            // title is kept only for screen readers. In docs mode the logo is
+            // typically an icon next to the visible title, so both are shown.
+            var logoIsWordmark = _isBlogMode && !string.IsNullOrEmpty(_config.Branding.Logo);
+
+            if (logoIsWordmark)
+            {
+                sb.AppendLine($"            <a href=\"/index\" class=\"flex items-center\" aria-label=\"{_config.Branding.Title}\">");
+                RenderNavbarLogoImages(sb, currentUrl);
+                sb.AppendLine("            </a>");
+                return;
+            }
+
             if (!string.IsNullOrEmpty(_config.Branding.Logo))
             {
-                string logoUrl = ResolveLogoPath(currentUrl, _config.Branding.Logo);
-                sb.AppendLine($"            <img src=\"{logoUrl}\" class=\"h-8 w-auto dark:hidden\">");
-                if (!string.IsNullOrEmpty(_config.Branding.LogoDark))
-                {
-                    string logoDarkUrl = ResolveLogoPath(currentUrl, _config.Branding.LogoDark);
-                    sb.AppendLine($"            <img src=\"{logoDarkUrl}\" class=\"h-8 w-auto hidden dark:block\">");
-                }
-                else
-                {
-                    sb.AppendLine($"            <img src=\"{logoUrl}\" class=\"h-8 w-auto hidden dark:block\">");
-                }
+                RenderNavbarLogoImages(sb, currentUrl);
             }
             else if (!string.IsNullOrEmpty(_config.Branding.Icon))
             {
                 sb.AppendLine($"            <i class=\"{_config.Branding.Icon} text-2xl text-primary-600 dark:text-primary-400\"></i>");
             }
+
             sb.AppendLine($"            <a href=\"/index\" class=\"font-bold text-xl hover:text-primary-600 transition-colors\">{_config.Branding.Title}</a>");
+        }
+
+        private void RenderNavbarLogoImages(StringBuilder sb, string currentUrl)
+        {
+            string logoUrl = ResolveLogoPath(currentUrl, _config.Branding.Logo);
+            sb.AppendLine($"                <img src=\"{logoUrl}\" class=\"h-8 w-auto dark:hidden\">");
+            if (!string.IsNullOrEmpty(_config.Branding.LogoDark))
+            {
+                string logoDarkUrl = ResolveLogoPath(currentUrl, _config.Branding.LogoDark);
+                sb.AppendLine($"                <img src=\"{logoDarkUrl}\" class=\"h-8 w-auto hidden dark:block\">");
+            }
+            else
+            {
+                sb.AppendLine($"                <img src=\"{logoUrl}\" class=\"h-8 w-auto hidden dark:block\">");
+            }
         }
 
         // Resolves a branding logo path. Walks up from the current page directory looking
@@ -154,7 +194,16 @@ namespace Neko.Builder
 
         private void RenderNavbarLinks(StringBuilder sb)
         {
-            sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300\">");
+            // Blog mode inks the nav links with the base colour (near-black on
+            // curiosity.ai); docs use the muted grey.
+            if (_isBlogMode)
+            {
+                sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium\" style=\"color:var(--blog-ink)\">");
+            }
+            else
+            {
+                sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300\">");
+            }
             if (_config.Links != null)
             {
                 foreach (var link in _config.Links)
@@ -244,36 +293,93 @@ namespace Neko.Builder
         private void RenderNavbarActions(StringBuilder sb)
         {
             sb.AppendLine("        <div class=\"flex items-center gap-4 hidden md:flex\">");
-            sb.AppendLine("            <button onclick=\"openSearch()\" class=\"flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-primary-500 w-64 justify-between\">");
-            sb.AppendLine("                <div class=\"flex items-center gap-2\">");
-            sb.AppendLine("                    <i class=\"fi fi-rr-search text-sm\"></i>");
-            sb.AppendLine("                    <span class=\"text-sm font-medium\">Search</span>");
-            sb.AppendLine("                </div>");
-            sb.AppendLine("                <kbd class=\"hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400\">⌘K</kbd>");
-            sb.AppendLine("            </button>");
-            sb.AppendLine("            <div class=\"relative\">");
-            sb.AppendLine("                <button id=\"history-btn\" onclick=\"toggleHistory()\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
-            sb.AppendLine("                    <i class=\"fi fi-rr-clock text-lg\"></i>");
-            sb.AppendLine("                </button>");
-            sb.AppendLine("                <div id=\"history-popup\" class=\"absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden border border-gray-200 dark:border-gray-700\">");
-            sb.AppendLine("                    <div class=\"px-4 py-2 border-b border-gray-200 dark:border-gray-700\">");
-            sb.AppendLine("                        <h3 class=\"text-sm font-semibold text-gray-900 dark:text-gray-100\">Recent Pages</h3>");
-            sb.AppendLine("                    </div>");
-            sb.AppendLine("                    <ul id=\"history-list\" class=\"max-h-64 overflow-y-auto\">");
-            sb.AppendLine("                    </ul>");
-            sb.AppendLine("                </div>");
-            sb.AppendLine("            </div>");
+            // In blog mode the search box moves out of the header to the top of the
+            // post list (see RenderContentSearchBar); docs keep it in the header.
+            if (!_isBlogMode)
+            {
+                sb.AppendLine("            <button onclick=\"openSearch()\" class=\"flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-primary-500 w-64 justify-between\">");
+                sb.AppendLine("                <div class=\"flex items-center gap-2\">");
+                sb.AppendLine("                    <i class=\"fi fi-rr-search text-sm\"></i>");
+                sb.AppendLine("                    <span class=\"text-sm font-medium\">Search</span>");
+                sb.AppendLine("                </div>");
+                sb.AppendLine("                <kbd class=\"hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400\">⌘K</kbd>");
+                sb.AppendLine("            </button>");
+            }
+            // The recent-pages history (clock) is documentation chrome and is not
+            // part of the curiosity.ai marketing header, so it is omitted in blog mode.
+            if (!_isBlogMode)
+            {
+                sb.AppendLine("            <div class=\"relative\">");
+                sb.AppendLine("                <button id=\"history-btn\" onclick=\"toggleHistory()\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
+                sb.AppendLine("                    <i class=\"fi fi-rr-clock text-lg\"></i>");
+                sb.AppendLine("                </button>");
+                sb.AppendLine("                <div id=\"history-popup\" class=\"absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden border border-gray-200 dark:border-gray-700\">");
+                sb.AppendLine("                    <div class=\"px-4 py-2 border-b border-gray-200 dark:border-gray-700\">");
+                sb.AppendLine("                        <h3 class=\"text-sm font-semibold text-gray-900 dark:text-gray-100\">Recent Pages</h3>");
+                sb.AppendLine("                    </div>");
+                sb.AppendLine("                    <ul id=\"history-list\" class=\"max-h-64 overflow-y-auto\">");
+                sb.AppendLine("                    </ul>");
+                sb.AppendLine("                </div>");
+                sb.AppendLine("            </div>");
+            }
             if (_isWatchMode)
             {
                 sb.AppendLine("            <button onclick=\"nekoOpenEditor()\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\" title=\"Edit Page\">");
                 sb.AppendLine("                <i class=\"fi fi-rr-edit text-lg\"></i>");
                 sb.AppendLine("            </button>");
             }
-            sb.AppendLine("            <button id=\"theme-toggle\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
-            sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
-            sb.AppendLine("                <i class=\"fi fi-rr-sun hidden dark:block text-lg\"></i>");
-            sb.AppendLine("            </button>");
+            // Light/dark toggle. Always in docs mode; in blog mode only when the
+            // site opted into dark (theme.dark set) — light-only blogs hide it.
+            if (!_isBlogMode || _blogDarkEnabled)
+            {
+                var toggleStyle = _isBlogMode ? " style=\"color:var(--blog-ink)\"" : "";
+                sb.AppendLine($"            <button id=\"theme-toggle\"{toggleStyle} class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
+                sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
+                sb.AppendLine("                <i class=\"fi fi-rr-sun hidden dark:block text-lg\"></i>");
+                sb.AppendLine("            </button>");
+            }
+
+            RenderNavbarActionButtons(sb);
+
             sb.AppendLine("        </div>");
+        }
+
+        // Renders the configured `actions:` as pill-shaped call-to-action buttons
+        // on the right of the navbar (e.g. "Book a Demo" / "Talk to Sales").
+        private void RenderNavbarActionButtons(StringBuilder sb)
+        {
+            if (_config.Actions == null || _config.Actions.Count == 0) return;
+
+            foreach (var action in _config.Actions)
+            {
+                if (string.IsNullOrEmpty(action.Text)) continue;
+
+                var href = action.Link ?? "#";
+                var target = !string.IsNullOrEmpty(action.Target) ? $" target=\"{NormalizeTarget(action.Target)}\"" : "";
+                var rel = target.Contains("_blank") ? " rel=\"noopener noreferrer\"" : "";
+                var isOutline = string.Equals(action.Variant, "outline", System.StringComparison.OrdinalIgnoreCase);
+
+                var iconHtml = string.IsNullOrEmpty(action.Icon) ? "" : $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(action.Icon)}\"></i>";
+
+                if (_isBlogMode)
+                {
+                    // Driven by the blog palette vars so the pills invert with dark
+                    // mode: solid = ink fill with page-bg text; outline = ink border
+                    // + text. Matches the curiosity.ai pills in light mode.
+                    var blogClass = "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-80 whitespace-nowrap";
+                    var style = isOutline
+                        ? "border:1px solid var(--blog-ink);color:var(--blog-ink)"
+                        : "background-color:var(--blog-ink);color:var(--blog-bg)";
+                    sb.AppendLine($"            <a href=\"{href}\"{target}{rel} class=\"{blogClass}\" style=\"{style}\">{iconHtml}{action.Text}</a>");
+                    continue;
+                }
+
+                var btnClass = isOutline
+                    ? "inline-flex items-center gap-2 rounded-full border border-gray-900 dark:border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 hover:bg-gray-900 hover:text-white dark:hover:bg-white dark:hover:text-gray-900 transition-colors whitespace-nowrap"
+                    : "inline-flex items-center gap-2 rounded-full bg-gray-900 dark:bg-white px-4 py-2 text-sm font-semibold text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors whitespace-nowrap";
+
+                sb.AppendLine($"            <a href=\"{href}\"{target}{rel} class=\"{btnClass}\">{iconHtml}{action.Text}</a>");
+            }
         }
     }
 }

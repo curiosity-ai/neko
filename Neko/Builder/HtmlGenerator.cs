@@ -122,7 +122,17 @@ namespace Neko.Builder
 
             GenerateHead(sb, headTitle, headDescription);
 
-            sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
+            // Blog mode uses the `theme.base` palette (curiosity.ai: #f1f1f1 page,
+            // #1f1f1f ink) so the white post cards and content stand out; docs stay
+            // on a white canvas.
+            if (_isBlogMode)
+            {
+                sb.AppendLine("<body style=\"background-color:var(--blog-bg);color:var(--blog-ink)\" class=\"flex flex-col h-screen overflow-hidden\">");
+            }
+            else
+            {
+                sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
+            }
 
             RenderBanner(sb);
             RenderNavbar(sb, currentUrl);
@@ -140,6 +150,11 @@ namespace Neko.Builder
             sb.AppendLine("        <div class=\"flex-1 flex overflow-hidden\">");
             sb.AppendLine("            <main class=\"flex-1 overflow-y-auto overflow-x-clip p-4 md:p-8 scroll-smooth\" id=\"main-scroll\">");
             sb.AppendLine("                <div class=\"max-w-4xl mx-auto prose dark:prose-invert\">");
+
+            // The marketing (blog-mode) footer breaks out of the reading column to
+            // span the full content pane, so it is rendered after the prose div.
+            // Everything else keeps the slim in-column footer.
+            var deferFooterFullWidth = _isBlogMode && _config.Footer != null && _config.Footer.HasRichContent;
 
             if (isProtected)
             {
@@ -162,9 +177,21 @@ namespace Neko.Builder
                 RenderPageNavigation(sb, navContext);
                 RenderBacklinks(sb, backlinks);
             }
-            RenderFooter(sb);
+
+            // The full-width marketing footer is site chrome (rendered after the
+            // prose div); otherwise the slim footer stays in the reading column.
+            if (!deferFooterFullWidth)
+            {
+                RenderFooter(sb);
+            }
 
             sb.AppendLine("                </div>");
+
+            if (deferFooterFullWidth)
+            {
+                RenderBlogMegaFooter(sb, currentUrl);
+            }
+
             sb.AppendLine("            </main>");
 
             if (_config.Layout.Toc && document.Toc != null && document.Toc.Any())
@@ -231,6 +258,36 @@ namespace Neko.Builder
             }
 
             return $"{cls} mx-auto";
+        }
+
+        // Blog-mode palette, driven by `theme.base` so a site can match its own
+        // brand. Defaults reproduce the curiosity.ai look: a near-white page
+        // (#f1f1f1) with near-black ink (#1f1f1f) used for nav text, the solid
+        // CTA fill, and the footer panel.
+        private string BlogBaseBg()
+        {
+            if (_config.Theme?.Base != null && _config.Theme.Base.TryGetValue("base-bg", out var v) && !string.IsNullOrWhiteSpace(v)) return v;
+            return "#f1f1f1";
+        }
+
+        private string BlogBaseColor()
+        {
+            if (_config.Theme?.Base != null && _config.Theme.Base.TryGetValue("base-color", out var v) && !string.IsNullOrWhiteSpace(v)) return v;
+            return "#1f1f1f";
+        }
+
+        // Dark-mode counterparts, from `theme.dark`. Defaults to a near-black page
+        // with light ink so blog mode reads correctly when the site is in dark mode.
+        private string BlogDarkBg()
+        {
+            if (_config.Theme?.Dark != null && _config.Theme.Dark.TryGetValue("base-bg", out var v) && !string.IsNullOrWhiteSpace(v)) return v;
+            return "#0f1115";
+        }
+
+        private string BlogDarkColor()
+        {
+            if (_config.Theme?.Dark != null && _config.Theme.Dark.TryGetValue("base-color", out var v) && !string.IsNullOrWhiteSpace(v)) return v;
+            return "#f1f1f1";
         }
 
         private static string EscapeHtmlAttr(string value)

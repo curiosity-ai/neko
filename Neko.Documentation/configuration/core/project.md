@@ -55,6 +55,35 @@ footer:
 
 ---
 
+## actions
+
+Header **call-to-action buttons**, rendered on the right of the navbar as pills
+(e.g. *Book a Demo*, *Talk to Sales*). They are available in both modes but are
+most at home in [`blog` mode](#mode). Each entry takes a `text`, a `link`, an
+optional `icon` / `target`, and a `variant`.
+
+### variant
+
+=== variant : `string`
+`primary` (default — a solid, filled pill) or `outline` (a bordered pill).
+===
+
+{%{
+```yml
+actions:
+  - text: Book a Demo
+    link: https://example.com/request-demo
+    variant: primary
+    target: blank
+  - text: Talk to Sales
+    link: https://example.com/contact
+    variant: outline
+    target: blank
+```
+}%}
+
+---
+
 ## backlinks
 
 The `backlinks` configuration controls the automatic display of inbound links from other pages in your project. Backlinks help users discover related content by showing which pages reference the current page.
@@ -569,6 +598,74 @@ footer:
       link: license.md
 ```
 ===
+
+### Marketing footer (blog mode)
+
+In [`blog` mode](#mode) Neko renders a full-width, marketing-style footer (the
+curiosity.ai look): a dark panel with rounded top corners containing a brand
+block, social icons, trust badges and link columns, plus the
+[`copyright`](#copyright) line. These fields are ignored in `docs` mode (which
+uses the slim in-content footer). When none of them are set, blog mode falls
+back to a slim, centred links + copyright footer.
+
+=== logo : `string`
+Footer logo path. Defaults to [`branding.logoDark`](#logodark), then
+[`branding.logo`](#logo). The footer panel is dark, so a light/white logo works
+best.
+===
+
+=== tagline : `string`
+Optional short blurb shown under the footer logo.
+===
+
+=== columns : `object[]`
+The link columns. Each column has a `title` and a list of `links` (same options
+as [`links`](#links)).
+===
+
+=== social : `object[]`
+Round social icon buttons. Each entry takes an [`icon`](/configuration/icons),
+a `link`, and an accessible `label`.
+===
+
+=== badges : `object[]`
+Trust / compliance badges. Each entry takes an `icon`, a `title`, and a
+`description`.
+===
+
+{%{
+```yml Marketing footer
+mode: blog
+
+footer:
+  copyright: "&copy; Copyright {{ year }} Example GmbH. All rights reserved."
+  logo: /assets/logo-dark.png
+  social:
+    - icon: brands-twitter
+      link: https://twitter.com/example
+      label: X
+    - icon: brands-linkedin
+      link: https://www.linkedin.com/company/example/
+      label: LinkedIn
+  badges:
+    - icon: shield-check
+      title: GDPR Compliant
+      description: Hosted in the EU
+  columns:
+    - title: Product
+      links:
+        - text: Integrations
+          link: https://example.com/integrations
+        - text: Security
+          link: https://example.com/security
+    - title: Company
+      links:
+        - text: About
+          link: https://example.com/about
+        - text: Pricing
+          link: https://example.com/pricing
+```
+}%}
 
 ---
 
@@ -1370,6 +1467,32 @@ Using the sample above, if we had an `About us` page, the final `<title>` would 
 
 !!!
 See also, the Page level [`meta.title`](page.md#meta) configuration.
+!!!
+===
+
+---
+
+## mode
+
+=== mode : `string`
+
+The **site personality**. Controls which chrome Neko renders around your pages.
+Default is `docs`.
+
+| Value  | Description |
+| ---    | --- |
+| `docs` | The documentation chrome (default): a bordered, white header with the dark-mode toggle, the logo paired with the [branding title](#branding-title), and the slim in-content footer. |
+| `blog` | The marketing-site look (as on [curiosity.ai](https://curiosity.ai)): a borderless header, the logo used on its own as a wordmark, [`actions`](#actions) CTA buttons, and the full-width [marketing footer](#footer). The page/header/CTA palette comes from [`theme.base`](#theme-base). Blog mode is **light-only by default** (the toggle is hidden and light is locked); define a [`theme.dark`](#theme-dark) palette to opt into dark mode and bring the toggle back. The site search moves out of the header to a bar at the top of the post list (still openable anywhere with `⌘K`). |
+
+```yml
+mode: blog
+```
+
+!!!
+`blog` mode pairs naturally with `layout.sidebar: false` / `layout.toc: false`
+and the [`actions`](#actions) and marketing [`footer`](#footer) settings. It is
+inherited by [multi-repo](/configuration/core/project) child sites unless they
+set their own `mode`.
 !!!
 ===
 
