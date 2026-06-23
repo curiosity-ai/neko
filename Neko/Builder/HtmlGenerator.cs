@@ -99,11 +99,20 @@ namespace Neko.Builder
                 ? document.FrontMatter.Description
                 : _config.Meta.Description;
 
+            // A protected page ships nothing page-specific in the static HTML: the
+            // whole content column is encrypted, and the <title>/description are
+            // masked to the site defaults. password.js sets the real title from the
+            // decrypted H1 once unlocked.
+            var effectivePassword = ResolveEffectivePassword(document);
+            var isProtected = !string.IsNullOrEmpty(effectivePassword);
+            var headTitle = isProtected ? _config.Branding.Title : title;
+            var headDescription = isProtected ? _config.Meta.Description : description;
+
             var sb = new StringBuilder();
             sb.AppendLine("<!DOCTYPE html>");
             sb.AppendLine("<html lang=\"en\" class=\"scroll-smooth\">");
 
-            GenerateHead(sb, title, description);
+            GenerateHead(sb, headTitle, headDescription);
 
             sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
 
@@ -124,11 +133,27 @@ namespace Neko.Builder
             sb.AppendLine("            <main class=\"flex-1 overflow-y-auto overflow-x-clip p-4 md:p-8 scroll-smooth\" id=\"main-scroll\">");
             sb.AppendLine("                <div class=\"max-w-4xl mx-auto prose dark:prose-invert\">");
 
-            RenderBreadcrumbs(sb, navContext);
-            RenderBlogPostHeader(sb, document, currentUrl);
-            RenderArticleBody(sb, document, blogPosts, changelogEntries, currentUrl);
-            RenderPageNavigation(sb, navContext);
-            RenderBacklinks(sb, backlinks);
+            if (isProtected)
+            {
+                // Encrypt the whole page-specific column as one payload so it reveals
+                // atomically on unlock — and nothing (breadcrumbs, headings, prev/next,
+                // backlinks) is readable in the page source before then.
+                var inner = new StringBuilder();
+                RenderBreadcrumbs(inner, navContext);
+                RenderBlogPostHeader(inner, document, currentUrl);
+                inner.AppendLine(BuildIndexableContent(document, blogPosts, changelogEntries, currentUrl));
+                RenderPageNavigation(inner, navContext);
+                RenderBacklinks(inner, backlinks);
+                RenderProtectedColumn(sb, inner.ToString(), effectivePassword);
+            }
+            else
+            {
+                RenderBreadcrumbs(sb, navContext);
+                RenderBlogPostHeader(sb, document, currentUrl);
+                sb.AppendLine(BuildIndexableContent(document, blogPosts, changelogEntries, currentUrl));
+                RenderPageNavigation(sb, navContext);
+                RenderBacklinks(sb, backlinks);
+            }
             RenderFooter(sb);
 
             sb.AppendLine("                </div>");
@@ -136,7 +161,17 @@ namespace Neko.Builder
 
             if (_config.Layout.Toc && document.Toc != null && document.Toc.Any())
             {
-                RenderTocSidebar(sb, document, currentUrl);
+                if (isProtected)
+                {
+                    // The rail keeps its width (no layout shift) but ships no heading
+                    // text. password.js builds the list from the decrypted content and
+                    // reveals the rail together with the body, in one tick.
+                    RenderProtectedTocShell(sb, document, currentUrl);
+                }
+                else
+                {
+                    RenderTocSidebar(sb, document, currentUrl);
+                }
             }
 
             sb.AppendLine("        </div>");

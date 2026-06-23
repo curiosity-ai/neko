@@ -74,6 +74,36 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void TestProtectedPageEncryptsWholeColumnAndMasksTitle()
+        {
+            var doc = new ParsedDocument
+            {
+                Html = "<h1>Secret Title</h1><h2 id=\"sect\">Secret Heading</h2><p>Secret body text.</p>",
+                FrontMatter = new FrontMatter { Title = "Secret Title", Password = "letmein" },
+                Toc = new System.Collections.Generic.List<TocItem>
+                {
+                    new TocItem { Level = 1, Id = "secret-title", Title = "Secret Title" },
+                    new TocItem { Level = 2, Id = "sect", Title = "Secret Heading" }
+                }
+            };
+            _config.Branding.Title = "My Site";
+
+            var html = _generator.Generate(doc, currentUrl: "/secret");
+
+            // Title masked to the site title — the page title never ships.
+            Assert.That(html, Contains.Substring("<title>My Site</title>"));
+            Assert.That(html, Does.Not.Contain("Secret Title"));
+            // The whole column is one encrypted payload: body and heading text are
+            // not in the page source.
+            Assert.That(html, Does.Not.Contain("Secret body text."));
+            Assert.That(html, Does.Not.Contain("Secret Heading"));
+            Assert.That(html, Contains.Substring("id=\"encrypted-data\""));
+            // The TOC rail is a client-filled shell (reserved width, no heading text).
+            Assert.That(html, Contains.Substring("id=\"toc-protected\""));
+            Assert.That(html, Contains.Substring("id=\"toc-sidebar\""));
+        }
+
+        [Test]
         public void TestPageLinksRenderedAboveToc()
         {
             _config.Url = "docs.example.com";

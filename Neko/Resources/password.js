@@ -183,12 +183,42 @@
     const formContainer = document.getElementById('password-form-container');
     let promptWired = false;
 
+    // Build the table of contents from the just-decrypted headings — so no heading
+    // text ships in the page source — and set the real document title from the H1.
+    // Runs in the same tick as the content injection so the page appears as one unit.
+    function revealProtectedChrome(container) {
+        const tocList = document.getElementById('toc-list');
+        if (tocList) {
+            container.querySelectorAll('h2[id], h3[id], h4[id]').forEach((h) => {
+                const level = parseInt(h.tagName.substring(1), 10);
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = '#' + h.id;
+                a.className = 'block ' + (level === 2 ? 'pl-4' : 'pl-8') + ' hover:text-primary-600 dark:hover:text-primary-400 transition-colors toc-link';
+                a.setAttribute('data-id', h.id);
+                a.textContent = h.textContent;
+                li.appendChild(a);
+                tocList.appendChild(li);
+            });
+            const tocWrap = document.getElementById('toc-protected');
+            if (tocWrap) tocWrap.classList.remove('hidden');
+        }
+
+        const h1 = container.querySelector('h1');
+        if (h1) {
+            const site = (window.nekoConfig && window.nekoConfig.branding && window.nekoConfig.branding.title) || '';
+            const heading = h1.textContent.trim();
+            if (heading) document.title = site ? site + ' - ' + heading : heading;
+        }
+    }
+
     // Decrypt with an already-resolved key, inject the content, and cache the key for
     // the rest of the session. Throws if the key doesn't match (caller shows the form).
     async function renderDecrypted(key) {
         const html = await decryptWithKey(payload, key);
         if (contentContainer) {
             contentContainer.innerHTML = html;
+            revealProtectedChrome(contentContainer);
             reinitContent(contentContainer);
         }
         await cacheKey(payload.salt, key);
