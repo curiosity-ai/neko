@@ -103,6 +103,10 @@
                 // Wrong/absent key for this item — leave it hidden.
             }
         }
+        // The inline scroll-restore ran while these entries were still hidden, so
+        // the sidebar was too short for scrollTop to stick. Now that they're
+        // revealed, re-apply the saved position so the sidebar keeps its place.
+        if (window.nekoRestoreSidebarScroll) window.nekoRestoreSidebarScroll();
     }
 
     // Re-run the dynamic content initialisers over freshly injected HTML. The page's
