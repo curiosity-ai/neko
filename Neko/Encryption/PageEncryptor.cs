@@ -14,13 +14,26 @@ namespace Neko.Encryption
 
         public record EncryptionResult(string Salt, string Iv, string Data);
 
-        public static EncryptionResult Encrypt(string content, string password)
+        // Generates a fresh random salt suitable for sharing across multiple
+        // Encrypt() calls. Sharing one salt per page lets the browser derive the
+        // PBKDF2 key a single time and reuse it for every payload (page body +
+        // each protected sidebar title), instead of paying ~100k iterations per
+        // item — which otherwise makes the sidebar trickle in over hundreds of
+        // milliseconds on every navigation. AES-GCM stays safe because each call
+        // still gets its own random nonce.
+        public static byte[] GenerateSalt()
         {
-            var plainBytes = Encoding.UTF8.GetBytes(content);
-
-            // Generate Salt
             var salt = new byte[SaltSize];
             RandomNumberGenerator.Fill(salt);
+            return salt;
+        }
+
+        public static EncryptionResult Encrypt(string content, string password)
+            => Encrypt(content, password, GenerateSalt());
+
+        public static EncryptionResult Encrypt(string content, string password, byte[] salt)
+        {
+            var plainBytes = Encoding.UTF8.GetBytes(content);
 
             // Derive Key
             using var deriveBytes = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA256);
