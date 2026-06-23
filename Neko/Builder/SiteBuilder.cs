@@ -678,7 +678,7 @@ namespace Neko.Builder
                 // asset has been written — the generator scans the emitted HTML/JS
                 // for the utility classes actually used and emits only those, plus
                 // the shipped preflight + typography layers.
-                await GenerateTailwindAsync(OutputDirectory);
+                await GenerateTailwindAsync(OutputDirectory, generator);
 
                 // Generate CNAME if applicable
                 var customCnamePath = Path.Combine(_inputDirectory, "CNAME");
@@ -948,7 +948,7 @@ namespace Neko.Builder
                 // search.json and the Tailwind stylesheet are whole-site artifacts;
                 // refresh them from the (now-updated) cached state and emitted HTML.
                 await RewriteSearchIndexAsync();
-                await GenerateTailwindAsync(OutputDirectory);
+                await GenerateTailwindAsync(OutputDirectory, _lastGenerator);
 
                 Console.WriteLine($"Incrementally rebuilt {old.RelativePath}.");
                 return true;
@@ -1524,11 +1524,18 @@ namespace Neko.Builder
         // assets/tailwind.css with the pure-C# generator. Per-site (multi-repo
         // sub-projects each call this for their own OutputDirectory), so the
         // used-class set and palette are correct for each.
-        private async Task GenerateTailwindAsync(string outputDir)
+        private async Task GenerateTailwindAsync(string outputDir, HtmlGenerator generator)
         {
             try
             {
                 var contents = ClassExtractor.ReadContentFiles(outputDir).ToList();
+
+                // Password-protected pages are written to disk as an encrypted
+                // blob, so ReadContentFiles can't see the classes used inside
+                // them. Add their plaintext bodies (captured at render time) so
+                // those utilities are still emitted into the stylesheet.
+                if (generator != null)
+                    contents.AddRange(generator.ProtectedPagePlaintext);
                 // Non-minified so the output matches the Tailwind CLI's
                 // (non-minified) output byte-for-byte. Minification (matching
                 // cssnano) can be layered on later without affecting correctness.

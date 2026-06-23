@@ -109,6 +109,46 @@ AlertContent
         }
 
         [Test]
+        public async Task TestProtectedPageClassesReachTailwindStylesheet()
+        {
+            // A password-protected page is written to disk as an encrypted blob,
+            // so the Tailwind class extractor can't see the utility classes used
+            // inside it. The builder must still feed the page's plaintext into the
+            // extractor — otherwise classes used only on protected pages (here the
+            // alert's dark-mode colors) are dropped and the page renders unstyled
+            // once decrypted in the browser. Regression test for that.
+            File.WriteAllText(Path.Combine(_sampleDir, "secret.md"), @"---
+title: Secret
+password: hunter2
+---
+# Secret
+
+!!! info Heads up
+Protected body with an alert.
+!!!
+");
+
+            var builder = new SiteBuilder(_sampleDir);
+            await builder.BuildAsync();
+
+            var secretPath = Path.Combine(builder.OutputDirectory, "secret.html");
+            Assert.That(File.Exists(secretPath), Is.True, "secret.html should exist");
+
+            // The plaintext alert markup must NOT be on disk (it's encrypted)…
+            var secretHtml = await File.ReadAllTextAsync(secretPath);
+            Assert.That(secretHtml, Does.Contain("id=\"encrypted-data\""), "protected page should be encrypted");
+            Assert.That(secretHtml, Does.Not.Contain("Protected body with an alert."), "plaintext body must not be on disk");
+
+            // …yet the alert's dark-mode utilities must still be in the stylesheet.
+            var cssPath = Path.Combine(builder.OutputDirectory, "assets", "tailwind.css");
+            Assert.That(File.Exists(cssPath), Is.True, "tailwind.css should exist");
+            var css = await File.ReadAllTextAsync(cssPath);
+            Assert.That(css, Does.Contain("dark\\:bg-primary-900\\/20"), "alert dark background utility should be emitted for protected pages");
+            Assert.That(css, Does.Contain("dark\\:text-primary-200"), "alert dark title color utility should be emitted for protected pages");
+            Assert.That(css, Does.Contain(".text-primary-800"), "alert title color utility should be emitted for protected pages");
+        }
+
+        [Test]
         public async Task TestFaviconAutoDetectedFromInputRoot()
         {
             // Drop a favicon.ico at the input root. No `branding.favicon` is set in neko.yml.

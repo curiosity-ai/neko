@@ -91,7 +91,7 @@ namespace Neko.Builder
 
             if (!string.IsNullOrEmpty(effectivePassword))
             {
-                RenderPasswordProtectedBody(sb, htmlContent, effectivePassword, document);
+                RenderPasswordProtectedBody(sb, htmlContent, effectivePassword, document, currentUrl);
             }
             else
             {
@@ -99,8 +99,14 @@ namespace Neko.Builder
             }
         }
 
-        private void RenderPasswordProtectedBody(StringBuilder sb, string htmlContent, string effectivePassword, ParsedDocument document)
+        private void RenderPasswordProtectedBody(StringBuilder sb, string htmlContent, string effectivePassword, ParsedDocument document, string currentUrl)
         {
+            // The plaintext body never reaches disk (only its ciphertext does),
+            // so stash it for the Tailwind class extractor to scan — otherwise
+            // classes used only inside protected pages are missing from the
+            // stylesheet. See HtmlGenerator._protectedPlaintext.
+            _protectedPlaintext[currentUrl ?? System.Guid.NewGuid().ToString()] = htmlContent;
+
             var isGlobalPassword = string.IsNullOrEmpty(document.FrontMatter.Password) && !string.IsNullOrEmpty(_config.Password);
             sb.AppendLine($"<script>window.nekoIsGlobalPassword = {isGlobalPassword.ToString().ToLower()};</script>");
 

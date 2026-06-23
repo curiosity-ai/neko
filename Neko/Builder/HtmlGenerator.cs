@@ -11,6 +11,26 @@ namespace Neko.Builder
         private readonly bool _isWatchMode;
         private readonly string _headIncludes;
 
+        // Plaintext bodies of password-protected pages, keyed by page URL. These
+        // pages are written to disk as an encrypted blob, so the Tailwind class
+        // extractor (which scans the emitted HTML) can't see the utility classes
+        // used inside them — leaving those classes out of the stylesheet and
+        // breaking the page's styling once it's decrypted in the browser. The
+        // builder feeds these plaintext snapshots into the extractor so the
+        // classes are emitted. Keyed by URL so re-rendering a page (incremental
+        // rebuilds reuse the same generator) replaces rather than duplicates.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _protectedPlaintext
+            = new System.Collections.Concurrent.ConcurrentDictionary<string, string>();
+
+        /// <summary>
+        /// Plaintext HTML of every password-protected page rendered by this
+        /// generator. The on-disk copy of these pages is encrypted, so the
+        /// Tailwind class extractor must scan these snapshots too — otherwise
+        /// utility classes used only inside protected content are dropped from
+        /// the generated stylesheet.
+        /// </summary>
+        public System.Collections.Generic.IEnumerable<string> ProtectedPagePlaintext => _protectedPlaintext.Values;
+
         public HtmlGenerator(NekoConfig config, bool isWatchMode = false, string headIncludes = null)
         {
             _config = config;
