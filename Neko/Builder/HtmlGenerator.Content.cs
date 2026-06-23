@@ -67,55 +67,42 @@ namespace Neko.Builder
             sb.AppendLine("</div>");
         }
 
-        private void RenderArticleBody(
-            StringBuilder sb,
-            ParsedDocument document,
-            List<(ParsedDocument Doc, string Url)> blogPosts,
-            List<(ParsedDocument Doc, string Url, string Version)> changelogEntries,
-            string currentUrl)
+        // The password that gates this page: the page's own `password`, or the
+        // site-wide `password` from neko.yml — unless the page opts out with
+        // `password: none`. Null when the page is public.
+        private string ResolveEffectivePassword(ParsedDocument document)
         {
-            var htmlContent = BuildIndexableContent(document, blogPosts, changelogEntries, currentUrl);
-
-            string effectivePassword = null;
             if (!string.IsNullOrEmpty(document.FrontMatter.Password))
             {
-                if (!document.FrontMatter.Password.Equals("none", System.StringComparison.OrdinalIgnoreCase))
-                {
-                    effectivePassword = document.FrontMatter.Password;
-                }
+                return document.FrontMatter.Password.Equals("none", System.StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : document.FrontMatter.Password;
             }
-            else if (!string.IsNullOrEmpty(_config.Password))
-            {
-                effectivePassword = _config.Password;
-            }
-
-            if (!string.IsNullOrEmpty(effectivePassword))
-            {
-                RenderPasswordProtectedBody(sb, htmlContent, effectivePassword, document);
-            }
-            else
-            {
-                sb.AppendLine(htmlContent);
-            }
+            return string.IsNullOrEmpty(_config.Password) ? null : _config.Password;
         }
 
-        private void RenderPasswordProtectedBody(StringBuilder sb, string htmlContent, string effectivePassword, ParsedDocument document)
+        private void RenderProtectedColumn(StringBuilder sb, string innerHtml, string effectivePassword)
         {
-            var isGlobalPassword = string.IsNullOrEmpty(document.FrontMatter.Password) && !string.IsNullOrEmpty(_config.Password);
-            sb.AppendLine($"<script>window.nekoIsGlobalPassword = {isGlobalPassword.ToString().ToLower()};</script>");
-
             // Harvest the utility classes from the plaintext before it is
             // encrypted. Only the encrypted blob is written to disk, so the
             // Tailwind scanner can't recover these classes from the emitted file;
             // collecting them here keeps the generated stylesheet complete for
             // protected pages (notably their dark-mode variants).
             ProtectedPageClassTokens.UnionWith(
-                Neko.Builder.Tailwind.ClassExtractor.Extract(new[] { htmlContent }));
+                Neko.Builder.Tailwind.ClassExtractor.Extract(new[] { innerHtml }));
 
-            var encryptionResult = Neko.Encryption.PageEncryptor.Encrypt(htmlContent, effectivePassword);
+            var encryptionResult = Neko.Encryption.PageEncryptor.Encrypt(innerHtml, effectivePassword);
 
+            // The prompt is hidden by default and only revealed by password.js when
+            // there is no cached key for this password (or a cached key fails). When
+            // the visitor has already unlocked a page protected with the same
+            // password this session, the key is reused from sessionStorage and the
+            // content is decrypted straight away — so navigating between protected
+            // pages never flashes this form. A <noscript> rule reveals it for clients
+            // without JavaScript, who otherwise see an empty page.
+            sb.AppendLine($"<noscript><style>#password-form-container.hidden{{display:flex !important;}}</style></noscript>");
             sb.AppendLine($"<div id=\"content-container\">");
-            sb.AppendLine($"    <div id=\"password-form-container\" class=\"flex flex-col items-center justify-center py-20 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700\">");
+            sb.AppendLine($"    <div id=\"password-form-container\" class=\"hidden flex flex-col items-center justify-center py-20 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700\">");
             sb.AppendLine($"        <div class=\"p-8 bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 max-w-md w-full text-center\">");
             sb.AppendLine($"            <div class=\"w-12 h-12 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-full flex items-center justify-center mx-auto mb-4\">");
             sb.AppendLine($"                <i class=\"fi fi-rr-lock text-xl\"></i>");
@@ -269,6 +256,25 @@ namespace Neko.Builder
                 sb.AppendLine($"                        <li><a href=\"#{item.Id}\" class=\"block {padding} hover:text-primary-600 dark:hover:text-primary-400 transition-colors toc-link\" data-id=\"{item.Id}\">{item.Title}</a></li>");
             }
             sb.AppendLine("                    </ul>");
+            sb.AppendLine("                </div>");
+            sb.AppendLine("            </aside>");
+        }
+
+        // The TOC rail for a protected page: same width as a normal rail (so the
+        // layout doesn't shift), but it ships no heading text. The list is empty and
+        // the inner block is hidden; password.js fills the list from the decrypted
+        // headings and unhides it together with the body.
+        private void RenderProtectedTocShell(StringBuilder sb, ParsedDocument document, string currentUrl)
+        {
+            sb.AppendLine("            <aside id=\"toc-sidebar\" class=\"w-64 hidden xl:block shrink-0 overflow-y-auto border-l border-gray-200 dark:border-gray-800 p-6\">");
+            sb.AppendLine("                <div class=\"sticky top-0\">");
+            sb.AppendLine("                    <div id=\"toc-protected\" class=\"hidden\">");
+            RenderPageLinks(sb, document, currentUrl);
+            sb.AppendLine("                        <h5 class=\"text-xs font-semibold mb-4 text-gray-900 dark:text-gray-100 uppercase tracking-wider\">On this page</h5>");
+            sb.AppendLine("                        <ul class=\"space-y-2.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-800 relative\" id=\"toc-list\">");
+            sb.AppendLine("                            <div id=\"toc-highlight\" class=\"absolute left-0 border-l-2 border-primary-600 dark:border-primary-400 transition-all duration-200 ease-in-out -ml-px\" style=\"top: 0; height: 0; opacity: 0;\"></div>");
+            sb.AppendLine("                        </ul>");
+            sb.AppendLine("                    </div>");
             sb.AppendLine("                </div>");
             sb.AppendLine("            </aside>");
         }

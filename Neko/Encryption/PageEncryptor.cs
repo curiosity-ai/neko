@@ -18,9 +18,19 @@ namespace Neko.Encryption
         {
             var plainBytes = Encoding.UTF8.GetBytes(content);
 
-            // Generate Salt
-            var salt = new byte[SaltSize];
-            RandomNumberGenerator.Fill(salt);
+            // Derive the salt deterministically from the password rather than at
+            // random. PBKDF2 only needs the salt to be unique per password (not
+            // secret), and a stable salt means the same password always derives
+            // the same key. That lets the browser derive the key once on unlock,
+            // cache it for the session, and decrypt every other page protected
+            // with that password without re-running PBKDF2 — so navigating a
+            // protected site no longer pays the (deliberately slow) key
+            // derivation, nor flashes the password prompt, on each page.
+            //
+            // Confidentiality still rests on a fresh random nonce per page (below):
+            // the key is reused across pages, but AES-GCM is only ever invoked with
+            // a unique nonce, so no two pages share a keystream.
+            var salt = DeriveSalt(password);
 
             // Derive Key
             using var deriveBytes = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA256);
@@ -47,6 +57,20 @@ namespace Neko.Encryption
                 Convert.ToBase64String(nonce),
                 Convert.ToBase64String(combined)
             );
+        }
+
+        // A stable per-password salt: SHA-256 of a versioned, domain-separated
+        // prefix plus the password, truncated to the salt size. The client never
+        // needs to reproduce this — each page ships its salt in the payload — it
+        // only matters that every page sharing a password also shares a salt, so
+        // the derived key is identical and cacheable across the site.
+        private static byte[] DeriveSalt(string password)
+        {
+            var material = Encoding.UTF8.GetBytes("neko-page-salt-v1:" + password);
+            var hash = SHA256.HashData(material);
+            var salt = new byte[SaltSize];
+            Buffer.BlockCopy(hash, 0, salt, 0, SaltSize);
+            return salt;
         }
     }
 }

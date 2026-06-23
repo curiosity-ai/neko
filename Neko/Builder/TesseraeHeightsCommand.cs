@@ -220,7 +220,7 @@ namespace Neko.Builder
                 var existingHeight = hm.Success && int.TryParse(hm.Groups[1].Value, out var h) ? h : 0;
 
                 int close = -1;
-                var code = new StringBuilder();
+                var bodyLines = new List<string>();
                 for (int j = i + 1; j < lines.Length; j++)
                 {
                     if (IsClosingFence(lines[j], fence.Length))
@@ -228,11 +228,16 @@ namespace Neko.Builder
                         close = j;
                         break;
                     }
-                    code.Append(lines[j]).Append('\n');
+                    bodyLines.Add(lines[j]);
                 }
 
                 if (close < 0) break; // unterminated fence — leave the rest alone
-                blocks.Add(new Block(i, close, indent, fence, rest, code.ToString(), existingHeight));
+
+                // Compile/measure the runnable source, honouring an
+                // `// <overwrite-sample-code>` region exactly as the build does so the
+                // measured sample matches what the preview actually renders.
+                var (code, _) = TesseraeCompiler.PartitionSampleSource(bodyLines);
+                blocks.Add(new Block(i, close, indent, fence, rest, code, existingHeight));
                 i = close;
             }
             return blocks;
