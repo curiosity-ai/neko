@@ -366,6 +366,10 @@ namespace Neko.Builder
             sb.AppendLine("        #toc-sidebar { -ms-overflow-style: none; scrollbar-width: none; }");
             sb.AppendLine("");
             sb.AppendLine("        /* Main Content */");
+            sb.AppendLine("        /* Always reserve the scrollbar gutter so content doesn't reflow");
+            sb.AppendLine("           horizontally when the vertical scrollbar appears (e.g. once async");
+            sb.AppendLine("           content — password-decrypted bodies, mermaid, images — grows the page). */");
+            sb.AppendLine("        #main-scroll { scrollbar-gutter: stable; }");
             sb.AppendLine("        #main-scroll::-webkit-scrollbar { width: 8px; height: 8px; background-color: transparent; }");
             sb.AppendLine("        #main-scroll::-webkit-scrollbar-track { background-color: transparent; }");
             sb.AppendLine("        #main-scroll::-webkit-scrollbar-thumb { background-color: rgba(209, 213, 219, 0.5); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }");
