@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using NUnit.Framework;
 using Neko.Builder;
@@ -123,6 +124,26 @@ namespace Demo
 
             Assert.That(result.FilesUpdated, Is.EqualTo(1));
             Assert.That(File.ReadAllText(page), Contains.Substring("public int Bar(int x);"));
+        }
+
+        [Test]
+        public void LogsSyncedXmlDocCommentCount()
+        {
+            var page = Path.Combine(_docs, "foo.md");
+            File.WriteAllText(page, Md(
+                "<!-- api:source start repo=\"demo\" file=\"Foo.cs\" type=\"Foo\" -->\n<!-- api:source end -->"));
+
+            var original = Console.Out;
+            var captured = new StringWriter();
+            Console.SetOut(captured);
+            try { ApiDocsSync.Run(_docs); }
+            finally { Console.SetOut(original); }
+
+            // Foo carries a <summary> on the class and on Bar(int); the private /
+            // internal members are dropped, so two doc comments are synced.
+            Assert.That(captured.ToString(),
+                Does.Contain("synced 2 XML doc comment(s) from demo:Foo.cs"));
+            Assert.That(captured.ToString(), Does.Contain("foo.md"));
         }
 
         [Test]
