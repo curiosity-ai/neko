@@ -27,6 +27,7 @@ namespace Neko.Builder
     {
         private readonly string _input;
         private readonly bool _force;
+        private readonly string? _file;
 
         // Opening fence of a tesserae block: optional indent, 3+ backticks, the
         // `tesserae` info word, then the rest of the info string (args).
@@ -40,24 +41,46 @@ namespace Neko.Builder
         private static readonly Regex HeightValueRegex = new(
             @"\bheight\s*=\s*(\d+)\b", RegexOptions.Compiled);
 
-        public TesseraeHeightsCommand(string input, bool force = false)
+        public TesseraeHeightsCommand(string input, bool force = false, string? file = null)
         {
             _input = input;
             _force = force;
+            _file = file;
         }
 
         private sealed record Block(int OpenLine, int CloseLine, string Indent, string Fence, string Rest, string Code, int ExistingHeight);
 
         public async Task<int> RunAsync()
         {
-            var inputFullPath = Path.GetFullPath(_input);
-            if (!Directory.Exists(inputFullPath))
+            // When a single file is targeted, the input/project root is derived from
+            // it (nearest ancestor neko.yml, else the file's directory). A targeted
+            // run always re-measures that file's samples — there is no hash cache, so
+            // rerun it after editing a sample.
+            string? targetFileFullPath = null;
+            string inputFullPath;
+            if (!string.IsNullOrEmpty(_file))
             {
-                Console.Error.WriteLine($"[tesserae-heights] Input directory not found: {inputFullPath}");
-                return 2;
+                targetFileFullPath = Path.GetFullPath(_file);
+                if (!File.Exists(targetFileFullPath))
+                {
+                    Console.Error.WriteLine($"[tesserae-heights] File not found: {targetFileFullPath}");
+                    return 2;
+                }
+                inputFullPath = FindProjectRoot(targetFileFullPath);
+            }
+            else
+            {
+                inputFullPath = Path.GetFullPath(_input);
+                if (!Directory.Exists(inputFullPath))
+                {
+                    Console.Error.WriteLine($"[tesserae-heights] Input directory not found: {inputFullPath}");
+                    return 2;
+                }
             }
 
             var swTotal = Stopwatch.StartNew();
+            // A targeted file re-measures unconditionally so an edited sample is resized.
+            var force = _force || targetFileFullPath != null;
 
             // Keep build artifacts inside the project's .neko-cache (never OS temp),
             // matching the rest of the CLI.
@@ -74,12 +97,15 @@ namespace Neko.Builder
                 config.Tesserae?.MaxParallelism ?? 0,
                 config.Tesserae?.MeasureWidth ?? 0);
 
-            // Discover every Markdown file, skipping hidden/dot folders (.neko-cache,
-            // .neko, .git, .claude, …) and underscore-prefixed partials.
-            var markdownFiles = Directory.EnumerateFiles(inputFullPath, "*.md", SearchOption.AllDirectories)
-                .Where(f => !PathHasHiddenSegment(inputFullPath, f))
-                .OrderBy(f => f, StringComparer.Ordinal)
-                .ToList();
+            // A targeted run measures just that one file; otherwise discover every
+            // Markdown file, skipping hidden/dot folders (.neko-cache, .neko, .git,
+            // .claude, …) and underscore-prefixed partials.
+            var markdownFiles = targetFileFullPath != null
+                ? new List<string> { targetFileFullPath }
+                : Directory.EnumerateFiles(inputFullPath, "*.md", SearchOption.AllDirectories)
+                    .Where(f => !PathHasHiddenSegment(inputFullPath, f))
+                    .OrderBy(f => f, StringComparer.Ordinal)
+                    .ToList();
 
             var fileBlocks = new Dictionary<string, List<Block>>();
             foreach (var file in markdownFiles)
@@ -101,7 +127,7 @@ namespace Neko.Builder
             // A sample needs measuring when its fence has no height yet — unless
             // --force recomputes everything. Already-sized samples are skipped, so
             // re-runs only do the new work.
-            bool NeedsMeasure(Block b) => _force || b.ExistingHeight <= 0;
+            bool NeedsMeasure(Block b) => force || b.ExistingHeight <= 0;
 
             var sampleCount = fileBlocks.Sum(kv => kv.Value.Count);
             var skippedExisting = fileBlocks.Sum(kv => kv.Value.Count(b => !NeedsMeasure(b)));
@@ -117,7 +143,7 @@ namespace Neko.Builder
 
             Console.WriteLine($"[tesserae-heights] {sampleCount} sample(s) across {fileBlocks.Count} file(s): "
                 + $"{totalToMeasure} to measure, {skippedExisting} already sized"
-                + (_force ? " (--force: recomputing all)." : "."));
+                + (force ? " (recomputing all)." : "."));
 
             if (totalToMeasure == 0)
             {
@@ -249,6 +275,21 @@ namespace Neko.Builder
             if (t.Length < minBackticks) return false;
             foreach (var c in t) if (c != '`') return false;
             return true;
+        }
+
+        // Walk up from a file to the nearest directory containing a neko.yml; fall
+        // back to the file's own directory when none is found.
+        private static string FindProjectRoot(string fileFullPath)
+        {
+            var dir = Path.GetDirectoryName(fileFullPath);
+            while (!string.IsNullOrEmpty(dir))
+            {
+                if (File.Exists(Path.Combine(dir, "neko.yml"))) return dir;
+                var parent = Path.GetDirectoryName(dir);
+                if (parent == dir) break;
+                dir = parent;
+            }
+            return Path.GetDirectoryName(fileFullPath)!;
         }
 
         private static bool PathHasHiddenSegment(string root, string file)

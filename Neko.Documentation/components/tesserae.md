@@ -137,6 +137,15 @@ measures new samples and an interrupted run is resumable. Pass `--force` to
 re-measure everything; samples without a token keep the placeholder height until
 measured.
 
+To re-measure just one file after editing a sample, target it directly:
+
+```bash
+neko gen-tesserae-heights --file path/to/page.md
+```
+
+A targeted run always re-measures that file's samples — there is no hash cache,
+so rerun it whenever you change a sample's code.
+
 The measurement viewport width is configurable via
 [`tesserae.measureWidth`](/configuration/core/project#tesserae). The preview
 stays manually resizable via the iframe's bottom-right drag handle regardless.
