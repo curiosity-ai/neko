@@ -199,10 +199,11 @@ mode: blog
 - **`blog`** — the marketing-site look (as on curiosity.ai): a borderless
   header, the logo used on its own as a **wordmark** (no duplicated title),
   `actions` CTA buttons, and the full-width marketing footer. The
-  page/header/CTA palette comes from `theme.base` (light) and `theme.dark`
-  (dark), so blog mode **supports both light and dark mode** and keeps the
-  theme toggle. The search box moves out of the header to the **top of the post
-  list** (still openable with `⌘K`).
+  page/header/CTA palette comes from `theme.base`. Blog mode is **light-only by
+  default** (the theme toggle is hidden and light is locked). Define a
+  `theme.dark` palette to **opt into dark mode** and bring the toggle back. The
+  search box moves out of the header to the **top of the post list** (still
+  openable with `⌘K`).
 
   ```yml
   mode: blog
@@ -210,9 +211,9 @@ mode: blog
     base:                 # light palette
       base-bg: "#f1f1f1"
       base-color: "#1f1f1f"
-    dark:                 # dark palette (optional; sensible defaults otherwise)
-      base-bg: "#0f1115"
-      base-color: "#f1f1f1"
+    # dark:               # add this to enable dark mode + the theme toggle
+    #   base-bg: "#0f1115"
+    #   base-color: "#f1f1f1"
   ```
 
 Blog mode pairs naturally with `layout.sidebar: false`, `layout.toc: false`,

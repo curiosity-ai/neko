@@ -104,26 +104,25 @@ namespace Neko.Tests
         }
 
         [Test]
-        public void BlogMode_SupportsDarkAndLight()
+        public void BlogMode_DefaultsToLightOnly()
         {
+            // No theme.dark configured → light-only marketing look.
             var html = new HtmlGenerator(BlogConfig()).Generate(Doc());
 
-            // Keeps the theme toggle and does NOT force light — the palette is
-            // exposed as CSS vars that switch on `.dark` (light = theme.base,
-            // dark = theme.dark, with sensible defaults).
-            Assert.That(html, Contains.Substring("id=\"theme-toggle\""));
-            Assert.That(html, Does.Not.Contain("localStorage.theme = 'light'"));
+            // No theme toggle, light is locked, and no dark palette override.
+            Assert.That(html, Does.Not.Contain("id=\"theme-toggle\""));
+            Assert.That(html, Contains.Substring("localStorage.theme = 'light'"));
             Assert.That(html, Contains.Substring("--blog-bg: #f1f1f1"));
             Assert.That(html, Contains.Substring("--blog-ink: #1f1f1f"));
-            Assert.That(html, Contains.Substring("html.dark { --blog-bg: #0f1115; --blog-ink: #f1f1f1; }"));
-            Assert.That(html, Contains.Substring("background-color:var(--blog-bg)"));
+            Assert.That(html, Does.Not.Contain("html.dark { --blog-bg"));
             // The recent-pages history clock stays out of the marketing header.
             Assert.That(html, Does.Not.Contain("id=\"history-btn\""));
         }
 
         [Test]
-        public void BlogMode_DarkPalette_ComesFromThemeDark()
+        public void BlogMode_DarkIsOptInViaThemeDark()
         {
+            // Defining theme.dark opts the blog into dark mode (and the toggle).
             var config = BlogConfig();
             config.Theme.Dark["base-bg"] = "#101820";
             config.Theme.Dark["base-color"] = "#dde3ea";
@@ -131,6 +130,8 @@ namespace Neko.Tests
             var html = new HtmlGenerator(config).Generate(Doc());
 
             Assert.That(html, Contains.Substring("html.dark { --blog-bg: #101820; --blog-ink: #dde3ea; }"));
+            Assert.That(html, Contains.Substring("id=\"theme-toggle\""));
+            Assert.That(html, Does.Not.Contain("localStorage.theme = 'light'"));
         }
 
         [Test]

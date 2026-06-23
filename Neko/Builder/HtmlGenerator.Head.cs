@@ -95,10 +95,14 @@ namespace Neko.Builder
             sb.AppendLine($"      :root {{ --neko-grad-from: {(primaryTheme.TryGetValue("400", out var pf) ? pf : "#5b94ff")}; --neko-grad-to: {(accentTheme.TryGetValue("400", out var af) ? af : "#a78bfa")}; }}");
             if (_isBlogMode)
             {
-                // Blog-mode palette as CSS variables so the header/page/CTAs follow
-                // light (theme.base) and dark (theme.dark) mode automatically.
+                // Blog-mode palette as CSS variables. Light always comes from
+                // theme.base; the dark override is only emitted when the site opts
+                // into dark mode via theme.dark (otherwise blog mode stays light).
                 sb.AppendLine($"      :root {{ --blog-bg: {BlogBaseBg()}; --blog-ink: {BlogBaseColor()}; }}");
-                sb.AppendLine($"      html.dark {{ --blog-bg: {BlogDarkBg()}; --blog-ink: {BlogDarkColor()}; }}");
+                if (_blogDarkEnabled)
+                {
+                    sb.AppendLine($"      html.dark {{ --blog-bg: {BlogDarkBg()}; --blog-ink: {BlogDarkColor()}; }}");
+                }
             }
             sb.AppendLine("    </style>");
         }
@@ -510,11 +514,21 @@ namespace Neko.Builder
         private void RenderHeadDarkModeInit(StringBuilder sb)
         {
             sb.AppendLine("    <script>");
-            sb.AppendLine("        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {");
-            sb.AppendLine("            document.documentElement.classList.add('dark');");
-            sb.AppendLine("        } else {");
-            sb.AppendLine("            document.documentElement.classList.remove('dark');");
-            sb.AppendLine("        }");
+            if (_isBlogMode && !_blogDarkEnabled)
+            {
+                // Light-only blog (no theme.dark configured): lock light, since
+                // there is no toggle and the marketing palette is light.
+                sb.AppendLine("        try { localStorage.theme = 'light'; } catch (e) {}");
+                sb.AppendLine("        document.documentElement.classList.remove('dark');");
+            }
+            else
+            {
+                sb.AppendLine("        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {");
+                sb.AppendLine("            document.documentElement.classList.add('dark');");
+                sb.AppendLine("        } else {");
+                sb.AppendLine("            document.documentElement.classList.remove('dark');");
+                sb.AppendLine("        }");
+            }
             sb.AppendLine("    </script>");
         }
     }

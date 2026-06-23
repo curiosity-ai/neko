@@ -1482,7 +1482,7 @@ Default is `docs`.
 | Value  | Description |
 | ---    | --- |
 | `docs` | The documentation chrome (default): a bordered, white header with the dark-mode toggle, the logo paired with the [branding title](#branding-title), and the slim in-content footer. |
-| `blog` | The marketing-site look (as on [curiosity.ai](https://curiosity.ai)): a borderless header, the logo used on its own as a wordmark, [`actions`](#actions) CTA buttons, and the full-width [marketing footer](#footer). The page/header/CTA palette is driven by [`theme.base`](#theme-base) (light) and [`theme.dark`](#theme-dark) (dark), so blog mode supports both light and dark mode and keeps the theme toggle. The site search moves out of the header to a bar at the top of the post list (still openable anywhere with `⌘K`). |
+| `blog` | The marketing-site look (as on [curiosity.ai](https://curiosity.ai)): a borderless header, the logo used on its own as a wordmark, [`actions`](#actions) CTA buttons, and the full-width [marketing footer](#footer). The page/header/CTA palette comes from [`theme.base`](#theme-base). Blog mode is **light-only by default** (the toggle is hidden and light is locked); define a [`theme.dark`](#theme-dark) palette to opt into dark mode and bring the toggle back. The site search moves out of the header to a bar at the top of the post list (still openable anywhere with `⌘K`). |
 
 ```yml
 mode: blog

@@ -13,10 +13,14 @@ namespace Neko.Builder
         private bool _showDropdownIcons => _config.Nav?.DropdownIcons ?? false;
         private bool _showPivotIcons => _config.Nav?.PivotIcons ?? false;
 
-        // `blog` mode renders the marketing-site chrome (light, borderless header,
-        // logo-as-wordmark, pill search + CTAs, no dark-mode toggle). Anything
-        // else is the default documentation look.
+        // `blog` mode renders the marketing-site chrome (borderless header,
+        // logo-as-wordmark, pill CTAs). Anything else is the documentation look.
         private bool _isBlogMode => string.Equals(_config.Mode, "blog", System.StringComparison.OrdinalIgnoreCase);
+
+        // Blog mode is light-only by default (the curiosity.ai look). Dark mode is
+        // opt-in: a blog enables it — and gets the theme toggle back — by defining
+        // a `theme.dark` palette in neko.yml. Without it, blog mode locks to light.
+        private bool _blogDarkEnabled => _isBlogMode && _config.Theme?.Dark != null && _config.Theme.Dark.Count > 0;
 
         private void RenderBanner(StringBuilder sb)
         {
@@ -324,13 +328,16 @@ namespace Neko.Builder
                 sb.AppendLine("                <i class=\"fi fi-rr-edit text-lg\"></i>");
                 sb.AppendLine("            </button>");
             }
-            // Light/dark toggle — shown in both modes so blog sites support dark
-            // and light too. In blog mode it inherits the base ink colour.
-            var toggleStyle = _isBlogMode ? " style=\"color:var(--blog-ink)\"" : "";
-            sb.AppendLine($"            <button id=\"theme-toggle\"{toggleStyle} class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
-            sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
-            sb.AppendLine("                <i class=\"fi fi-rr-sun hidden dark:block text-lg\"></i>");
-            sb.AppendLine("            </button>");
+            // Light/dark toggle. Always in docs mode; in blog mode only when the
+            // site opted into dark (theme.dark set) — light-only blogs hide it.
+            if (!_isBlogMode || _blogDarkEnabled)
+            {
+                var toggleStyle = _isBlogMode ? " style=\"color:var(--blog-ink)\"" : "";
+                sb.AppendLine($"            <button id=\"theme-toggle\"{toggleStyle} class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
+                sb.AppendLine("                <i class=\"fi fi-rr-moon dark:hidden text-lg\"></i>");
+                sb.AppendLine("                <i class=\"fi fi-rr-sun hidden dark:block text-lg\"></i>");
+                sb.AppendLine("            </button>");
+            }
 
             RenderNavbarActionButtons(sb);
 
