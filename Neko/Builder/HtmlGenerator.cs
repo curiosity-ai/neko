@@ -11,6 +11,14 @@ namespace Neko.Builder
         private readonly bool _isWatchMode;
         private readonly string _headIncludes;
 
+        // Utility-class tokens harvested from password-protected pages *before*
+        // their HTML is encrypted. The emitted file only carries the encrypted
+        // blob, so the Tailwind scanner (which re-reads emitted files) never sees
+        // these classes and would otherwise omit their CSS rules — leaving
+        // protected pages with broken styling (most visibly missing `dark:`
+        // variants). The static stylesheet generator unions these in.
+        public HashSet<string> ProtectedPageClassTokens { get; } = new HashSet<string>();
+
         public HtmlGenerator(NekoConfig config, bool isWatchMode = false, string headIncludes = null)
         {
             _config = config;

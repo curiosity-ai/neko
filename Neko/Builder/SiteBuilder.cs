@@ -678,7 +678,7 @@ namespace Neko.Builder
                 // asset has been written — the generator scans the emitted HTML/JS
                 // for the utility classes actually used and emits only those, plus
                 // the shipped preflight + typography layers.
-                await GenerateTailwindAsync(OutputDirectory);
+                await GenerateTailwindAsync(OutputDirectory, generator);
 
                 // Generate CNAME if applicable
                 var customCnamePath = Path.Combine(_inputDirectory, "CNAME");
@@ -948,7 +948,7 @@ namespace Neko.Builder
                 // search.json and the Tailwind stylesheet are whole-site artifacts;
                 // refresh them from the (now-updated) cached state and emitted HTML.
                 await RewriteSearchIndexAsync();
-                await GenerateTailwindAsync(OutputDirectory);
+                await GenerateTailwindAsync(OutputDirectory, _lastGenerator);
 
                 Console.WriteLine($"Incrementally rebuilt {old.RelativePath}.");
                 return true;
@@ -1524,15 +1524,19 @@ namespace Neko.Builder
         // assets/tailwind.css with the pure-C# generator. Per-site (multi-repo
         // sub-projects each call this for their own OutputDirectory), so the
         // used-class set and palette are correct for each.
-        private async Task GenerateTailwindAsync(string outputDir)
+        private async Task GenerateTailwindAsync(string outputDir, HtmlGenerator generator = null)
         {
             try
             {
                 var contents = ClassExtractor.ReadContentFiles(outputDir).ToList();
+                // Password-protected pages emit only an encrypted blob, so their
+                // classes aren't in the scanned files — feed in the tokens the
+                // generator harvested from the plaintext before encrypting.
+                var extraTokens = generator?.ProtectedPageClassTokens;
                 // Non-minified so the output matches the Tailwind CLI's
                 // (non-minified) output byte-for-byte. Minification (matching
                 // cssnano) can be layered on later without affecting correctness.
-                var css = TailwindGenerator.Generate(contents, _config, minify: false);
+                var css = TailwindGenerator.Generate(contents, extraTokens, _config, minify: false);
 
                 var assetsDir = Path.Combine(outputDir, "assets");
                 Directory.CreateDirectory(assetsDir);

@@ -171,6 +171,33 @@ namespace Neko.Tests
             Assert.That(bad, Is.Empty, "Rules with empty declaration values:\n  " + string.Join("\n  ", bad));
         }
 
+        // Password-protected pages emit only an encrypted blob, so their utility
+        // classes can't be recovered by scanning the emitted files. The build
+        // harvests those tokens from the plaintext before encrypting and feeds
+        // them to Generate via extraTokens — without it, classes used *only* on
+        // protected pages (notably dark-mode variants) silently lose their CSS
+        // rules and the page renders unstyled. Guards that regression.
+        [Test]
+        public void Extra_Tokens_Are_Emitted_When_Absent_From_Scanned_Content()
+        {
+            // Scanned content uses none of these; they only live on a protected page.
+            var contents = new[] { "<div class=\"p-4\"></div>" };
+            var extraTokens = new[] { "dark:bg-primary-900/20", "dark:text-primary-200", "dark:bg-gray-800" };
+            var config = new NekoConfig();
+
+            var withExtra = TailwindGenerator.Generate(contents, extraTokens, config, minify: false);
+            var withoutExtra = TailwindGenerator.Generate(contents, config, minify: false);
+
+            foreach (var cls in extraTokens)
+            {
+                var escaped = "." + cls.Replace(":", "\\:").Replace("/", "\\/");
+                Assert.That(withExtra, Does.Contain(escaped),
+                    $"extraTokens utility '{cls}' should appear in the generated stylesheet.");
+                Assert.That(withoutExtra, Does.Not.Contain(escaped),
+                    $"'{cls}' should be absent when not in the scanned content and not passed as an extra token.");
+            }
+        }
+
         [Test]
         public void Template_Site_Matches_Cli_Utilities() =>
             AssertParity("tokens_template.txt", "utilities_template.jsonl");

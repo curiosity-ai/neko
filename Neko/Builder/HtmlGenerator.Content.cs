@@ -104,6 +104,14 @@ namespace Neko.Builder
             var isGlobalPassword = string.IsNullOrEmpty(document.FrontMatter.Password) && !string.IsNullOrEmpty(_config.Password);
             sb.AppendLine($"<script>window.nekoIsGlobalPassword = {isGlobalPassword.ToString().ToLower()};</script>");
 
+            // Harvest the utility classes from the plaintext before it is
+            // encrypted. Only the encrypted blob is written to disk, so the
+            // Tailwind scanner can't recover these classes from the emitted file;
+            // collecting them here keeps the generated stylesheet complete for
+            // protected pages (notably their dark-mode variants).
+            ProtectedPageClassTokens.UnionWith(
+                Neko.Builder.Tailwind.ClassExtractor.Extract(new[] { htmlContent }));
+
             var encryptionResult = Neko.Encryption.PageEncryptor.Encrypt(htmlContent, effectivePassword);
 
             sb.AppendLine($"<div id=\"content-container\">");

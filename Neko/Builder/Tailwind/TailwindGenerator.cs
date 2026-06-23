@@ -24,9 +24,19 @@ namespace Neko.Builder.Tailwind
         /// contents to scan (HTML/JS).
         /// </summary>
         public static string Generate(IEnumerable<string> contents, NekoConfig config, bool minify = true)
+            => Generate(contents, null, config, minify);
+
+        /// <summary>
+        /// As <see cref="Generate(IEnumerable{string}, NekoConfig, bool)"/>, but
+        /// also unions in <paramref name="extraTokens"/> — class tokens that
+        /// aren't recoverable by scanning the emitted files (e.g. harvested from
+        /// password-protected pages before their HTML was encrypted).
+        /// </summary>
+        public static string Generate(IEnumerable<string> contents, IEnumerable<string> extraTokens, NekoConfig config, bool minify = true)
         {
             var theme = new TailwindTheme(config);
             var tokens = ClassExtractor.Extract(contents);
+            if (extraTokens != null) tokens.UnionWith(extraTokens);
             var utilities = GenerateUtilitiesCss(tokens, theme, minify);
 
             var sb = new StringBuilder();
