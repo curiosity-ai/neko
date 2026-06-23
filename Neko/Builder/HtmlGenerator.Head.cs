@@ -86,6 +86,12 @@ namespace Neko.Builder
             sb.AppendLine("    <style>");
             sb.AppendLine("      :root { --neko-bg: #ffffff; --neko-bg-elevated: #f8fafc; --neko-bg-muted: #f1f5f9; --neko-border: #e5e7eb; }");
             sb.AppendLine("      html.dark { --neko-bg: #050914; --neko-bg-elevated: #0b1226; --neko-bg-muted: #111a33; --neko-border: #1f2a44; }");
+            // Paint the theme background on the <html> element itself (not just
+            // <body>) so the browser's canvas is the right colour during the
+            // brief gap between page navigations — otherwise the default white
+            // canvas shows through as a white blink on every page-to-page click,
+            // which is very visible on the dark theme.
+            sb.AppendLine("      html { background-color: var(--neko-bg); }");
             sb.AppendLine("      html.dark body { background-color: var(--neko-bg); }");
             sb.AppendLine("      html.dark .dark\\:bg-gray-900 { background-color: var(--neko-bg) !important; }");
             sb.AppendLine("      html.dark .dark\\:bg-gray-800 { background-color: var(--neko-bg-elevated) !important; }");
@@ -505,8 +511,10 @@ namespace Neko.Builder
             sb.AppendLine("    <script>");
             sb.AppendLine("        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {");
             sb.AppendLine("            document.documentElement.classList.add('dark');");
+            sb.AppendLine("            document.documentElement.style.colorScheme = 'dark';");
             sb.AppendLine("        } else {");
             sb.AppendLine("            document.documentElement.classList.remove('dark');");
+            sb.AppendLine("            document.documentElement.style.colorScheme = 'light';");
             sb.AppendLine("        }");
             sb.AppendLine("    </script>");
         }
