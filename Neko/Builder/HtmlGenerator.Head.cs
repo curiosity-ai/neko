@@ -126,7 +126,8 @@ namespace Neko.Builder
             // `theme.font` (family + optional stylesheet URL) to match its brand —
             // e.g. curiosity.ai's Plus Jakarta Sans.
             var font = _config.Theme?.Font;
-            if (font != null && !string.IsNullOrEmpty(font.Family))
+            var customFont = font != null && !string.IsNullOrEmpty(font.Family);
+            if (customFont)
             {
                 if (!string.IsNullOrEmpty(font.Url))
                 {
@@ -145,6 +146,19 @@ namespace Neko.Builder
                 // Inter Font (default)
                 sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
                 sb.AppendLine("    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>");
+            }
+
+            // In blog mode the marketing header chrome (nav links + CTA pills) uses
+            // Inter, exactly like curiosity.ai — even when `theme.font` sets a brand
+            // font for the content and footer. Load Inter for the header and pin the
+            // header to it, so a custom body font doesn't change the nav.
+            if (_isBlogMode && customFont)
+            {
+                sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
+            }
+            if (_isBlogMode)
+            {
+                sb.AppendLine("    <style>header { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { header { font-family: 'Inter var', sans-serif; } }</style>");
             }
 
             // Flaticon UIcons (self-hosted v4 — see Neko.Tools.UIcons)
