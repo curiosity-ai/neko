@@ -1482,7 +1482,7 @@ Default is `docs`.
 | Value  | Description |
 | ---    | --- |
 | `docs` | The documentation chrome (default): a bordered, white header with the dark-mode toggle, the logo paired with the [branding title](#branding-title), and the slim in-content footer. |
-| `blog` | The marketing-site look (as on [curiosity.ai](https://curiosity.ai)): a light, borderless header, the logo used on its own as a wordmark, pill-shaped search and [`actions`](#actions) buttons, a single (light) palette with no theme toggle, a light page background, and the full-width [marketing footer](#footer). |
+| `blog` | The marketing-site look (as on [curiosity.ai](https://curiosity.ai)): a light, borderless header, the logo used on its own as a wordmark, [`actions`](#actions) CTA buttons, a single (light) palette with no theme toggle, a light page background, and the full-width [marketing footer](#footer). The site search moves out of the header to a bar at the top of the post list (still openable anywhere with `⌘K`). |
 
 ```yml
 mode: blog

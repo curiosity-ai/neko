@@ -66,6 +66,42 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void BlogMode_MovesSearchFromHeaderToContentList()
+        {
+            var config = BlogConfig();
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Post", Description = "d" } }, "/blog/post")
+            };
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            // Exactly one search trigger, and it's the in-content one (above the grid).
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(html, "openSearch\\(\\)").Count, Is.EqualTo(1));
+            Assert.That(html, Contains.Substring("Search the blog"));
+            var searchIdx = html.IndexOf("Search the blog");
+            var gridIdx = html.IndexOf("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3");
+            Assert.That(searchIdx, Is.GreaterThan(0));
+            Assert.That(searchIdx, Is.LessThan(gridIdx), "search bar should render above the post grid");
+        }
+
+        [Test]
+        public void DocsMode_KeepsSearchInHeader()
+        {
+            var config = BlogConfig();
+            config.Mode = "docs";
+            var html = new HtmlGenerator(config).Generate(Doc());
+
+            Assert.That(html, Contains.Substring("onclick=\"openSearch()\""));
+            Assert.That(html, Does.Not.Contain("Search the blog"));
+        }
+
+        [Test]
         public void BlogMode_OmitsThemeToggle_AndForcesLight()
         {
             var html = new HtmlGenerator(BlogConfig()).Generate(Doc());

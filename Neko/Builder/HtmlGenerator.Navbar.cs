@@ -275,18 +275,18 @@ namespace Neko.Builder
         private void RenderNavbarActions(StringBuilder sb)
         {
             sb.AppendLine("        <div class=\"flex items-center gap-4 hidden md:flex\">");
-            // Blog mode uses a white, pill-shaped search box that reads against the
-            // light header background; docs keep the muted, rounded-rectangle box.
-            var searchClass = _isBlogMode
-                ? "flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-full px-4 py-2 transition-colors focus:ring-2 focus:ring-primary-500 w-64 justify-between"
-                : "flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-primary-500 w-64 justify-between";
-            sb.AppendLine($"            <button onclick=\"openSearch()\" class=\"{searchClass}\">");
-            sb.AppendLine("                <div class=\"flex items-center gap-2\">");
-            sb.AppendLine("                    <i class=\"fi fi-rr-search text-sm\"></i>");
-            sb.AppendLine("                    <span class=\"text-sm font-medium\">Search</span>");
-            sb.AppendLine("                </div>");
-            sb.AppendLine("                <kbd class=\"hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400\">⌘K</kbd>");
-            sb.AppendLine("            </button>");
+            // In blog mode the search box moves out of the header to the top of the
+            // post list (see RenderContentSearchBar); docs keep it in the header.
+            if (!_isBlogMode)
+            {
+                sb.AppendLine("            <button onclick=\"openSearch()\" class=\"flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent rounded-md px-4 py-2 transition-colors focus:ring-2 focus:ring-primary-500 w-64 justify-between\">");
+                sb.AppendLine("                <div class=\"flex items-center gap-2\">");
+                sb.AppendLine("                    <i class=\"fi fi-rr-search text-sm\"></i>");
+                sb.AppendLine("                    <span class=\"text-sm font-medium\">Search</span>");
+                sb.AppendLine("                </div>");
+                sb.AppendLine("                <kbd class=\"hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400\">⌘K</kbd>");
+                sb.AppendLine("            </button>");
+            }
             sb.AppendLine("            <div class=\"relative\">");
             sb.AppendLine("                <button id=\"history-btn\" onclick=\"toggleHistory()\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
             sb.AppendLine("                    <i class=\"fi fi-rr-clock text-lg\"></i>");

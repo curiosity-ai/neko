@@ -198,8 +198,10 @@ mode: blog
   in-content footer.
 - **`blog`** — the marketing-site look (as on curiosity.ai): a light, borderless
   header, the logo used on its own as a **wordmark** (no duplicated title),
-  pill-shaped search and `actions` buttons, a single (light) palette with **no
-  theme toggle**, a light page background, and the full-width marketing footer.
+  `actions` CTA buttons, a single (light) palette with **no theme toggle**, a
+  light page background, and the full-width marketing footer. The search box
+  moves out of the header to the **top of the post list** (still openable with
+  `⌘K`).
 
 Blog mode pairs naturally with `layout.sidebar: false`, `layout.toc: false`,
 `actions:`, and the marketing `footer:` fields below. It is inherited by

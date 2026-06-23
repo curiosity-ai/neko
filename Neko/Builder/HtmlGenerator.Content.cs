@@ -467,6 +467,20 @@ namespace Neko.Builder
         {
             if (posts == null || posts.Count == 0) return;
 
+            // In blog mode the header has no search box — it lives at the top of
+            // the post list instead. The button opens the same site search modal
+            // (also reachable with ⌘K).
+            if (_isBlogMode)
+            {
+                sb.AppendLine("<div class=\"not-prose mt-8 mb-6\">");
+                sb.AppendLine("    <button onclick=\"openSearch()\" class=\"w-full flex items-center gap-3 text-left text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-full px-5 py-3 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500\">");
+                sb.AppendLine("        <i class=\"fi fi-rr-search text-base\"></i>");
+                sb.AppendLine("        <span class=\"text-sm font-medium\">Search the blog…</span>");
+                sb.AppendLine("        <kbd class=\"hidden sm:inline ml-auto text-xs bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400\">⌘K</kbd>");
+                sb.AppendLine("    </button>");
+                sb.AppendLine("</div>");
+            }
+
             sb.AppendLine("<div class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 not-prose\">");
 
             foreach (var post in posts)
