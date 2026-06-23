@@ -192,6 +192,62 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void BlogMode_ClustersNavLinksNextToLogo()
+        {
+            var config = BlogConfig();
+            config.Links = new List<LinkConfig>
+            {
+                new LinkConfig { Text = "Product", Link = "/product" },
+                new LinkConfig { Text = "Pricing", Link = "/pricing" }
+            };
+
+            var html = new HtmlGenerator(config).Generate(Doc());
+
+            // The links group carries the left-cluster margin (curiosity.ai layout),
+            // and the links render before the header action buttons.
+            Assert.That(html, Contains.Substring("md:ml-6"));
+            var linkIdx = html.IndexOf(">Product</a>");
+            var actionIdx = html.IndexOf(">Book a Demo</a>");
+            Assert.That(linkIdx, Is.GreaterThan(0));
+            Assert.That(linkIdx, Is.LessThan(actionIdx), "nav links should render before the action buttons");
+        }
+
+        [Test]
+        public void DocsMode_DoesNotClusterNavLinks()
+        {
+            var config = BlogConfig();
+            config.Mode = "docs";
+            config.Links = new List<LinkConfig> { new LinkConfig { Text = "Product", Link = "/product" } };
+
+            var html = new HtmlGenerator(config).Generate(Doc());
+
+            // Docs mode keeps the centred links group (no left-cluster margin).
+            Assert.That(html, Does.Not.Contain("md:ml-6"));
+        }
+
+        [Test]
+        public void BlogMode_DoesNotCapContentRow_SoFooterIsFullBleed()
+        {
+            // Default layout.maxWidth is "screen-2xl". In blog mode the content row
+            // must NOT be capped, so `main` runs full-width and the marketing footer
+            // spans the pane edge-to-edge.
+            var html = new HtmlGenerator(BlogConfig()).Generate(Doc());
+
+            Assert.That(html, Contains.Substring("<div class=\"flex flex-1 overflow-hidden\">"));
+        }
+
+        [Test]
+        public void DocsMode_CapsContentRowAtMaxWidth()
+        {
+            var config = BlogConfig();
+            config.Mode = "docs";
+            var html = new HtmlGenerator(config).Generate(Doc());
+
+            // Docs mode keeps the capped, centred content row.
+            Assert.That(html, Contains.Substring("flex flex-1 overflow-hidden max-w-screen-2xl mx-auto w-full"));
+        }
+
+        [Test]
         public void Actions_AreInheritedFromParentWhenChildHasNone()
         {
             var parent = BlogConfig();

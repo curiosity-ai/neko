@@ -602,9 +602,11 @@ footer:
 ### Marketing footer (blog mode)
 
 In [`blog` mode](#mode) Neko renders a full-width, marketing-style footer (the
-curiosity.ai look): a dark panel with rounded top corners containing a brand
-block, social icons, trust badges and link columns, plus the
-[`copyright`](#copyright) line. These fields are ignored in `docs` mode (which
+curiosity.ai look): a dark panel with rounded top corners that spans the content
+pane **edge-to-edge**, containing a brand block, social icons, trust badges and
+link columns, plus the [`copyright`](#copyright) line. The panel's inner content
+is centred at [`layout.maxWidth`](/configuration/core/layout) so the footer logo
+lines up under the header logo. These fields are ignored in `docs` mode (which
 uses the slim in-content footer). When none of them are set, blog mode falls
 back to a slim, centred links + copyright footer.
 
@@ -1482,7 +1484,7 @@ Default is `docs`.
 | Value  | Description |
 | ---    | --- |
 | `docs` | The documentation chrome (default): a bordered, white header with the dark-mode toggle, the logo paired with the [branding title](#branding-title), and the slim in-content footer. |
-| `blog` | The marketing-site look (as on [curiosity.ai](https://curiosity.ai)): a borderless header, the logo used on its own as a wordmark, [`actions`](#actions) CTA buttons, and the full-width [marketing footer](#footer). The page/header/CTA palette comes from [`theme.base`](#theme-base). Blog mode is **light-only by default** (the toggle is hidden and light is locked); define a [`theme.dark`](#theme-dark) palette to opt into dark mode and bring the toggle back. The site search moves out of the header to a bar at the top of the post list (still openable anywhere with `⌘K`). |
+| `blog` | The marketing-site look (as on [curiosity.ai](https://curiosity.ai)): a borderless header with the nav links clustered next to the logo (used on its own as a wordmark) and the [`actions`](#actions) CTA buttons pushed to the right, plus an edge-to-edge [marketing footer](#footer). The page/header/CTA palette comes from [`theme.base`](#theme-base). Blog mode is **light-only by default** (the toggle is hidden and light is locked); define a [`theme.dark`](#theme-dark) palette to opt into dark mode and bring the toggle back. The site search moves out of the header to a bar at the top of the post list (still openable anywhere with `⌘K`). |
 
 ```yml
 mode: blog

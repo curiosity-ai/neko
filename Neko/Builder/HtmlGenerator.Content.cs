@@ -291,10 +291,16 @@ namespace Neko.Builder
         {
             var footer = _config.Footer;
 
-            // Break out of #main-scroll's p-4 / md:p-8 padding to go edge-to-edge.
-            // The panel uses the base ink colour (curiosity.ai: #1f1f1f).
+            // Break out of #main-scroll's p-4 / md:p-8 padding to span the full pane
+            // width edge-to-edge. In blog mode the content row is un-capped (see
+            // Generate), so `main` is full-width and this footer reaches both edges —
+            // the curiosity.ai full-bleed panel. It uses the base ink colour (#1f1f1f).
             sb.AppendLine($"                <footer style=\"background-color:{BlogBaseColor()}\" class=\"not-prose -mx-4 md:-mx-8 -mb-4 md:-mb-8 mt-12 md:mt-16 text-white rounded-t-[2rem] md:rounded-t-[2.75rem]\">");
-            sb.AppendLine("                    <div class=\"max-w-screen-2xl mx-auto px-6 md:px-12 pt-14 pb-8\">");
+            // Inner content is centred at the same width as the header/content so the
+            // footer logo lines up under the navbar logo.
+            var footerInnerWidth = LayoutMaxWidthClass();
+            if (string.IsNullOrEmpty(footerInnerWidth)) footerInnerWidth = "max-w-screen-2xl";
+            sb.AppendLine($"                    <div class=\"{footerInnerWidth} mx-auto px-6 md:px-8 pt-14 md:pt-20 pb-10\">");
             sb.AppendLine("                        <div class=\"grid grid-cols-2 gap-10 md:grid-cols-12\">");
 
             // Brand / social / badges column.

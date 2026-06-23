@@ -80,9 +80,20 @@ namespace Neko.Builder
             }
 
             RenderNavbarBrand(sb, currentUrl);
+
+            // Blog mode clusters the nav links immediately to the right of the logo
+            // (the curiosity.ai layout). Docs mode keeps them as a separate centred
+            // group between the brand and the header actions.
+            if (_isBlogMode)
+            {
+                RenderNavbarLinks(sb);
+            }
             sb.AppendLine("        </div>");
 
-            RenderNavbarLinks(sb);
+            if (!_isBlogMode)
+            {
+                RenderNavbarLinks(sb);
+            }
             RenderNavbarActions(sb);
 
             sb.AppendLine("        </div>");
@@ -198,7 +209,7 @@ namespace Neko.Builder
             // curiosity.ai); docs use the muted grey.
             if (_isBlogMode)
             {
-                sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium\" style=\"color:var(--blog-ink)\">");
+                sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium md:ml-6\" style=\"color:var(--blog-ink)\">");
             }
             else
             {
