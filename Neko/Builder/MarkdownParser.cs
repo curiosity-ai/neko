@@ -220,8 +220,9 @@ namespace Neko.Builder
             {
                 if ((fenced.Info ?? "").ToLower() != "tesserae") continue;
 
-                // Strip the // <hide>/<docs> markers exactly as the render pass does, so
-                // the warm pass compiles byte-identical source and shares the cache key.
+                // Resolve the compiled source exactly as the render pass does (honouring
+                // any // <overwrite-sample-code> region), so the warm pass compiles
+                // byte-identical source and shares the cache key.
                 var lines = fenced.Lines;
                 var rawLines = new List<string>(lines.Count);
                 for (int i = 0; i < lines.Count; i++)
