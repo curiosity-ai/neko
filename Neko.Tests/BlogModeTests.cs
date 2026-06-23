@@ -58,9 +58,10 @@ namespace Neko.Tests
 
             Assert.That(html, Contains.Substring(">Book a Demo</a>"));
             Assert.That(html, Contains.Substring(">Talk to Sales</a>"));
-            // Primary = solid fill, outline = bordered.
-            Assert.That(html, Contains.Substring("rounded-full bg-gray-900"));
-            Assert.That(html, Contains.Substring("rounded-full border border-gray-900"));
+            // Pills, driven by the base palette (defaults: #1f1f1f ink on #f1f1f1).
+            Assert.That(html, Contains.Substring("rounded-full"));
+            Assert.That(html, Contains.Substring("background-color:#1f1f1f;color:#f1f1f1"));   // primary = solid fill
+            Assert.That(html, Contains.Substring("border:1px solid #1f1f1f;color:#1f1f1f"));   // outline = bordered
             // `target: blank` is normalised to a valid _blank target.
             Assert.That(html, Contains.Substring("target=\"_blank\""));
         }
@@ -108,8 +109,9 @@ namespace Neko.Tests
 
             Assert.That(html, Does.Not.Contain("id=\"theme-toggle\""));
             Assert.That(html, Contains.Substring("localStorage.theme = 'light'"));
-            // Light page background.
-            Assert.That(html, Contains.Substring("<body class=\"bg-gray-100"));
+            // Light page background from the base palette, and no history clock.
+            Assert.That(html, Contains.Substring("background-color:#f1f1f1"));
+            Assert.That(html, Does.Not.Contain("id=\"history-btn\""));
         }
 
         [Test]

@@ -51,11 +51,16 @@ namespace Neko.Builder
         private void RenderNavbar(StringBuilder sb, string currentUrl)
         {
             // Blog mode mirrors curiosity.ai: a light, borderless header with no
-            // drop shadow that blends into the marketing-style page background.
-            var headerClass = _isBlogMode
-                ? "h-16 shrink-0 bg-gray-100 dark:bg-gray-900 border-b border-gray-200/70 dark:border-gray-800 flex items-center px-6 z-30"
-                : "h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center px-6 z-30";
-            sb.AppendLine($"    <header class=\"{headerClass}\">");
+            // drop shadow that blends into the marketing-style page background
+            // (driven by the `theme.base` palette).
+            if (_isBlogMode)
+            {
+                sb.AppendLine($"    <header style=\"background-color:{BlogBaseBg()}\" class=\"h-16 shrink-0 flex items-center px-6 z-30\">");
+            }
+            else
+            {
+                sb.AppendLine("    <header class=\"h-16 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm flex items-center px-6 z-30\">");
+            }
 
             var maxWidthClass = LayoutMaxWidthClass();
             var innerWidthClass = string.IsNullOrEmpty(maxWidthClass) ? string.Empty : $" {maxWidthClass}";
@@ -185,7 +190,16 @@ namespace Neko.Builder
 
         private void RenderNavbarLinks(StringBuilder sb)
         {
-            sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300\">");
+            // Blog mode inks the nav links with the base colour (near-black on
+            // curiosity.ai); docs use the muted grey.
+            if (_isBlogMode)
+            {
+                sb.AppendLine($"        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium\" style=\"color:{BlogBaseColor()}\">");
+            }
+            else
+            {
+                sb.AppendLine("        <div class=\"hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300\">");
+            }
             if (_config.Links != null)
             {
                 foreach (var link in _config.Links)
@@ -287,18 +301,23 @@ namespace Neko.Builder
                 sb.AppendLine("                <kbd class=\"hidden lg:inline text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400\">⌘K</kbd>");
                 sb.AppendLine("            </button>");
             }
-            sb.AppendLine("            <div class=\"relative\">");
-            sb.AppendLine("                <button id=\"history-btn\" onclick=\"toggleHistory()\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
-            sb.AppendLine("                    <i class=\"fi fi-rr-clock text-lg\"></i>");
-            sb.AppendLine("                </button>");
-            sb.AppendLine("                <div id=\"history-popup\" class=\"absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden border border-gray-200 dark:border-gray-700\">");
-            sb.AppendLine("                    <div class=\"px-4 py-2 border-b border-gray-200 dark:border-gray-700\">");
-            sb.AppendLine("                        <h3 class=\"text-sm font-semibold text-gray-900 dark:text-gray-100\">Recent Pages</h3>");
-            sb.AppendLine("                    </div>");
-            sb.AppendLine("                    <ul id=\"history-list\" class=\"max-h-64 overflow-y-auto\">");
-            sb.AppendLine("                    </ul>");
-            sb.AppendLine("                </div>");
-            sb.AppendLine("            </div>");
+            // The recent-pages history (clock) is documentation chrome and is not
+            // part of the curiosity.ai marketing header, so it is omitted in blog mode.
+            if (!_isBlogMode)
+            {
+                sb.AppendLine("            <div class=\"relative\">");
+                sb.AppendLine("                <button id=\"history-btn\" onclick=\"toggleHistory()\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
+                sb.AppendLine("                    <i class=\"fi fi-rr-clock text-lg\"></i>");
+                sb.AppendLine("                </button>");
+                sb.AppendLine("                <div id=\"history-popup\" class=\"absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden border border-gray-200 dark:border-gray-700\">");
+                sb.AppendLine("                    <div class=\"px-4 py-2 border-b border-gray-200 dark:border-gray-700\">");
+                sb.AppendLine("                        <h3 class=\"text-sm font-semibold text-gray-900 dark:text-gray-100\">Recent Pages</h3>");
+                sb.AppendLine("                    </div>");
+                sb.AppendLine("                    <ul id=\"history-list\" class=\"max-h-64 overflow-y-auto\">");
+                sb.AppendLine("                    </ul>");
+                sb.AppendLine("                </div>");
+                sb.AppendLine("            </div>");
+            }
             if (_isWatchMode)
             {
                 sb.AppendLine("            <button onclick=\"nekoOpenEditor()\" class=\"flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\" title=\"Edit Page\">");
@@ -336,11 +355,26 @@ namespace Neko.Builder
                 var rel = target.Contains("_blank") ? " rel=\"noopener noreferrer\"" : "";
                 var isOutline = string.Equals(action.Variant, "outline", System.StringComparison.OrdinalIgnoreCase);
 
+                var iconHtml = string.IsNullOrEmpty(action.Icon) ? "" : $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(action.Icon)}\"></i>";
+
+                if (_isBlogMode)
+                {
+                    // Solid = base-colour fill with base-bg text; outline = base-colour
+                    // border + text. Matches the curiosity.ai pills exactly.
+                    var baseColor = BlogBaseColor();
+                    var baseBg = BlogBaseBg();
+                    var blogClass = "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-80 whitespace-nowrap";
+                    var style = isOutline
+                        ? $"border:1px solid {baseColor};color:{baseColor}"
+                        : $"background-color:{baseColor};color:{baseBg}";
+                    sb.AppendLine($"            <a href=\"{href}\"{target}{rel} class=\"{blogClass}\" style=\"{style}\">{iconHtml}{action.Text}</a>");
+                    continue;
+                }
+
                 var btnClass = isOutline
                     ? "inline-flex items-center gap-2 rounded-full border border-gray-900 dark:border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 hover:bg-gray-900 hover:text-white dark:hover:bg-white dark:hover:text-gray-900 transition-colors whitespace-nowrap"
                     : "inline-flex items-center gap-2 rounded-full bg-gray-900 dark:bg-white px-4 py-2 text-sm font-semibold text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors whitespace-nowrap";
 
-                var iconHtml = string.IsNullOrEmpty(action.Icon) ? "" : $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(action.Icon)}\"></i>";
                 sb.AppendLine($"            <a href=\"{href}\"{target}{rel} class=\"{btnClass}\">{iconHtml}{action.Text}</a>");
             }
         }

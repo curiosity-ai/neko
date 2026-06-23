@@ -105,10 +105,17 @@ namespace Neko.Builder
 
             GenerateHead(sb, title, description);
 
-            // Blog mode uses a light grey page background (like curiosity.ai) so the
-            // white post cards and content stand out; docs stay on a white canvas.
-            var bodyBgClass = _isBlogMode ? "bg-gray-100 dark:bg-gray-900" : "bg-white dark:bg-gray-900";
-            sb.AppendLine($"<body class=\"{bodyBgClass} text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
+            // Blog mode uses the `theme.base` palette (curiosity.ai: #f1f1f1 page,
+            // #1f1f1f ink) so the white post cards and content stand out; docs stay
+            // on a white canvas.
+            if (_isBlogMode)
+            {
+                sb.AppendLine($"<body style=\"background-color:{BlogBaseBg()};color:{BlogBaseColor()}\" class=\"flex flex-col h-screen overflow-hidden\">");
+            }
+            else
+            {
+                sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
+            }
 
             RenderBanner(sb);
             RenderNavbar(sb, currentUrl);
@@ -205,6 +212,22 @@ namespace Neko.Builder
             }
 
             return $"{cls} mx-auto";
+        }
+
+        // Blog-mode palette, driven by `theme.base` so a site can match its own
+        // brand. Defaults reproduce the curiosity.ai look: a near-white page
+        // (#f1f1f1) with near-black ink (#1f1f1f) used for nav text, the solid
+        // CTA fill, and the footer panel.
+        private string BlogBaseBg()
+        {
+            if (_config.Theme?.Base != null && _config.Theme.Base.TryGetValue("base-bg", out var v) && !string.IsNullOrWhiteSpace(v)) return v;
+            return "#f1f1f1";
+        }
+
+        private string BlogBaseColor()
+        {
+            if (_config.Theme?.Base != null && _config.Theme.Base.TryGetValue("base-color", out var v) && !string.IsNullOrWhiteSpace(v)) return v;
+            return "#1f1f1f";
         }
 
         private static string EscapeHtmlAttr(string value)

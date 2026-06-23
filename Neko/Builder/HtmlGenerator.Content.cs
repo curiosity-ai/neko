@@ -297,7 +297,8 @@ namespace Neko.Builder
             var footer = _config.Footer;
 
             // Break out of #main-scroll's p-4 / md:p-8 padding to go edge-to-edge.
-            sb.AppendLine("                <footer class=\"not-prose -mx-4 md:-mx-8 -mb-4 md:-mb-8 mt-12 md:mt-16 bg-gray-900 text-white rounded-t-[2rem] md:rounded-t-[2.75rem]\">");
+            // The panel uses the base ink colour (curiosity.ai: #1f1f1f).
+            sb.AppendLine($"                <footer style=\"background-color:{BlogBaseColor()}\" class=\"not-prose -mx-4 md:-mx-8 -mb-4 md:-mb-8 mt-12 md:mt-16 text-white rounded-t-[2rem] md:rounded-t-[2.75rem]\">");
             sb.AppendLine("                    <div class=\"max-w-screen-2xl mx-auto px-6 md:px-12 pt-14 pb-8\">");
             sb.AppendLine("                        <div class=\"grid grid-cols-2 gap-10 md:grid-cols-12\">");
 
