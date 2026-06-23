@@ -222,13 +222,26 @@
     // the rest of the session. Throws if the key doesn't match (caller shows the form).
     async function renderDecrypted(key) {
         const html = await decryptWithKey(payload, key);
-        if (contentContainer) {
-            contentContainer.innerHTML = html;
-            revealProtectedChrome(contentContainer);
-            reinitContent(contentContainer);
-        }
+        // Cache before unlocking the sidebar, which reads cached keys per item.
         await cacheKey(payload.salt, key);
-        unlockSidebar();
+
+        const apply = async () => {
+            if (contentContainer) {
+                contentContainer.innerHTML = html;
+                revealProtectedChrome(contentContainer);
+                reinitContent(contentContainer);
+            }
+            await unlockSidebar();
+        };
+
+        // Mask the decryption reveal with a view transition: the content (and the
+        // sidebar entries) fade in instead of popping in. Falls back to a direct
+        // update where the API isn't available.
+        if (document.startViewTransition) {
+            try { await document.startViewTransition(apply).finished; } catch (e) {}
+        } else {
+            await apply();
+        }
     }
 
     function showPrompt() {

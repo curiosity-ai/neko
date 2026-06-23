@@ -486,39 +486,17 @@ namespace Neko.Builder
             sb.AppendLine("    </style>");
         }
 
-        // Cross-document View Transitions. Neko ships a fully static, multi-page
-        // site, so every sidebar click is a real navigation that re-parses and
-        // repaints the whole document — including the (identical) sidebar, which
-        // visibly flashes and resets its scroll/active state before the inline
-        // scripts restore it. Opting the document into the View Transitions API
-        // turns each same-origin navigation into a quick content cross-fade and,
-        // crucially, lets us hold the persistent chrome (header + sidebar) in
-        // place across pages so it no longer flashes. This is a progressive
-        // enhancement: browsers that don't support cross-document view
-        // transitions simply perform a normal full navigation, exactly as before.
+        // View Transitions. Navigation is a normal full page load — there is no
+        // cross-document navigation cross-fade (it animated the whole page and was
+        // prone to flicker on the header/sidebar and a white flash in dark mode).
+        // The View Transition API is instead used only client-side, in password.js,
+        // to mask the password-decryption reveal on protected pages: the decrypted
+        // content fades in via document.startViewTransition() instead of popping in.
+        // This rule only disables that transition's default animation under
+        // reduced-motion; on browsers without the API the content just appears.
         private void RenderHeadViewTransitions(StringBuilder sb)
         {
             sb.AppendLine("    <style>");
-            sb.AppendLine("        @view-transition { navigation: auto; }");
-            sb.AppendLine("        /* Give the persistent chrome a stable name so the browser keeps it");
-            sb.AppendLine("           across navigations instead of cross-fading it with the rest. */");
-            sb.AppendLine("        header { view-transition-name: neko-header; }");
-            sb.AppendLine("        #sidebar { view-transition-name: neko-sidebar; }");
-            sb.AppendLine("        /* Hold the chrome perfectly still — no fade or morph — while the");
-            sb.AppendLine("           page content swaps underneath it. Zeroing only the group duration");
-            sb.AppendLine("           leaves the snapshot images cross-fading at the UA default, which dips");
-            sb.AppendLine("           the header/sidebar to transparent mid-transition (a visible flicker),");
-            sb.AppendLine("           so pin the images too: show the new chrome at full opacity from the");
-            sb.AppendLine("           first frame and drop the old, with no animation. */");
-            sb.AppendLine("        ::view-transition-group(neko-header),");
-            sb.AppendLine("        ::view-transition-group(neko-sidebar) { animation-duration: 0s; }");
-            sb.AppendLine("        ::view-transition-old(neko-header),");
-            sb.AppendLine("        ::view-transition-old(neko-sidebar) { animation: none; mix-blend-mode: normal; opacity: 0; }");
-            sb.AppendLine("        ::view-transition-new(neko-header),");
-            sb.AppendLine("        ::view-transition-new(neko-sidebar) { animation: none; mix-blend-mode: normal; opacity: 1; }");
-            sb.AppendLine("        /* Quick, subtle cross-fade for the page content only. */");
-            sb.AppendLine("        ::view-transition-old(root),");
-            sb.AppendLine("        ::view-transition-new(root) { animation-duration: 0.18s; }");
             sb.AppendLine("        @media (prefers-reduced-motion: reduce) {");
             sb.AppendLine("            ::view-transition-group(*),");
             sb.AppendLine("            ::view-transition-old(*),");

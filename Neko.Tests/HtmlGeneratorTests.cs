@@ -104,7 +104,7 @@ namespace Neko.Tests
         }
 
         [Test]
-        public void TestViewTransitionChromeHeldStaticAndDarkRootPainted()
+        public void TestNoCrossDocumentViewTransitionAndDarkRootPainted()
         {
             var doc = new ParsedDocument
             {
@@ -114,14 +114,15 @@ namespace Neko.Tests
 
             var html = _generator.Generate(doc, currentUrl: "/x");
 
-            // The root element is painted (not just <body>) so a cross-document View
-            // Transition doesn't reveal the white default html background in dark mode.
+            // The root element is painted (not just <body>) so the white default html
+            // background never flashes through in dark mode (e.g. during the decryption
+            // view transition or on overscroll).
             Assert.That(html, Contains.Substring("html { background-color: var(--neko-bg); }"));
-            // The persistent chrome snapshots are pinned (no cross-fade), so the header
-            // and sidebar hold at full opacity instead of flickering mid-transition.
-            Assert.That(html, Contains.Substring("::view-transition-new(neko-header)"));
-            Assert.That(html, Contains.Substring("::view-transition-new(neko-sidebar)"));
-            Assert.That(html, Contains.Substring("animation: none; mix-blend-mode: normal; opacity: 1;"));
+            // Navigation no longer opts into a cross-document View Transition (the
+            // whole-page cross-fade that flickered the chrome / flashed white). The
+            // View Transition API is used only client-side to mask decryption.
+            Assert.That(html, Does.Not.Contain("@view-transition"));
+            Assert.That(html, Does.Not.Contain("view-transition-name: neko-header"));
         }
 
         [Test]
