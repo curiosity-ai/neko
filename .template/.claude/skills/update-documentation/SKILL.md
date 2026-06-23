@@ -1,6 +1,6 @@
 ---
 name: update-documentation
-description: Workflow for updating Neko documentation — base every page on the real source code, never invent APIs, warn loudly when the source isn't available, and verify any changed `tesserae` sample renders correctly (Playwright / visual check). Use whenever you add or edit docs that describe code, APIs, or live samples.
+description: Workflow for updating Neko documentation — base every page on the real source code, never invent APIs, warn loudly when the source isn't available, and check that the page (and any changed `tesserae` sample) renders correctly with Playwright / snapframe / a visual check. Use whenever you add or edit docs that describe code, APIs, components, or live samples.
 ---
 
 # Updating documentation
@@ -80,6 +80,46 @@ committing.
    Always actually view the screenshot; "the build passed" does not prove the
    sample looks nice.
 
+## Rule 3 — check the rendered page with Playwright / snapframe
+
+Verification isn't just for `tesserae` samples. Any documentation change can
+render differently from how it reads in Markdown — a broken component, an
+overflowing table, a mis-sized image, a layout that falls apart in dark mode.
+Don't trust that a clean `neko build` means the page looks right; load it in a
+real browser and look.
+
+A few ways to do that, all Playwright-backed:
+
+1. **`snapframe`** — a Playwright-driven browser CLI for navigating to a page
+   and capturing a screenshot. Use it to check an arbitrary page, not just one
+   that already carries a `[!snapframe …]` directive:
+
+   ```bash
+   # serve the built output, then drive a real browser at it
+   dotnet serve <output-folder> --port 5000 &
+   PAGE_ID=$(snapframe navigate http://localhost:5000/path/to/page)
+   snapframe capture "$PAGE_ID" /tmp/page-check.png
+   snapframe stop
+   ```
+
+   Then **open the PNG and eyeball it** — light and dark mode, layout intact,
+   components rendered, nothing clipped or overflowing. See the
+   [`snapframe`](../snapframe/SKILL.md) skill for `--chrome`, `--bg`,
+   `--full-page`, and the interaction verbs (`click`, `interact`, `wait`).
+
+2. **`neko snap`** — the built-in capture command. It refreshes the images for
+   the `[!snapframe …]` directives already in a page (same Playwright engine),
+   which is the right tool when the change is *to* a screenshot embedded in the
+   docs.
+
+3. **Playwright tests** — in the Neko repo itself, pages and components are
+   validated by the Playwright tests under `Neko.Tests`. Run them when a
+   component changes; they build the docs into a temp folder and assert on the
+   rendered HTML.
+
+Whichever you use: actually view the screenshot or the test result. "The build
+passed" does not prove the page looks right.
+
 ## Quick checklist before committing a docs change
 
 - [ ] Wrote the page from the **real source**, not from memory.
@@ -88,6 +128,7 @@ committing.
 - [ ] If source was unavailable, **warned the user** and flagged every
       unverified claim instead of guessing.
 - [ ] Changed a `tesserae` sample? Reran `neko gen-tesserae-heights --file …`.
-- [ ] Verified the sample **renders correctly** (Playwright / `neko snap` /
-      `neko start`) in light and dark mode — and looked at the result.
+- [ ] **Checked the rendered page** with Playwright / `snapframe` / `neko snap`
+      / `neko start` in light and dark mode — and looked at the result.
+- [ ] Verified any changed `tesserae` sample **renders correctly** the same way.
 - [ ] `neko build` succeeds with no warnings.
