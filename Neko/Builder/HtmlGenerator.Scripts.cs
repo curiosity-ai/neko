@@ -80,14 +80,22 @@ namespace Neko.Builder
             var keyBase = System.Text.RegularExpressions.Regex.Replace(_config.Branding.Title ?? "neko", "[^a-zA-Z0-9]", "-").ToLower();
             sb.AppendLine($"            const scrollKey = '{keyBase}-sidebar-scroll';");
             sb.AppendLine($"            const timeKey = '{keyBase}-sidebar-scroll-time';");
-            sb.AppendLine("            const savedScroll = localStorage.getItem(scrollKey);");
-            sb.AppendLine("            const savedTime = localStorage.getItem(timeKey);");
-            sb.AppendLine("            if (savedScroll && savedTime) {");
-            sb.AppendLine("                const now = new Date().getTime();");
-            sb.AppendLine("                if (now - parseInt(savedTime) < 60000) {");
-            sb.AppendLine("                    sidebar.scrollTop = parseInt(savedScroll);");
+            // Restore the saved scroll position (if still fresh). Exposed globally
+            // so password.js can re-apply it after it reveals the protected sidebar
+            // entries: on a protected page the inline call below runs while those
+            // entries are still hidden, so the sidebar is too short for scrollTop to
+            // take effect and the position is lost once the entries pop in.
+            sb.AppendLine("            window.nekoRestoreSidebarScroll = function () {");
+            sb.AppendLine("                const savedScroll = localStorage.getItem(scrollKey);");
+            sb.AppendLine("                const savedTime = localStorage.getItem(timeKey);");
+            sb.AppendLine("                if (savedScroll && savedTime) {");
+            sb.AppendLine("                    const now = new Date().getTime();");
+            sb.AppendLine("                    if (now - parseInt(savedTime) < 60000) {");
+            sb.AppendLine("                        sidebar.scrollTop = parseInt(savedScroll);");
+            sb.AppendLine("                    }");
             sb.AppendLine("                }");
-            sb.AppendLine("            }");
+            sb.AppendLine("            };");
+            sb.AppendLine("            window.nekoRestoreSidebarScroll();");
             sb.AppendLine("            let timeout;");
             sb.AppendLine("            sidebar.addEventListener('scroll', () => {");
             sb.AppendLine("                clearTimeout(timeout);");

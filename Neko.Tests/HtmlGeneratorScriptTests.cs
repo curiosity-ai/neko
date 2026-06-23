@@ -47,6 +47,43 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void TestSidebarScrollRestoreExposedGlobally()
+        {
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Content</p>",
+                FrontMatter = new FrontMatter { Title = "Page Title" }
+            };
+
+            var html = _generator.Generate(doc);
+
+            // The scroll-restore logic is exposed as a global so password.js can
+            // re-apply it once the protected sidebar entries are revealed.
+            Assert.That(html, Contains.Substring("window.nekoRestoreSidebarScroll = function ()"));
+            Assert.That(html, Contains.Substring("window.nekoRestoreSidebarScroll();"));
+        }
+
+        [Test]
+        public void TestProtectedPagesSkipViewTransition()
+        {
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Content</p>",
+                FrontMatter = new FrontMatter { Title = "Page Title" }
+            };
+
+            var html = _generator.Generate(doc);
+
+            // Cross-document view transitions capture the incoming page before
+            // password.js decrypts it, so a protected page is skipped to avoid
+            // cross-fading to an empty/collapsed snapshot.
+            Assert.That(html, Contains.Substring("window.addEventListener('pagereveal',"));
+            Assert.That(html, Contains.Substring("document.getElementById('encrypted-data')"));
+            Assert.That(html, Contains.Substring("document.querySelector('.protected-sidebar-item')"));
+            Assert.That(html, Contains.Substring("e.viewTransition.skipTransition();"));
+        }
+
+        [Test]
         public void TestSidebarHighlightingLogic()
         {
             var doc = new ParsedDocument
