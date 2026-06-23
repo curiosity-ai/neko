@@ -25,6 +25,24 @@
         return "neko-pw-key:" + saltB64;
     }
 
+    // sessionStorage cache key for a page's decrypted body, namespaced by path so
+    // each page caches its own HTML. The body is no more exposed than the derived
+    // key cached above (anyone with that key can decrypt every page); both live in
+    // sessionStorage and clear when the tab closes. Caching the plaintext lets a
+    // revisited — or hover-prefetched — protected page paint its content on the
+    // first frame instead of flashing the empty placeholder while it re-decrypts.
+    function contentCacheName(path) {
+        return "neko-pw-html:" + path;
+    }
+
+    function cacheContent(path, saltB64, html) {
+        try {
+            sessionStorage.setItem(contentCacheName(path), JSON.stringify({ salt: saltB64, html: html }));
+        } catch (e) {
+            // Non-fatal (e.g. quota): we simply re-decrypt on the next visit.
+        }
+    }
+
     async function importRawKey(rawBytes) {
         return window.crypto.subtle.importKey(
             "raw", rawBytes, { name: "AES-GCM" }, true, ["decrypt"]
@@ -109,6 +127,48 @@
         if (window.nekoRestoreSidebarScroll) window.nekoRestoreSidebarScroll();
     }
 
+    // Hover/focus prefetch. Navigation is a full page load, so the body of the
+    // next protected page can only render on its first frame if its plaintext is
+    // already in sessionStorage when the inline pre-paint restore runs. When the
+    // visitor points at an internal link we fetch its HTML, decrypt the body with
+    // the key already cached this session, and stash it — so the click that
+    // follows lands on fully rendered content instead of an empty flash. Entirely
+    // best-effort: any failure (public page, different password, network) is
+    // swallowed and the target just decrypts the usual way after it loads.
+    const prefetched = new Set();
+    async function prefetchProtected(href) {
+        let url;
+        try { url = new URL(href, location.href); } catch (e) { return; }
+        if (url.origin !== location.origin) return;
+        const path = url.pathname;
+        if (path === location.pathname || prefetched.has(path)) return;
+        prefetched.add(path);
+        if (sessionStorage.getItem(contentCacheName(path))) return;
+        try {
+            const res = await fetch(url.href, { credentials: 'same-origin' });
+            if (!res.ok) return;
+            const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+            const enc = doc.getElementById('encrypted-data');
+            if (!enc) return; // target isn't protected — nothing to prefetch.
+            const p = JSON.parse(enc.textContent);
+            const key = await getCachedKey(p.salt);
+            if (!key) return; // protected with a password we haven't unlocked.
+            cacheContent(path, p.salt, await decryptWithKey(p, key));
+        } catch (e) {
+            // Best-effort: leave the target to decrypt on navigation.
+        }
+    }
+
+    function wirePrefetch() {
+        const onHint = (e) => {
+            const a = e.target.closest && e.target.closest('a[href]');
+            if (a) prefetchProtected(a.href);
+        };
+        document.addEventListener('mouseover', onHint, { passive: true });
+        document.addEventListener('focusin', onHint);
+        document.addEventListener('touchstart', onHint, { passive: true });
+    }
+
     // Re-run the dynamic content initialisers over freshly injected HTML. The page's
     // own DOMContentLoaded/load handlers already fired against the still-encrypted
     // placeholder, so highlighting, math and diagrams must be (re)applied here.
@@ -128,6 +188,10 @@
 
         if (window.hljs) {
             container.querySelectorAll('pre code').forEach((block) => {
+                // Skip blocks the page's own highlightAll already processed: content
+                // restored before first paint is in the DOM when that runs, so it gets
+                // highlighted with the rest — re-highlighting here would warn/clobber.
+                if (block.dataset.highlighted === 'yes') return;
                 hljs.highlightElement(block);
             });
             if (window.hljs.initLineNumbersOnLoad) {
@@ -187,6 +251,13 @@
     const formContainer = document.getElementById('password-form-container');
     let promptWired = false;
 
+    // The inline script emitted right after #content-container restores this page's
+    // body from the sessionStorage plaintext cache synchronously, before first
+    // paint, so a revisited (or hover-prefetched) protected page never flashes the
+    // empty placeholder. When it did, we decorate that content here and skip
+    // re-injecting it below.
+    const alreadyInjected = window.__nekoProtectedInjected === true;
+
     // Build the table of contents from the just-decrypted headings — so no heading
     // text ships in the page source — and set the real document title from the H1.
     function revealProtectedChrome(container) {
@@ -228,6 +299,16 @@
         const html = await decryptWithKey(payload, key);
         // Cache before unlocking the sidebar, which reads cached keys per item.
         await cacheKey(payload.salt, key);
+        // Stash the plaintext so a later revisit can paint it before first paint.
+        cacheContent(location.pathname, payload.salt, html);
+
+        // The body was already restored before first paint from the plaintext
+        // cache; don't re-inject identical HTML (a needless transition over the
+        // same content). Just finish wiring it up and reveal the sidebar.
+        if (alreadyInjected) {
+            await unlockSidebar();
+            return;
+        }
 
         const apply = async () => {
             if (contentContainer) {
@@ -279,8 +360,23 @@
         }
     }
 
+    // The pre-paint restore only injects raw HTML; build its TOC, set the title,
+    // and run the dynamic initialisers (the page's own DOMContentLoaded handlers
+    // highlight/typeset the content, but inline component scripts still need
+    // re-executing). Done once here so it happens even if there's no key to decrypt
+    // sidebar siblings.
+    if (alreadyInjected && contentContainer) {
+        revealProtectedChrome(contentContainer);
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => reinitContent(contentContainer), { once: true });
+        } else {
+            reinitContent(contentContainer);
+        }
+    }
+
     // Reuse the session key if we have one; otherwise reveal the prompt.
     (async function() {
+        wirePrefetch();
         const cached = await getCachedKey(payload.salt);
         if (cached) {
             try {
@@ -289,6 +385,13 @@
             } catch (e) {
                 // Stale/incompatible cached key — fall back to prompting.
             }
+        }
+        // The body is already on screen from the plaintext cache; we just lack a key
+        // to reveal sidebar siblings. Don't prompt for a password the reader can't
+        // see a reason for — the page is fully usable.
+        if (alreadyInjected) {
+            await unlockSidebar();
+            return;
         }
         showPrompt();
     })();

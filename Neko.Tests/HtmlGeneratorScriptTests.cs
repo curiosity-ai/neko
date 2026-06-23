@@ -64,7 +64,7 @@ namespace Neko.Tests
         }
 
         [Test]
-        public void TestProtectedPagesSkipViewTransition()
+        public void TestNoCrossDocumentViewTransitionHandler()
         {
             var doc = new ParsedDocument
             {
@@ -74,13 +74,41 @@ namespace Neko.Tests
 
             var html = _generator.Generate(doc);
 
-            // Cross-document view transitions capture the incoming page before
-            // password.js decrypts it, so a protected page is skipped to avoid
-            // cross-fading to an empty/collapsed snapshot.
-            Assert.That(html, Contains.Substring("window.addEventListener('pagereveal',"));
-            Assert.That(html, Contains.Substring("document.getElementById('encrypted-data')"));
-            Assert.That(html, Contains.Substring("document.querySelector('.protected-sidebar-item')"));
-            Assert.That(html, Contains.Substring("e.viewTransition.skipTransition();"));
+            // Navigation is a normal full page load — there is no cross-document view
+            // transition, so a `pagereveal`/`skipTransition` handler would be dead
+            // code (its `e.viewTransition` is always null). Protected pages avoid the
+            // empty flash with a pre-paint content restore instead (see below).
+            Assert.That(html, Does.Not.Contain("pagereveal"));
+            Assert.That(html, Does.Not.Contain("skipTransition"));
+        }
+
+        [Test]
+        public void TestProtectedPageRestoresBodyBeforePaint()
+        {
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Secret content</p>",
+                FrontMatter = new FrontMatter { Title = "Secret", Password = "letmein" }
+            };
+
+            var html = _generator.Generate(doc, currentUrl: "/secret");
+
+            // A protected page paints empty until password.js decrypts it async; an
+            // inline, pre-paint script injects the body from the sessionStorage
+            // plaintext cache (populated on a previous decrypt or a hover prefetch)
+            // so a revisited protected page renders content on the first frame.
+            Assert.That(html, Contains.Substring("sessionStorage.getItem('neko-pw-html:' + location.pathname)"));
+            Assert.That(html, Contains.Substring("window.__nekoProtectedInjected = true;"));
+            // The cache is salt-checked so stale plaintext from a changed password is ignored.
+            Assert.That(html, Contains.Substring("cached.salt !== '"));
+
+            // A public page carries none of this.
+            var publicHtml = _generator.Generate(new ParsedDocument
+            {
+                Html = "<p>Content</p>",
+                FrontMatter = new FrontMatter { Title = "Page Title" }
+            });
+            Assert.That(publicHtml, Does.Not.Contain("__nekoProtectedInjected"));
         }
 
         [Test]

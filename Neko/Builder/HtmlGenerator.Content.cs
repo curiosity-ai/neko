@@ -120,6 +120,31 @@ namespace Neko.Builder
             sb.AppendLine($"    </div>");
             sb.AppendLine($"</div>");
 
+            // Synchronous, pre-paint body restore. password.js loads as an external
+            // (parser-blocking but separately fetched) script, so the browser can paint
+            // the empty #content-container above before it runs — the "empty flash" when
+            // navigating between protected pages. This tiny inline script runs the moment
+            // the parser reaches it, before that first paint: if this exact page was
+            // decrypted earlier this session (or just hover-prefetched), its plaintext is
+            // in sessionStorage, so we inject it now and the page paints with content on
+            // the first frame. password.js sees the flag and skips re-injecting. The
+            // plaintext is no more exposed than the derived key password.js already caches
+            // in sessionStorage; both clear with the tab.
+            sb.AppendLine($"<script>");
+            sb.AppendLine($"(function(){{");
+            sb.AppendLine($"    try {{");
+            sb.AppendLine($"        var raw = sessionStorage.getItem('neko-pw-html:' + location.pathname);");
+            sb.AppendLine($"        if (!raw) return;");
+            sb.AppendLine($"        var cached = JSON.parse(raw);");
+            sb.AppendLine($"        if (!cached || cached.salt !== '{encryptionResult.Salt}' || typeof cached.html !== 'string') return;");
+            sb.AppendLine($"        var c = document.getElementById('content-container');");
+            sb.AppendLine($"        if (!c) return;");
+            sb.AppendLine($"        c.innerHTML = cached.html;");
+            sb.AppendLine($"        window.__nekoProtectedInjected = true;");
+            sb.AppendLine($"    }} catch (e) {{}}");
+            sb.AppendLine($"}})();");
+            sb.AppendLine($"</script>");
+
             var payload = System.Text.Json.JsonSerializer.Serialize(new {
                 salt = encryptionResult.Salt,
                 iv = encryptionResult.Iv,

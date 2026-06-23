@@ -535,23 +535,6 @@ namespace Neko.Builder
             sb.AppendLine("            ::view-transition-new(*) { animation: none !important; }");
             sb.AppendLine("        }");
             sb.AppendLine("    </style>");
-
-            // Password-protected pages ship their content encrypted and their
-            // protected sidebar entries hidden; password.js decrypts and reveals
-            // them client-side, a frame or more after the document first paints. A
-            // cross-document view transition snapshots the incoming page at that
-            // first paint — i.e. with empty content and a collapsed sidebar — and
-            // then cross-fades to it, so the visitor briefly sees a blank page (and
-            // the sidebar resets) before the real content pops in. Skip the
-            // transition whenever the incoming page is protected so it loads plainly
-            // and password.js can fill it in without an intervening empty frame.
-            sb.AppendLine("    <script>");
-            sb.AppendLine("        window.addEventListener('pagereveal', function (e) {");
-            sb.AppendLine("            if (e.viewTransition && (document.getElementById('encrypted-data') || document.querySelector('.protected-sidebar-item'))) {");
-            sb.AppendLine("                e.viewTransition.skipTransition();");
-            sb.AppendLine("            }");
-            sb.AppendLine("        });");
-            sb.AppendLine("    </script>");
         }
 
         private void RenderHeadDarkModeInit(StringBuilder sb)
