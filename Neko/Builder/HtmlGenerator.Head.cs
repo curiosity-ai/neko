@@ -503,11 +503,21 @@ namespace Neko.Builder
         private void RenderHeadDarkModeInit(StringBuilder sb)
         {
             sb.AppendLine("    <script>");
-            sb.AppendLine("        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {");
-            sb.AppendLine("            document.documentElement.classList.add('dark');");
-            sb.AppendLine("        } else {");
-            sb.AppendLine("            document.documentElement.classList.remove('dark');");
-            sb.AppendLine("        }");
+            if (_isBlogMode)
+            {
+                // Blog mode follows the marketing site, which is presented in a
+                // single (light) palette. There is no theme toggle, so lock light.
+                sb.AppendLine("        try { localStorage.theme = 'light'; } catch (e) {}");
+                sb.AppendLine("        document.documentElement.classList.remove('dark');");
+            }
+            else
+            {
+                sb.AppendLine("        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {");
+                sb.AppendLine("            document.documentElement.classList.add('dark');");
+                sb.AppendLine("        } else {");
+                sb.AppendLine("            document.documentElement.classList.remove('dark');");
+                sb.AppendLine("        }");
+            }
             sb.AppendLine("    </script>");
         }
     }

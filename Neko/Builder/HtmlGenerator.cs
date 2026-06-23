@@ -105,7 +105,10 @@ namespace Neko.Builder
 
             GenerateHead(sb, title, description);
 
-            sb.AppendLine("<body class=\"bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
+            // Blog mode uses a light grey page background (like curiosity.ai) so the
+            // white post cards and content stand out; docs stay on a white canvas.
+            var bodyBgClass = _isBlogMode ? "bg-gray-100 dark:bg-gray-900" : "bg-white dark:bg-gray-900";
+            sb.AppendLine($"<body class=\"{bodyBgClass} text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden\">");
 
             RenderBanner(sb);
             RenderNavbar(sb, currentUrl);
@@ -129,9 +132,23 @@ namespace Neko.Builder
             RenderArticleBody(sb, document, blogPosts, changelogEntries, currentUrl);
             RenderPageNavigation(sb, navContext);
             RenderBacklinks(sb, backlinks);
-            RenderFooter(sb);
+
+            // The marketing (blog-mode) footer breaks out of the reading column to
+            // span the full content pane, so it is rendered after the prose div.
+            // Everything else keeps the slim in-column footer.
+            var deferFooterFullWidth = _isBlogMode && _config.Footer != null && _config.Footer.HasRichContent;
+            if (!deferFooterFullWidth)
+            {
+                RenderFooter(sb);
+            }
 
             sb.AppendLine("                </div>");
+
+            if (deferFooterFullWidth)
+            {
+                RenderBlogMegaFooter(sb, currentUrl);
+            }
+
             sb.AppendLine("            </main>");
 
             if (_config.Layout.Toc && document.Toc != null && document.Toc.Any())

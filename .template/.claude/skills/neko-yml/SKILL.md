@@ -34,6 +34,7 @@ links:
 | `input`     | Root folder containing your `.md` files. Default `./`.                     |
 | `output`    | Where to write the built site. Default `.neko`.                            |
 | `url`       | Public hostname (no scheme). Used in canonical URLs and sitemap.           |
+| `mode`      | Site personality: `docs` (default) or `blog` (curiosity.ai marketing look).|
 | `cname`     | Value written to `CNAME` for GitHub Pages.                                 |
 | `sitemap`   | Generate `sitemap.xml`. Default `true`; skipped when `url` is unset.       |
 | `branding`  | Logo, title, label, colours.                                               |
@@ -43,7 +44,8 @@ links:
 | `links`     | Header navigation.                                                         |
 | `pageLinks` | Site-wide links rendered on top of every page's "On this page" TOC.        |
 | `banner`    | Site-wide announcement bar. See [`banner`](../banner/SKILL.md).            |
-| `footer`    | Footer content (`copyright`, custom links).                                |
+| `footer`    | Footer content (`copyright`, links; plus marketing columns/social/badges). |
+| `actions`   | Header call-to-action buttons (pills), e.g. *Book a Demo*. Best in blog mode.|
 | `nav`       | Project-wide nav settings (`mode: stack`; `icons.mode` — sidebar icons, default `none`). |
 | `layout`    | Page chrome: `sidebar`/`toc` toggles and the `maxWidth` content cap.       |
 | `toc`       | Default right-sidebar TOC settings.                                        |
@@ -183,11 +185,91 @@ pageLinks:
 `pageLinks` only render when the page has a TOC; pages with `toc: false`
 hide them.
 
+## Mode (docs vs blog)
+
+`mode` switches the chrome Neko renders around your pages. Default `docs`.
+
+```yml
+mode: blog
+```
+
+- **`docs`** (default) — the documentation chrome: a bordered white header with
+  the dark-mode toggle, the logo paired with the branding title, the slim
+  in-content footer.
+- **`blog`** — the marketing-site look (as on curiosity.ai): a light, borderless
+  header, the logo used on its own as a **wordmark** (no duplicated title),
+  pill-shaped search and `actions` buttons, a single (light) palette with **no
+  theme toggle**, a light page background, and the full-width marketing footer.
+
+Blog mode pairs naturally with `layout.sidebar: false`, `layout.toc: false`,
+`actions:`, and the marketing `footer:` fields below. It is inherited by
+multi-repo child sites unless they set their own `mode`.
+
+## Header actions (CTA buttons)
+
+`actions` renders pill-shaped call-to-action buttons on the right of the navbar.
+Available in both modes; most at home in blog mode.
+
+```yml
+actions:
+  - text: Book a Demo
+    link: https://example.com/request-demo
+    variant: primary       # solid, filled pill (default)
+    target: blank
+  - text: Talk to Sales
+    link: https://example.com/contact
+    variant: outline        # bordered pill
+    target: blank
+```
+
+| Key       | Purpose                                              |
+| ---       | ---                                                  |
+| `text`    | Button label.                                        |
+| `link`    | Destination URL.                                     |
+| `variant` | `primary` (default, solid) or `outline` (bordered).  |
+| `icon`    | Optional leading UIcon name.                         |
+| `target`  | `blank` to open in a new tab.                        |
+
 ## Footer
+
+The slim footer (both modes) just needs a copyright line:
 
 ```yml
 footer:
   copyright: "&copy; Copyright {{ year }}. All rights reserved."
+```
+
+In **blog mode**, add `columns` / `social` / `badges` (and optionally `logo` /
+`tagline`) to render the full-width, dark marketing footer. When none are set,
+blog mode falls back to a slim centred footer.
+
+```yml
+mode: blog
+
+footer:
+  copyright: "&copy; Copyright {{ year }} Example GmbH. All rights reserved."
+  logo: /assets/logo-dark.png      # light/white logo for the dark panel
+  tagline: The context graph for industrial AI.
+  social:
+    - icon: brands-twitter
+      link: https://twitter.com/example
+      label: X
+    - icon: brands-linkedin
+      link: https://www.linkedin.com/company/example/
+      label: LinkedIn
+  badges:
+    - icon: shield-check
+      title: GDPR Compliant
+      description: Hosted in the EU
+  columns:
+    - title: Product
+      links:
+        - text: Integrations
+          link: https://example.com/integrations
+    - title: Company
+      links:
+        - text: Pricing
+          link: https://example.com/pricing
 ```
 
 ## Layout

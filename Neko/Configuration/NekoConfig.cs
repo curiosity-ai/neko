@@ -14,7 +14,16 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "url")]
         public string Url { get; set; } = "localhost";
-        
+
+        // Site personality. `docs` (default) renders the documentation chrome —
+        // sidebar header with a border/shadow, the dark-mode toggle, and the
+        // logo paired with the branding title. `blog` switches to the marketing
+        // look used by curiosity.ai: a light, borderless header, the logo used
+        // on its own as a wordmark (no duplicated title), pill-shaped search and
+        // call-to-action buttons (see `actions:`), and a light page background.
+        [YamlMember(Alias = "mode")]
+        public string Mode { get; set; } = "docs";
+
         [YamlMember(Alias = "cname")]
         public string Cname { get; set; }
 
@@ -33,6 +42,14 @@ namespace Neko.Configuration
         [YamlMember(Alias = "links")]
         public List<LinkConfig> Links { get; set; } = new List<LinkConfig>();
 
+        // Header call-to-action buttons, rendered on the right of the navbar as
+        // pills (e.g. "Book a Demo", "Talk to Sales"). Each entry takes a
+        // `text`, `link`, optional `icon`/`target`, and a `variant`
+        // (`primary` = solid, `outline` = bordered). Available in both modes but
+        // most at home in `blog` mode.
+        [YamlMember(Alias = "actions")]
+        public List<ActionConfig> Actions { get; set; } = new List<ActionConfig>();
+
         [YamlMember(Alias = "pageLinks")]
         public List<PageLinkConfig> PageLinks { get; set; } = new List<PageLinkConfig>();
 
@@ -47,6 +64,9 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "snippets")]
         public SnippetsConfig Snippets { get; set; } = new SnippetsConfig();
+
+        [YamlMember(Alias = "footer")]
+        public FooterConfig Footer { get; set; } = new FooterConfig();
 
         [YamlMember(Alias = "layout")]
         public LayoutConfig Layout { get; set; } = new LayoutConfig();
@@ -76,6 +96,16 @@ namespace Neko.Configuration
                 Banner.Link = LinkNormalizer.Normalize(Banner.Link);
             }
             NormalizeLinkList(Links);
+            if (Actions != null)
+            {
+                foreach (var action in Actions)
+                    action.Link = LinkNormalizer.Normalize(action.Link);
+            }
+            if (Footer?.Columns != null)
+            {
+                foreach (var column in Footer.Columns)
+                    NormalizeLinkList(column.Links);
+            }
         }
 
         private static void NormalizeLinkList(List<LinkConfig> links)
@@ -103,6 +133,34 @@ namespace Neko.Configuration
             if (string.IsNullOrEmpty(Branding.Repository)) Branding.Repository = parent.Branding.Repository;
 
             if (string.IsNullOrEmpty(Password)) Password = parent.Password;
+
+            // Inherit the site mode when the child left it at the default ("docs").
+            if ((string.IsNullOrEmpty(Mode) || Mode.Equals("docs", StringComparison.OrdinalIgnoreCase))
+                && !string.IsNullOrEmpty(parent.Mode))
+            {
+                Mode = parent.Mode;
+            }
+
+            // Inherit header action buttons: only when the child defined none.
+            if ((Actions == null || Actions.Count == 0) && parent.Actions != null && parent.Actions.Count > 0)
+            {
+                Actions = new List<ActionConfig>(parent.Actions);
+            }
+
+            // Inherit footer settings per-field when the child left them unset.
+            if (Footer == null) Footer = new FooterConfig();
+            if (parent.Footer != null)
+            {
+                if (string.IsNullOrEmpty(Footer.Copyright)) Footer.Copyright = parent.Footer.Copyright;
+                if (string.IsNullOrEmpty(Footer.Logo)) Footer.Logo = parent.Footer.Logo;
+                if (string.IsNullOrEmpty(Footer.Tagline)) Footer.Tagline = parent.Footer.Tagline;
+                if ((Footer.Columns == null || Footer.Columns.Count == 0) && parent.Footer.Columns != null && parent.Footer.Columns.Count > 0)
+                    Footer.Columns = new List<FooterColumnConfig>(parent.Footer.Columns);
+                if ((Footer.Social == null || Footer.Social.Count == 0) && parent.Footer.Social != null && parent.Footer.Social.Count > 0)
+                    Footer.Social = new List<FooterSocialConfig>(parent.Footer.Social);
+                if ((Footer.Badges == null || Footer.Badges.Count == 0) && parent.Footer.Badges != null && parent.Footer.Badges.Count > 0)
+                    Footer.Badges = new List<FooterBadgeConfig>(parent.Footer.Badges);
+            }
 
             // Inherit Theme settings
             if (Theme.Name == ThemeDefinitions.DefaultThemeName && parent.Theme.Name != ThemeDefinitions.DefaultThemeName) Theme.Name = parent.Theme.Name;
@@ -402,6 +460,92 @@ namespace Neko.Configuration
 
         [YamlIgnore]
         public string Password { get; set; }
+    }
+
+    // Footer configuration. `copyright` works in both modes (docs renders it on
+    // the slim in-content footer). The richer `columns` / `social` / `badges` /
+    // `logo` fields drive the full marketing-style footer used in `blog` mode —
+    // when none are set, blog mode falls back to a slim centred footer.
+    public class FooterConfig
+    {
+        [YamlMember(Alias = "copyright")]
+        public string Copyright { get; set; }
+
+        // Optional footer logo. Defaults to branding.logoDark / branding.logo.
+        [YamlMember(Alias = "logo")]
+        public string Logo { get; set; }
+
+        // Optional short blurb under the footer logo.
+        [YamlMember(Alias = "tagline")]
+        public string Tagline { get; set; }
+
+        [YamlMember(Alias = "columns")]
+        public List<FooterColumnConfig> Columns { get; set; } = new List<FooterColumnConfig>();
+
+        [YamlMember(Alias = "social")]
+        public List<FooterSocialConfig> Social { get; set; } = new List<FooterSocialConfig>();
+
+        [YamlMember(Alias = "badges")]
+        public List<FooterBadgeConfig> Badges { get; set; } = new List<FooterBadgeConfig>();
+
+        // True when any of the rich (marketing) footer fields are populated.
+        [YamlIgnore]
+        public bool HasRichContent =>
+            (Columns != null && Columns.Count > 0)
+            || (Social != null && Social.Count > 0)
+            || (Badges != null && Badges.Count > 0);
+    }
+
+    public class FooterColumnConfig
+    {
+        [YamlMember(Alias = "title")]
+        public string Title { get; set; }
+
+        [YamlMember(Alias = "links")]
+        public List<LinkConfig> Links { get; set; } = new List<LinkConfig>();
+    }
+
+    public class FooterSocialConfig
+    {
+        [YamlMember(Alias = "icon")]
+        public string Icon { get; set; }
+
+        [YamlMember(Alias = "link")]
+        public string Link { get; set; }
+
+        [YamlMember(Alias = "label")]
+        public string Label { get; set; }
+    }
+
+    public class FooterBadgeConfig
+    {
+        [YamlMember(Alias = "icon")]
+        public string Icon { get; set; }
+
+        [YamlMember(Alias = "title")]
+        public string Title { get; set; }
+
+        [YamlMember(Alias = "description")]
+        public string Description { get; set; }
+    }
+
+    public class ActionConfig
+    {
+        [YamlMember(Alias = "text")]
+        public string Text { get; set; }
+
+        [YamlMember(Alias = "link")]
+        public string Link { get; set; }
+
+        [YamlMember(Alias = "icon")]
+        public string Icon { get; set; }
+
+        [YamlMember(Alias = "target")]
+        public string Target { get; set; }
+
+        // `primary` (solid, filled) or `outline` (bordered). Defaults to primary.
+        [YamlMember(Alias = "variant")]
+        public string Variant { get; set; } = "primary";
     }
 
     public class PageLinkConfig

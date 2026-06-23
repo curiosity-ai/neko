@@ -228,8 +228,14 @@ namespace Neko.Builder
 
         private void RenderFooter(StringBuilder sb)
         {
+            if (_isBlogMode)
+            {
+                RenderBlogFooter(sb);
+                return;
+            }
+
             sb.AppendLine("                    <footer class=\"mt-12 py-6 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400 flex flex-col md:flex-row justify-between items-center not-prose\">");
-            sb.AppendLine($"                        <div>&copy; {System.DateTime.Now.Year} {_config.Branding.Title}. All rights reserved.</div>");
+            sb.AppendLine($"                        <div>{ResolveCopyright()}</div>");
 
             if (!string.IsNullOrEmpty(_config.Branding.Repository))
             {
@@ -244,6 +250,141 @@ namespace Neko.Builder
                  sb.AppendLine("                        <div class=\"mt-2 md:mt-0\">Powered by Neko</div>");
             }
             sb.AppendLine("                    </footer>");
+        }
+
+        // Marketing-style footer used in blog mode: the top-nav links repeated as
+        // a centred row above the copyright line, matching the curiosity.ai feel.
+        private void RenderBlogFooter(StringBuilder sb)
+        {
+            sb.AppendLine("                    <footer class=\"mt-16 pt-8 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400 flex flex-col items-center gap-4 not-prose\">");
+
+            var navLinks = _config.Links?.Where(l => !string.IsNullOrEmpty(l.Text) && !string.IsNullOrEmpty(l.Link)).ToList();
+            if (navLinks != null && navLinks.Count > 0)
+            {
+                sb.AppendLine("                        <nav class=\"flex flex-wrap justify-center gap-x-6 gap-y-2 font-medium\">");
+                foreach (var link in navLinks)
+                {
+                    var target = !string.IsNullOrEmpty(link.Target) ? $" target=\"{NormalizeTarget(link.Target)}\"" : "";
+                    var rel = target.Contains("_blank") ? " rel=\"noopener noreferrer\"" : "";
+                    sb.AppendLine($"                            <a href=\"{link.Link}\"{target}{rel} class=\"hover:text-gray-900 dark:hover:text-gray-100 transition-colors\">{link.Text}</a>");
+                }
+                sb.AppendLine("                        </nav>");
+            }
+
+            sb.AppendLine($"                        <div class=\"text-center text-xs\">{ResolveCopyright()}</div>");
+            sb.AppendLine("                    </footer>");
+        }
+
+        // The configured copyright line (with `{{ year }}` expanded), or a sane
+        // default built from the branding title.
+        private string ResolveCopyright()
+        {
+            var text = _config.Footer?.Copyright;
+            if (string.IsNullOrEmpty(text))
+            {
+                return $"&copy; {System.DateTime.Now.Year} {_config.Branding.Title}. All rights reserved.";
+            }
+            return text.Replace("{{ year }}", System.DateTime.Now.Year.ToString())
+                       .Replace("{{year}}", System.DateTime.Now.Year.ToString());
+        }
+
+        // Full-width marketing footer used in blog mode when `footer.columns` /
+        // `social` / `badges` are configured. Mirrors the curiosity.ai footer: a
+        // dark panel with rounded top corners that breaks out of the content
+        // column, a brand/social/badges block, link columns, and a copyright bar.
+        private void RenderBlogMegaFooter(StringBuilder sb, string currentUrl)
+        {
+            var footer = _config.Footer;
+
+            // Break out of #main-scroll's p-4 / md:p-8 padding to go edge-to-edge.
+            sb.AppendLine("                <footer class=\"not-prose -mx-4 md:-mx-8 -mb-4 md:-mb-8 mt-12 md:mt-16 bg-gray-900 text-white rounded-t-[2rem] md:rounded-t-[2.75rem]\">");
+            sb.AppendLine("                    <div class=\"max-w-screen-2xl mx-auto px-6 md:px-12 pt-14 pb-8\">");
+            sb.AppendLine("                        <div class=\"grid grid-cols-2 gap-10 md:grid-cols-12\">");
+
+            // Brand / social / badges column.
+            sb.AppendLine("                            <div class=\"col-span-2 md:col-span-4 flex flex-col gap-6\">");
+            var footerLogo = !string.IsNullOrEmpty(footer.Logo)
+                ? footer.Logo
+                : (!string.IsNullOrEmpty(_config.Branding.LogoDark) ? _config.Branding.LogoDark : _config.Branding.Logo);
+            if (!string.IsNullOrEmpty(footerLogo))
+            {
+                var logoUrl = ResolveLogoPath(currentUrl, footerLogo);
+                sb.AppendLine($"                                <img src=\"{logoUrl}\" alt=\"{EscapeHtmlAttr(_config.Branding.Title)}\" class=\"h-7 w-auto self-start\">");
+            }
+            else
+            {
+                sb.AppendLine($"                                <div class=\"text-xl font-bold self-start\">{_config.Branding.Title}</div>");
+            }
+            if (!string.IsNullOrEmpty(footer.Tagline))
+            {
+                sb.AppendLine($"                                <p class=\"text-sm text-gray-400 max-w-xs\">{footer.Tagline}</p>");
+            }
+
+            if (footer.Social != null && footer.Social.Count > 0)
+            {
+                sb.AppendLine("                                <div class=\"flex items-center gap-3\">");
+                foreach (var s in footer.Social)
+                {
+                    if (string.IsNullOrEmpty(s.Link)) continue;
+                    var label = EscapeHtmlAttr(s.Label ?? string.Empty);
+                    sb.AppendLine($"                                    <a href=\"{s.Link}\" target=\"_blank\" rel=\"noopener noreferrer\" aria-label=\"{label}\" class=\"inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/5 text-gray-300 hover:bg-white/15 hover:text-white transition-colors\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(s.Icon)}\"></i></a>");
+                }
+                sb.AppendLine("                                </div>");
+            }
+
+            if (footer.Badges != null && footer.Badges.Count > 0)
+            {
+                sb.AppendLine("                                <div class=\"flex flex-col gap-3\">");
+                foreach (var b in footer.Badges)
+                {
+                    sb.AppendLine("                                    <div class=\"flex items-center gap-3\">");
+                    sb.AppendLine($"                                        <span class=\"flex items-center justify-center w-9 h-9 rounded-xl shrink-0 bg-white/5 text-gray-300\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(b.Icon)}\"></i></span>");
+                    sb.AppendLine("                                        <div class=\"leading-tight\">");
+                    if (!string.IsNullOrEmpty(b.Title)) sb.AppendLine($"                                            <div class=\"text-sm font-medium text-white\">{b.Title}</div>");
+                    if (!string.IsNullOrEmpty(b.Description)) sb.AppendLine($"                                            <div class=\"text-xs text-gray-400\">{b.Description}</div>");
+                    sb.AppendLine("                                        </div>");
+                    sb.AppendLine("                                    </div>");
+                }
+                sb.AppendLine("                                </div>");
+            }
+            sb.AppendLine("                            </div>");
+
+            // Link columns.
+            if (footer.Columns != null)
+            {
+                foreach (var column in footer.Columns)
+                {
+                    sb.AppendLine("                            <div class=\"md:col-span-2\">");
+                    if (!string.IsNullOrEmpty(column.Title))
+                    {
+                        sb.AppendLine($"                                <h3 class=\"text-sm font-semibold text-white mb-3\">{column.Title}</h3>");
+                    }
+                    sb.AppendLine("                                <ul class=\"space-y-2 list-none pl-0 m-0\">");
+                    if (column.Links != null)
+                    {
+                        foreach (var link in column.Links)
+                        {
+                            if (string.IsNullOrEmpty(link.Text)) continue;
+                            var href = link.Link ?? "#";
+                            var target = !string.IsNullOrEmpty(link.Target) ? $" target=\"{NormalizeTarget(link.Target)}\"" : "";
+                            var rel = target.Contains("_blank") ? " rel=\"noopener noreferrer\"" : "";
+                            sb.AppendLine($"                                    <li><a href=\"{href}\"{target}{rel} class=\"text-sm leading-7 text-gray-400 hover:text-white transition-colors no-underline\">{link.Text}</a></li>");
+                        }
+                    }
+                    sb.AppendLine("                                </ul>");
+                    sb.AppendLine("                            </div>");
+                }
+            }
+
+            sb.AppendLine("                        </div>");
+
+            // Copyright bar.
+            sb.AppendLine("                        <div class=\"mt-12 pt-6 border-t border-white/10 text-sm text-gray-400\">");
+            sb.AppendLine($"                            {ResolveCopyright()}");
+            sb.AppendLine("                        </div>");
+
+            sb.AppendLine("                    </div>");
+            sb.AppendLine("                </footer>");
         }
 
         private void RenderTocSidebar(StringBuilder sb, ParsedDocument document, string currentUrl)
