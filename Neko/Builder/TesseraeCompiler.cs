@@ -123,7 +123,7 @@ namespace Neko.Builder
         // A null line entry represents a blank line and is never emitted into the
         // compiled source. Both the cache-warming and render passes call this, so the
         // compiled source (and cache key) is identical in both.
-        public static (string Compiled, List<string> DisplayOverride) PartitionSampleSource(IReadOnlyList<string> lines)
+        public static (string Compiled, List<string>? DisplayOverride) PartitionSampleSource(IReadOnlyList<string> lines)
         {
             var compiled = new StringBuilder();
             var overrideLines = new List<string>();
