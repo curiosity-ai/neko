@@ -426,24 +426,16 @@ namespace Neko
             // can be run on demand or in CI.
             var syncApiDocsCommand = new Command("sync-api-docs", "Refresh API-reference pages from source (public surface only)");
             var syncInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
-            var syncRootOption = new Option<string[]>(new[] { "--root", "-r" }, "Map a source-root name to a checkout, e.g. mosaik=/path/to/mosaik (repeatable)") { Arity = ArgumentArity.ZeroOrMore };
             var syncVerboseOption = new Option<bool>(new[] { "--verbose", "-v" }, () => false, "List each updated page");
             var syncDryRunOption = new Option<bool>(new[] { "--dry-run" }, () => false, "Report changes without writing");
             syncApiDocsCommand.AddOption(syncInputOption);
-            syncApiDocsCommand.AddOption(syncRootOption);
             syncApiDocsCommand.AddOption(syncVerboseOption);
             syncApiDocsCommand.AddOption(syncDryRunOption);
 
-            syncApiDocsCommand.SetHandler((string input, string[] roots, bool verbose, bool dryRun) =>
+            syncApiDocsCommand.SetHandler((string input, bool verbose, bool dryRun) =>
             {
-                var cliRoots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                foreach (var spec in roots ?? Array.Empty<string>())
-                {
-                    var split = spec.IndexOf('=');
-                    if (split > 0) cliRoots[spec[..split].Trim()] = Path.GetFullPath(spec[(split + 1)..].Trim());
-                }
-                Neko.Builder.ApiDocsSync.Run(Path.GetFullPath(input), cliRoots.Count > 0 ? cliRoots : null, verbose, dryRun);
-            }, syncInputOption, syncRootOption, syncVerboseOption, syncDryRunOption);
+                Neko.Builder.ApiDocsSync.Run(Path.GetFullPath(input), verbose, dryRun);
+            }, syncInputOption, syncVerboseOption, syncDryRunOption);
 
             // Gen-Tesserae-Heights Command — measure each `tesserae` live sample's
             // rendered height with a headless browser and bake a `height=NNN` token

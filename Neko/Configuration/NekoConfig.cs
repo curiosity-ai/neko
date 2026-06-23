@@ -217,8 +217,8 @@ namespace Neko.Configuration
     // Maps a source-root name used in `<!-- api:source repo="…" -->` markers to a
     // local checkout. Only the root neko.yml is consulted; paths are resolved
     // relative to it. A missing root is skipped (the committed block is left
-    // intact). The `--root name=path` CLI flag overrides an entry; there is no
-    // environment-variable or hard-coded path fallback.
+    // intact). There is no CLI override, environment-variable, or hard-coded path
+    // fallback.
     public class ApiDocsConfig
     {
         [YamlMember(Alias = "roots")]

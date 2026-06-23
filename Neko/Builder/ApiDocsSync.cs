@@ -46,19 +46,17 @@ namespace Neko.Builder
 
         /// <summary>
         /// Regenerates every <c>api:source</c> marker block under <paramref name="inputDir"/>.
-        /// Source roots are resolved from the root <c>neko.yml</c>'s <c>apiDocs.roots</c>
-        /// (paths relative to that file), overridden by <paramref name="cliRoots"/>. There
-        /// is no environment-variable or hard-coded path fallback: a root the root config
-        /// doesn't declare is treated as missing and its block is left untouched.
+        /// Source roots are resolved solely from the root <c>neko.yml</c>'s <c>apiDocs.roots</c>
+        /// (paths relative to that file). There is no CLI override, environment-variable, or
+        /// hard-coded path fallback: a root the root config doesn't declare is treated as
+        /// missing and its block is left untouched.
         /// </summary>
-        public static Result Run(string inputDir, IDictionary<string, string>? cliRoots = null, bool verbose = false, bool dryRun = false)
+        public static Result Run(string inputDir, bool verbose = false, bool dryRun = false)
         {
             var result = new Result();
             if (!Directory.Exists(inputDir)) return result;
 
             var roots = GatherConfiguredRoots(inputDir);
-            if (cliRoots != null)
-                foreach (var kv in cliRoots) roots[kv.Key] = kv.Value;
 
             // Only scan pages that actually carry a marker (cheap pre-filter).
             var markdownFiles = Directory.EnumerateFiles(inputDir, "*.md", SearchOption.AllDirectories)

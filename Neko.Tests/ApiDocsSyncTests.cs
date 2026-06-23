@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
 using Neko.Builder;
@@ -18,6 +17,10 @@ namespace Neko.Tests
             _src = Path.Combine(root, "src");
             Directory.CreateDirectory(_docs);
             Directory.CreateDirectory(_src);
+
+            // Roots are resolved solely from the root neko.yml's apiDocs.roots.
+            File.WriteAllText(Path.Combine(_docs, "neko.yml"),
+                $"apiDocs:\n  roots:\n    demo: {_src.Replace("\\", "/")}\n");
 
             File.WriteAllText(Path.Combine(_src, "Foo.cs"), @"
 namespace Demo
@@ -43,9 +46,6 @@ namespace Demo
 }");
         }
 
-        private IDictionary<string, string> Roots() =>
-            new Dictionary<string, string> { ["demo"] = _src };
-
         private string Md(string body) => $"# Page\n\n{body}\n";
 
         [Test]
@@ -55,7 +55,7 @@ namespace Demo
             File.WriteAllText(page, Md(
                 "<!-- api:source start repo=\"demo\" file=\"Foo.cs\" type=\"Foo\" -->\n<!-- api:source end -->"));
 
-            var result = ApiDocsSync.Run(_docs, Roots());
+            var result = ApiDocsSync.Run(_docs);
             var text = File.ReadAllText(page);
 
             Assert.That(result.FilesUpdated, Is.EqualTo(1));
@@ -78,7 +78,7 @@ namespace Demo
                 "<!-- api:source start repo=\"unknown\" file=\"Foo.cs\" type=\"Foo\" -->\nKEEP ME\n<!-- api:source end -->");
             File.WriteAllText(page, original);
 
-            var result = ApiDocsSync.Run(_docs, Roots());
+            var result = ApiDocsSync.Run(_docs);
 
             Assert.That(result.Skipped, Is.EqualTo(1));
             Assert.That(result.FilesUpdated, Is.EqualTo(0));
@@ -94,7 +94,7 @@ namespace Demo
                            "<!-- api:source end -->\n````\n";
             File.WriteAllText(page, original);
 
-            var result = ApiDocsSync.Run(_docs, Roots());
+            var result = ApiDocsSync.Run(_docs);
 
             Assert.That(result.FilesUpdated, Is.EqualTo(0));
             Assert.That(result.Skipped, Is.EqualTo(0));
@@ -119,7 +119,6 @@ namespace Demo
             File.WriteAllText(page, Md(
                 "<!-- api:source start repo=\"demo\" file=\"Foo.cs\" type=\"Foo\" -->\n<!-- api:source end -->"));
 
-            // No cliRoots: resolution must come from the root neko.yml.
             var result = ApiDocsSync.Run(_docs);
 
             Assert.That(result.FilesUpdated, Is.EqualTo(1));
@@ -133,9 +132,9 @@ namespace Demo
             File.WriteAllText(page, Md(
                 "<!-- api:source start repo=\"demo\" file=\"Foo.cs\" type=\"Foo\" -->\n<!-- api:source end -->"));
 
-            ApiDocsSync.Run(_docs, Roots());
+            ApiDocsSync.Run(_docs);
             var afterFirst = File.ReadAllText(page);
-            var second = ApiDocsSync.Run(_docs, Roots());
+            var second = ApiDocsSync.Run(_docs);
 
             Assert.That(second.FilesUpdated, Is.EqualTo(0));
             Assert.That(File.ReadAllText(page), Is.EqualTo(afterFirst));
