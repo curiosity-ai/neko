@@ -119,7 +119,10 @@ namespace Neko.Extensions
                         var iframeStyle = sampleHeight > 0
                             ? $"height: {sampleHeight + 4}px; resize: vertical;"
                             : "min-height: 400px; resize: vertical;";
-                        renderer.Write($"<iframe class=\"w-full rounded border border-gray-200 dark:border-gray-700\" style=\"{iframeStyle}\" srcdoc=\"{encodedHtml}\"></iframe>");
+                        // The `tesserae-preview` class lets the page's theme switch
+                        // find every live-preview iframe and tell it to follow the
+                        // docs page's light/dark mode (see RenderThemeSwitchScript).
+                        renderer.Write($"<iframe class=\"tesserae-preview w-full rounded border border-gray-200 dark:border-gray-700\" style=\"{iframeStyle}\" srcdoc=\"{encodedHtml}\"></iframe>");
                         renderer.Write("</div>");
 
                         // Code Tab (Hidden)

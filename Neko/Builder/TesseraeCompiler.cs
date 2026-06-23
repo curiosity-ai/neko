@@ -51,7 +51,23 @@ namespace Neko.Builder
         // newer one — otherwise the cached HTML can reference asset variants the new
         // build no longer writes (e.g. `h5.min.js` vs `h5.js`), 404ing the runtime
         // and leaving the live preview blank.
-        private const string CacheFormatVersion = "3";
+        private const string CacheFormatVersion = "4";
+
+        // Injected into every compiled sample so the live-preview iframe mirrors the
+        // docs page's light/dark mode. Kept dependency-free vanilla JS and resilient
+        // to cross-origin failures (falls back to the OS preference). Changing this
+        // changes the shape of the generated HTML, so bump CacheFormatVersion too.
+        private const string ThemeBridgeScript =
+            "<script>(function(){" +
+            "function apply(d){try{document.body.classList.toggle('tss-dark-mode',!!d);" +
+            "document.documentElement.style.colorScheme=d?'dark':'light';}catch(e){}}" +
+            "function parentDark(){try{return window.parent&&window.parent!==window&&" +
+            "window.parent.document.documentElement.classList.contains('dark');}" +
+            "catch(e){return window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;}}" +
+            "apply(parentDark());" +
+            "window.addEventListener('message',function(ev){" +
+            "if(ev&&ev.data&&ev.data.type==='neko-theme')apply(!!ev.data.dark);});" +
+            "})();</script>";
 
         // Default viewport width (CSS px) used when measuring sample heights. Chosen
         // to approximate the live-preview iframe width inside the docs content column
@@ -606,6 +622,13 @@ namespace Neko.Builder
 
                 htmlBuilder.AppendLine("</head>");
                 htmlBuilder.AppendLine("<body>");
+                // Make the live-preview follow the surrounding docs page's light/dark
+                // mode. Tesserae's dark theme is the `tss-dark-mode` class on <body>;
+                // the docs page marks dark mode with the `dark` class on <html>. This
+                // is an `about:srcdoc` iframe, so it shares the parent's origin and can
+                // read that class directly on load, then react to later toggles which
+                // the page broadcasts via postMessage (see RenderThemeSwitchScript).
+                htmlBuilder.AppendLine(ThemeBridgeScript);
                 htmlBuilder.AppendLine($"<script>{result.AppJsContent}</script>");
                 htmlBuilder.AppendLine("</body>");
                 htmlBuilder.AppendLine("</html>");
