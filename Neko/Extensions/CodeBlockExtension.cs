@@ -117,7 +117,13 @@ namespace Neko.Extensions
                         // The `tesserae-preview` class lets the page's theme switch
                         // find every live-preview iframe and tell it to follow the
                         // docs page's light/dark mode (see RenderThemeSwitchScript).
-                        renderer.Write($"<iframe class=\"tesserae-preview w-full rounded border border-gray-200 dark:border-gray-700\" style=\"{iframeStyle}\" srcdoc=\"{encodedHtml}\"></iframe>");
+                        // `bg-white dark:bg-[#222222]` paints the iframe box in
+                        // Tesserae's own surface colour while the sample is still
+                        // compiling/booting, so the live preview follows the page
+                        // theme from the first frame instead of flashing white (the
+                        // srcdoc document paints the same colours immediately too —
+                        // see ThemeBridgeScript in TesseraeCompiler).
+                        renderer.Write($"<iframe class=\"tesserae-preview w-full rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#222222]\" style=\"{iframeStyle}\" srcdoc=\"{encodedHtml}\"></iframe>");
                         renderer.Write("</div>");
 
                         // Code Tab (Hidden)
