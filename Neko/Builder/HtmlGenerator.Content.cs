@@ -541,20 +541,22 @@ namespace Neko.Builder
             if (posts == null || posts.Count == 0) return;
 
             // In blog mode the header has no search box — it lives at the top of
-            // the post list instead. The button opens the same site search modal
-            // (also reachable with ⌘K).
+            // the post list instead. Unlike docs mode (which opens a modal), the
+            // blog searches inline: typing filters the index live and renders the
+            // hits in place of the post grid (see initInlineSearch in search.js).
             if (_isBlogMode)
             {
                 sb.AppendLine("<div class=\"not-prose mt-8 mb-6\">");
-                sb.AppendLine("    <button onclick=\"openSearch()\" class=\"w-full flex items-center gap-3 text-left text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-full px-5 py-3 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500\">");
-                sb.AppendLine("        <i class=\"fi fi-rr-search text-base\"></i>");
-                sb.AppendLine("        <span class=\"text-sm font-medium\">Search the blog…</span>");
-                sb.AppendLine("        <kbd class=\"hidden sm:inline ml-auto text-xs bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-500 dark:text-gray-400\">⌘K</kbd>");
-                sb.AppendLine("    </button>");
+                sb.AppendLine("    <div class=\"relative\">");
+                sb.AppendLine("        <i class=\"fi fi-rr-search absolute left-5 top-1/2 -translate-y-1/2 text-base text-gray-400 dark:text-gray-500 pointer-events-none\"></i>");
+                sb.AppendLine("        <input id=\"neko-inline-search\" type=\"text\" autocomplete=\"off\" placeholder=\"Search the blog…\" aria-label=\"Search the blog\" class=\"w-full text-gray-900 dark:text-gray-100 placeholder-gray-500 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full pl-12 pr-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow\">");
+                sb.AppendLine("    </div>");
+                sb.AppendLine("    <div id=\"neko-inline-search-results\" class=\"hidden mt-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700/60 overflow-hidden\"></div>");
                 sb.AppendLine("</div>");
             }
 
-            sb.AppendLine("<div class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 not-prose\">");
+            var gridId = _isBlogMode ? " id=\"neko-blog-grid\"" : string.Empty;
+            sb.AppendLine($"<div{gridId} class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 not-prose\">");
 
             foreach (var post in posts)
             {

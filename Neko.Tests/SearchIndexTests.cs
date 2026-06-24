@@ -289,6 +289,33 @@ Body text.
         }
 
         [Test]
+        public async Task SearchIndex_EmitsTagsField_SoInlineSearchCanSurfaceThem()
+        {
+            var builder = new SiteBuilder(_sampleDir);
+            await builder.BuildAsync();
+
+            var indexPath = Path.Combine(builder.OutputDirectory, "search.json");
+            var json = await File.ReadAllTextAsync(indexPath);
+            using var doc = JsonDocument.Parse(json);
+            var docs = doc.RootElement.EnumerateArray().ToList();
+
+            // index.md carries `tags: [intro, search]` — they must be exposed as a
+            // discrete `tags` array (not just folded into the searchable content)
+            // so the search UI can render them as chips.
+            var index = docs.First(d => d.GetProperty("id").GetString() == "index.html");
+            Assert.That(index.TryGetProperty("tags", out var tags), Is.True,
+                "Page documents with frontmatter tags should expose a `tags` field");
+            Assert.That(tags.EnumerateArray().Select(t => t.GetString()),
+                Is.EqualTo(new[] { "intro", "search" }));
+
+            // Pages without tags must omit the field entirely (kept null), so the
+            // index doesn't churn with empty arrays.
+            var post = docs.First(d => d.GetProperty("id").GetString() == "blog/post-1.html");
+            Assert.That(post.TryGetProperty("tags", out _), Is.False,
+                "Pages with no tags should omit the `tags` field");
+        }
+
+        [Test]
         public async Task SearchIndex_EmitsPageType_ForPageLevelDocuments()
         {
             var builder = new SiteBuilder(_sampleDir);

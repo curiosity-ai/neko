@@ -212,8 +212,9 @@ mode: blog
   page/header/CTA palette comes from `theme.base`. Blog mode is **light-only by
   default** (the theme toggle is hidden and light is locked). Define a
   `theme.dark` palette to **opt into dark mode** and bring the toggle back. The
-  search box moves out of the header to the **top of the post list** (still
-  openable with `⌘K`).
+  search box moves out of the header to the **top of the post list** and searches
+  **inline** — typing filters the index live and renders the matching posts (with
+  their tags) in place of the post grid, instead of opening the `⌘K` modal.
 
   ```yml
   mode: blog

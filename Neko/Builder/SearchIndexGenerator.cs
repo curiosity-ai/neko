@@ -120,6 +120,12 @@ namespace Neko.Builder
             var slug = BuildSlug(prefixedPath);
             var fullText = HtmlToText(html);
 
+            // Tags are kept as a discrete field (in addition to being folded into
+            // the searchable content below) so the search UI can surface them as
+            // chips next to a result — used by the blog's inline search.
+            var tagList = tags?.Where(t => !string.IsNullOrWhiteSpace(t)).ToArray();
+            if (tagList != null && tagList.Length == 0) tagList = null;
+
             var pageContent = new StringBuilder();
             if (!string.IsNullOrWhiteSpace(description))
             {
@@ -139,6 +145,7 @@ namespace Neko.Builder
                 Headings = headingsText.Length > 0 ? headingsText.ToString() : null,
                 Slug = slug,
                 Type = "page",
+                Tags = tagList,
                 Breadcrumbs = crumbs
             });
 
@@ -163,6 +170,7 @@ namespace Neko.Builder
                     ParentTitle = title,
                     ParentId = prefixedPath,
                     Type = "section",
+                    Tags = tagList,
                     Breadcrumbs = crumbs
                 });
             }
@@ -308,6 +316,7 @@ namespace Neko.Builder
         public string Headings { get; set; }
         public string Slug { get; set; }
         public string Type { get; set; }
+        public string[] Tags { get; set; }
         public string ParentTitle { get; set; }
         public string ParentId { get; set; }
         public string[] Breadcrumbs { get; set; }

@@ -67,7 +67,7 @@
 
                 const ms = new MiniSearch({
                     fields: ['title', 'content', 'headings', 'slug'],
-                    storeFields: ['title', 'content', 'parentTitle', 'parentId', 'type', 'slug', 'breadcrumbs'],
+                    storeFields: ['title', 'content', 'parentTitle', 'parentId', 'type', 'slug', 'tags', 'breadcrumbs'],
                     searchOptions: {
                         boost: { title: 3, slug: 4, headings: 2 },
                         boostDocument: (id, _term, stored) => {
@@ -243,7 +243,7 @@
             }
             const raw = miniSearch.search(query);
             const results = dedupePerPage(raw).slice(0, 20);
-            renderResults(results, resultsContainer);
+            renderResults(results, resultsContainer, input);
         }
 
         input.addEventListener('input', (e) => {
@@ -311,7 +311,7 @@
         });
     }
 
-    function renderResults(results, container) {
+    function renderResults(results, container, inputEl) {
         if (results.length === 0) {
             renderStatus(container, 'fi fi-rr-search', 'No results found', 'We couldn\'t find any items matching your search criteria.');
             return;
@@ -357,6 +357,14 @@
                 ? `<div class="flex items-center gap-1 min-w-0 text-[11px] text-gray-400 dark:text-gray-500 mb-1">${crumbs.map(c => `<span class="truncate">${escapeHtml(c)}</span>`).join(crumbSeparator)}</div>`
                 : '';
 
+            // Surface a page's tags as chips below the snippet. Tag text that
+            // matches the query is highlighted so it's obvious why a tag-only
+            // match surfaced.
+            const tags = Array.isArray(result.tags) ? result.tags.filter(Boolean) : [];
+            const tagsHtml = tags.length > 0
+                ? `<div class="flex flex-wrap items-center gap-1.5 mt-2">${tags.slice(0, 6).map(t => `<span class="inline-flex items-center gap-1 text-[11px] font-medium rounded-full bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 px-2 py-0.5"><i class="fi fi-rr-hashtag text-[9px] opacity-70" aria-hidden="true"></i>${highlight(escapeHtml(t), terms)}</span>`).join('')}</div>`
+                : '';
+
             return `
             <a href="${href}" class="block px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700/50 group">
                 ${breadcrumb}
@@ -364,12 +372,15 @@
                     ${titleHtml}
                 </div>
                 ${snippet ? `<div class="text-xs text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-2">${snippet}</div>` : ''}
+                ${tagsHtml}
             </a>
         `;
         }).join('');
 
-        // Record recent query when a result is clicked.
-        const input = document.getElementById('search-input');
+        // Record recent query when a result is clicked. The owning input is
+        // passed in (the modal's, or the blog's inline box); fall back to the
+        // modal input id for older callers.
+        const input = inputEl || document.getElementById('search-input');
         container.querySelectorAll('a').forEach(a => {
             a.addEventListener('click', () => { if (input) pushRecent(input.value); });
         });
@@ -408,5 +419,105 @@
 
     // Expose openSearch to button clicks
     window.openSearch = openSearch;
+
+    // Inline search — used by blog mode instead of the modal. The builder
+    // renders an in-page <input id="neko-inline-search"> with a results
+    // container (#neko-inline-search-results) and the post grid
+    // (#neko-blog-grid). Typing filters the index live, showing the results in
+    // place and hiding the post grid; clearing the box restores the grid.
+    function initInlineSearch() {
+        const input = document.getElementById('neko-inline-search');
+        const resultsContainer = document.getElementById('neko-inline-search-results');
+        if (!input || !resultsContainer) return;
+        const grid = document.getElementById('neko-blog-grid');
+        let selectedIndex = -1;
+
+        function showResults(show) {
+            resultsContainer.classList.toggle('hidden', !show);
+            if (grid) grid.classList.toggle('hidden', show);
+        }
+
+        function runSearch(query) {
+            if (!miniSearch) return;
+            const raw = miniSearch.search(query);
+            const results = dedupePerPage(raw).slice(0, 20);
+            renderResults(results, resultsContainer, input);
+        }
+
+        function updateSelection() {
+            const items = resultsContainer.querySelectorAll('a');
+            items.forEach((item, index) => {
+                const on = index === selectedIndex;
+                item.classList.toggle('bg-gray-100', on);
+                item.classList.toggle('dark:bg-gray-700/50', on);
+                if (on) item.scrollIntoView({ block: 'nearest' });
+            });
+        }
+
+        // Warm the index on first focus so results appear instantly on type.
+        input.addEventListener('focus', () => { loadSearchIndex().catch(() => {}); }, { once: true });
+
+        input.addEventListener('input', (e) => {
+            selectedIndex = -1;
+            const query = e.target.value.trim();
+            if (!query) {
+                showResults(false);
+                resultsContainer.innerHTML = '';
+                return;
+            }
+            showResults(true);
+            if (miniSearch) {
+                runSearch(query);
+            } else {
+                renderStatus(resultsContainer, 'fi fi-rr-spinner animate-spin', 'Loading search…', 'Indexing the blog, just a moment.');
+                loadSearchIndex().then(() => {
+                    const current = input.value.trim();
+                    if (current) runSearch(current);
+                    else { showResults(false); resultsContainer.innerHTML = ''; }
+                }).catch(() => {
+                    renderStatus(resultsContainer, 'fi fi-rr-triangle-warning', 'Search unavailable', 'The search index could not be loaded.');
+                });
+            }
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                input.value = '';
+                showResults(false);
+                resultsContainer.innerHTML = '';
+                input.blur();
+                return;
+            }
+            const items = resultsContainer.querySelectorAll('a');
+            if (e.key === 'Enter') {
+                if (selectedIndex >= 0 && selectedIndex < items.length) {
+                    e.preventDefault();
+                    pushRecent(input.value);
+                    items[selectedIndex].click();
+                } else if (items.length > 0) {
+                    e.preventDefault();
+                    pushRecent(input.value);
+                    items[0].click();
+                }
+                return;
+            }
+            if (items.length === 0) return;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedIndex = (selectedIndex + 1) % items.length;
+                updateSelection();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedIndex = (selectedIndex <= 0) ? items.length - 1 : selectedIndex - 1;
+                updateSelection();
+            }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initInlineSearch);
+    } else {
+        initInlineSearch();
+    }
 
 })();

@@ -68,7 +68,7 @@ namespace Neko.Tests
         }
 
         [Test]
-        public void BlogMode_MovesSearchFromHeaderToContentList()
+        public void BlogMode_MovesSearchFromHeaderToContentList_AsInlineSearch()
         {
             var config = BlogConfig();
             var doc = new ParsedDocument
@@ -83,11 +83,21 @@ namespace Neko.Tests
 
             var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
 
-            // Exactly one search trigger, and it's the in-content one (above the grid).
-            Assert.That(System.Text.RegularExpressions.Regex.Matches(html, "openSearch\\(\\)").Count, Is.EqualTo(1));
+            // Blog mode no longer opens the modal — there is no openSearch trigger
+            // anywhere (neither header nor content list).
+            Assert.That(html, Does.Not.Contain("openSearch()"));
+
+            // Instead it renders a live inline search box wired to search.js, plus
+            // an (initially hidden) results container and the identifiable grid it
+            // toggles against.
+            Assert.That(html, Contains.Substring("id=\"neko-inline-search\""));
+            Assert.That(html, Contains.Substring("id=\"neko-inline-search-results\""));
+            Assert.That(html, Contains.Substring("id=\"neko-blog-grid\""));
             Assert.That(html, Contains.Substring("Search the blog"));
-            var searchIdx = html.IndexOf("Search the blog");
-            var gridIdx = html.IndexOf("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3");
+
+            // The search box renders above the post grid.
+            var searchIdx = html.IndexOf("id=\"neko-inline-search\"");
+            var gridIdx = html.IndexOf("id=\"neko-blog-grid\"");
             Assert.That(searchIdx, Is.GreaterThan(0));
             Assert.That(searchIdx, Is.LessThan(gridIdx), "search bar should render above the post grid");
         }
