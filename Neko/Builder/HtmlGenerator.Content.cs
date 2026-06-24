@@ -554,52 +554,51 @@ namespace Neko.Builder
                 sb.AppendLine("</div>");
             }
 
-            sb.AppendLine("<div class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 not-prose\">");
+            // Card grid mirroring curiosity.ai/resources/blog: a dark, rounded
+            // tile per post with the cover image faded behind the content. The
+            // title sits top-left with an up-right arrow top-right; the author
+            // (left) and date (right) share a bottom row split by a hairline
+            // rule. Colours use the blog palette inverted — the card is the ink
+            // colour with bg-coloured text — so it tracks the theme, with the
+            // curiosity.ai defaults (#1f1f1f / #f1f1f1) as hardcoded fallbacks
+            // for docs-mode index pages where the palette vars are absent.
+            sb.AppendLine("<div class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[15px] mt-8 not-prose\">");
 
             foreach (var post in posts)
             {
                 var title = !string.IsNullOrEmpty(post.Doc.FrontMatter.Title) ? post.Doc.FrontMatter.Title : post.Doc.FrontMatter.Label;
-                var desc = post.Doc.FrontMatter.Description;
                 var date = post.Doc.FrontMatter.Date;
                 var author = post.Doc.FrontMatter.Author;
                 var cover = post.Doc.FrontMatter.Cover;
                 var url = post.Url;
 
-                sb.AppendLine($"<a href=\"{url}\" class=\"group flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-700 transition-all overflow-hidden hover:-translate-y-1 duration-300\">");
+                sb.AppendLine($"<a href=\"{url}\" class=\"group relative flex flex-col justify-between overflow-hidden rounded-[14px] h-[244px] p-[22px] no-underline\" style=\"background-color:var(--blog-ink, #1f1f1f)\">");
 
+                // Cover image, faded behind the content and zoomed slightly on hover.
                 if (!string.IsNullOrEmpty(cover))
                 {
-                    sb.AppendLine($"    <div class=\"aspect-video w-full overflow-hidden bg-gray-100 dark:bg-gray-900\">");
-                    sb.AppendLine($"        <img src=\"{cover}\" alt=\"{title}\" class=\"w-full h-full object-cover transition-transform duration-500 group-hover:scale-105\">");
-                    sb.AppendLine($"    </div>");
+                    sb.AppendLine($"    <img src=\"{cover}\" alt=\"{EscapeHtmlAttr(title)}\" class=\"absolute inset-0 w-full h-full object-cover rounded-[14px] opacity-30 transition-transform duration-500 group-hover:scale-110\">");
                 }
 
-                sb.AppendLine($"    <div class=\"flex flex-col flex-1 p-6\">");
+                // Top row: title + up-right arrow.
+                sb.AppendLine("    <div class=\"relative z-10 flex items-center gap-2.5\">");
+                sb.AppendLine($"        <h3 class=\"flex-1 m-0 text-base font-medium leading-[1.4]\" style=\"color:var(--blog-bg, #f1f1f1)\">{title}</h3>");
+                sb.AppendLine("        <i class=\"fi fi-rr-arrow-up-right shrink-0 text-[32px] leading-none\" style=\"color:var(--blog-bg, #f1f1f1)\"></i>");
+                sb.AppendLine("    </div>");
 
-                if (!string.IsNullOrEmpty(date))
+                // Bottom row: author (left) + date (right), split by a hairline rule.
+                if (!string.IsNullOrEmpty(author) || !string.IsNullOrEmpty(date))
                 {
-                    sb.AppendLine($"        <div class=\"text-xs text-gray-500 dark:text-gray-400 mb-2\">{date}</div>");
-                }
-
-                sb.AppendLine($"        <h3 class=\"text-lg font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors\">{title}</h3>");
-
-                if (!string.IsNullOrEmpty(desc))
-                {
-                    sb.AppendLine($"        <p class=\"text-sm text-gray-600 dark:text-gray-400 flex-1 line-clamp-3\">{desc}</p>");
-                }
-
-                if (!string.IsNullOrEmpty(author))
-                {
-                    sb.AppendLine($"        <div class=\"mt-4 flex items-center gap-2 text-xs font-medium text-gray-900 dark:text-gray-100\">");
-                    if (!string.IsNullOrEmpty(post.Doc.FrontMatter.AuthorImage)) {
-                        sb.AppendLine($"            <img src=\"{post.Doc.FrontMatter.AuthorImage}\" class=\"w-6 h-6 rounded-full bg-gray-100\">");
+                    sb.AppendLine("    <div class=\"relative z-10 flex items-center justify-between gap-2 pt-2 border-t\" style=\"border-color:var(--blog-bg, #f1f1f1)\">");
+                    sb.AppendLine($"        <span class=\"text-sm font-medium\" style=\"color:var(--blog-bg, #f1f1f1)\">{author}</span>");
+                    if (!string.IsNullOrEmpty(date))
+                    {
+                        sb.AppendLine($"        <span class=\"text-sm font-medium\" style=\"color:var(--blog-bg, #f1f1f1)\">{date}</span>");
                     }
-                    sb.AppendLine($"            <span>{author}</span>");
-                    sb.AppendLine($"        </div>");
+                    sb.AppendLine("    </div>");
                 }
 
-                sb.AppendLine($"    </div>");
-                sb.AppendLine($"</a>");
+                sb.AppendLine("</a>");
             }
 
             sb.AppendLine("</div>");
