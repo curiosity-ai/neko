@@ -379,24 +379,24 @@ namespace Neko.Builder
 
             if (footer.Badges != null && footer.Badges.Count > 0)
             {
-                sb.AppendLine("                                <div class=\"flex flex-col gap-3\">");
+                sb.AppendLine("                                <div class=\"flex flex-col gap-8 mt-2\">");
                 foreach (var b in footer.Badges)
                 {
-                    sb.AppendLine("                                    <div class=\"flex items-center gap-3\">");
+                    sb.AppendLine("                                    <div class=\"flex items-start gap-2.5\">");
                     // A trust badge's icon is usually a real logo image (curiosity.ai
-                    // renders them as ~28px images, no chip). A UIcon name falls back to
-                    // the muted rounded chip.
+                    // renders them as ~28px circular thumbnails). A UIcon name falls back
+                    // to the muted rounded chip.
                     if (Neko.Builder.IconHelper.IsImagePath(b.Icon))
                     {
-                        sb.AppendLine($"                                        <img src=\"{EscapeHtmlAttr(b.Icon)}\" alt=\"\" class=\"w-7 h-7 shrink-0 object-contain\">");
+                        sb.AppendLine($"                                        <img src=\"{EscapeHtmlAttr(b.Icon)}\" alt=\"\" class=\"w-7 h-7 shrink-0 object-cover rounded-full\">");
                     }
                     else
                     {
                         sb.AppendLine($"                                        <span class=\"flex items-center justify-center w-9 h-9 rounded-xl shrink-0 bg-white/5 text-gray-300\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(b.Icon)}\"></i></span>");
                     }
                     sb.AppendLine("                                        <div class=\"leading-tight\">");
-                    if (!string.IsNullOrEmpty(b.Title)) sb.AppendLine($"                                            <div class=\"text-sm font-medium text-white\">{b.Title}</div>");
-                    if (!string.IsNullOrEmpty(b.Description)) sb.AppendLine($"                                            <div class=\"text-xs text-[#b5bdc5]\">{b.Description}</div>");
+                    if (!string.IsNullOrEmpty(b.Title)) sb.AppendLine($"                                            <div class=\"text-sm font-medium text-[#f1f1f1]\">{b.Title}</div>");
+                    if (!string.IsNullOrEmpty(b.Description)) sb.AppendLine($"                                            <div class=\"text-xs text-[#b5bdc5] mt-2.5\">{b.Description}</div>");
                     sb.AppendLine("                                        </div>");
                     sb.AppendLine("                                    </div>");
                 }
@@ -416,7 +416,7 @@ namespace Neko.Builder
                     {
                         sb.AppendLine($"                                <h3 class=\"text-[15px] font-semibold text-[#f1f1f1] capitalize mb-3\">{column.Title}</h3>");
                     }
-                    sb.AppendLine("                                <ul class=\"space-y-2 list-none pl-0 m-0\">");
+                    sb.AppendLine("                                <ul class=\"space-y-[13px] list-none pl-0 m-0\">");
                     if (column.Links != null)
                     {
                         foreach (var link in column.Links)
@@ -425,7 +425,7 @@ namespace Neko.Builder
                             var href = link.Link ?? "#";
                             var target = !string.IsNullOrEmpty(link.Target) ? $" target=\"{NormalizeTarget(link.Target)}\"" : "";
                             var rel = target.Contains("_blank") ? " rel=\"noopener noreferrer\"" : "";
-                            sb.AppendLine($"                                    <li><a href=\"{href}\"{target}{rel} class=\"text-[15px] leading-[21px] text-[#b4b9b1] hover:text-white transition-colors no-underline\">{link.Text}</a></li>");
+                            sb.AppendLine($"                                    <li><a href=\"{href}\"{target}{rel} class=\"text-[15px] leading-[21px] text-[#f1f1f1] hover:text-white transition-colors no-underline\">{link.Text}</a></li>");
                         }
                     }
                     sb.AppendLine("                                </ul>");
@@ -436,7 +436,7 @@ namespace Neko.Builder
             sb.AppendLine("                        </div>");
 
             // Copyright bar — a small cookie glyph next to the line, as on curiosity.ai.
-            sb.AppendLine("                        <div class=\"mt-20 md:mt-[103px] pt-6 border-t border-white/10 text-sm text-[#b5bdc5] flex items-center gap-2\">");
+            sb.AppendLine("                        <div class=\"mt-16 md:mt-[50px] pt-6 border-t border-white/10 text-sm text-[#b5bdc5] flex items-center gap-2\">");
             sb.AppendLine("                            <i class=\"fi fi-rr-cookie text-base\"></i>");
             sb.AppendLine($"                            <span>{ResolveCopyright()}</span>");
             sb.AppendLine("                        </div>");

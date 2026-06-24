@@ -403,8 +403,11 @@ namespace Neko.Builder
                     // mode: solid = ink fill with page-bg text; outline = ink border
                     // + text. Matches the curiosity.ai pills in light mode.
                     var blogClass = "inline-flex items-center gap-2 rounded-full px-[14px] py-2 text-sm font-medium transition-opacity hover:opacity-80 whitespace-nowrap";
+                    // Outline pill uses a 1px INSET box-shadow rather than a border so
+                    // the pill stays the exact same box size as the filled one (matching
+                    // curiosity.ai, whose outlined CTA has no layout-affecting border).
                     var style = isOutline
-                        ? "border:1px solid var(--blog-ink);color:var(--blog-ink)"
+                        ? "box-shadow:inset 0 0 0 1px var(--blog-ink);color:var(--blog-ink)"
                         : "background-color:var(--blog-ink);color:var(--blog-bg)";
                     sb.AppendLine($"            <a href=\"{href}\"{target}{rel} class=\"{blogClass}\" style=\"{style}\">{iconHtml}{action.Text}</a>");
                     continue;
