@@ -249,13 +249,24 @@ namespace Neko.Builder
         private void RenderNavbarFlyoutLink(StringBuilder sb, LinkConfig link)
         {
             sb.AppendLine($"            <div class=\"relative group z-50\">");
-            sb.AppendLine($"                <button class=\"flex items-center gap-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors focus:outline-none\">");
+            // Blog mode mirrors curiosity.ai's dropdown trigger: an 8px gap and a flat
+            // 10×5 chevron SVG (the UIcon glyph rendered ~2px narrower, drifting the
+            // links). Docs keeps the UIcon caret with the tighter gap.
+            var triggerGap = _isBlogMode ? "gap-2.5" : "gap-1";
+            sb.AppendLine($"                <button class=\"flex items-center {triggerGap} hover:text-primary-600 dark:hover:text-primary-400 transition-colors focus:outline-none\">");
             if (_showHeaderIcons && !string.IsNullOrEmpty(link.Icon))
             {
                 sb.AppendLine($"                    <i class=\"{Neko.Builder.IconHelper.GetIconClass(link.Icon)}\"></i>");
             }
             sb.AppendLine($"                    <span>{link.Text}</span>");
-            sb.AppendLine($"                    <i class=\"fi fi-rr-angle-small-down transition-transform group-hover:rotate-180\"></i>");
+            if (_isBlogMode)
+            {
+                sb.AppendLine($"                    <svg width=\"10\" height=\"5\" viewBox=\"0 0 10 6\" fill=\"none\" class=\"shrink-0 transition-transform group-hover:rotate-180\" aria-hidden=\"true\"><path d=\"M1 1.5 5 4.5 9 1.5\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>");
+            }
+            else
+            {
+                sb.AppendLine($"                    <i class=\"fi fi-rr-angle-small-down transition-transform group-hover:rotate-180\"></i>");
+            }
             sb.AppendLine($"                </button>");
             sb.AppendLine($"                <div class=\"absolute -left-8 top-full mt-3 w-screen max-w-md overflow-hidden rounded-3xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-900/5 dark:ring-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-out z-50 delay-200 group-hover:delay-0\">");
             sb.AppendLine($"                    <div class=\"p-4\">");

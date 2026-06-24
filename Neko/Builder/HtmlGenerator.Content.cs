@@ -320,16 +320,20 @@ namespace Neko.Builder
             // width edge-to-edge. In blog mode the content row is un-capped (see
             // Generate), so `main` is full-width and this footer reaches both edges —
             // the curiosity.ai full-bleed panel. It uses the base ink colour (#1f1f1f).
-            sb.AppendLine($"                <footer style=\"background-color:{BlogBaseColor()}\" class=\"not-prose -mx-4 md:-mx-8 -mb-4 md:-mb-8 mt-12 md:mt-16 text-white rounded-t-[2rem] md:rounded-t-[2.75rem]\">");
-            // Inner content is centred at the same width as the header/content so the
-            // footer logo lines up under the navbar logo.
+            sb.AppendLine($"                <footer style=\"background-color:{BlogBaseColor()}\" class=\"not-prose -mx-4 md:-mx-8 -mb-4 md:-mb-8 mt-12 md:mt-16 px-6 md:px-10 text-white rounded-t-[2rem] md:rounded-t-[2.75rem]\">");
+            // Inner content is centred at the same width as the header/content. The
+            // horizontal padding lives on the panel (above), so at the capped width the
+            // content sits flush at the container edge — matching curiosity.ai's footer.
             var footerInnerWidth = LayoutMaxWidthClass();
             if (string.IsNullOrEmpty(footerInnerWidth)) footerInnerWidth = "max-w-screen-2xl";
-            sb.AppendLine($"                    <div class=\"{footerInnerWidth} mx-auto px-6 md:px-10 pt-14 md:pt-20 pb-10\">");
-            sb.AppendLine("                        <div class=\"grid grid-cols-2 gap-10 md:grid-cols-12\">");
+            sb.AppendLine($"                    <div class=\"{footerInnerWidth} mx-auto pt-14 md:pt-20 pb-10\">");
+            // Brand column + one column per link group, all equal width (the
+            // curiosity.ai footer is a row of equal columns, not a wide brand block).
+            var footerColCount = 1 + (footer.Columns?.Count ?? 0);
+            sb.AppendLine($"                        <div class=\"grid grid-cols-2 gap-10 md:grid-cols-{footerColCount}\">");
 
             // Brand / social / badges column.
-            sb.AppendLine("                            <div class=\"col-span-2 md:col-span-4 flex flex-col gap-6\">");
+            sb.AppendLine("                            <div class=\"col-span-2 md:col-span-1 flex flex-col gap-6\">");
             var footerLogo = !string.IsNullOrEmpty(footer.Logo)
                 ? footer.Logo
                 : (!string.IsNullOrEmpty(_config.Branding.LogoDark) ? _config.Branding.LogoDark : _config.Branding.Logo);
@@ -349,12 +353,24 @@ namespace Neko.Builder
 
             if (footer.Social != null && footer.Social.Count > 0)
             {
-                sb.AppendLine("                                <div class=\"flex items-center gap-3\">");
+                // Image-icon social links (brand SVGs) render bare, like curiosity.ai —
+                // 18px glyphs, no chip, slightly wider gap. UIcon-name social links keep
+                // the muted round chip.
+                var socialImages = footer.Social.All(s => !string.IsNullOrEmpty(s.Icon) && Neko.Builder.IconHelper.IsImagePath(s.Icon));
+                var socialGap = socialImages ? "gap-4" : "gap-3";
+                sb.AppendLine($"                                <div class=\"flex items-center {socialGap}\">");
                 foreach (var s in footer.Social)
                 {
                     if (string.IsNullOrEmpty(s.Link)) continue;
                     var label = EscapeHtmlAttr(s.Label ?? string.Empty);
-                    sb.AppendLine($"                                    <a href=\"{s.Link}\" target=\"_blank\" rel=\"noopener noreferrer\" aria-label=\"{label}\" class=\"inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/5 text-gray-300 hover:bg-white/15 hover:text-white transition-colors\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(s.Icon)}\"></i></a>");
+                    if (Neko.Builder.IconHelper.IsImagePath(s.Icon))
+                    {
+                        sb.AppendLine($"                                    <a href=\"{s.Link}\" target=\"_blank\" rel=\"noopener noreferrer\" aria-label=\"{label}\" class=\"inline-flex items-center justify-center hover:opacity-80 transition-opacity\"><img src=\"{EscapeHtmlAttr(s.Icon)}\" alt=\"{label}\" class=\"w-[18px] h-[18px] object-contain\"></a>");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"                                    <a href=\"{s.Link}\" target=\"_blank\" rel=\"noopener noreferrer\" aria-label=\"{label}\" class=\"inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/5 text-gray-300 hover:bg-white/15 hover:text-white transition-colors\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(s.Icon)}\"></i></a>");
+                    }
                 }
                 sb.AppendLine("                                </div>");
             }
@@ -365,7 +381,17 @@ namespace Neko.Builder
                 foreach (var b in footer.Badges)
                 {
                     sb.AppendLine("                                    <div class=\"flex items-center gap-3\">");
-                    sb.AppendLine($"                                        <span class=\"flex items-center justify-center w-9 h-9 rounded-xl shrink-0 bg-white/5 text-gray-300\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(b.Icon)}\"></i></span>");
+                    // A trust badge's icon is usually a real logo image (curiosity.ai
+                    // renders them as ~28px images, no chip). A UIcon name falls back to
+                    // the muted rounded chip.
+                    if (Neko.Builder.IconHelper.IsImagePath(b.Icon))
+                    {
+                        sb.AppendLine($"                                        <img src=\"{EscapeHtmlAttr(b.Icon)}\" alt=\"\" class=\"w-7 h-7 shrink-0 object-contain\">");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"                                        <span class=\"flex items-center justify-center w-9 h-9 rounded-xl shrink-0 bg-white/5 text-gray-300\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(b.Icon)}\"></i></span>");
+                    }
                     sb.AppendLine("                                        <div class=\"leading-tight\">");
                     if (!string.IsNullOrEmpty(b.Title)) sb.AppendLine($"                                            <div class=\"text-sm font-medium text-white\">{b.Title}</div>");
                     if (!string.IsNullOrEmpty(b.Description)) sb.AppendLine($"                                            <div class=\"text-xs text-gray-400\">{b.Description}</div>");
@@ -381,10 +407,10 @@ namespace Neko.Builder
             {
                 foreach (var column in footer.Columns)
                 {
-                    sb.AppendLine("                            <div class=\"md:col-span-2\">");
+                    sb.AppendLine("                            <div class=\"md:col-span-1\">");
                     if (!string.IsNullOrEmpty(column.Title))
                     {
-                        sb.AppendLine($"                                <h3 class=\"text-sm font-semibold text-white mb-3\">{column.Title}</h3>");
+                        sb.AppendLine($"                                <h3 class=\"text-[15px] font-semibold text-[#f1f1f1] mb-3\">{column.Title}</h3>");
                     }
                     sb.AppendLine("                                <ul class=\"space-y-2 list-none pl-0 m-0\">");
                     if (column.Links != null)
@@ -395,7 +421,7 @@ namespace Neko.Builder
                             var href = link.Link ?? "#";
                             var target = !string.IsNullOrEmpty(link.Target) ? $" target=\"{NormalizeTarget(link.Target)}\"" : "";
                             var rel = target.Contains("_blank") ? " rel=\"noopener noreferrer\"" : "";
-                            sb.AppendLine($"                                    <li><a href=\"{href}\"{target}{rel} class=\"text-[15px] leading-7 text-gray-200 hover:text-white transition-colors no-underline\">{link.Text}</a></li>");
+                            sb.AppendLine($"                                    <li><a href=\"{href}\"{target}{rel} class=\"text-[15px] leading-[21px] text-[#f1f1f1] hover:text-white transition-colors no-underline\">{link.Text}</a></li>");
                         }
                     }
                     sb.AppendLine("                                </ul>");
@@ -405,9 +431,10 @@ namespace Neko.Builder
 
             sb.AppendLine("                        </div>");
 
-            // Copyright bar.
-            sb.AppendLine("                        <div class=\"mt-12 pt-6 border-t border-white/10 text-sm text-gray-400\">");
-            sb.AppendLine($"                            {ResolveCopyright()}");
+            // Copyright bar — a small cookie glyph next to the line, as on curiosity.ai.
+            sb.AppendLine("                        <div class=\"mt-12 pt-6 border-t border-white/10 text-xs text-gray-400 flex items-center gap-2\">");
+            sb.AppendLine("                            <i class=\"fi fi-rr-cookie text-base\"></i>");
+            sb.AppendLine($"                            <span>{ResolveCopyright()}</span>");
             sb.AppendLine("                        </div>");
 
             sb.AppendLine("                    </div>");
