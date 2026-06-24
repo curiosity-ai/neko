@@ -342,7 +342,7 @@ namespace Neko.Builder
             if (!string.IsNullOrEmpty(footerLogo))
             {
                 var logoUrl = ResolveLogoPath(currentUrl, footerLogo);
-                sb.AppendLine($"                                <img src=\"{logoUrl}\" alt=\"{EscapeHtmlAttr(_config.Branding.Title)}\" class=\"h-7 w-auto self-start\">");
+                sb.AppendLine($"                                <img src=\"{logoUrl}\" alt=\"{EscapeHtmlAttr(_config.Branding.Title)}\" class=\"h-5 w-auto self-start\">");
             }
             else
             {
@@ -379,7 +379,7 @@ namespace Neko.Builder
 
             if (footer.Badges != null && footer.Badges.Count > 0)
             {
-                sb.AppendLine("                                <div class=\"flex flex-col gap-8 mt-2\">");
+                sb.AppendLine("                                <div class=\"flex flex-col gap-8 mt-[17px]\">");
                 foreach (var b in footer.Badges)
                 {
                     sb.AppendLine("                                    <div class=\"flex items-start gap-2.5\">");
@@ -414,7 +414,7 @@ namespace Neko.Builder
                     sb.AppendLine("                            <div class=\"md:flex-1\">");
                     if (!string.IsNullOrEmpty(column.Title))
                     {
-                        sb.AppendLine($"                                <h3 class=\"text-[15px] font-semibold text-[#f1f1f1] capitalize mb-3\">{column.Title}</h3>");
+                        sb.AppendLine($"                                <h3 class=\"text-[15px] font-semibold text-[#f1f1f1] capitalize mb-[15px] leading-[21px]\">{column.Title}</h3>");
                     }
                     sb.AppendLine("                                <ul class=\"space-y-[13px] list-none pl-0 m-0\">");
                     if (column.Links != null)
