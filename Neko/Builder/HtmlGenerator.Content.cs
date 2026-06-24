@@ -436,7 +436,7 @@ namespace Neko.Builder
             sb.AppendLine("                        </div>");
 
             // Copyright bar — a small cookie glyph next to the line, as on curiosity.ai.
-            sb.AppendLine("                        <div class=\"mt-20 md:mt-28 pt-6 border-t border-white/10 text-sm text-[#b5bdc5] flex items-center gap-2\">");
+            sb.AppendLine("                        <div class=\"mt-20 md:mt-[103px] pt-6 border-t border-white/10 text-sm text-[#b5bdc5] flex items-center gap-2\">");
             sb.AppendLine("                            <i class=\"fi fi-rr-cookie text-base\"></i>");
             sb.AppendLine($"                            <span>{ResolveCopyright()}</span>");
             sb.AppendLine("                        </div>");
