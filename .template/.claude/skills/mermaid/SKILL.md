@@ -52,9 +52,17 @@ sequenceDiagram
 - `xychart-beta` — quick bar / line charts.
 - `architecture-beta` — cloud architecture.
 
+## Theming
+
+Diagrams adopt the site palette automatically — Neko renders them with
+Mermaid's `base` theme fed the resolved `theme` colours + accent ramp from
+`neko.yml`, in both a light and a dark variant. No directive needed.
+
 ## Theme override
 
-Set per-diagram theme with the init directive:
+To opt a diagram out of the brand palette and use a stock Mermaid theme, set
+your own `theme` in the init directive. Neko then renders that diagram
+verbatim (no brand variables applied):
 
 ````markdown
 ```mermaid
