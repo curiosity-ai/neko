@@ -328,12 +328,24 @@ namespace Neko.Builder
 
             if (footer.Social != null && footer.Social.Count > 0)
             {
-                sb.AppendLine("                                <div class=\"flex items-center gap-3\">");
+                // Image-icon social links (brand SVGs) render bare, like curiosity.ai —
+                // 18px glyphs, no chip, slightly wider gap. UIcon-name social links keep
+                // the muted round chip.
+                var socialImages = footer.Social.All(s => !string.IsNullOrEmpty(s.Icon) && Neko.Builder.IconHelper.IsImagePath(s.Icon));
+                var socialGap = socialImages ? "gap-4" : "gap-3";
+                sb.AppendLine($"                                <div class=\"flex items-center {socialGap}\">");
                 foreach (var s in footer.Social)
                 {
                     if (string.IsNullOrEmpty(s.Link)) continue;
                     var label = EscapeHtmlAttr(s.Label ?? string.Empty);
-                    sb.AppendLine($"                                    <a href=\"{s.Link}\" target=\"_blank\" rel=\"noopener noreferrer\" aria-label=\"{label}\" class=\"inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/5 text-gray-300 hover:bg-white/15 hover:text-white transition-colors\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(s.Icon)}\"></i></a>");
+                    if (Neko.Builder.IconHelper.IsImagePath(s.Icon))
+                    {
+                        sb.AppendLine($"                                    <a href=\"{s.Link}\" target=\"_blank\" rel=\"noopener noreferrer\" aria-label=\"{label}\" class=\"inline-flex items-center justify-center hover:opacity-80 transition-opacity\"><img src=\"{EscapeHtmlAttr(s.Icon)}\" alt=\"{label}\" class=\"w-[18px] h-[18px] object-contain\"></a>");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"                                    <a href=\"{s.Link}\" target=\"_blank\" rel=\"noopener noreferrer\" aria-label=\"{label}\" class=\"inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/5 text-gray-300 hover:bg-white/15 hover:text-white transition-colors\"><i class=\"{Neko.Builder.IconHelper.GetIconClass(s.Icon)}\"></i></a>");
+                    }
                 }
                 sb.AppendLine("                                </div>");
             }
