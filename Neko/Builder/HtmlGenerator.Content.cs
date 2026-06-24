@@ -326,14 +326,16 @@ namespace Neko.Builder
             // content sits flush at the container edge — matching curiosity.ai's footer.
             var footerInnerWidth = LayoutMaxWidthClass();
             if (string.IsNullOrEmpty(footerInnerWidth)) footerInnerWidth = "max-w-screen-2xl";
-            sb.AppendLine($"                    <div class=\"{footerInnerWidth} mx-auto pt-14 md:pt-20 pb-10\">");
-            // Brand column + one column per link group, all equal width (the
-            // curiosity.ai footer is a row of equal columns, not a wide brand block).
-            var footerColCount = 1 + (footer.Columns?.Count ?? 0);
-            sb.AppendLine($"                        <div class=\"grid grid-cols-2 gap-10 md:grid-cols-{footerColCount}\">");
+            sb.AppendLine($"                    <div class=\"{footerInnerWidth} mx-auto pt-16 md:pt-20 pb-10\">");
+            // Brand block + one column per link group, laid out as a flex row with a
+            // 32px gap (the curiosity.ai footer is content-width columns in a row, not
+            // an equal grid). Stacks to a two-up grid on mobile.
+            sb.AppendLine($"                        <div class=\"grid grid-cols-2 gap-8 md:flex md:flex-row md:items-start md:gap-8\">");
 
-            // Brand / social / badges column.
-            sb.AppendLine("                            <div class=\"col-span-2 md:col-span-1 flex flex-col gap-6\">");
+            // Brand / social / badges block. Shares the row width equally with the
+            // link columns on desktop (all five columns are flex-1, ~230px each on
+            // curiosity.ai); spans both cells on the mobile two-up grid.
+            sb.AppendLine("                            <div class=\"col-span-2 md:flex-1 flex flex-col gap-6\">");
             var footerLogo = !string.IsNullOrEmpty(footer.Logo)
                 ? footer.Logo
                 : (!string.IsNullOrEmpty(_config.Branding.LogoDark) ? _config.Branding.LogoDark : _config.Branding.Logo);
@@ -348,7 +350,7 @@ namespace Neko.Builder
             }
             if (!string.IsNullOrEmpty(footer.Tagline))
             {
-                sb.AppendLine($"                                <p class=\"text-sm text-gray-400 max-w-xs\">{footer.Tagline}</p>");
+                sb.AppendLine($"                                <p class=\"text-sm text-[#b5bdc5] max-w-xs\">{footer.Tagline}</p>");
             }
 
             if (footer.Social != null && footer.Social.Count > 0)
@@ -394,7 +396,7 @@ namespace Neko.Builder
                     }
                     sb.AppendLine("                                        <div class=\"leading-tight\">");
                     if (!string.IsNullOrEmpty(b.Title)) sb.AppendLine($"                                            <div class=\"text-sm font-medium text-white\">{b.Title}</div>");
-                    if (!string.IsNullOrEmpty(b.Description)) sb.AppendLine($"                                            <div class=\"text-xs text-gray-400\">{b.Description}</div>");
+                    if (!string.IsNullOrEmpty(b.Description)) sb.AppendLine($"                                            <div class=\"text-xs text-[#b5bdc5]\">{b.Description}</div>");
                     sb.AppendLine("                                        </div>");
                     sb.AppendLine("                                    </div>");
                 }
@@ -407,10 +409,12 @@ namespace Neko.Builder
             {
                 foreach (var column in footer.Columns)
                 {
-                    sb.AppendLine("                            <div class=\"md:col-span-1\">");
+                    // Each link column grows to claim an equal share of the row's
+                    // leftover width (the brand block keeps its content width).
+                    sb.AppendLine("                            <div class=\"md:flex-1\">");
                     if (!string.IsNullOrEmpty(column.Title))
                     {
-                        sb.AppendLine($"                                <h3 class=\"text-[15px] font-semibold text-[#f1f1f1] mb-3\">{column.Title}</h3>");
+                        sb.AppendLine($"                                <h3 class=\"text-[15px] font-semibold text-[#f1f1f1] capitalize mb-3\">{column.Title}</h3>");
                     }
                     sb.AppendLine("                                <ul class=\"space-y-2 list-none pl-0 m-0\">");
                     if (column.Links != null)
@@ -421,7 +425,7 @@ namespace Neko.Builder
                             var href = link.Link ?? "#";
                             var target = !string.IsNullOrEmpty(link.Target) ? $" target=\"{NormalizeTarget(link.Target)}\"" : "";
                             var rel = target.Contains("_blank") ? " rel=\"noopener noreferrer\"" : "";
-                            sb.AppendLine($"                                    <li><a href=\"{href}\"{target}{rel} class=\"text-[15px] leading-[21px] text-[#f1f1f1] hover:text-white transition-colors no-underline\">{link.Text}</a></li>");
+                            sb.AppendLine($"                                    <li><a href=\"{href}\"{target}{rel} class=\"text-[15px] leading-[21px] text-[#b4b9b1] hover:text-white transition-colors no-underline\">{link.Text}</a></li>");
                         }
                     }
                     sb.AppendLine("                                </ul>");
@@ -432,7 +436,7 @@ namespace Neko.Builder
             sb.AppendLine("                        </div>");
 
             // Copyright bar — a small cookie glyph next to the line, as on curiosity.ai.
-            sb.AppendLine("                        <div class=\"mt-12 pt-6 border-t border-white/10 text-xs text-gray-400 flex items-center gap-2\">");
+            sb.AppendLine("                        <div class=\"mt-20 md:mt-28 pt-6 border-t border-white/10 text-sm text-[#b5bdc5] flex items-center gap-2\">");
             sb.AppendLine("                            <i class=\"fi fi-rr-cookie text-base\"></i>");
             sb.AppendLine($"                            <span>{ResolveCopyright()}</span>");
             sb.AppendLine("                        </div>");
