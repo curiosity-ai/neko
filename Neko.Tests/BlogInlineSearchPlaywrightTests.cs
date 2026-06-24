@@ -49,11 +49,17 @@ layout: blog
 title: Alpha Announcement
 date: 2026-06-01
 description: The first thing we shipped.
+cover: /assets/alpha.png
 tags: [photography, milestone]
 ---
 # Alpha Announcement
 Body of the alpha post.
 ");
+            // A tiny real PNG so the cover thumbnail actually loads (and onerror
+            // doesn't hide it) when the result renders.
+            Directory.CreateDirectory(Path.Combine(inputDir, "assets"));
+            File.WriteAllBytes(Path.Combine(inputDir, "assets", "alpha.png"), Convert.FromBase64String(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="));
             File.WriteAllText(Path.Combine(inputDir, "blog", "beta.md"), @"---
 title: Beta Guide
 date: 2026-06-02
@@ -136,6 +142,17 @@ Body of the beta post.
                 Assert.That(await highlightedTag.CountAsync(), Is.GreaterThan(0),
                     "the tag matching the query should be highlighted");
 
+                // The post's cover image is shown as a thumbnail in the result, and it
+                // actually loads (naturalWidth > 0 → onerror didn't hide it).
+                var cover = results.Locator("img");
+                Assert.That(await cover.CountAsync(), Is.GreaterThan(0),
+                    "a post with a cover should show a thumbnail in the result");
+                Assert.That(await cover.First.GetAttributeAsync("src"), Does.Contain("/assets/alpha.png"));
+                // Wait for the (lazy) image to finish loading, then confirm it decoded.
+                await cover.First.EvaluateAsync("img => img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })");
+                var natWidth = await cover.First.EvaluateAsync<int>("img => img.naturalWidth");
+                Assert.That(natWidth, Is.GreaterThan(0), "the cover thumbnail should load, not be hidden by onerror");
+
                 // Clearing the box restores the grid and hides the results.
                 await input.FillAsync("");
                 await grid.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
@@ -187,6 +204,7 @@ Body of the beta post.
                             ctx.Response.ContentType = file.EndsWith(".css") ? "text/css"
                                 : file.EndsWith(".js") ? "text/javascript"
                                 : file.EndsWith(".json") ? "application/json"
+                                : file.EndsWith(".png") ? "image/png"
                                 : file.EndsWith(".html") ? "text/html" : "application/octet-stream";
                             var b = File.ReadAllBytes(file);
                             ctx.Response.OutputStream.Write(b, 0, b.Length);

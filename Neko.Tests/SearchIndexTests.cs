@@ -45,6 +45,7 @@ layout: blog
 title: First Post
 date: 2024-01-01
 description: A unique-blog-post-marker about kittens.
+cover: /assets/post-1.png
 ---
 # First Post
 ");
@@ -131,8 +132,13 @@ Body text for the untitled page.
             var blogContent = blogIndex.GetProperty("content").GetString();
             Assert.That(blogContent, Does.Contain("First Post"),
                 "Auto-injected blog listings should be present in the search index");
-            Assert.That(blogContent, Does.Contain("unique-blog-post-marker"),
-                "Blog post summaries should be included in the blog index entry");
+
+            // The blog post's description is indexed on the post's own document
+            // (the redesigned blog index card shows title/author/date only, not the
+            // description), so the post stays findable by its summary text.
+            var blogPost = docs.First(d => d.GetProperty("id").GetString() == "blog/post-1.html");
+            Assert.That(blogPost.GetProperty("content").GetString(), Does.Contain("unique-blog-post-marker"),
+                "Blog post summaries should be included in the post's own search entry");
         }
 
         [Test]
@@ -313,6 +319,31 @@ Body text.
             var post = docs.First(d => d.GetProperty("id").GetString() == "blog/post-1.html");
             Assert.That(post.TryGetProperty("tags", out _), Is.False,
                 "Pages with no tags should omit the `tags` field");
+        }
+
+        [Test]
+        public async Task SearchIndex_EmitsCoverField_SoResultsCanShowAThumbnail()
+        {
+            var builder = new SiteBuilder(_sampleDir);
+            await builder.BuildAsync();
+
+            var indexPath = Path.Combine(builder.OutputDirectory, "search.json");
+            var json = await File.ReadAllTextAsync(indexPath);
+            using var doc = JsonDocument.Parse(json);
+            var docs = doc.RootElement.EnumerateArray().ToList();
+
+            // blog/post-1.md carries `cover: /assets/post-1.png` — it must be exposed
+            // verbatim as a discrete `cover` field so the search UI can render a
+            // thumbnail next to the result.
+            var post = docs.First(d => d.GetProperty("id").GetString() == "blog/post-1.html");
+            Assert.That(post.TryGetProperty("cover", out var cover), Is.True,
+                "Page documents with a frontmatter cover should expose a `cover` field");
+            Assert.That(cover.GetString(), Is.EqualTo("/assets/post-1.png"));
+
+            // Pages without a cover must omit the field entirely.
+            var index = docs.First(d => d.GetProperty("id").GetString() == "index.html");
+            Assert.That(index.TryGetProperty("cover", out _), Is.False,
+                "Pages with no cover should omit the `cover` field");
         }
 
         [Test]

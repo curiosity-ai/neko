@@ -67,7 +67,7 @@
 
                 const ms = new MiniSearch({
                     fields: ['title', 'content', 'headings', 'slug'],
-                    storeFields: ['title', 'content', 'parentTitle', 'parentId', 'type', 'slug', 'tags', 'breadcrumbs'],
+                    storeFields: ['title', 'content', 'parentTitle', 'parentId', 'type', 'slug', 'tags', 'cover', 'breadcrumbs'],
                     searchOptions: {
                         boost: { title: 3, slug: 4, headings: 2 },
                         boostDocument: (id, _term, stored) => {
@@ -365,14 +365,24 @@
                 ? `<div class="flex flex-wrap items-center gap-1.5 mt-2">${tags.slice(0, 6).map(t => `<span class="inline-flex items-center gap-1 text-[11px] font-medium rounded-full bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 px-2 py-0.5"><i class="fi fi-rr-hashtag text-[9px] opacity-70" aria-hidden="true"></i>${highlight(escapeHtml(t), terms)}</span>`).join('')}</div>`
                 : '';
 
+            // Cover thumbnail (blog post `cover:`), shown as a leading tile. Broken
+            // or missing images hide themselves so a stale path leaves no gap.
+            const cover = result.cover ? String(result.cover) : '';
+            const coverHtml = cover
+                ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy" onerror="this.style.display='none'" class="shrink-0 w-16 h-16 rounded-lg object-cover bg-gray-100 dark:bg-gray-700">`
+                : '';
+
             return `
-            <a href="${href}" class="block px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700/50 group">
-                ${breadcrumb}
-                <div class="text-base font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 leading-snug">
-                    ${titleHtml}
+            <a href="${href}" class="flex gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700/50 group">
+                ${coverHtml}
+                <div class="min-w-0 flex-1">
+                    ${breadcrumb}
+                    <div class="text-base font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 leading-snug">
+                        ${titleHtml}
+                    </div>
+                    ${snippet ? `<div class="text-xs text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-2">${snippet}</div>` : ''}
+                    ${tagsHtml}
                 </div>
-                ${snippet ? `<div class="text-xs text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-2">${snippet}</div>` : ''}
-                ${tagsHtml}
             </a>
         `;
         }).join('');

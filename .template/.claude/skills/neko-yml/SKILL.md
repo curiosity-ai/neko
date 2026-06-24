@@ -214,7 +214,8 @@ mode: blog
   `theme.dark` palette to **opt into dark mode** and bring the toggle back. The
   search box moves out of the header to the **top of the post list** and searches
   **inline** — typing filters the index live and renders the matching posts (with
-  their tags) in place of the post grid, instead of opening the `⌘K` modal.
+  their cover thumbnail and tags) in place of the post grid, instead of opening the
+  `⌘K` modal.
 
   ```yml
   mode: blog

@@ -39,8 +39,8 @@ namespace Neko.Builder
         private HashSet<string> _lastChangelogManagedFiles;
         private HtmlGenerator _lastGenerator;
         private string _lastProjectName;
-        private (string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs)?[] _lastIndexRequests;
-        private List<(string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs)> _lastChangelogIndexRequests;
+        private (string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs, string Cover)?[] _lastIndexRequests;
+        private List<(string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs, string Cover)> _lastChangelogIndexRequests;
 
         public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false, string? routePrefix = null, bool editorEnabled = true)
         {
@@ -442,7 +442,7 @@ namespace Neko.Builder
                 // per page and added afterwards in source order so search.json stays
                 // deterministic regardless of completion order.
                 var indexRequests =
-                    new (string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs)?[parsedDocs.Count];
+                    new (string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs, string Cover)?[parsedDocs.Count];
 
                 await Parallel.ForEachAsync(
                     Enumerable.Range(0, parsedDocs.Count),
@@ -461,14 +461,14 @@ namespace Neko.Builder
                 {
                     if (request == null) continue;
                     var r = request.Value;
-                    searchIndexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs);
+                    searchIndexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs, r.Cover);
                 }
 
                 // Pass 4: Generate one aggregated timeline page per changelog folder.
                 // Collect their search-index entries here (rather than adding them to
                 // the indexer inline) so the cached state can rebuild search.json on an
                 // incremental page rebuild.
-                var changelogIndexRequests = new List<(string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs)>();
+                var changelogIndexRequests = new List<(string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs, string Cover)>();
                 foreach (var (folderFullPath, folderConfig) in changelogFolders)
                 {
                     if (!changelogEntriesByFolder.TryGetValue(folderFullPath, out var entries)) continue;
@@ -548,13 +548,14 @@ namespace Neko.Builder
                             indexable,
                             pageDoc.FrontMatter.Description,
                             pageDoc.FrontMatter.Tags,
+                            null,
                             null));
                     }
                 }
 
                 foreach (var r in changelogIndexRequests)
                 {
-                    searchIndexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs);
+                    searchIndexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs, r.Cover);
                 }
 
                 await searchIndexer.WriteIndexAsync(OutputDirectory);
@@ -737,7 +738,7 @@ namespace Neko.Builder
         // the page's search-index request (or null when the page is changelog-managed,
         // password-protected, or search-excluded). Shared by the full build (run in
         // parallel across all pages) and the watch-mode single-page fast path.
-        private async Task<(string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs)?> RenderAndWritePageAsync(
+        private async Task<(string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs, string Cover)?> RenderAndWritePageAsync(
             (string FilePath, string RelativePath, ParsedDocument Doc, string Markdown) item,
             HtmlGenerator generator,
             List<LinkConfig> sidebarLinks,
@@ -874,7 +875,8 @@ namespace Neko.Builder
                 indexableContent,
                 item.Doc.FrontMatter.Description,
                 item.Doc.FrontMatter.Tags,
-                breadcrumbTitles.Length > 0 ? breadcrumbTitles : null);
+                breadcrumbTitles.Length > 0 ? breadcrumbTitles : null,
+                item.Doc.FrontMatter.Cover);
         }
 
         /// <summary>
@@ -1029,7 +1031,7 @@ namespace Neko.Builder
                 {
                     if (request == null) continue;
                     var r = request.Value;
-                    indexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs);
+                    indexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs, r.Cover);
                 }
             }
 
@@ -1037,7 +1039,7 @@ namespace Neko.Builder
             {
                 foreach (var r in _lastChangelogIndexRequests)
                 {
-                    indexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs);
+                    indexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs, r.Cover);
                 }
             }
 
