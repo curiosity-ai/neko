@@ -32,6 +32,24 @@ graph LR
 
 ---
 
+## Theming
+
+Diagrams are rendered with your site's palette by default. Neko feeds the
+resolved `theme` colours (primary ramp) and accent ramp into Mermaid's `base`
+theme as `themeVariables`, so node fills, borders, lines, and text follow the
+same colours as the rest of the site — the same `theme.name` / `theme.colors`
+/ `theme.accent` you set in [`neko.yml`](/configuration/core/project). Every
+diagram is rendered twice (a light and a dark variant) and the matching one is
+shown with the page theme, so the colours adapt automatically in dark mode.
+
+No configuration is needed — author the diagram as usual and it picks up the
+brand colours. To opt a single diagram out and use a stock Mermaid look,
+declare your own `theme` in an `%%{init}%%` directive (see below); when a
+diagram sets its own theme, Neko renders it verbatim and does not apply the
+brand palette.
+
+---
+
 ## Directives
 
 Mermaid [directives](https://mermaid-js.github.io/mermaid/#/directives) can be configured using the recommended `%%{init: { }}%%` syntax as the first line just inside the `` ```mermaid `` block.
