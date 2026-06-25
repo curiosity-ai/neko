@@ -326,7 +326,7 @@ namespace Neko.Builder
             // content sits flush at the container edge — matching curiosity.ai's footer.
             var footerInnerWidth = LayoutMaxWidthClass();
             if (string.IsNullOrEmpty(footerInnerWidth)) footerInnerWidth = "max-w-screen-2xl";
-            sb.AppendLine($"                    <div class=\"{footerInnerWidth} mx-auto pt-16 md:pt-20 pb-10\">");
+            sb.AppendLine($"                    <div class=\"{footerInnerWidth} mx-auto pt-16 md:pt-20 pb-[43px]\">");
             // Brand block + one column per link group, laid out as a flex row with a
             // 32px gap (the curiosity.ai footer is content-width columns in a row, not
             // an equal grid). Stacks to a two-up grid on mobile.
@@ -435,9 +435,25 @@ namespace Neko.Builder
 
             sb.AppendLine("                        </div>");
 
-            // Copyright bar — a small cookie glyph next to the line, as on curiosity.ai.
-            sb.AppendLine("                        <div class=\"mt-16 md:mt-[50px] pt-6 border-t border-white/10 text-sm text-[#b5bdc5] flex items-center gap-2\">");
-            sb.AppendLine("                            <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\" width=\"24\" height=\"24\" fill=\"currentColor\" class=\"shrink-0\"><path d=\"M164.49,163.51a12,12,0,1,1-17,0A12,12,0,0,1,164.49,163.51Zm-81-8a12,12,0,1,0,17,0A12,12,0,0,0,83.51,155.51Zm9-39a12,12,0,1,0-17,0A12,12,0,0,0,92.49,116.49Zm48-1a12,12,0,1,0,0,17A12,12,0,0,0,140.49,115.51ZM232,128A104,104,0,1,1,128,24a8,8,0,0,1,8,8,40,40,0,0,0,40,40,8,8,0,0,1,8,8,40,40,0,0,0,40,40A8,8,0,0,1,232,128Zm-16.31,7.39A56.13,56.13,0,0,1,168.5,87.5a56.13,56.13,0,0,1-47.89-47.19,88,88,0,1,0,95.08,95.08Z\"></path></svg>");
+            // Copyright bar — a small icon next to the line (curiosity.ai uses a
+            // cookie glyph). The icon is configurable via footer.copyrightIcon (a
+            // UIcon name or an image/SVG path, kept in the site's own assets);
+            // defaults to the built-in cookie glyph so nothing site-specific is
+            // baked into the engine.
+            sb.AppendLine("                        <div class=\"mt-16 md:mt-[50px] pt-6 border-t border-white/5 text-sm text-[#b5bdc5] flex items-center gap-2\">");
+            var copyrightIcon = footer.CopyrightIcon;
+            if (string.IsNullOrEmpty(copyrightIcon))
+            {
+                sb.AppendLine("                            <i class=\"fi fi-rr-cookie text-base\"></i>");
+            }
+            else if (Neko.Builder.IconHelper.IsImagePath(copyrightIcon))
+            {
+                sb.AppendLine($"                            <img src=\"{EscapeHtmlAttr(copyrightIcon)}\" alt=\"\" class=\"w-6 h-6 shrink-0\">");
+            }
+            else
+            {
+                sb.AppendLine($"                            <i class=\"{Neko.Builder.IconHelper.GetIconClass(copyrightIcon)} text-base\"></i>");
+            }
             sb.AppendLine($"                            <span>{ResolveCopyright()}</span>");
             sb.AppendLine("                        </div>");
 
