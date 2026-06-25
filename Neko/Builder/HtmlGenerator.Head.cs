@@ -122,9 +122,13 @@ namespace Neko.Builder
 
         private void RenderHeadFontsAndIcons(StringBuilder sb)
         {
-            // Base font. By default Neko ships Inter; a site can override it with
-            // `theme.font` (family + optional stylesheet URL) to match its brand —
-            // e.g. curiosity.ai's Plus Jakarta Sans.
+            // Base font. Neko itself does not pin a typeface — it ships no default
+            // web font and emits no `font-family` rule unless the site opts in. With
+            // nothing configured the browser/system sans-serif stack from the CSS
+            // preflight applies. A content repo sets the font via `theme.font`
+            // (family + optional stylesheet URL) to match its brand — e.g. the blog's
+            // Plus Jakarta Sans. Any per-element overrides (such as keeping the blog
+            // header chrome on Inter) live in that repo's own stylesheet too, not here.
             var font = _config.Theme?.Font;
             var customFont = font != null && !string.IsNullOrEmpty(font.Family);
             if (customFont)
@@ -140,25 +144,6 @@ namespace Neko.Builder
                     ? family
                     : $"'{family}'";
                 sb.AppendLine($"    <style>:root {{ font-family: {cssFamily}, sans-serif; }}</style>");
-            }
-            else
-            {
-                // Inter Font (default)
-                sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
-                sb.AppendLine("    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>");
-            }
-
-            // In blog mode the marketing header chrome (nav links + CTA pills) uses
-            // Inter, exactly like curiosity.ai — even when `theme.font` sets a brand
-            // font for the content and footer. Load Inter for the header and pin the
-            // header to it, so a custom body font doesn't change the nav.
-            if (_isBlogMode && customFont)
-            {
-                sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
-            }
-            if (_isBlogMode)
-            {
-                sb.AppendLine("    <style>header { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { header { font-family: 'Inter var', sans-serif; } }</style>");
             }
 
             // Flaticon UIcons (self-hosted v4 — see Neko.Tools.UIcons)

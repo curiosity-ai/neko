@@ -28,11 +28,6 @@
 - **Static layers**: `Neko/Resources/tailwind/preflight.css`,
   `Neko/Resources/tailwind/typography.css` (Tailwind v3.4.17, typography MIT).
 
-### Inter Font
-- **Source**: https://github.com/rsms/inter
-- **License**: SIL Open Font License 1.1
-- **File**: `Neko/Resources/inter.css` (Referenced via CDN)
-
 ### Flaticon UIcons
 - **Source**: https://github.com/freepik-company/flaticon-uicons
 - **License**: Flaticon License
