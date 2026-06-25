@@ -182,6 +182,18 @@ namespace Neko.Builder
                 sb.AppendLine("    <style>header { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { header { font-family: 'Inter var', sans-serif; } }</style>");
             }
 
+            // The curiosity.ai marketing look renders the whole page with
+            // smoothed (thinned) text — `-webkit-font-smoothing: antialiased` /
+            // `-moz-osx-font-smoothing: grayscale`. Without it the same Inter/Inter
+            // Display at weight 500 paints noticeably heavier on macOS/Retina, so the
+            // nav links and CTA pills read bolder than the live site. Blog mode pins
+            // it so the chrome (and body/footer) match curiosity.ai pixel-for-pixel.
+            // Docs mode keeps the browser default.
+            if (_isBlogMode)
+            {
+                sb.AppendLine("    <style>html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }</style>");
+            }
+
             // Flaticon UIcons (self-hosted v4 — see Neko.Tools.UIcons)
             sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/uicons-regular-rounded.css\">");
             sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/uicons-brands.css\">");
