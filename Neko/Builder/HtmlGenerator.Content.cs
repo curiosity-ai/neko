@@ -326,7 +326,7 @@ namespace Neko.Builder
             // content sits flush at the container edge — matching curiosity.ai's footer.
             var footerInnerWidth = LayoutMaxWidthClass();
             if (string.IsNullOrEmpty(footerInnerWidth)) footerInnerWidth = "max-w-screen-2xl";
-            sb.AppendLine($"                    <div class=\"{footerInnerWidth} mx-auto pt-16 md:pt-20 pb-10\">");
+            sb.AppendLine($"                    <div class=\"{footerInnerWidth} mx-auto pt-16 md:pt-20 pb-[43px]\">");
             // Brand block + one column per link group, laid out as a flex row with a
             // 32px gap (the curiosity.ai footer is content-width columns in a row, not
             // an equal grid). Stacks to a two-up grid on mobile.
@@ -342,7 +342,7 @@ namespace Neko.Builder
             if (!string.IsNullOrEmpty(footerLogo))
             {
                 var logoUrl = ResolveLogoPath(currentUrl, footerLogo);
-                sb.AppendLine($"                                <img src=\"{logoUrl}\" alt=\"{EscapeHtmlAttr(_config.Branding.Title)}\" class=\"h-7 w-auto self-start\">");
+                sb.AppendLine($"                                <img src=\"{logoUrl}\" alt=\"{EscapeHtmlAttr(_config.Branding.Title)}\" class=\"h-5 w-auto self-start\">");
             }
             else
             {
@@ -379,7 +379,7 @@ namespace Neko.Builder
 
             if (footer.Badges != null && footer.Badges.Count > 0)
             {
-                sb.AppendLine("                                <div class=\"flex flex-col gap-8 mt-2\">");
+                sb.AppendLine("                                <div class=\"flex flex-col gap-8 mt-[17px]\">");
                 foreach (var b in footer.Badges)
                 {
                     sb.AppendLine("                                    <div class=\"flex items-start gap-2.5\">");
@@ -414,7 +414,7 @@ namespace Neko.Builder
                     sb.AppendLine("                            <div class=\"md:flex-1\">");
                     if (!string.IsNullOrEmpty(column.Title))
                     {
-                        sb.AppendLine($"                                <h3 class=\"text-[15px] font-semibold text-[#f1f1f1] capitalize mb-3\">{column.Title}</h3>");
+                        sb.AppendLine($"                                <h3 class=\"text-[15px] font-semibold text-[#f1f1f1] capitalize mb-[15px] leading-[21px]\">{column.Title}</h3>");
                     }
                     sb.AppendLine("                                <ul class=\"space-y-[13px] list-none pl-0 m-0\">");
                     if (column.Links != null)
@@ -435,9 +435,25 @@ namespace Neko.Builder
 
             sb.AppendLine("                        </div>");
 
-            // Copyright bar — a small cookie glyph next to the line, as on curiosity.ai.
-            sb.AppendLine("                        <div class=\"mt-16 md:mt-[50px] pt-6 border-t border-white/10 text-sm text-[#b5bdc5] flex items-center gap-2\">");
-            sb.AppendLine("                            <i class=\"fi fi-rr-cookie text-base\"></i>");
+            // Copyright bar — a small icon next to the line (curiosity.ai uses a
+            // cookie glyph). The icon is configurable via footer.copyrightIcon (a
+            // UIcon name or an image/SVG path, kept in the site's own assets);
+            // defaults to the built-in cookie glyph so nothing site-specific is
+            // baked into the engine.
+            sb.AppendLine("                        <div class=\"mt-16 md:mt-[50px] pt-6 border-t border-white/5 text-sm text-[#b5bdc5] flex items-center gap-2\">");
+            var copyrightIcon = footer.CopyrightIcon;
+            if (string.IsNullOrEmpty(copyrightIcon))
+            {
+                sb.AppendLine("                            <i class=\"fi fi-rr-cookie text-base\"></i>");
+            }
+            else if (Neko.Builder.IconHelper.IsImagePath(copyrightIcon))
+            {
+                sb.AppendLine($"                            <img src=\"{EscapeHtmlAttr(copyrightIcon)}\" alt=\"\" class=\"w-6 h-6 shrink-0\">");
+            }
+            else
+            {
+                sb.AppendLine($"                            <i class=\"{Neko.Builder.IconHelper.GetIconClass(copyrightIcon)} text-base\"></i>");
+            }
             sb.AppendLine($"                            <span>{ResolveCopyright()}</span>");
             sb.AppendLine("                        </div>");
 

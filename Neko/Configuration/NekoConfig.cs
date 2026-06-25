@@ -154,6 +154,7 @@ namespace Neko.Configuration
                 if (string.IsNullOrEmpty(Footer.Copyright)) Footer.Copyright = parent.Footer.Copyright;
                 if (string.IsNullOrEmpty(Footer.Logo)) Footer.Logo = parent.Footer.Logo;
                 if (string.IsNullOrEmpty(Footer.Tagline)) Footer.Tagline = parent.Footer.Tagline;
+                if (string.IsNullOrEmpty(Footer.CopyrightIcon)) Footer.CopyrightIcon = parent.Footer.CopyrightIcon;
                 if ((Footer.Columns == null || Footer.Columns.Count == 0) && parent.Footer.Columns != null && parent.Footer.Columns.Count > 0)
                     Footer.Columns = new List<FooterColumnConfig>(parent.Footer.Columns);
                 if ((Footer.Social == null || Footer.Social.Count == 0) && parent.Footer.Social != null && parent.Footer.Social.Count > 0)
@@ -484,6 +485,12 @@ namespace Neko.Configuration
         // Optional short blurb under the footer logo.
         [YamlMember(Alias = "tagline")]
         public string Tagline { get; set; }
+
+        // Optional icon shown before the copyright line (blog-mode mega footer).
+        // A UIcon name (e.g. "cookie") or an image path (e.g. "/assets/img/cookie.svg").
+        // Defaults to the built-in cookie glyph when unset.
+        [YamlMember(Alias = "copyrightIcon")]
+        public string CopyrightIcon { get; set; }
 
         [YamlMember(Alias = "columns")]
         public List<FooterColumnConfig> Columns { get; set; } = new List<FooterColumnConfig>();
