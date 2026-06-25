@@ -62,7 +62,9 @@ namespace Neko.Tests
             Assert.That(html, Contains.Substring("rounded-full"));
             // Pills are driven by the palette vars so they invert with dark mode.
             Assert.That(html, Contains.Substring("background-color:var(--blog-ink);color:var(--blog-bg)"));   // primary = solid fill
-            Assert.That(html, Contains.Substring("border:1px solid var(--blog-ink);color:var(--blog-ink)"));  // outline = bordered
+            // outline = 1px ring drawn as an inset box-shadow (not a border) so it
+            // doesn't grow the box and misalign against the solid pill next to it.
+            Assert.That(html, Contains.Substring("box-shadow:inset 0 0 0 1px var(--blog-ink);color:var(--blog-ink)"));
             // `target: blank` is normalised to a valid _blank target.
             Assert.That(html, Contains.Substring("target=\"_blank\""));
         }
@@ -278,6 +280,56 @@ namespace Neko.Tests
             child.MergeWith(parent);
 
             Assert.That(child.Mode, Is.EqualTo("blog"));
+        }
+
+        [Test]
+        public void BlogMode_PinsHeaderChromeToInter()
+        {
+            var html = new HtmlGenerator(BlogConfig()).Generate(Doc());
+
+            // The marketing header is always rendered in Inter (the @supports path
+            // switches to the variable 'Inter var' family on modern browsers), so a
+            // brand body font never bleeds into the nav links / CTA pills.
+            Assert.That(html, Contains.Substring("header { font-family: 'Inter', sans-serif; }"));
+            Assert.That(html, Contains.Substring("header { font-family: 'Inter var', sans-serif; }"));
+        }
+
+        [Test]
+        public void BlogMode_SelfHostedFont_DoesNotPullInterFromCdn()
+        {
+            // A site that self-hosts its fonts via `theme.font.url` is expected to
+            // define 'Inter'/'Inter var' itself (curiosity.ai's blog maps them to
+            // Inter *Display* Medium for pixel-exact chrome). Loading the rsms.me
+            // copy afterwards would override that mapping with the regular Inter cut
+            // and add an external dependency, so blog mode must not pull it.
+            var config = BlogConfig();
+            config.Theme.Font = new FontConfig
+            {
+                Family = "Plus Jakarta Sans",
+                Url = "/assets/fonts/fonts.css"
+            };
+
+            var html = new HtmlGenerator(config).Generate(Doc());
+
+            Assert.That(html, Does.Not.Contain("https://rsms.me/inter/inter.css"));
+            // The header is still pinned to Inter — supplied by the self-hosted sheet.
+            Assert.That(html, Contains.Substring("header { font-family: 'Inter var', sans-serif; }"));
+            Assert.That(html, Contains.Substring("href=\"/assets/fonts/fonts.css\""));
+        }
+
+        [Test]
+        public void BlogMode_CustomFontWithoutUrl_StillLoadsInterForChrome()
+        {
+            // When a brand font is set but NOT self-hosted (no url), there is no local
+            // source for the header's Inter, so blog mode falls back to the rsms.me
+            // copy to keep the chrome in Inter.
+            var config = BlogConfig();
+            config.Theme.Font = new FontConfig { Family = "Georgia" };
+
+            var html = new HtmlGenerator(config).Generate(Doc());
+
+            Assert.That(html, Contains.Substring("https://rsms.me/inter/inter.css"));
+            Assert.That(html, Contains.Substring("header { font-family: 'Inter var', sans-serif; }"));
         }
     }
 }

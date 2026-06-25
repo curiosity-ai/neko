@@ -150,9 +150,17 @@ namespace Neko.Builder
 
             // In blog mode the marketing header chrome (nav links + CTA pills) uses
             // Inter, exactly like curiosity.ai — even when `theme.font` sets a brand
-            // font for the content and footer. Load Inter for the header and pin the
-            // header to it, so a custom body font doesn't change the nav.
-            if (_isBlogMode && customFont)
+            // font for the content and footer. We pin the header to 'Inter'/'Inter var'
+            // (below) so a custom body font doesn't change the nav, and make sure those
+            // families are actually defined.
+            //
+            // Only pull Inter from the rsms.me CDN when the site does NOT supply its own
+            // font stylesheet via `theme.font.url`. A site that self-hosts fonts is
+            // expected to define 'Inter'/'Inter var' itself (curiosity.ai's blog maps
+            // them to Inter *Display* Medium for pixel-exact chrome) — loading the CDN
+            // copy afterwards would override that mapping with the regular Inter cut and
+            // add an external dependency, so we skip it.
+            if (_isBlogMode && customFont && string.IsNullOrEmpty(font!.Url))
             {
                 sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
             }
