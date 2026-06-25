@@ -136,7 +136,10 @@ namespace Neko.Builder
             // on a white canvas.
             if (_isBlogMode)
             {
-                sb.AppendLine("<body style=\"background-color:var(--blog-bg);color:var(--blog-ink)\" class=\"flex flex-col h-screen overflow-hidden\">");
+                // `relative` so the blog-mode header can be an absolutely-positioned
+                // translucent overlay (curiosity.ai pins a `backdrop-filter:blur` bar
+                // over the scrolling content rather than reserving a row for it).
+                sb.AppendLine("<body style=\"background-color:var(--blog-bg);color:var(--blog-ink)\" class=\"relative flex flex-col h-screen overflow-hidden\">");
             }
             else
             {
@@ -162,7 +165,14 @@ namespace Neko.Builder
             }
 
             sb.AppendLine("        <div class=\"flex-1 flex overflow-hidden\">");
-            sb.AppendLine("            <main class=\"flex-1 overflow-y-auto overflow-x-clip p-4 md:p-8 scroll-smooth\" id=\"main-scroll\">");
+            // Blog mode pins the header as an overlay (see RenderNavbar), so the
+            // scroll pane reserves top padding equal to the header height (h-20 =
+            // 80px) plus the usual content gap — content then scrolls up under the
+            // translucent bar instead of stopping below an opaque row.
+            var mainPadClass = _isBlogMode
+                ? "px-4 md:px-8 pt-24 md:pt-28 pb-4 md:pb-8"
+                : "p-4 md:p-8";
+            sb.AppendLine($"            <main class=\"flex-1 overflow-y-auto overflow-x-clip {mainPadClass} scroll-smooth\" id=\"main-scroll\">");
             sb.AppendLine("                <div class=\"max-w-4xl mx-auto prose dark:prose-invert\">");
 
             // The marketing (blog-mode) footer breaks out of the reading column to
