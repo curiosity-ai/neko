@@ -2518,10 +2518,12 @@ theme:
 
 === font : `object`
 
-Overrides the site's base font. By default Neko loads **Inter**; set `theme.font`
-to use your brand's typeface instead. The chosen family becomes the site's base
-`font-family` (Neko appends a `, sans-serif` fallback), so the header, content,
-and footer all render in it.
+Sets the site's base font. Neko **does not pin a typeface of its own** — it
+ships no default web font and emits no `font-family` rule unless you opt in. With
+`theme.font` unset, the browser/system sans-serif stack from the CSS preflight
+applies. Set `theme.font` to use your brand's typeface: the chosen family becomes
+the site's base `font-family` (Neko appends a `, sans-serif` fallback), so the
+header, content, and footer all render in it.
 
 | Key      | Description |
 | ---      | --- |
@@ -2535,8 +2537,12 @@ theme:
     url: https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap
 ```
 
-When `family` is empty Neko keeps its bundled Inter. `theme.font` is inherited by
+When `family` is empty Neko emits no base-font rule. `theme.font` is inherited by
 [multi-repo](/configuration/core/project) child sites unless they set their own.
+To style a single element differently (for example to keep a blog header on a
+different face than the body), add a rule in a stylesheet you load yourself via
+`theme.font.url` — a direct rule such as `header { font-family: … }` overrides
+the inherited base font.
 
 ===
 

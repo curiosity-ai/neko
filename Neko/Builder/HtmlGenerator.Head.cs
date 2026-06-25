@@ -122,9 +122,13 @@ namespace Neko.Builder
 
         private void RenderHeadFontsAndIcons(StringBuilder sb)
         {
-            // Base font. By default Neko ships Inter; a site can override it with
-            // `theme.font` (family + optional stylesheet URL) to match its brand —
-            // e.g. curiosity.ai's Plus Jakarta Sans.
+            // Base font. Neko itself does not pin a typeface — it ships no default
+            // web font and emits no `font-family` rule unless the site opts in. With
+            // nothing configured the browser/system sans-serif stack from the CSS
+            // preflight applies. A content repo sets the font via `theme.font`
+            // (family + optional stylesheet URL) to match its brand — e.g. the blog's
+            // Plus Jakarta Sans. Any per-element overrides (such as keeping the blog
+            // header chrome on Inter) live in that repo's own stylesheet too, not here.
             var font = _config.Theme?.Font;
             var customFont = font != null && !string.IsNullOrEmpty(font.Family);
             if (customFont)

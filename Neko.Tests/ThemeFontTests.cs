@@ -4,9 +4,11 @@ using Neko.Configuration;
 
 namespace Neko.Tests
 {
-    // Covers `theme.font` — the configurable base font. By default Neko loads its
-    // bundled Inter; a site can override the family (and supply a stylesheet URL)
-    // to match its brand, e.g. curiosity.ai's Plus Jakarta Sans.
+    // Covers `theme.font` — the configurable base font. Neko itself pins no
+    // typeface: with nothing configured it loads no web font and emits no
+    // `font-family` rule, leaving the CSS preflight's system stack in place. A
+    // site (e.g. the curiosity.ai blog) opts in via `theme.font` to set its brand
+    // font and supply a stylesheet URL.
     public class ThemeFontTests
     {
         private static ParsedDocument Doc() => new ParsedDocument
@@ -16,12 +18,34 @@ namespace Neko.Tests
         };
 
         [Test]
-        public void DefaultFont_LoadsInter()
+        public void DefaultFont_PinsNothing()
         {
             var html = new HtmlGenerator(new NekoConfig()).Generate(Doc());
 
-            Assert.That(html, Contains.Substring("https://rsms.me/inter/inter.css"));
-            Assert.That(html, Contains.Substring("font-family: 'Inter var', sans-serif"));
+            // No bundled/default web font, and no base `:root` font-family rule
+            // emitted by the engine — fonts are the content repo's choice, not Neko's.
+            Assert.That(html, Does.Not.Contain("https://rsms.me/inter/inter.css"));
+            Assert.That(html, Does.Not.Contain(":root { font-family:"));
+        }
+
+        [Test]
+        public void BlogMode_DoesNotPinHeaderFont()
+        {
+            var config = new NekoConfig { Mode = "blog" };
+            config.Theme.Font = new FontConfig
+            {
+                Family = "Plus Jakarta Sans",
+                Url = "/assets/fonts/fonts.css"
+            };
+
+            var html = new HtmlGenerator(config).Generate(Doc());
+
+            // Blog mode used to pin the header to Inter from the engine; that now
+            // lives in the content repo's own stylesheet. The engine emits only the
+            // configured base font.
+            Assert.That(html, Does.Not.Contain("https://rsms.me/inter/inter.css"));
+            Assert.That(html, Does.Not.Contain("header { font-family"));
+            Assert.That(html, Contains.Substring("font-family: 'Plus Jakarta Sans', sans-serif"));
         }
 
         [Test]
