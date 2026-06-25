@@ -297,11 +297,14 @@ namespace Neko.Tests
         [Test]
         public void BlogMode_SelfHostedFont_DoesNotPullInterFromCdn()
         {
-            // A site that self-hosts its fonts via `theme.font.url` is expected to
-            // define 'Inter'/'Inter var' itself (curiosity.ai's blog maps them to
-            // Inter *Display* Medium for pixel-exact chrome). Loading the rsms.me
-            // copy afterwards would override that mapping with the regular Inter cut
-            // and add an external dependency, so blog mode must not pull it.
+            // A site that self-hosts its fonts via `theme.font.url` owns the header
+            // font in its own stylesheet (curiosity.ai's blog maps the header to
+            // Inter *Display* Medium with `header { font-family: 'InterDisplay', 'Inter' }`
+            // for pixel-exact chrome). Blog mode must therefore neither pull the
+            // rsms.me copy nor emit its own `header { font-family: ... }` override —
+            // that override would win by source order yet resolve to nothing (the
+            // self-hosted sheet never defines 'Inter var'), dropping the header to the
+            // system sans-serif. The engine defers to the self-hosted sheet instead.
             var config = BlogConfig();
             config.Theme.Font = new FontConfig
             {
@@ -312,8 +315,9 @@ namespace Neko.Tests
             var html = new HtmlGenerator(config).Generate(Doc());
 
             Assert.That(html, Does.Not.Contain("https://rsms.me/inter/inter.css"));
-            // The header is still pinned to Inter — supplied by the self-hosted sheet.
-            Assert.That(html, Contains.Substring("header { font-family: 'Inter var', sans-serif; }"));
+            // The engine does not force a header font; the self-hosted sheet owns it.
+            Assert.That(html, Does.Not.Contain("header { font-family: 'Inter var', sans-serif; }"));
+            Assert.That(html, Does.Not.Contain("header { font-family: 'Inter', sans-serif; }"));
             Assert.That(html, Contains.Substring("href=\"/assets/fonts/fonts.css\""));
         }
 

@@ -168,7 +168,16 @@ namespace Neko.Builder
             {
                 sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
             }
-            if (_isBlogMode)
+            // Pin the header chrome to Inter ONLY when Neko is the one providing Inter
+            // (the rsms.me CDN copy, loaded above or as the default). A site that
+            // self-hosts its fonts via `theme.font.url` defines the header font in its
+            // own stylesheet — curiosity.ai's blog maps it to Inter *Display* Medium for
+            // pixel-exact chrome (`header { font-family: 'InterDisplay', 'Inter' }`).
+            // Emitting our 'Inter var' override here would win by source order yet
+            // resolve to nothing (the self-hosted CSS never defines 'Inter var'),
+            // dropping the header to the system sans-serif. So when the site brings its
+            // own font stylesheet, defer to it.
+            if (_isBlogMode && string.IsNullOrEmpty(font?.Url))
             {
                 sb.AppendLine("    <style>header { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { header { font-family: 'Inter var', sans-serif; } }</style>");
             }
