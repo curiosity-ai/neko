@@ -571,6 +571,36 @@ namespace Neko.Builder
                 sb.AppendLine("        <i class=\"fi fi-rr-search absolute left-5 top-1/2 -translate-y-1/2 text-base text-gray-400 dark:text-gray-500 pointer-events-none\"></i>");
                 sb.AppendLine("        <input id=\"neko-inline-search\" type=\"text\" autocomplete=\"off\" placeholder=\"Search the blog…\" aria-label=\"Search the blog\" class=\"w-full text-gray-900 dark:text-gray-100 placeholder-gray-500 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full pl-12 pr-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow\">");
                 sb.AppendLine("    </div>");
+
+                // Tag filter chips, derived from the posts' frontmatter tags. Clicking
+                // a chip filters the card grid in place with an empty query (see
+                // initInlineSearch in search.js) — the cards stay cards rather than
+                // turning into highlighted search-result rows. The class lists here
+                // must mirror chipClass() in search.js so the server-rendered initial
+                // state matches what the script applies on click.
+                var blogTags = posts
+                    .SelectMany(p => p.Doc.FrontMatter.Tags ?? System.Array.Empty<string>())
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Select(t => t.Trim())
+                    .GroupBy(t => t.ToLowerInvariant())
+                    .Select(g => g.First())
+                    .OrderBy(t => t, System.StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (blogTags.Count > 0)
+                {
+                    const string chipActive = "neko-blog-tag inline-flex items-center gap-1.5 text-sm font-medium rounded-full border px-3 py-1 transition-colors cursor-pointer bg-primary-600 border-primary-600 text-white";
+                    const string chipIdle = "neko-blog-tag inline-flex items-center gap-1.5 text-sm font-medium rounded-full border px-3 py-1 transition-colors cursor-pointer border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50";
+
+                    sb.AppendLine("    <div id=\"neko-blog-tags\" class=\"flex flex-wrap items-center gap-2 mt-4\">");
+                    sb.AppendLine($"        <button type=\"button\" data-tag=\"\" class=\"{chipActive}\">All</button>");
+                    foreach (var tag in blogTags)
+                    {
+                        sb.AppendLine($"        <button type=\"button\" data-tag=\"{EscapeHtmlAttr(tag.ToLowerInvariant())}\" class=\"{chipIdle}\"><i class=\"fi fi-rr-hashtag text-[10px] opacity-70\" aria-hidden=\"true\"></i>{EscapeHtmlAttr(tag)}</button>");
+                    }
+                    sb.AppendLine("    </div>");
+                }
+
                 sb.AppendLine("    <div id=\"neko-inline-search-results\" class=\"hidden mt-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700/60 overflow-hidden\"></div>");
                 sb.AppendLine("</div>");
             }
@@ -594,7 +624,14 @@ namespace Neko.Builder
                 var cover = post.Doc.FrontMatter.Cover;
                 var url = post.Url;
 
-                sb.AppendLine($"<a href=\"{url}\" class=\"group relative flex flex-col justify-between overflow-hidden rounded-[14px] h-[244px] p-[22px] no-underline\" style=\"background-color:var(--blog-ink, #1f1f1f)\">");
+                // Lowercased, pipe-joined tag list so the inline tag chips can filter
+                // the grid client-side without re-querying the search index.
+                var cardTags = (post.Doc.FrontMatter.Tags ?? System.Array.Empty<string>())
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Select(t => t.Trim().ToLowerInvariant());
+                var dataTags = _isBlogMode ? $" data-tags=\"{EscapeHtmlAttr(string.Join("|", cardTags))}\"" : string.Empty;
+
+                sb.AppendLine($"<a href=\"{url}\"{dataTags} class=\"group relative flex flex-col justify-between overflow-hidden rounded-[14px] h-[244px] p-[22px] no-underline\" style=\"background-color:var(--blog-ink, #1f1f1f)\">");
 
                 // Cover image, faded behind the content and zoomed slightly on hover.
                 if (!string.IsNullOrEmpty(cover))
@@ -624,6 +661,13 @@ namespace Neko.Builder
             }
 
             sb.AppendLine("</div>");
+
+            // Empty state shown by the tag filter when no post carries the selected
+            // tag (toggled by initInlineSearch in search.js).
+            if (_isBlogMode)
+            {
+                sb.AppendLine("<p id=\"neko-blog-empty\" class=\"hidden text-center text-sm text-gray-500 dark:text-gray-400 mt-8 not-prose\">No posts match this tag.</p>");
+            }
         }
 
         private void RenderChangelogIndex(StringBuilder sb, List<(ParsedDocument Doc, string Url, string Version)> entries)
