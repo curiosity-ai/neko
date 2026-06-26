@@ -50,7 +50,7 @@ namespace Neko.Tests
             // Tailwind escapes brackets/dots in selectors (e.g. `.rounded-\[14px\]`),
             // so strip the backslashes before matching the plain class token.
             var css = (await File.ReadAllTextAsync(Path.Combine(outDir, "assets", "tailwind.css"))).Replace("\\", "");
-            foreach (var cls in new[] { ".rounded-[14px]", ".h-[244px]", ".p-[22px]", ".gap-[15px]", ".leading-[1.4]", ".text-[20px]" })
+            foreach (var cls in new[] { ".rounded-[14px]", ".h-[244px]", ".p-[22px]", ".gap-[15px]", ".leading-[1.4]", ".text-[24px]" })
                 Assert.That(css, Contains.Substring(cls), $"tailwind.css is missing a rule for {cls}");
 
             // 3. Serve and open in a headless browser (skip if none available).
@@ -131,8 +131,10 @@ namespace Neko.Tests
                 Assert.That(await arrow.CountAsync(), Is.EqualTo(1), "card has a small right arrow icon");
                 Assert.That(await S(arrow, "color"), Is.EqualTo("rgb(241, 241, 241)"));
 
-                // --- Footer row: hairline top rule, author left / date right. ---
-                var footer = card.Locator("h3").Locator("xpath=../following-sibling::div[1]");
+                // --- Footer row: hairline top rule, author left / date right. It is
+                // the last row of the card's bottom group (the tag pills, when present,
+                // sit right-aligned above it). ---
+                var footer = card.Locator("h3").Locator("xpath=../following-sibling::div[1]/div[last()]");
                 Assert.That(await S(footer, "justifyContent"), Is.EqualTo("space-between"));
                 Assert.That(await S(footer, "borderTopWidth"), Is.EqualTo("1px"));
                 Assert.That(await S(footer, "borderTopColor"), Is.EqualTo("rgb(241, 241, 241)"));

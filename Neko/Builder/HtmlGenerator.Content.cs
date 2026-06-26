@@ -706,34 +706,44 @@ namespace Neko.Builder
                 // Top row: title + arrow.
                 sb.AppendLine("    <div class=\"relative z-10 flex items-center gap-2.5\">");
                 sb.AppendLine($"        <h3 class=\"flex-1 m-0 text-base font-medium leading-[1.4]\" style=\"color:var(--blog-bg, #f1f1f1)\">{title}</h3>");
-                // A small right-pointing arrow that rotates 45° on card hover, so it
-                // swings from "→" to "↗" — the curiosity.ai/resources/blog interaction.
-                // `group` is on the card.
-                sb.AppendLine("        <i class=\"fi fi-rr-arrow-small-right shrink-0 text-[20px] leading-none transition-transform duration-300 ease-out group-hover:rotate-45\" style=\"color:var(--blog-bg, #f1f1f1)\"></i>");
+                // A small right-pointing arrow that rotates 45° counter-clockwise on
+                // card hover, so it swings from "→" to "↗" (up-and-right) — the
+                // curiosity.ai/resources/blog interaction. `group` is on the card.
+                sb.AppendLine("        <i class=\"fi fi-rr-arrow-small-right shrink-0 text-[24px] leading-none transition-transform duration-300 ease-out group-hover:-rotate-45\" style=\"color:var(--blog-bg, #f1f1f1)\"></i>");
                 sb.AppendLine("    </div>");
 
-                // Tag pills, sitting just above the author/date row. They mirror
-                // the values in the tag-filter chips above so a reader can see at a
-                // glance which bucket a post belongs to.
-                if (_isBlogMode && tags.Count > 0)
+                // Bottom group, pinned to the foot of the card: the tag pills sit
+                // right-aligned just above the author/date hairline row (so they read in
+                // the bottom-right corner). Tags mirror the values in the tag-filter
+                // chips above so a reader can see at a glance which bucket a post is in.
+                var hasTags = _isBlogMode && tags.Count > 0;
+                var hasMeta = !string.IsNullOrEmpty(author) || !string.IsNullOrEmpty(date);
+                if (hasTags || hasMeta)
                 {
-                    sb.AppendLine("    <div class=\"relative z-10 flex flex-wrap gap-1.5\">");
-                    foreach (var tag in tags)
-                    {
-                        sb.AppendLine($"        <span class=\"inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium\" style=\"background-color:var(--blog-bg, #f1f1f1);color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(tag)}</span>");
-                    }
-                    sb.AppendLine("    </div>");
-                }
+                    sb.AppendLine("    <div class=\"relative z-10 flex flex-col gap-2\">");
 
-                // Bottom row: author (left) + date (right), split by a hairline rule.
-                if (!string.IsNullOrEmpty(author) || !string.IsNullOrEmpty(date))
-                {
-                    sb.AppendLine("    <div class=\"relative z-10 flex items-center justify-between gap-2 pt-2 border-t\" style=\"border-color:var(--blog-bg, #f1f1f1)\">");
-                    sb.AppendLine($"        <span class=\"text-sm font-medium\" style=\"color:var(--blog-bg, #f1f1f1)\">{author}</span>");
-                    if (!string.IsNullOrEmpty(date))
+                    if (hasTags)
                     {
-                        sb.AppendLine($"        <span class=\"text-sm font-medium\" style=\"color:var(--blog-bg, #f1f1f1)\">{date}</span>");
+                        sb.AppendLine("        <div class=\"flex flex-wrap justify-end gap-1.5\">");
+                        foreach (var tag in tags)
+                        {
+                            sb.AppendLine($"            <span class=\"inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium\" style=\"background-color:var(--blog-bg, #f1f1f1);color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(tag)}</span>");
+                        }
+                        sb.AppendLine("        </div>");
                     }
+
+                    // Author (left) + date (right), split by a hairline rule.
+                    if (hasMeta)
+                    {
+                        sb.AppendLine("        <div class=\"flex items-center justify-between gap-2 pt-2 border-t\" style=\"border-color:var(--blog-bg, #f1f1f1)\">");
+                        sb.AppendLine($"            <span class=\"text-sm font-medium\" style=\"color:var(--blog-bg, #f1f1f1)\">{author}</span>");
+                        if (!string.IsNullOrEmpty(date))
+                        {
+                            sb.AppendLine($"            <span class=\"text-sm font-medium\" style=\"color:var(--blog-bg, #f1f1f1)\">{date}</span>");
+                        }
+                        sb.AppendLine("        </div>");
+                    }
+
                     sb.AppendLine("    </div>");
                 }
 
