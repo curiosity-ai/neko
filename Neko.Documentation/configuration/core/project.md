@@ -671,47 +671,6 @@ footer:
 
 ---
 
-## blog
-
-In [`blog` mode](#mode), the post-index page can lead with a small marketing
-hero (the curiosity.ai/resources/blog look): a rounded **pill**, the large
-**title**, and an optional **lead** paragraph, all shown above the search bar
-and post grid. When `title` is set it **replaces** the plain label `<h1>` the
-index would otherwise render. The whole block is ignored outside blog mode.
-
-The pill renders in a plain system sans-serif at 12px; the title inherits the
-site body font (set via [`theme.font`](#theme-font)) at 30.4px / weight 500.
-Both pick up blog mode's `-webkit-font-smoothing: antialiased`. Colours track
-the [`theme.base`](#theme-base) palette (ink pill on the page background).
-
-=== pill : `string`
-Short label shown in the rounded pill above the title (e.g. `Blog`). Omit to
-hide the pill.
-===
-
-=== title : `string`
-The large hero heading. Rendered as the page `<h1>`, replacing the fallback
-label heading.
-===
-
-=== lead : `string`
-Optional lead paragraph under the title. `description` is accepted as an alias;
-`lead` wins when both are set.
-===
-
-{%{
-```yml Blog hero
-mode: blog
-
-blog:
-  pill: Blog
-  title: Notes on how we build AI products and systems in practice
-  lead: Product updates and monthly release overviews.
-```
-}%}
-
----
-
 ## generator
 
 ### directoryIndex
@@ -1538,6 +1497,45 @@ inherited by [multi-repo](/configuration/core/project) child sites unless they
 set their own `mode`.
 !!!
 ===
+
+---
+
+## blog
+
+The **hero** shown above the post grid on the blog index page (in
+[`blog` mode](#mode)) — a small rounded pill, the large page title, and an
+optional lead paragraph, matching the curiosity.ai blog header. Every field is
+optional; when all are unset the index opens straight into the search box.
+
+The pill renders in a plain system sans-serif at 12px while the title inherits
+the site body font (set via [`theme.font`](#theme-font)) at 30.4px / weight 500,
+both picking up blog mode's `-webkit-font-smoothing: antialiased`.
+
+=== pill : `string`
+Text of the small rounded label rendered above the title (e.g. `Blog`). Omit to
+hide the pill.
+===
+
+=== title : `string`
+The large page heading shown at the top of the blog index.
+===
+
+=== description : `string`
+An optional lead paragraph rendered beneath the title.
+===
+
+```yml
+blog:
+  pill: Blog
+  title: Notes on how we build AI products and systems in practice
+  description: Product updates, engineering notes and release overviews.
+```
+
+!!!
+These fields only render on the blog index in `blog` mode. They are inherited by
+[multi-repo](/configuration/core/project) child sites per-field unless the child
+sets its own `blog` values.
+!!!
 
 ---
 

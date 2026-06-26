@@ -48,6 +48,7 @@ links:
 | `actions`   | Header call-to-action buttons (pills), e.g. *Book a Demo*. Best in blog mode.|
 | `nav`       | Project-wide nav settings (`mode: stack`; `icons.mode` — sidebar icons, default `none`). |
 | `layout`    | Page chrome: `sidebar`/`toc` toggles and the `maxWidth` content cap.       |
+| `blog`      | Blog index hero (blog mode): `pill`, `title`, `description`.                |
 | `toc`       | Default right-sidebar TOC settings.                                        |
 | `backlinks` | Default inbound-link block behaviour.                                      |
 | `start`     | Dev-server tweaks (`pro: true`, ports).                                    |
@@ -233,29 +234,31 @@ Blog mode pairs naturally with `layout.sidebar: false`, `layout.toc: false`,
 `actions:`, and the marketing `footer:` fields below. It is inherited by
 multi-repo child sites unless they set their own `mode`.
 
-## Blog hero (blog mode)
+## Blog index hero (`blog:`)
 
-In blog mode, the post-index page can lead with a marketing hero above the
-search bar and post grid: a rounded `pill`, a large `title`, and an optional
-`lead` paragraph. When `title` is set it **replaces** the plain label `<h1>`
-the index would otherwise show. Ignored outside blog mode.
+In blog mode you can put a hero above the post grid on the index page — a small
+rounded pill, the large page title, and an optional lead paragraph:
 
 ```yml
 blog:
   pill: Blog
   title: Notes on how we build AI products and systems in practice
-  lead: Product updates and monthly release overviews.   # `description` is an alias
+  description: Product updates, engineering notes and release overviews.
 ```
 
-| Key      | Purpose                                                          |
-| ---      | ---                                                              |
-| `pill`   | Short label in the rounded pill above the title. Omit to hide.  |
-| `title`  | The large hero heading; rendered as the page `<h1>`.            |
-| `lead`   | Optional lead paragraph under the title (alias: `description`).  |
+| Key           | Purpose                                                        |
+| ---           | ---                                                            |
+| `pill`        | Small rounded label shown above the title. Omit to hide it.    |
+| `title`       | Large page heading at the top of the blog index.              |
+| `description` | Optional lead paragraph beneath the title.                     |
 
-The pill renders in a plain system sans-serif at 12px; the title inherits the
-site body font (`theme.font`) at 30.4px / weight 500. Colours track
-`theme.base` (ink pill on the page background).
+Every field is optional; when all are unset the index opens straight into the
+search box. The fields render only on the blog index in blog mode, and are
+inherited per-field by multi-repo child sites unless overridden.
+
+The pill renders in a plain system sans-serif at 12px while the title inherits
+the site body font (`theme.font`) at 30.4px / weight 500, both picking up blog
+mode's antialiased smoothing.
 
 ## Header actions (CTA buttons)
 

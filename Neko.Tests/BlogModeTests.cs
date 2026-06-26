@@ -112,7 +112,7 @@ namespace Neko.Tests
             {
                 Pill = "Blog",
                 Title = "Notes on how we build AI products and systems in practice",
-                Lead = "Product updates and release overviews."
+                Description = "Product updates and release overviews."
             };
             var doc = new ParsedDocument
             {
@@ -496,9 +496,9 @@ namespace Neko.Tests
         [Test]
         public void BlogCard_Arrow_RotatesOnHover()
         {
-            // A small right-pointing arrow rotates 45° on card hover (over 300ms),
-            // swinging from "→" to "↗" like curiosity.ai/resources/blog. `group` lives
-            // on the card <a>.
+            // A small right-pointing arrow rotates 45° counter-clockwise on card hover
+            // (over 300ms), swinging from "→" to "↗" like curiosity.ai/resources/blog.
+            // `group` lives on the card <a>.
             var doc = new ParsedDocument
             {
                 Html = "<p>Intro</p>",
@@ -514,7 +514,7 @@ namespace Neko.Tests
             Assert.That(html, Contains.Substring("fi-rr-arrow-small-right"));
             Assert.That(html, Contains.Substring("transition-transform"));
             Assert.That(html, Contains.Substring("duration-300"));
-            Assert.That(html, Contains.Substring("group-hover:rotate-45"));
+            Assert.That(html, Contains.Substring("group-hover:-rotate-45"));
         }
 
         [Test]
@@ -627,6 +627,82 @@ namespace Neko.Tests
             // The pill uses the inverted blog palette (bg-coloured chip on the ink card).
             Assert.That(html, Contains.Substring("color:var(--blog-ink, #1f1f1f)\">release news</span>"));
             Assert.That(html, Contains.Substring("color:var(--blog-ink, #1f1f1f)\">guides</span>"));
+        }
+
+        private static (ParsedDocument doc, List<(ParsedDocument, string)> posts) BlogIndexFixture()
+        {
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Post" } }, "/blog/post")
+            };
+            return (doc, posts);
+        }
+
+        [Test]
+        public void BlogIndex_RendersConfiguredPillTitleAndDescription()
+        {
+            var config = BlogConfig();
+            config.Blog = new BlogConfig
+            {
+                Pill = "Blog",
+                Title = "Notes on how we build AI products",
+                Description = "Product updates and release overviews."
+            };
+            var (doc, posts) = BlogIndexFixture();
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            // The pill renders as a rounded label, the title as the index <h1>, and
+            // the description as a lead paragraph — all above the inline search box.
+            Assert.That(html, Contains.Substring(">Blog</span>"));
+            Assert.That(html, Contains.Substring(">Notes on how we build AI products</h1>"));
+            Assert.That(html, Contains.Substring(">Product updates and release overviews.</p>"));
+            Assert.That(html.IndexOf(">Notes on how we build AI products</h1>"),
+                Is.LessThan(html.IndexOf("id=\"neko-inline-search\"")));
+        }
+
+        [Test]
+        public void BlogIndex_WithoutBlogConfig_OmitsHero()
+        {
+            var (doc, posts) = BlogIndexFixture();
+
+            // Default config has an empty Blog block → no hero, index opens on search.
+            var html = new HtmlGenerator(BlogConfig()).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            Assert.That(html, Does.Not.Contain("rounded-full border border-gray-300"));
+            Assert.That(html, Contains.Substring("id=\"neko-inline-search\""));
+        }
+
+        [Test]
+        public void BlogIndex_TitleOnly_OmitsPill()
+        {
+            var config = BlogConfig();
+            config.Blog = new BlogConfig { Title = "Just a title" };
+            var (doc, posts) = BlogIndexFixture();
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            Assert.That(html, Contains.Substring(">Just a title</h1>"));
+            // No pill markup when `pill` is unset.
+            Assert.That(html, Does.Not.Contain("rounded-full border border-gray-300"));
+        }
+
+        [Test]
+        public void BlogConfig_IsInheritedPerFieldFromParent()
+        {
+            var parent = new NekoConfig { Mode = "blog", Blog = new BlogConfig { Pill = "Blog", Title = "Parent title" } };
+            var child = new NekoConfig { Mode = "blog", Blog = new BlogConfig { Title = "Child title" } };
+
+            child.MergeWith(parent);
+
+            // The child keeps its own title but inherits the pill it didn't set.
+            Assert.That(child.Blog.Title, Is.EqualTo("Child title"));
+            Assert.That(child.Blog.Pill, Is.EqualTo("Blog"));
         }
     }
 }

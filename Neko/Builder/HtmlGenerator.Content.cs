@@ -556,52 +556,61 @@ namespace Neko.Builder
             sb.AppendLine("                    </ul>");
         }
 
+        // The blog index hero shown above the search + filter row on the `blog`
+        // index page. When the `blog:` block in neko.yml sets a pill / title /
+        // description it renders that hero (a small rounded pill, a large title,
+        // and an optional lead paragraph). Otherwise it falls back to the page's
+        // own title/label as a single heading, so the index always has a heading
+        // (the index page carries no H1 of its own — unlike post pages, whose
+        // title is rendered by RenderBlogPostHeader). Skipped entirely when there
+        // is nothing to show.
+        private void RenderBlogIndexHeader(StringBuilder sb, ParsedDocument document)
+        {
+            var blog = _config.Blog;
+            var hasPill        = !string.IsNullOrWhiteSpace(blog?.Pill);
+            var hasTitle       = !string.IsNullOrWhiteSpace(blog?.Title);
+            var hasDescription = !string.IsNullOrWhiteSpace(blog?.Description);
+
+            if (hasPill || hasTitle || hasDescription)
+            {
+                sb.AppendLine("<div class=\"not-prose mt-2\">");
+                if (hasPill)
+                {
+                    // The pill renders in a plain system sans-serif at 12px (not the
+                    // brand body font), matching curiosity.ai/resources/blog. Blog mode's
+                    // global `-webkit-font-smoothing: antialiased` thins it to match.
+                    sb.AppendLine($"    <span class=\"inline-flex items-center rounded-full border border-gray-300 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 px-4 py-1.5 text-[12px] font-medium text-gray-700 dark:text-gray-300\" style=\"font-family:sans-serif\">{EscapeHtmlAttr(blog.Pill)}</span>");
+                }
+                if (hasTitle)
+                {
+                    // 30.4px / weight 500, inheriting the site body font (Plus Jakarta
+                    // Sans on the blog), matching the live site's hero title.
+                    var topMargin = hasPill ? " mt-6" : string.Empty;
+                    sb.AppendLine($"    <h1 class=\"{("text-[30.4px] font-medium leading-tight text-gray-400 dark:text-gray-500" + topMargin)}\">{EscapeHtmlAttr(blog.Title)}</h1>");
+                }
+                if (hasDescription)
+                {
+                    var topMargin = (hasPill || hasTitle) ? " mt-4" : string.Empty;
+                    sb.AppendLine($"    <p class=\"{("max-w-2xl text-base md:text-lg text-gray-600 dark:text-gray-400" + topMargin)}\">{EscapeHtmlAttr(blog.Description)}</p>");
+                }
+                sb.AppendLine("</div>");
+                return;
+            }
+
+            // No configured hero — fall back to the page title/label as a single
+            // heading. Uses the blog ink colour so it tracks the palette.
+            var indexTitle = !string.IsNullOrEmpty(document?.FrontMatter.Title)
+                ? document.FrontMatter.Title
+                : document?.FrontMatter.Label;
+            if (!string.IsNullOrEmpty(indexTitle))
+            {
+                sb.AppendLine($"<h1 class=\"not-prose text-3xl md:text-4xl font-bold mt-2 mb-0\" style=\"color:var(--blog-ink,#1f1f1f)\">{EscapeHtmlAttr(indexTitle)}</h1>");
+            }
+        }
+
         private void RenderBlogIndex(StringBuilder sb, List<(ParsedDocument Doc, string Url)> posts, ParsedDocument document = null)
         {
             if (posts == null || posts.Count == 0) return;
-
-            // The index page carries no H1 of its own (unlike post pages, whose title
-            // is rendered by RenderBlogPostHeader), so surface the page title/label
-            // here above the search + filter row. Uses the blog ink colour so it tracks
-            // the palette.
-            if (_isBlogMode)
-            {
-                var hero = _config?.Blog;
-                var heroTitle = hero?.Title;
-                var heroLead = !string.IsNullOrEmpty(hero?.Lead) ? hero.Lead : hero?.Description;
-
-                // When `blog.title` is configured, render the marketing hero: a small
-                // rounded pill, the large title, and an optional lead paragraph. This
-                // mirrors curiosity.ai/resources/blog. The pill uses a plain system
-                // sans-serif at 12px (not the brand body font); the title inherits the
-                // body font (Plus Jakarta Sans on the blog) at 30.4px / weight 500.
-                // Global `-webkit-font-smoothing: antialiased` (set in blog mode) thins
-                // both, matching the live site.
-                if (!string.IsNullOrEmpty(heroTitle))
-                {
-                    sb.AppendLine("<div class=\"not-prose mt-2\">");
-                    if (!string.IsNullOrEmpty(hero.Pill))
-                    {
-                        sb.AppendLine($"    <span class=\"inline-flex items-center rounded-full px-3 py-1 text-[12px] font-medium mb-4\" style=\"font-family:sans-serif;background-color:var(--blog-ink,#1f1f1f);color:var(--blog-bg,#f1f1f1)\">{EscapeHtmlAttr(hero.Pill)}</span>");
-                    }
-                    sb.AppendLine($"    <h1 class=\"text-[30.4px] font-medium leading-tight mt-0 mb-0\" style=\"color:var(--blog-ink,#1f1f1f)\">{EscapeHtmlAttr(heroTitle)}</h1>");
-                    if (!string.IsNullOrEmpty(heroLead))
-                    {
-                        sb.AppendLine($"    <p class=\"mt-4 mb-0 text-base\" style=\"color:var(--blog-ink,#1f1f1f);opacity:0.75\">{EscapeHtmlAttr(heroLead)}</p>");
-                    }
-                    sb.AppendLine("</div>");
-                }
-                else
-                {
-                    var indexTitle = !string.IsNullOrEmpty(document?.FrontMatter.Title)
-                        ? document.FrontMatter.Title
-                        : document?.FrontMatter.Label;
-                    if (!string.IsNullOrEmpty(indexTitle))
-                    {
-                        sb.AppendLine($"<h1 class=\"not-prose text-3xl md:text-4xl font-bold mt-2 mb-0\" style=\"color:var(--blog-ink,#1f1f1f)\">{EscapeHtmlAttr(indexTitle)}</h1>");
-                    }
-                }
-            }
 
             // In blog mode the header has no search box — it lives at the top of
             // the post list instead. Unlike docs mode (which opens a modal), the
@@ -609,6 +618,8 @@ namespace Neko.Builder
             // hits in place of the post grid (see initInlineSearch in search.js).
             if (_isBlogMode)
             {
+                RenderBlogIndexHeader(sb, document);
+
                 sb.AppendLine("<div class=\"not-prose mt-8 mb-6\">");
                 sb.AppendLine("    <div class=\"relative\">");
                 sb.AppendLine("        <i class=\"fi fi-rr-search absolute left-5 top-1/2 -translate-y-1/2 text-base text-gray-400 dark:text-gray-500 pointer-events-none\"></i>");
@@ -700,34 +711,44 @@ namespace Neko.Builder
                 // Top row: title + arrow.
                 sb.AppendLine("    <div class=\"relative z-10 flex items-center gap-2.5\">");
                 sb.AppendLine($"        <h3 class=\"flex-1 m-0 text-base font-medium leading-[1.4]\" style=\"color:var(--blog-bg, #f1f1f1)\">{title}</h3>");
-                // A small right-pointing arrow that rotates 45° on card hover, so it
-                // swings from "→" to "↗" — the curiosity.ai/resources/blog interaction.
-                // `group` is on the card.
-                sb.AppendLine("        <i class=\"fi fi-rr-arrow-small-right shrink-0 text-[20px] leading-none transition-transform duration-300 ease-out group-hover:rotate-45\" style=\"color:var(--blog-bg, #f1f1f1)\"></i>");
+                // A small right-pointing arrow that rotates 45° counter-clockwise on
+                // card hover, so it swings from "→" to "↗" (up-and-right) — the
+                // curiosity.ai/resources/blog interaction. `group` is on the card.
+                sb.AppendLine("        <i class=\"fi fi-rr-arrow-small-right shrink-0 text-[24px] leading-none transition-transform duration-300 ease-out group-hover:-rotate-45\" style=\"color:var(--blog-bg, #f1f1f1)\"></i>");
                 sb.AppendLine("    </div>");
 
-                // Tag pills, sitting just above the author/date row. They mirror
-                // the values in the tag-filter chips above so a reader can see at a
-                // glance which bucket a post belongs to.
-                if (_isBlogMode && tags.Count > 0)
+                // Bottom group, pinned to the foot of the card: the tag pills sit
+                // right-aligned just above the author/date hairline row (so they read in
+                // the bottom-right corner). Tags mirror the values in the tag-filter
+                // chips above so a reader can see at a glance which bucket a post is in.
+                var hasTags = _isBlogMode && tags.Count > 0;
+                var hasMeta = !string.IsNullOrEmpty(author) || !string.IsNullOrEmpty(date);
+                if (hasTags || hasMeta)
                 {
-                    sb.AppendLine("    <div class=\"relative z-10 flex flex-wrap gap-1.5\">");
-                    foreach (var tag in tags)
-                    {
-                        sb.AppendLine($"        <span class=\"inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium\" style=\"background-color:var(--blog-bg, #f1f1f1);color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(tag)}</span>");
-                    }
-                    sb.AppendLine("    </div>");
-                }
+                    sb.AppendLine("    <div class=\"relative z-10 flex flex-col gap-2\">");
 
-                // Bottom row: author (left) + date (right), split by a hairline rule.
-                if (!string.IsNullOrEmpty(author) || !string.IsNullOrEmpty(date))
-                {
-                    sb.AppendLine("    <div class=\"relative z-10 flex items-center justify-between gap-2 pt-2 border-t\" style=\"border-color:var(--blog-bg, #f1f1f1)\">");
-                    sb.AppendLine($"        <span class=\"text-sm font-medium\" style=\"color:var(--blog-bg, #f1f1f1)\">{author}</span>");
-                    if (!string.IsNullOrEmpty(date))
+                    if (hasTags)
                     {
-                        sb.AppendLine($"        <span class=\"text-sm font-medium\" style=\"color:var(--blog-bg, #f1f1f1)\">{date}</span>");
+                        sb.AppendLine("        <div class=\"flex flex-wrap justify-end gap-1.5\">");
+                        foreach (var tag in tags)
+                        {
+                            sb.AppendLine($"            <span class=\"inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium\" style=\"background-color:var(--blog-bg, #f1f1f1);color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(tag)}</span>");
+                        }
+                        sb.AppendLine("        </div>");
                     }
+
+                    // Author (left) + date (right), split by a hairline rule.
+                    if (hasMeta)
+                    {
+                        sb.AppendLine("        <div class=\"flex items-center justify-between gap-2 pt-2 border-t\" style=\"border-color:var(--blog-bg, #f1f1f1)\">");
+                        sb.AppendLine($"            <span class=\"text-sm font-medium\" style=\"color:var(--blog-bg, #f1f1f1)\">{author}</span>");
+                        if (!string.IsNullOrEmpty(date))
+                        {
+                            sb.AppendLine($"            <span class=\"text-sm font-medium\" style=\"color:var(--blog-bg, #f1f1f1)\">{date}</span>");
+                        }
+                        sb.AppendLine("        </div>");
+                    }
+
                     sb.AppendLine("    </div>");
                 }
 
