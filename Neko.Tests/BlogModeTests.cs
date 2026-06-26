@@ -307,12 +307,76 @@ namespace Neko.Tests
             var html = new HtmlGenerator(config).Generate(Doc());
 
             // The links group carries the left-cluster margin (curiosity.ai layout),
-            // and the links render before the header action buttons.
-            Assert.That(html, Contains.Substring("md:ml-1.5"));
+            // and the links render before the header action buttons. The wide
+            // marketing nav collapses into the hamburger below `lg`.
+            Assert.That(html, Contains.Substring("lg:ml-1.5"));
             var linkIdx = html.IndexOf(">Product</a>");
             var actionIdx = html.IndexOf(">Book a Demo</a>");
             Assert.That(linkIdx, Is.GreaterThan(0));
             Assert.That(linkIdx, Is.LessThan(actionIdx), "nav links should render before the action buttons");
+        }
+
+        [Test]
+        public void BlogMode_LogoIsShrinkProof_SoCrowdedNavDoesNotCompressIt()
+        {
+            var html = new HtmlGenerator(BlogConfig()).Generate(Doc());
+
+            // The wordmark link and its image carry `shrink-0` so a crowded header
+            // never squeezes the logo (the curiosity.ai compressed-logo bug).
+            Assert.That(html, Contains.Substring("class=\"flex items-center shrink-0\" aria-label=\"Curiosity\""));
+            Assert.That(html, Contains.Substring("h-[21px] shrink-0 w-auto"));
+        }
+
+        [Test]
+        public void BlogMode_CollapsesNavIntoHamburgerBelowLg()
+        {
+            var config = BlogConfig();
+            config.Links = new List<LinkConfig>
+            {
+                new LinkConfig { Text = "Product", Link = "/product" },
+                new LinkConfig
+                {
+                    Text = "Solutions",
+                    Items = new List<LinkConfig>
+                    {
+                        new LinkConfig { Text = "Knowledge Management", Link = "/km" }
+                    }
+                }
+            };
+
+            var html = new HtmlGenerator(config).Generate(Doc());
+
+            // Desktop links + CTA row only show from `lg` up (so they no longer
+            // overflow under the CTA pills at tablet widths like ~900px).
+            Assert.That(html, Contains.Substring("hidden lg:flex items-center gap-[22px]"));
+            Assert.That(html, Contains.Substring("gap-2.5 hidden lg:flex"));
+
+            // A hamburger button appears below `lg` to open the mobile menu.
+            Assert.That(html, Contains.Substring("id=\"blog-menu-btn\""));
+            Assert.That(html, Contains.Substring("class=\"lg:hidden flex items-center justify-center"));
+
+            // The mobile menu panel carries the links (flyout items flattened) and the
+            // CTA pills so the whole marketing nav is reachable on small screens.
+            Assert.That(html, Contains.Substring("id=\"blog-mobile-menu\""));
+            var menuIdx = html.IndexOf("id=\"blog-mobile-menu\"");
+            var tail = html.Substring(menuIdx);
+            Assert.That(tail, Contains.Substring(">Product</a>"));
+            Assert.That(tail, Contains.Substring(">Knowledge Management</a>"));
+            Assert.That(tail, Contains.Substring(">Book a Demo</a>"));
+
+            // And the toggle script is wired up.
+            Assert.That(html, Contains.Substring("getElementById('blog-menu-btn')"));
+        }
+
+        [Test]
+        public void DocsMode_HasNoBlogHamburger()
+        {
+            var config = BlogConfig();
+            config.Mode = "docs";
+            var html = new HtmlGenerator(config).Generate(Doc());
+
+            Assert.That(html, Does.Not.Contain("id=\"blog-menu-btn\""));
+            Assert.That(html, Does.Not.Contain("id=\"blog-mobile-menu\""));
         }
 
         [Test]
@@ -350,7 +414,7 @@ namespace Neko.Tests
                 FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
             };
             var indexHtml = new HtmlGenerator(BlogConfig()).Generate(doc, currentUrl: "/blog/index");
-            Assert.That(indexHtml, Contains.Substring("max-w-6xl mx-auto prose"));
+            Assert.That(indexHtml, Contains.Substring("max-w-6xl grow w-full mx-auto prose"));
 
             // A regular blog post keeps the comfortable max-w-4xl reading column.
             var postDoc = new ParsedDocument
@@ -359,15 +423,16 @@ namespace Neko.Tests
                 FrontMatter = new FrontMatter { Title = "A Post" }
             };
             var postHtml = new HtmlGenerator(BlogConfig()).Generate(postDoc, currentUrl: "/blog/a-post");
-            Assert.That(postHtml, Contains.Substring("max-w-4xl mx-auto prose"));
-            Assert.That(postHtml, Does.Not.Contain("max-w-6xl mx-auto prose"));
+            Assert.That(postHtml, Contains.Substring("max-w-4xl grow w-full mx-auto prose"));
+            Assert.That(postHtml, Does.Not.Contain("max-w-6xl grow w-full mx-auto prose"));
         }
 
         [Test]
-        public void BlogCard_Arrow_NudgesDiagonallyOnHover()
+        public void BlogCard_Arrow_RotatesOnHover()
         {
-            // The up-right arrow animates on card hover (translate up-and-right over
-            // 300ms) like curiosity.ai/resources/blog. `group` lives on the card <a>.
+            // A small right-pointing arrow rotates 45° on card hover (over 300ms),
+            // swinging from "→" to "↗" like curiosity.ai/resources/blog. `group` lives
+            // on the card <a>.
             var doc = new ParsedDocument
             {
                 Html = "<p>Intro</p>",
@@ -380,11 +445,10 @@ namespace Neko.Tests
 
             var html = new HtmlGenerator(BlogConfig()).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
 
-            Assert.That(html, Contains.Substring("fi-rr-arrow-up-right"));
+            Assert.That(html, Contains.Substring("fi-rr-arrow-small-right"));
             Assert.That(html, Contains.Substring("transition-transform"));
             Assert.That(html, Contains.Substring("duration-300"));
-            Assert.That(html, Contains.Substring("group-hover:translate-x-1"));
-            Assert.That(html, Contains.Substring("group-hover:-translate-y-1"));
+            Assert.That(html, Contains.Substring("group-hover:rotate-45"));
         }
 
         [Test]

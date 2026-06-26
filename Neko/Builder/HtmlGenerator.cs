@@ -83,7 +83,7 @@ namespace Neko.Builder
             if (currentUrl != null && (currentUrl == "/blog/index" || document.FrontMatter.Layout == "blog"))
             {
                 var sbBlog = new StringBuilder();
-                RenderBlogIndex(sbBlog, blogPosts);
+                RenderBlogIndex(sbBlog, blogPosts, document);
                 htmlContent += sbBlog.ToString();
             }
 
@@ -169,8 +169,13 @@ namespace Neko.Builder
             // scroll pane reserves top padding equal to the header height (h-20 =
             // 80px) plus the usual content gap — content then scrolls up under the
             // translucent bar instead of stopping below an opaque row.
+            // Blog mode lays `main` out as a flex column so the content column can
+            // `grow` to fill the viewport when a page is short (e.g. the index when a
+            // tag filter narrows it to a few cards). Without this the full-bleed
+            // footer floats partway up and leaves a large band of page background
+            // below it.
             var mainPadClass = _isBlogMode
-                ? "px-4 md:px-8 pt-24 md:pt-28 pb-4 md:pb-8"
+                ? "px-4 md:px-8 pt-24 md:pt-28 pb-4 md:pb-8 flex flex-col"
                 : "p-4 md:p-8";
             sb.AppendLine($"            <main class=\"flex-1 overflow-y-auto overflow-x-clip {mainPadClass} scroll-smooth\" id=\"main-scroll\">");
             // The reading column is capped at `max-w-4xl` (896px) — comfortable for
@@ -179,7 +184,10 @@ namespace Neko.Builder
             // curiosity.ai/resources/blog layout. Article (post) pages keep 4xl.
             var isBlogIndex = _isBlogMode && (currentUrl == "/blog/index" || document.FrontMatter.Layout == "blog");
             var contentColClass = isBlogIndex ? "max-w-6xl" : "max-w-4xl";
-            sb.AppendLine($"                <div class=\"{contentColClass} mx-auto prose dark:prose-invert\">");
+            // `grow` (blog mode) lets the column expand to fill the flex-column main,
+            // pushing the deferred full-bleed footer to the bottom of short pages.
+            var growClass = _isBlogMode ? " grow w-full" : string.Empty;
+            sb.AppendLine($"                <div class=\"{contentColClass}{growClass} mx-auto prose dark:prose-invert\">");
 
             // The marketing (blog-mode) footer breaks out of the reading column to
             // span the full content pane, so it is rendered after the prose div.

@@ -12,7 +12,7 @@ namespace Neko.Tests
     /// Renders a blog-mode index page in a real browser and asserts the post
     /// cards match the curiosity.ai/resources/blog design: a dark (ink) rounded
     /// 14px tile, fixed 244px tall with 22px padding, the cover image faded
-    /// behind the content, the title + an up-right arrow on top, and the author
+    /// behind the content, the title + a small right arrow on top, and the author
     /// (left) / date (right) in a bottom row split by a hairline rule.
     ///
     /// Skipped when a Playwright browser is unavailable.
@@ -50,7 +50,7 @@ namespace Neko.Tests
             // Tailwind escapes brackets/dots in selectors (e.g. `.rounded-\[14px\]`),
             // so strip the backslashes before matching the plain class token.
             var css = (await File.ReadAllTextAsync(Path.Combine(outDir, "assets", "tailwind.css"))).Replace("\\", "");
-            foreach (var cls in new[] { ".rounded-[14px]", ".h-[244px]", ".p-[22px]", ".gap-[15px]", ".leading-[1.4]", ".text-[32px]" })
+            foreach (var cls in new[] { ".rounded-[14px]", ".h-[244px]", ".p-[22px]", ".gap-[15px]", ".leading-[1.4]", ".text-[20px]" })
                 Assert.That(css, Contains.Substring(cls), $"tailwind.css is missing a rule for {cls}");
 
             // 3. Serve and open in a headless browser (skip if none available).
@@ -125,9 +125,10 @@ namespace Neko.Tests
                 Assert.That(await S(title, "fontSize"), Is.EqualTo("16px"));
                 Assert.That(await S(title, "fontWeight"), Is.EqualTo("500"));
 
-                // --- Up-right arrow icon, top-right, same light colour. ---
-                var arrow = card.Locator("i.fi-rr-arrow-up-right").First;
-                Assert.That(await arrow.CountAsync(), Is.EqualTo(1), "card has an up-right arrow icon");
+                // --- Small right arrow icon, top-right, same light colour (rotates to
+                // up-right on hover). ---
+                var arrow = card.Locator("i.fi-rr-arrow-small-right").First;
+                Assert.That(await arrow.CountAsync(), Is.EqualTo(1), "card has a small right arrow icon");
                 Assert.That(await S(arrow, "color"), Is.EqualTo("rgb(241, 241, 241)"));
 
                 // --- Footer row: hairline top rule, author left / date right. ---
