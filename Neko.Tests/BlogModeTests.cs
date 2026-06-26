@@ -105,6 +105,65 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void BlogMode_RendersTagChips_AndTagsCards_ForTagFiltering()
+        {
+            var config = BlogConfig();
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Alpha", Tags = new[] { "Photography", "Milestone" } } }, "/blog/alpha"),
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Beta", Tags = new[] { "cooking" } } }, "/blog/beta"),
+            };
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            // A tag-filter chip row with an "All" reset chip and one chip per unique
+            // tag (lowercased on the data-tag, sorted).
+            Assert.That(html, Contains.Substring("id=\"neko-blog-tags\""));
+            Assert.That(html, Contains.Substring("data-tag=\"\""));      // the "All" chip
+            Assert.That(html, Contains.Substring("data-tag=\"cooking\""));
+            Assert.That(html, Contains.Substring("data-tag=\"milestone\""));
+            Assert.That(html, Contains.Substring("data-tag=\"photography\""));
+
+            // Each card carries its (lowercased, pipe-joined) tags so the chips can
+            // filter the grid client-side.
+            Assert.That(html, Contains.Substring("data-tags=\"photography|milestone\""));
+            Assert.That(html, Contains.Substring("data-tags=\"cooking\""));
+
+            // The chips render above the post grid, and an empty-state note follows it.
+            var tagsIdx = html.IndexOf("id=\"neko-blog-tags\"");
+            var gridIdx = html.IndexOf("id=\"neko-blog-grid\"");
+            Assert.That(tagsIdx, Is.GreaterThan(0));
+            Assert.That(tagsIdx, Is.LessThan(gridIdx), "tag chips should render above the post grid");
+            Assert.That(html, Contains.Substring("id=\"neko-blog-empty\""));
+        }
+
+        [Test]
+        public void BlogMode_WithoutTags_OmitsTagChipRow()
+        {
+            var config = BlogConfig();
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Untagged" } }, "/blog/untagged"),
+            };
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            // No tags anywhere → no chip row (but the grid and its empty-state stay).
+            Assert.That(html, Does.Not.Contain("id=\"neko-blog-tags\""));
+            Assert.That(html, Contains.Substring("id=\"neko-blog-grid\""));
+        }
+
+        [Test]
         public void DocsMode_KeepsSearchInHeader()
         {
             var config = BlogConfig();
