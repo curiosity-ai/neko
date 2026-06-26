@@ -316,6 +316,68 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void BlogMode_LogoIsShrinkProof_SoCrowdedNavDoesNotCompressIt()
+        {
+            var html = new HtmlGenerator(BlogConfig()).Generate(Doc());
+
+            // The wordmark link and its image carry `shrink-0` so a crowded header
+            // never squeezes the logo (the curiosity.ai compressed-logo bug).
+            Assert.That(html, Contains.Substring("class=\"flex items-center shrink-0\" aria-label=\"Curiosity\""));
+            Assert.That(html, Contains.Substring("h-[21px] shrink-0 w-auto"));
+        }
+
+        [Test]
+        public void BlogMode_CollapsesNavIntoHamburgerOnMobile()
+        {
+            var config = BlogConfig();
+            config.Links = new List<LinkConfig>
+            {
+                new LinkConfig { Text = "Product", Link = "/product" },
+                new LinkConfig
+                {
+                    Text = "Solutions",
+                    Items = new List<LinkConfig>
+                    {
+                        new LinkConfig { Text = "Knowledge Management", Link = "/km" }
+                    }
+                }
+            };
+
+            var html = new HtmlGenerator(config).Generate(Doc());
+
+            // The desktop layout is unchanged: links + CTA row still show from `md` up.
+            Assert.That(html, Contains.Substring("hidden md:flex items-center gap-[22px]"));
+            Assert.That(html, Contains.Substring("gap-2.5 hidden md:flex"));
+
+            // A hamburger button appears below `md` to open the mobile menu.
+            Assert.That(html, Contains.Substring("id=\"blog-menu-btn\""));
+            Assert.That(html, Contains.Substring("class=\"md:hidden flex items-center justify-center"));
+
+            // The mobile menu panel carries the links (flyout items flattened) and the
+            // CTA pills so the whole marketing nav is reachable on small screens.
+            Assert.That(html, Contains.Substring("id=\"blog-mobile-menu\""));
+            var menuIdx = html.IndexOf("id=\"blog-mobile-menu\"");
+            var tail = html.Substring(menuIdx);
+            Assert.That(tail, Contains.Substring(">Product</a>"));
+            Assert.That(tail, Contains.Substring(">Knowledge Management</a>"));
+            Assert.That(tail, Contains.Substring(">Book a Demo</a>"));
+
+            // And the toggle script is wired up.
+            Assert.That(html, Contains.Substring("getElementById('blog-menu-btn')"));
+        }
+
+        [Test]
+        public void DocsMode_HasNoBlogHamburger()
+        {
+            var config = BlogConfig();
+            config.Mode = "docs";
+            var html = new HtmlGenerator(config).Generate(Doc());
+
+            Assert.That(html, Does.Not.Contain("id=\"blog-menu-btn\""));
+            Assert.That(html, Does.Not.Contain("id=\"blog-mobile-menu\""));
+        }
+
+        [Test]
         public void DocsMode_DoesNotClusterNavLinks()
         {
             var config = BlogConfig();

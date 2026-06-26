@@ -105,8 +105,92 @@ namespace Neko.Builder
             }
             RenderNavbarActions(sb);
 
+            // Blog mode collapses its marketing nav into a hamburger on mobile (below
+            // `md`) — the desktop links/CTAs are `hidden md:flex`, so on small screens
+            // this button is the only way to reach them. The desktop layout is left
+            // exactly as before. Docs mode has its own sidebar-driven mobile menu (see
+            // the `mobile-menu-btn` above).
+            if (_isBlogMode)
+            {
+                RenderBlogMobileMenuButton(sb);
+            }
+
             sb.AppendLine("        </div>");
             sb.AppendLine("    </header>");
+
+            if (_isBlogMode)
+            {
+                RenderBlogMobileMenu(sb);
+            }
+        }
+
+        // The hamburger trigger for the blog-mode mobile menu. Sits at the right of
+        // the header row (the logo stays pinned left) and only shows below `md`.
+        private void RenderBlogMobileMenuButton(StringBuilder sb)
+        {
+            sb.AppendLine("        <button id=\"blog-menu-btn\" class=\"md:hidden flex items-center justify-center p-2 -mr-2 shrink-0 focus:outline-none\" style=\"color:var(--blog-ink)\" aria-label=\"Open menu\" aria-expanded=\"false\">");
+            sb.AppendLine("            <i class=\"fi fi-rr-menu-burger text-xl\"></i>");
+            sb.AppendLine("            <i class=\"fi fi-rr-cross-small text-2xl hidden\"></i>");
+            sb.AppendLine("        </button>");
+        }
+
+        // The blog-mode mobile menu panel: a full-width drop-down (below the fixed
+        // header) holding the nav links and CTA pills, stacked. Hidden by default and
+        // toggled by the hamburger; only ever visible below `md`.
+        private void RenderBlogMobileMenu(StringBuilder sb)
+        {
+            sb.AppendLine("    <div id=\"blog-mobile-menu\" class=\"md:hidden hidden fixed inset-x-0 top-20 bottom-0 z-20 overflow-y-auto px-6 py-6\" style=\"background-color:var(--blog-bg);color:var(--blog-ink)\">");
+
+            if (_config.Links != null && _config.Links.Count > 0)
+            {
+                sb.AppendLine("        <nav class=\"flex flex-col text-base font-medium\">");
+                foreach (var link in _config.Links)
+                {
+                    if (link.Items != null && link.Items.Count > 0)
+                    {
+                        // Flyout groups flatten to a section header plus its items so the
+                        // full marketing nav is reachable on mobile without hover menus.
+                        sb.AppendLine($"            <div class=\"pt-4 pb-1 text-sm font-semibold uppercase tracking-wide opacity-60\">{link.Text}</div>");
+                        foreach (var item in link.Items)
+                        {
+                            var itemHref = item.Link ?? "#";
+                            var itemTarget = !string.IsNullOrEmpty(item.Target) ? $" target=\"{item.Target}\"" : "";
+                            sb.AppendLine($"            <a href=\"{itemHref}\"{itemTarget} class=\"py-2.5 pl-3 hover:text-primary-600 dark:hover:text-primary-400 transition-colors\">{item.Text}</a>");
+                        }
+                    }
+                    else
+                    {
+                        var href = link.Link ?? "#";
+                        var target = !string.IsNullOrEmpty(link.Target) ? $" target=\"{link.Target}\"" : "";
+                        sb.AppendLine($"            <a href=\"{href}\"{target} class=\"py-3 hover:text-primary-600 dark:hover:text-primary-400 transition-colors\">{link.Text}</a>");
+                    }
+                }
+                sb.AppendLine("        </nav>");
+            }
+
+            if (_config.Actions != null && _config.Actions.Count > 0)
+            {
+                sb.AppendLine("        <div class=\"mt-6 flex flex-col gap-3\">");
+                foreach (var action in _config.Actions)
+                {
+                    if (string.IsNullOrEmpty(action.Text)) continue;
+
+                    var href = action.Link ?? "#";
+                    var target = !string.IsNullOrEmpty(action.Target) ? $" target=\"{NormalizeTarget(action.Target)}\"" : "";
+                    var rel = target.Contains("_blank") ? " rel=\"noopener noreferrer\"" : "";
+                    var isOutline = string.Equals(action.Variant, "outline", System.StringComparison.OrdinalIgnoreCase);
+                    var iconHtml = string.IsNullOrEmpty(action.Icon) ? "" : $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(action.Icon)}\"></i>";
+
+                    var blogClass = "inline-flex items-center justify-center gap-2 rounded-full px-[14px] py-2.5 text-sm font-medium transition-opacity hover:opacity-80 whitespace-nowrap";
+                    var style = isOutline
+                        ? "box-shadow:inset 0 0 0 1px var(--blog-ink);color:var(--blog-ink)"
+                        : "background-color:var(--blog-ink);color:var(--blog-bg)";
+                    sb.AppendLine($"            <a href=\"{href}\"{target}{rel} class=\"{blogClass}\" style=\"{style}\">{iconHtml}{action.Text}</a>");
+                }
+                sb.AppendLine("        </div>");
+            }
+
+            sb.AppendLine("    </div>");
         }
 
         private void RenderNavbarBrand(StringBuilder sb, string currentUrl)
@@ -120,7 +204,9 @@ namespace Neko.Builder
 
             if (logoIsWordmark)
             {
-                sb.AppendLine($"            <a href=\"/index\" class=\"flex items-center\" aria-label=\"{_config.Branding.Title}\">");
+                // `shrink-0` so the crowded marketing nav never squeezes the wordmark
+                // (flexbox would otherwise shrink the image before the text links).
+                sb.AppendLine($"            <a href=\"/index\" class=\"flex items-center shrink-0\" aria-label=\"{_config.Branding.Title}\">");
                 RenderNavbarLogoImages(sb, currentUrl);
                 sb.AppendLine("            </a>");
                 return;
@@ -142,7 +228,9 @@ namespace Neko.Builder
         {
             // Blog mode uses the logo as a compact wordmark (curiosity.ai sizes it at
             // ~21px tall); docs mode pairs a larger icon-logo with the title.
-            var logoH = _isBlogMode ? "h-[21px]" : "h-8";
+            // `shrink-0` keeps the logo at its natural width inside the flex header
+            // so a crowded nav can never compress it (the curiosity.ai wordmark bug).
+            var logoH = _isBlogMode ? "h-[21px] shrink-0" : "h-8";
             string logoUrl = ResolveLogoPath(currentUrl, _config.Branding.Logo);
             sb.AppendLine($"                <img src=\"{logoUrl}\" class=\"{logoH} w-auto dark:hidden\">");
             if (!string.IsNullOrEmpty(_config.Branding.LogoDark))
@@ -218,7 +306,8 @@ namespace Neko.Builder
         private void RenderNavbarLinks(StringBuilder sb)
         {
             // Blog mode inks the nav links with the base colour (near-black on
-            // curiosity.ai); docs use the muted grey.
+            // curiosity.ai); docs use the muted grey. On mobile (below `md`) the links
+            // collapse into the hamburger menu; the desktop layout is unchanged.
             if (_isBlogMode)
             {
                 sb.AppendLine("        <div class=\"hidden md:flex items-center gap-[22px] text-sm font-medium md:ml-1.5\" style=\"color:var(--blog-ink)\">");

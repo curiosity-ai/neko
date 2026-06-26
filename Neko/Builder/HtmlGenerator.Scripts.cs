@@ -10,6 +10,7 @@ namespace Neko.Builder
 
             RenderBannerScript(sb);
             RenderMobileMenuScript(sb);
+            RenderBlogMobileMenuScript(sb);
             RenderSidebarScrollScript(sb);
             RenderSidebarFilterScript(sb);
             RenderSidebarMatchHelper(sb);
@@ -71,6 +72,37 @@ namespace Neko.Builder
             sb.AppendLine("        if (mobileMenuBtn) {");
             sb.AppendLine("            mobileMenuBtn.addEventListener('click', toggleMobileMenu);");
             sb.AppendLine("            sidebarOverlay.addEventListener('click', toggleMobileMenu);");
+            sb.AppendLine("        }");
+        }
+
+        // Toggles the blog-mode mobile menu (the hamburger drop-down). Swaps the
+        // burger/cross glyphs, flips aria-expanded, locks body scroll while open, and
+        // auto-closes if the viewport grows back to the `md` desktop layout.
+        private void RenderBlogMobileMenuScript(StringBuilder sb)
+        {
+            if (!_isBlogMode) return;
+
+            sb.AppendLine("        const blogMenuBtn = document.getElementById('blog-menu-btn');");
+            sb.AppendLine("        const blogMobileMenu = document.getElementById('blog-mobile-menu');");
+            sb.AppendLine("        if (blogMenuBtn && blogMobileMenu) {");
+            sb.AppendLine("            const blogBurger = blogMenuBtn.querySelector('.fi-rr-menu-burger');");
+            sb.AppendLine("            const blogCross = blogMenuBtn.querySelector('.fi-rr-cross-small');");
+            sb.AppendLine("            function setBlogMenu(open) {");
+            sb.AppendLine("                blogMobileMenu.classList.toggle('hidden', !open);");
+            sb.AppendLine("                if (blogBurger) blogBurger.classList.toggle('hidden', open);");
+            sb.AppendLine("                if (blogCross) blogCross.classList.toggle('hidden', !open);");
+            sb.AppendLine("                blogMenuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');");
+            sb.AppendLine("                document.body.style.overflow = open ? 'hidden' : '';");
+            sb.AppendLine("            }");
+            sb.AppendLine("            blogMenuBtn.addEventListener('click', function () {");
+            sb.AppendLine("                setBlogMenu(blogMobileMenu.classList.contains('hidden'));");
+            sb.AppendLine("            });");
+            sb.AppendLine("            blogMobileMenu.addEventListener('click', function (e) {");
+            sb.AppendLine("                if (e.target.closest('a')) setBlogMenu(false);");
+            sb.AppendLine("            });");
+            sb.AppendLine("            window.addEventListener('resize', function () {");
+            sb.AppendLine("                if (window.innerWidth >= 768 && !blogMobileMenu.classList.contains('hidden')) setBlogMenu(false);");
+            sb.AppendLine("            });");
             sb.AppendLine("        }");
         }
 
