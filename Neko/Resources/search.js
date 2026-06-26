@@ -311,7 +311,8 @@
         });
     }
 
-    function renderResults(results, container, inputEl) {
+    function renderResults(results, container, inputEl, options) {
+        const hideBreadcrumbs = !!(options && options.hideBreadcrumbs);
         if (results.length === 0) {
             renderStatus(container, 'fi fi-rr-search', 'No results found', 'We couldn\'t find any items matching your search criteria.');
             return;
@@ -341,15 +342,21 @@
             // from the navigation, plus the parent page title for section hits.
             // Pages that aren't part of the configured navigation fall back to
             // their directory path segments so results stay distinguishable.
-            let crumbs = Array.isArray(result.breadcrumbs) ? result.breadcrumbs.filter(Boolean) : [];
-            if (crumbs.length === 0) {
-                const segments = pathPart.replace(/\\/g, '/').replace(/\.html$/i, '').split('/').filter(Boolean);
-                if (segments.length > 0 && segments[segments.length - 1].toLowerCase() === 'index') segments.pop();
-                segments.pop(); // the page's own segment — the title line already names it
-                crumbs = segments;
-            }
-            if (result.type === 'section' && result.parentTitle) {
-                crumbs = crumbs.concat(result.parentTitle);
+            // Breadcrumbs are suppressed in blog mode: every post lives under
+            // "blog", so the trail is always the same single crumb and just adds
+            // noise above the title.
+            let crumbs = [];
+            if (!hideBreadcrumbs) {
+                crumbs = Array.isArray(result.breadcrumbs) ? result.breadcrumbs.filter(Boolean) : [];
+                if (crumbs.length === 0) {
+                    const segments = pathPart.replace(/\\/g, '/').replace(/\.html$/i, '').split('/').filter(Boolean);
+                    if (segments.length > 0 && segments[segments.length - 1].toLowerCase() === 'index') segments.pop();
+                    segments.pop(); // the page's own segment — the title line already names it
+                    crumbs = segments;
+                }
+                if (result.type === 'section' && result.parentTitle) {
+                    crumbs = crumbs.concat(result.parentTitle);
+                }
             }
 
             const crumbSeparator = '<i class="fi fi-rr-angle-small-right text-[9px] leading-none shrink-0" aria-hidden="true"></i>';
@@ -365,12 +372,18 @@
                 ? `<div class="flex flex-wrap items-center gap-1.5 mt-2">${tags.slice(0, 6).map(t => `<span class="inline-flex items-center gap-1 text-[11px] font-medium rounded-full bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 px-2 py-0.5"><i class="fi fi-rr-hashtag text-[9px] opacity-70" aria-hidden="true"></i>${highlight(escapeHtml(t), terms)}</span>`).join('')}</div>`
                 : '';
 
-            // Cover thumbnail (blog post `cover:`), shown as a leading tile. Broken
-            // or missing images hide themselves so a stale path leaves no gap.
+            // Cover thumbnail (blog post `cover:`), shown as a leading tile. The
+            // tile is always rendered at a fixed size so result rows line up
+            // whether or not a post has a cover: a placeholder picture icon sits
+            // behind, the real cover (when present and loadable) covers it, and a
+            // missing or broken cover hides itself (onerror) so the placeholder
+            // shows instead of collapsing the row.
             const cover = result.cover ? String(result.cover) : '';
-            const coverHtml = cover
-                ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy" onerror="this.style.display='none'" class="shrink-0 w-16 h-16 rounded-lg object-cover bg-gray-100 dark:bg-gray-700">`
-                : '';
+            const coverHtml = `
+                <div class="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                    <span class="absolute inset-0 flex items-center justify-center"><i class="fi fi-rr-picture text-lg text-gray-400 dark:text-gray-500" aria-hidden="true"></i></span>
+                    ${cover ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none'" class="absolute inset-0 w-full h-full object-cover">` : ''}
+                </div>`;
 
             return `
             <a href="${href}" class="flex gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700/50 group">
@@ -432,26 +445,109 @@
 
     // Inline search — used by blog mode instead of the modal. The builder
     // renders an in-page <input id="neko-inline-search"> with a results
-    // container (#neko-inline-search-results) and the post grid
-    // (#neko-blog-grid). Typing filters the index live, showing the results in
-    // place and hiding the post grid; clearing the box restores the grid.
+    // container (#neko-inline-search-results), an optional tag-chip row
+    // (#neko-blog-tags) and the post grid (#neko-blog-grid). Typing filters the
+    // index live to blog posts only and shows the results in place of the grid;
+    // clearing the box restores the grid. The tag chips filter the grid in place
+    // (cards, not result rows) so an empty query can still narrow by tag.
     function initInlineSearch() {
         const input = document.getElementById('neko-inline-search');
         const resultsContainer = document.getElementById('neko-inline-search-results');
         if (!input || !resultsContainer) return;
         const grid = document.getElementById('neko-blog-grid');
+        const tagsContainer = document.getElementById('neko-blog-tags');
+        const emptyEl = document.getElementById('neko-blog-empty');
         let selectedIndex = -1;
+        let activeTag = '';
 
-        function showResults(show) {
-            resultsContainer.classList.toggle('hidden', !show);
-            if (grid) grid.classList.toggle('hidden', show);
+        // The id prefix every blog post carries in the search index. Blog posts
+        // always live under `blog/` (see SiteBuilder), optionally behind a
+        // multi-repo route prefix. We use this to keep the inline search focused
+        // on posts only — other pages (about, contact, …) stay out of the results.
+        let routePrefix = (window.NEKO_ROUTE_PREFIX || '').replace(/\\/g, '/');
+        while (routePrefix.startsWith('/')) routePrefix = routePrefix.slice(1);
+        while (routePrefix.endsWith('/'))   routePrefix = routePrefix.slice(0, -1);
+        const blogPrefix = (routePrefix ? routePrefix + '/' : '') + 'blog/';
+
+        function isBlogResult(r) {
+            const key = r.type === 'section' ? (r.parentId || r.id) : r.id;
+            if (typeof key !== 'string' || !key.startsWith(blogPrefix)) return false;
+            // The blog landing page is the index, not a post — keep it out.
+            return key !== blogPrefix + 'index.html' && key !== blogPrefix + 'index';
+        }
+
+        function hasTag(r, tag) {
+            return Array.isArray(r.tags) && r.tags.some(t => t && String(t).toLowerCase() === tag);
+        }
+
+        // Must mirror chipActive/chipIdle in RenderBlogIndex (HtmlGenerator.Content.cs)
+        // so the script-applied state matches the server-rendered initial state.
+        function chipClass(on) {
+            return 'neko-blog-tag inline-flex items-center gap-1.5 text-sm font-medium rounded-full border px-3 py-1 transition-colors cursor-pointer '
+                + (on
+                    ? 'bg-primary-600 border-primary-600 text-white'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50');
+        }
+
+        function styleChips() {
+            if (!tagsContainer) return;
+            tagsContainer.querySelectorAll('[data-tag]').forEach(btn => {
+                btn.className = chipClass((btn.getAttribute('data-tag') || '') === activeTag);
+            });
+        }
+
+        // Filter the post cards in place by the active tag. With no active tag every
+        // card shows; an empty match surfaces the "no posts" note.
+        function filterGrid() {
+            if (!grid) return;
+            let visible = 0;
+            Array.from(grid.children).forEach(card => {
+                const tags = (card.getAttribute('data-tags') || '').split('|').filter(Boolean);
+                const show = !activeTag || tags.indexOf(activeTag) >= 0;
+                card.classList.toggle('hidden', !show);
+                if (show) visible++;
+            });
+            if (emptyEl) emptyEl.classList.toggle('hidden', visible !== 0);
+        }
+
+        // Card mode: hide the search-result rows and show the (tag-filtered) grid.
+        function showCards() {
+            resultsContainer.classList.add('hidden');
+            resultsContainer.innerHTML = '';
+            if (grid) grid.classList.remove('hidden');
+            filterGrid();
+        }
+
+        // Results mode: show the highlighted search rows, hide the grid.
+        function showSearch() {
+            resultsContainer.classList.remove('hidden');
+            if (grid) grid.classList.add('hidden');
+            if (emptyEl) emptyEl.classList.add('hidden');
         }
 
         function runSearch(query) {
             if (!miniSearch) return;
             const raw = miniSearch.search(query);
-            const results = dedupePerPage(raw).slice(0, 20);
-            renderResults(results, resultsContainer, input);
+            let results = dedupePerPage(raw).filter(isBlogResult);
+            if (activeTag) results = results.filter(r => hasTag(r, activeTag));
+            results = results.slice(0, 20);
+            renderResults(results, resultsContainer, input, { hideBreadcrumbs: true });
+        }
+
+        if (tagsContainer) {
+            styleChips();
+            tagsContainer.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-tag]');
+                if (!btn) return;
+                const tag = btn.getAttribute('data-tag') || '';
+                // Re-clicking the active tag clears it; the "All" chip (tag === '')
+                // always clears.
+                activeTag = (tag && tag === activeTag) ? '' : tag;
+                styleChips();
+                input.value = '';
+                selectedIndex = -1;
+                showCards();
+            });
         }
 
         function updateSelection() {
@@ -471,11 +567,12 @@
             selectedIndex = -1;
             const query = e.target.value.trim();
             if (!query) {
-                showResults(false);
-                resultsContainer.innerHTML = '';
+                // Empty query: fall back to the (tag-filtered) cards, never an
+                // empty highlighted result list.
+                showCards();
                 return;
             }
-            showResults(true);
+            showSearch();
             if (miniSearch) {
                 runSearch(query);
             } else {
@@ -483,7 +580,7 @@
                 loadSearchIndex().then(() => {
                     const current = input.value.trim();
                     if (current) runSearch(current);
-                    else { showResults(false); resultsContainer.innerHTML = ''; }
+                    else showCards();
                 }).catch(() => {
                     renderStatus(resultsContainer, 'fi fi-rr-triangle-warning', 'Search unavailable', 'The search index could not be loaded.');
                 });
@@ -493,8 +590,8 @@
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 input.value = '';
-                showResults(false);
-                resultsContainer.innerHTML = '';
+                selectedIndex = -1;
+                showCards();
                 input.blur();
                 return;
             }
@@ -524,50 +621,10 @@
         });
     }
 
-    // Blog tag filter — the builder renders a "Filter by" pill row
-    // (#neko-blog-filters) above the post grid (#neko-blog-grid). Each pill
-    // carries a data-filter tag; each card carries a data-tags list (pipe
-    // separated, lowercased). Clicking a pill shows only the cards whose tags
-    // include it; clicking the active pill again clears the filter. This is
-    // independent of the inline search above: when a search is active the grid
-    // is hidden, so the two never fight.
-    function initBlogFilter() {
-        const bar = document.getElementById('neko-blog-filters');
-        const grid = document.getElementById('neko-blog-grid');
-        if (!bar || !grid) return;
-
-        const pills = Array.from(bar.querySelectorAll('.neko-blog-filter'));
-        const cards = Array.from(grid.children);
-        const activeClasses = ['bg-gray-900', 'dark:bg-gray-100', 'text-white', 'dark:text-gray-900', 'border-gray-900', 'dark:border-gray-100'];
-        let active = null;
-
-        function apply() {
-            cards.forEach((card) => {
-                const tags = (card.getAttribute('data-tags') || '').split('|');
-                const show = !active || tags.indexOf(active) !== -1;
-                card.classList.toggle('hidden', !show);
-            });
-            pills.forEach((pill) => {
-                const on = pill.getAttribute('data-filter') === active;
-                pill.setAttribute('aria-pressed', on ? 'true' : 'false');
-                activeClasses.forEach((c) => pill.classList.toggle(c, on));
-            });
-        }
-
-        pills.forEach((pill) => {
-            pill.addEventListener('click', () => {
-                const tag = pill.getAttribute('data-filter');
-                active = (active === tag) ? null : tag;
-                apply();
-            });
-        });
-    }
-
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => { initInlineSearch(); initBlogFilter(); });
+        document.addEventListener('DOMContentLoaded', initInlineSearch);
     } else {
         initInlineSearch();
-        initBlogFilter();
     }
 
 })();

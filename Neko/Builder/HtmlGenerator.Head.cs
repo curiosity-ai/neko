@@ -168,9 +168,30 @@ namespace Neko.Builder
             {
                 sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
             }
-            if (_isBlogMode)
+            // Pin the header chrome to Inter ONLY when Neko is the one providing Inter
+            // (the rsms.me CDN copy, loaded above or as the default). A site that
+            // self-hosts its fonts via `theme.font.url` defines the header font in its
+            // own stylesheet — curiosity.ai's blog maps it to Inter *Display* Medium for
+            // pixel-exact chrome (`header { font-family: 'InterDisplay', 'Inter' }`).
+            // Emitting our 'Inter var' override here would win by source order yet
+            // resolve to nothing (the self-hosted CSS never defines 'Inter var'),
+            // dropping the header to the system sans-serif. So when the site brings its
+            // own font stylesheet, defer to it.
+            if (_isBlogMode && string.IsNullOrEmpty(font?.Url))
             {
                 sb.AppendLine("    <style>header { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { header { font-family: 'Inter var', sans-serif; } }</style>");
+            }
+
+            // The curiosity.ai marketing look renders the whole page with
+            // smoothed (thinned) text — `-webkit-font-smoothing: antialiased` /
+            // `-moz-osx-font-smoothing: grayscale`. Without it the same Inter/Inter
+            // Display at weight 500 paints noticeably heavier on macOS/Retina, so the
+            // nav links and CTA pills read bolder than the live site. Blog mode pins
+            // it so the chrome (and body/footer) match curiosity.ai pixel-for-pixel.
+            // Docs mode keeps the browser default.
+            if (_isBlogMode)
+            {
+                sb.AppendLine("    <style>html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }</style>");
             }
 
             // Flaticon UIcons (self-hosted v4 — see Neko.Tools.UIcons)

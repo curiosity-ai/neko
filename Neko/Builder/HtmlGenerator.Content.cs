@@ -571,49 +571,38 @@ namespace Neko.Builder
                 sb.AppendLine("        <i class=\"fi fi-rr-search absolute left-5 top-1/2 -translate-y-1/2 text-base text-gray-400 dark:text-gray-500 pointer-events-none\"></i>");
                 sb.AppendLine("        <input id=\"neko-inline-search\" type=\"text\" autocomplete=\"off\" placeholder=\"Search the blog…\" aria-label=\"Search the blog\" class=\"w-full text-gray-900 dark:text-gray-100 placeholder-gray-500 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full pl-12 pr-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow\">");
                 sb.AppendLine("    </div>");
+
+                // Tag filter chips, derived from the posts' frontmatter tags. Clicking
+                // a chip filters the card grid in place with an empty query (see
+                // initInlineSearch in search.js) — the cards stay cards rather than
+                // turning into highlighted search-result rows. The class lists here
+                // must mirror chipClass() in search.js so the server-rendered initial
+                // state matches what the script applies on click.
+                var blogTags = posts
+                    .SelectMany(p => p.Doc.FrontMatter.Tags ?? System.Array.Empty<string>())
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Select(t => t.Trim())
+                    .GroupBy(t => t.ToLowerInvariant())
+                    .Select(g => g.First())
+                    .OrderBy(t => t, System.StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (blogTags.Count > 0)
+                {
+                    const string chipActive = "neko-blog-tag inline-flex items-center gap-1.5 text-sm font-medium rounded-full border px-3 py-1 transition-colors cursor-pointer bg-primary-600 border-primary-600 text-white";
+                    const string chipIdle = "neko-blog-tag inline-flex items-center gap-1.5 text-sm font-medium rounded-full border px-3 py-1 transition-colors cursor-pointer border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50";
+
+                    sb.AppendLine("    <div id=\"neko-blog-tags\" class=\"flex flex-wrap items-center gap-2 mt-4\">");
+                    sb.AppendLine($"        <button type=\"button\" data-tag=\"\" class=\"{chipActive}\">All</button>");
+                    foreach (var tag in blogTags)
+                    {
+                        sb.AppendLine($"        <button type=\"button\" data-tag=\"{EscapeHtmlAttr(tag.ToLowerInvariant())}\" class=\"{chipIdle}\"><i class=\"fi fi-rr-hashtag text-[10px] opacity-70\" aria-hidden=\"true\"></i>{EscapeHtmlAttr(tag)}</button>");
+                    }
+                    sb.AppendLine("    </div>");
+                }
+
                 sb.AppendLine("    <div id=\"neko-inline-search-results\" class=\"hidden mt-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700/60 overflow-hidden\"></div>");
                 sb.AppendLine("</div>");
-            }
-
-            // "Filter by" pill row. The vocabulary is *derived from the posts*:
-            // the union of every post's `tags`, in descending order of how many
-            // posts carry each tag (ties broken alphabetically). Clicking a pill
-            // filters the grid to posts carrying that tag; clicking the active
-            // pill again clears the filter. The filtering itself is done client
-            // side in search.js (initBlogFilter) off the `data-tags` attribute
-            // each card carries below.
-            if (_isBlogMode)
-            {
-                var tagCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                foreach (var post in posts)
-                {
-                    var tags = post.Doc.FrontMatter.Tags;
-                    if (tags == null) continue;
-                    foreach (var raw in tags)
-                    {
-                        var tag = raw?.Trim();
-                        if (string.IsNullOrEmpty(tag)) continue;
-                        tagCounts.TryGetValue(tag, out var c);
-                        tagCounts[tag] = c + 1;
-                    }
-                }
-
-                if (tagCounts.Count > 0)
-                {
-                    var orderedTags = tagCounts
-                        .OrderByDescending(kv => kv.Value)
-                        .ThenBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
-                        .Select(kv => kv.Key)
-                        .ToList();
-
-                    sb.AppendLine("<div id=\"neko-blog-filters\" class=\"not-prose mb-6 flex flex-wrap items-center gap-2\">");
-                    sb.AppendLine("    <span class=\"text-sm font-medium text-gray-500 dark:text-gray-400 mr-1\">Filter by</span>");
-                    foreach (var tag in orderedTags)
-                    {
-                        sb.AppendLine($"    <button type=\"button\" class=\"neko-blog-filter inline-flex items-center rounded-full border border-gray-300 dark:border-gray-600 px-3.5 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition-colors\" data-filter=\"{EscapeHtmlAttr(tag.ToLowerInvariant())}\" aria-pressed=\"false\">{EscapeHtmlAttr(tag)}</button>");
-                    }
-                    sb.AppendLine("</div>");
-                }
             }
 
             var gridId = _isBlogMode ? " id=\"neko-blog-grid\"" : string.Empty;
@@ -639,30 +628,37 @@ namespace Neko.Builder
                     .Where(t => !string.IsNullOrEmpty(t))
                     .ToList();
 
-                // Pipe-joined, lowercased tag list the client-side filter matches
-                // against (see initBlogFilter in search.js). Only emitted in blog
-                // mode, where the "Filter by" row exists.
-                var tagAttr = _isBlogMode && tags.Count > 0
-                    ? $" data-tags=\"{EscapeHtmlAttr(string.Join("|", tags.Select(t => t.ToLowerInvariant())))}\""
-                    : string.Empty;
+                // Lowercased, pipe-joined tag list so the inline tag chips can filter
+                // the grid client-side without re-querying the search index.
+                var dataTags = _isBlogMode ? $" data-tags=\"{EscapeHtmlAttr(string.Join("|", tags.Select(t => t.ToLowerInvariant())))}\"" : string.Empty;
 
-                sb.AppendLine($"<a href=\"{url}\"{tagAttr} class=\"group relative flex flex-col justify-between overflow-hidden rounded-[14px] h-[244px] p-[22px] no-underline\" style=\"background-color:var(--blog-ink, #1f1f1f)\">");
+                sb.AppendLine($"<a href=\"{url}\"{dataTags} class=\"group relative flex flex-col justify-between overflow-hidden rounded-[14px] h-[244px] p-[22px] no-underline\" style=\"background-color:var(--blog-ink, #1f1f1f)\">");
 
-                // Cover image, faded behind the content and zoomed slightly on hover.
+                // Cover slot, faded behind the content and zoomed slightly on hover.
+                // It is always rendered so every card reserves the same backdrop and
+                // stays visually consistent: a placeholder picture icon sits behind,
+                // and the real cover (when present and loadable) covers it. A missing
+                // or broken cover hides itself (onerror) so the placeholder shows
+                // instead of a torn-image glyph; a successful load hides the
+                // placeholder (onload).
+                sb.AppendLine("    <span class=\"absolute inset-0 flex items-center justify-center rounded-[14px]\" aria-hidden=\"true\"><i class=\"fi fi-rr-picture text-[44px] opacity-20\" style=\"color:var(--blog-bg, #f1f1f1)\"></i></span>");
                 if (!string.IsNullOrEmpty(cover))
                 {
-                    sb.AppendLine($"    <img src=\"{cover}\" alt=\"{EscapeHtmlAttr(title)}\" class=\"absolute inset-0 w-full h-full object-cover rounded-[14px] opacity-30 transition-transform duration-500 group-hover:scale-110\">");
+                    sb.AppendLine($"    <img src=\"{cover}\" alt=\"{EscapeHtmlAttr(title)}\" loading=\"lazy\" onload=\"this.previousElementSibling.style.display='none'\" onerror=\"this.style.display='none'\" class=\"absolute inset-0 w-full h-full object-cover rounded-[14px] opacity-30 transition-transform duration-500 group-hover:scale-110\">");
                 }
 
                 // Top row: title + up-right arrow.
                 sb.AppendLine("    <div class=\"relative z-10 flex items-center gap-2.5\">");
                 sb.AppendLine($"        <h3 class=\"flex-1 m-0 text-base font-medium leading-[1.4]\" style=\"color:var(--blog-bg, #f1f1f1)\">{title}</h3>");
-                sb.AppendLine("        <i class=\"fi fi-rr-arrow-up-right shrink-0 text-[32px] leading-none\" style=\"color:var(--blog-bg, #f1f1f1)\"></i>");
+                // The arrow nudges diagonally up-and-right on card hover, matching the
+                // curiosity.ai/resources/blog interaction (a single arrow sliding along
+                // its own axis — there is no second-arrow "loop"). `group` is on the card.
+                sb.AppendLine("        <i class=\"fi fi-rr-arrow-up-right shrink-0 text-[32px] leading-none transition-transform duration-300 ease-out group-hover:translate-x-1 group-hover:-translate-y-1\" style=\"color:var(--blog-bg, #f1f1f1)\"></i>");
                 sb.AppendLine("    </div>");
 
                 // Tag pills, sitting just above the author/date row. They mirror
-                // the values in the "Filter by" row so a reader can see at a glance
-                // which bucket a post belongs to.
+                // the values in the tag-filter chips above so a reader can see at a
+                // glance which bucket a post belongs to.
                 if (_isBlogMode && tags.Count > 0)
                 {
                     sb.AppendLine("    <div class=\"relative z-10 flex flex-wrap gap-1.5\">");
@@ -689,6 +685,13 @@ namespace Neko.Builder
             }
 
             sb.AppendLine("</div>");
+
+            // Empty state shown by the tag filter when no post carries the selected
+            // tag (toggled by initInlineSearch in search.js).
+            if (_isBlogMode)
+            {
+                sb.AppendLine("<p id=\"neko-blog-empty\" class=\"hidden text-center text-sm text-gray-500 dark:text-gray-400 mt-8 not-prose\">No posts match this tag.</p>");
+            }
         }
 
         private void RenderChangelogIndex(StringBuilder sb, List<(ParsedDocument Doc, string Url, string Version)> entries)

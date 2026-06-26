@@ -12,8 +12,10 @@ namespace Neko.Tests
     /// Drives the blog-mode <b>inline search</b> in a real browser: builds a small
     /// `mode: blog` site, serves it, and verifies that typing into the in-content
     /// search box filters the index live (hiding the post grid), surfaces matching
-    /// posts together with their tag chips (highlighting the matched tag), and that
-    /// clearing the box restores the grid.
+    /// posts together with their tag chips (highlighting the matched tag) and no
+    /// breadcrumb trail, that clearing the box restores the grid, and that the tag
+    /// chips under the search bar filter the post grid in place (cards, not search
+    /// rows) with the "All" chip resetting the filter.
     ///
     /// Skipped when a Playwright browser is unavailable (e.g. no download).
     /// </summary>
@@ -153,11 +155,48 @@ Body of the beta post.
                 var natWidth = await cover.First.EvaluateAsync<int>("img => img.naturalWidth");
                 Assert.That(natWidth, Is.GreaterThan(0), "the cover thumbnail should load, not be hidden by onerror");
 
+                // Search results are scoped to blog posts: no breadcrumb trail (every
+                // post lives under "blog", so the crumb would always be the same).
+                Assert.That(await results.Locator("a").First.InnerHTMLAsync(),
+                    Does.Not.Contain("fi-rr-angle-small-right"),
+                    "blog-mode results omit the breadcrumb trail");
+
                 // Clearing the box restores the grid and hides the results.
                 await input.FillAsync("");
                 await grid.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
                 Assert.That(await grid.IsVisibleAsync(), Is.True, "clearing the query restores the post grid");
                 Assert.That(await results.IsHiddenAsync(), Is.True, "clearing the query hides the results");
+
+                // Tag chips filter the post grid in place — with an empty query the
+                // posts stay cards (not highlighted result rows). Clicking the
+                // `milestone` chip (only the alpha post carries it) leaves one card.
+                var tags = page.Locator("#neko-blog-tags");
+                Assert.That(await tags.IsVisibleAsync(), Is.True, "tag chips render under the search bar");
+                await tags.Locator("[data-tag=\"milestone\"]").ClickAsync();
+                Assert.That(await results.IsHiddenAsync(), Is.True, "tag filtering keeps the results rows hidden");
+                Assert.That(await grid.IsVisibleAsync(), Is.True, "tag filtering keeps the cards visible");
+
+                var visibleCards = grid.Locator("a:visible");
+                Assert.That(await visibleCards.CountAsync(), Is.EqualTo(1),
+                    "only the post carrying the selected tag stays visible");
+                Assert.That(await visibleCards.First.InnerTextAsync(), Does.Contain("Alpha Announcement"));
+
+                // The "All" chip clears the filter and shows every card again.
+                await tags.Locator("[data-tag=\"\"]").ClickAsync();
+                Assert.That(await grid.Locator("a:visible").CountAsync(), Is.EqualTo(2),
+                    "the All chip restores every post card");
+
+                // The result thumbnail always reserves its fixed-size tile, even for a
+                // post with no cover (beta) — it falls back to a placeholder icon
+                // instead of collapsing the row, so rows stay visually consistent.
+                await input.FillAsync("beta");
+                await results.Locator("a").First.WaitForAsync(new() { Timeout = 10000 });
+                var firstRow = results.Locator("a").First;
+                var tile = firstRow.Locator("div.w-16.h-16").First;
+                Assert.That(await tile.CountAsync(), Is.GreaterThan(0),
+                    "every result reserves a fixed-size cover tile");
+                Assert.That(await tile.Locator("i.fi-rr-picture").CountAsync(), Is.GreaterThan(0),
+                    "a coverless post shows the placeholder icon in the tile");
             }
             finally
             {

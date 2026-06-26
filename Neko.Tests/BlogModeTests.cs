@@ -105,6 +105,94 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void BlogMode_RendersTagChips_AndTagsCards_ForTagFiltering()
+        {
+            var config = BlogConfig();
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Alpha", Tags = new[] { "Photography", "Milestone" } } }, "/blog/alpha"),
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Beta", Tags = new[] { "cooking" } } }, "/blog/beta"),
+            };
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            // A tag-filter chip row with an "All" reset chip and one chip per unique
+            // tag (lowercased on the data-tag, sorted).
+            Assert.That(html, Contains.Substring("id=\"neko-blog-tags\""));
+            Assert.That(html, Contains.Substring("data-tag=\"\""));      // the "All" chip
+            Assert.That(html, Contains.Substring("data-tag=\"cooking\""));
+            Assert.That(html, Contains.Substring("data-tag=\"milestone\""));
+            Assert.That(html, Contains.Substring("data-tag=\"photography\""));
+
+            // Each card carries its (lowercased, pipe-joined) tags so the chips can
+            // filter the grid client-side.
+            Assert.That(html, Contains.Substring("data-tags=\"photography|milestone\""));
+            Assert.That(html, Contains.Substring("data-tags=\"cooking\""));
+
+            // The chips render above the post grid, and an empty-state note follows it.
+            var tagsIdx = html.IndexOf("id=\"neko-blog-tags\"");
+            var gridIdx = html.IndexOf("id=\"neko-blog-grid\"");
+            Assert.That(tagsIdx, Is.GreaterThan(0));
+            Assert.That(tagsIdx, Is.LessThan(gridIdx), "tag chips should render above the post grid");
+            Assert.That(html, Contains.Substring("id=\"neko-blog-empty\""));
+        }
+
+        [Test]
+        public void BlogMode_CardCoverSlot_IsConsistent_WithPlaceholderAndFallback()
+        {
+            var config = BlogConfig();
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "WithCover", Cover = "/assets/x.png" } }, "/blog/with"),
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "NoCover" } }, "/blog/without"),
+            };
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            // Every card renders the placeholder picture slot so the cover area
+            // always reserves the same space and stays consistent — present for the
+            // coverless card and behind the cover of the one that has it.
+            var slotCount = System.Text.RegularExpressions.Regex.Matches(html, "fi fi-rr-picture").Count;
+            Assert.That(slotCount, Is.EqualTo(2), "each card should render a cover placeholder slot");
+
+            // The cover image degrades gracefully: it hides itself if it fails to
+            // load (so no torn-image glyph) and hides the placeholder once it loads.
+            Assert.That(html, Contains.Substring("onerror=\"this.style.display='none'\""));
+            Assert.That(html, Contains.Substring("onload=\"this.previousElementSibling.style.display='none'\""));
+        }
+
+        [Test]
+        public void BlogMode_WithoutTags_OmitsTagChipRow()
+        {
+            var config = BlogConfig();
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Untagged" } }, "/blog/untagged"),
+            };
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            // No tags anywhere → no chip row (but the grid and its empty-state stay).
+            Assert.That(html, Does.Not.Contain("id=\"neko-blog-tags\""));
+            Assert.That(html, Contains.Substring("id=\"neko-blog-grid\""));
+        }
+
+        [Test]
         public void DocsMode_KeepsSearchInHeader()
         {
             var config = BlogConfig();
@@ -249,6 +337,54 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void BlogIndex_UsesWiderContentColumn_ForCardGridAndSearch()
+        {
+            // The blog index (cards + search) gets a roomier max-w-6xl column to
+            // match curiosity.ai/resources/blog; article reading width is unchanged.
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            var indexHtml = new HtmlGenerator(BlogConfig()).Generate(doc, currentUrl: "/blog/index");
+            Assert.That(indexHtml, Contains.Substring("max-w-6xl mx-auto prose"));
+
+            // A regular blog post keeps the comfortable max-w-4xl reading column.
+            var postDoc = new ParsedDocument
+            {
+                Html = "<p>Body</p>",
+                FrontMatter = new FrontMatter { Title = "A Post" }
+            };
+            var postHtml = new HtmlGenerator(BlogConfig()).Generate(postDoc, currentUrl: "/blog/a-post");
+            Assert.That(postHtml, Contains.Substring("max-w-4xl mx-auto prose"));
+            Assert.That(postHtml, Does.Not.Contain("max-w-6xl mx-auto prose"));
+        }
+
+        [Test]
+        public void BlogCard_Arrow_NudgesDiagonallyOnHover()
+        {
+            // The up-right arrow animates on card hover (translate up-and-right over
+            // 300ms) like curiosity.ai/resources/blog. `group` lives on the card <a>.
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Post", Author = "Curiosity", Date = "May 7, 2026" } }, "/blog/post")
+            };
+
+            var html = new HtmlGenerator(BlogConfig()).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            Assert.That(html, Contains.Substring("fi-rr-arrow-up-right"));
+            Assert.That(html, Contains.Substring("transition-transform"));
+            Assert.That(html, Contains.Substring("duration-300"));
+            Assert.That(html, Contains.Substring("group-hover:translate-x-1"));
+            Assert.That(html, Contains.Substring("group-hover:-translate-y-1"));
+        }
+
+        [Test]
         public void DocsMode_CapsContentRowAtMaxWidth()
         {
             var config = BlogConfig();
@@ -297,11 +433,14 @@ namespace Neko.Tests
         [Test]
         public void BlogMode_SelfHostedFont_DoesNotPullInterFromCdn()
         {
-            // A site that self-hosts its fonts via `theme.font.url` is expected to
-            // define 'Inter'/'Inter var' itself (curiosity.ai's blog maps them to
-            // Inter *Display* Medium for pixel-exact chrome). Loading the rsms.me
-            // copy afterwards would override that mapping with the regular Inter cut
-            // and add an external dependency, so blog mode must not pull it.
+            // A site that self-hosts its fonts via `theme.font.url` owns the header
+            // font in its own stylesheet (curiosity.ai's blog maps the header to
+            // Inter *Display* Medium with `header { font-family: 'InterDisplay', 'Inter' }`
+            // for pixel-exact chrome). Blog mode must therefore neither pull the
+            // rsms.me copy nor emit its own `header { font-family: ... }` override —
+            // that override would win by source order yet resolve to nothing (the
+            // self-hosted sheet never defines 'Inter var'), dropping the header to the
+            // system sans-serif. The engine defers to the self-hosted sheet instead.
             var config = BlogConfig();
             config.Theme.Font = new FontConfig
             {
@@ -312,8 +451,9 @@ namespace Neko.Tests
             var html = new HtmlGenerator(config).Generate(Doc());
 
             Assert.That(html, Does.Not.Contain("https://rsms.me/inter/inter.css"));
-            // The header is still pinned to Inter — supplied by the self-hosted sheet.
-            Assert.That(html, Contains.Substring("header { font-family: 'Inter var', sans-serif; }"));
+            // The engine does not force a header font; the self-hosted sheet owns it.
+            Assert.That(html, Does.Not.Contain("header { font-family: 'Inter var', sans-serif; }"));
+            Assert.That(html, Does.Not.Contain("header { font-family: 'Inter', sans-serif; }"));
             Assert.That(html, Contains.Substring("href=\"/assets/fonts/fonts.css\""));
         }
 
@@ -333,7 +473,7 @@ namespace Neko.Tests
         }
 
         [Test]
-        public void BlogMode_RendersTagFilterRow_DerivedFromPosts_OrderedByCount()
+        public void BlogMode_ShowsTagsVisiblyOnCards()
         {
             var config = BlogConfig();
             var doc = new ParsedDocument
@@ -341,52 +481,19 @@ namespace Neko.Tests
                 Html = "<p>Intro</p>",
                 FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
             };
-            // "release news" appears on two posts, "guides" on one — so the filter
-            // row must list "release news" first (descending post count).
             var posts = new List<(ParsedDocument, string)>
             {
-                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Rel A", Tags = new[] { "release news" } } }, "/blog/rel-a"),
-                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Rel B", Tags = new[] { "release news" } } }, "/blog/rel-b"),
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Rel", Tags = new[] { "release news" } } }, "/blog/rel"),
                 (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Guide", Tags = new[] { "guides" } } }, "/blog/guide")
             };
 
             var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
 
-            // The "Filter by" pill row is rendered, one pill per distinct tag.
-            Assert.That(html, Contains.Substring("id=\"neko-blog-filters\""));
-            Assert.That(html, Contains.Substring("data-filter=\"release news\""));
-            Assert.That(html, Contains.Substring("data-filter=\"guides\""));
-
-            // Ordered by descending post count: "release news" (2) before "guides" (1).
-            Assert.That(html.IndexOf("data-filter=\"release news\""),
-                Is.LessThan(html.IndexOf("data-filter=\"guides\"")));
-
-            // Each card carries its tags as a pipe-joined, lowercased data-tags list
-            // for the client-side filter, and shows the tag on the card.
-            Assert.That(html, Contains.Substring("data-tags=\"release news\""));
-            Assert.That(html, Contains.Substring("data-tags=\"guides\""));
-        }
-
-        [Test]
-        public void BlogMode_NoTags_OmitsFilterRow()
-        {
-            var config = BlogConfig();
-            var doc = new ParsedDocument
-            {
-                Html = "<p>Intro</p>",
-                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
-            };
-            var posts = new List<(ParsedDocument, string)>
-            {
-                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Untagged" } }, "/blog/untagged")
-            };
-
-            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
-
-            // With no tags on any post there is nothing to filter by, so the row
-            // (and the per-card data-tags attribute) are omitted entirely.
-            Assert.That(html, Does.Not.Contain("id=\"neko-blog-filters\""));
-            Assert.That(html, Does.Not.Contain("data-tags="));
+            // Beyond the hidden data-tags attribute used for filtering, each card
+            // renders its tags as a visible pill so the bucket is clear at a glance.
+            // The pill uses the inverted blog palette (bg-coloured chip on the ink card).
+            Assert.That(html, Contains.Substring("color:var(--blog-ink, #1f1f1f)\">release news</span>"));
+            Assert.That(html, Contains.Substring("color:var(--blog-ink, #1f1f1f)\">guides</span>"));
         }
     }
 }

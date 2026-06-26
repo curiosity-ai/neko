@@ -256,7 +256,11 @@ namespace Neko.Builder
             sb.AppendLine($"            <div class=\"relative group z-50\">");
             // Blog mode mirrors curiosity.ai's dropdown trigger: an 8px gap and a flat
             // 10×5 chevron SVG (the UIcon glyph rendered ~2px narrower, drifting the
-            // links). Docs keeps the UIcon caret with the tighter gap.
+            // links). curiosity.ai renders that chevron in a muted grey (~#b6bec5),
+            // not the near-black nav ink, so we fade it with `opacity-25` — ~25% of the
+            // #1f1f1f ink over the #f1f1f1 page reads as that grey, and it stays
+            // theme-agnostic instead of hard-coding a colour. Docs keeps the UIcon
+            // caret with the tighter gap.
             var triggerGap = _isBlogMode ? "gap-2.5" : "gap-1";
             sb.AppendLine($"                <button class=\"flex items-center {triggerGap} hover:text-primary-600 dark:hover:text-primary-400 transition-colors focus:outline-none\">");
             if (_showHeaderIcons && !string.IsNullOrEmpty(link.Icon))
@@ -266,7 +270,7 @@ namespace Neko.Builder
             sb.AppendLine($"                    <span>{link.Text}</span>");
             if (_isBlogMode)
             {
-                sb.AppendLine($"                    <svg width=\"10\" height=\"5\" viewBox=\"0 0 10 6\" fill=\"none\" class=\"shrink-0 transition-transform group-hover:rotate-180\" aria-hidden=\"true\"><path d=\"M1 1.5 5 4.5 9 1.5\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>");
+                sb.AppendLine($"                    <svg width=\"10\" height=\"5\" viewBox=\"0 0 10 6\" fill=\"none\" class=\"shrink-0 opacity-25 transition-transform group-hover:rotate-180\" aria-hidden=\"true\"><path d=\"M1 1.5 5 4.5 9 1.5\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>");
             }
             else
             {
