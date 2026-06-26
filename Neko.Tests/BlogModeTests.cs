@@ -308,6 +308,54 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void BlogIndex_UsesWiderContentColumn_ForCardGridAndSearch()
+        {
+            // The blog index (cards + search) gets a roomier max-w-6xl column to
+            // match curiosity.ai/resources/blog; article reading width is unchanged.
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            var indexHtml = new HtmlGenerator(BlogConfig()).Generate(doc, currentUrl: "/blog/index");
+            Assert.That(indexHtml, Contains.Substring("max-w-6xl mx-auto prose"));
+
+            // A regular blog post keeps the comfortable max-w-4xl reading column.
+            var postDoc = new ParsedDocument
+            {
+                Html = "<p>Body</p>",
+                FrontMatter = new FrontMatter { Title = "A Post" }
+            };
+            var postHtml = new HtmlGenerator(BlogConfig()).Generate(postDoc, currentUrl: "/blog/a-post");
+            Assert.That(postHtml, Contains.Substring("max-w-4xl mx-auto prose"));
+            Assert.That(postHtml, Does.Not.Contain("max-w-6xl mx-auto prose"));
+        }
+
+        [Test]
+        public void BlogCard_Arrow_NudgesDiagonallyOnHover()
+        {
+            // The up-right arrow animates on card hover (translate up-and-right over
+            // 300ms) like curiosity.ai/resources/blog. `group` lives on the card <a>.
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Post", Author = "Curiosity", Date = "May 7, 2026" } }, "/blog/post")
+            };
+
+            var html = new HtmlGenerator(BlogConfig()).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            Assert.That(html, Contains.Substring("fi-rr-arrow-up-right"));
+            Assert.That(html, Contains.Substring("transition-transform"));
+            Assert.That(html, Contains.Substring("duration-300"));
+            Assert.That(html, Contains.Substring("group-hover:translate-x-1"));
+            Assert.That(html, Contains.Substring("group-hover:-translate-y-1"));
+        }
+
+        [Test]
         public void DocsMode_CapsContentRowAtMaxWidth()
         {
             var config = BlogConfig();
