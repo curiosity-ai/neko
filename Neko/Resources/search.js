@@ -372,12 +372,18 @@
                 ? `<div class="flex flex-wrap items-center gap-1.5 mt-2">${tags.slice(0, 6).map(t => `<span class="inline-flex items-center gap-1 text-[11px] font-medium rounded-full bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 px-2 py-0.5"><i class="fi fi-rr-hashtag text-[9px] opacity-70" aria-hidden="true"></i>${highlight(escapeHtml(t), terms)}</span>`).join('')}</div>`
                 : '';
 
-            // Cover thumbnail (blog post `cover:`), shown as a leading tile. Broken
-            // or missing images hide themselves so a stale path leaves no gap.
+            // Cover thumbnail (blog post `cover:`), shown as a leading tile. The
+            // tile is always rendered at a fixed size so result rows line up
+            // whether or not a post has a cover: a placeholder picture icon sits
+            // behind, the real cover (when present and loadable) covers it, and a
+            // missing or broken cover hides itself (onerror) so the placeholder
+            // shows instead of collapsing the row.
             const cover = result.cover ? String(result.cover) : '';
-            const coverHtml = cover
-                ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy" onerror="this.style.display='none'" class="shrink-0 w-16 h-16 rounded-lg object-cover bg-gray-100 dark:bg-gray-700">`
-                : '';
+            const coverHtml = `
+                <div class="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                    <span class="absolute inset-0 flex items-center justify-center"><i class="fi fi-rr-picture text-lg text-gray-400 dark:text-gray-500" aria-hidden="true"></i></span>
+                    ${cover ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none'" class="absolute inset-0 w-full h-full object-cover">` : ''}
+                </div>`;
 
             return `
             <a href="${href}" class="flex gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700/50 group">
