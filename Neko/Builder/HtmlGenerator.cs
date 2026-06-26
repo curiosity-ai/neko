@@ -173,7 +173,13 @@ namespace Neko.Builder
                 ? "px-4 md:px-8 pt-24 md:pt-28 pb-4 md:pb-8"
                 : "p-4 md:p-8";
             sb.AppendLine($"            <main class=\"flex-1 overflow-y-auto overflow-x-clip {mainPadClass} scroll-smooth\" id=\"main-scroll\">");
-            sb.AppendLine("                <div class=\"max-w-4xl mx-auto prose dark:prose-invert\">");
+            // The reading column is capped at `max-w-4xl` (896px) — comfortable for
+            // article prose. The blog *index* is a card grid + search box, not prose,
+            // so it gets a wider column (`max-w-6xl`, ~1152px) to match the roomier
+            // curiosity.ai/resources/blog layout. Article (post) pages keep 4xl.
+            var isBlogIndex = _isBlogMode && (currentUrl == "/blog/index" || document.FrontMatter.Layout == "blog");
+            var contentColClass = isBlogIndex ? "max-w-6xl" : "max-w-4xl";
+            sb.AppendLine($"                <div class=\"{contentColClass} mx-auto prose dark:prose-invert\">");
 
             // The marketing (blog-mode) footer breaks out of the reading column to
             // span the full content pane, so it is rendered after the prose div.
