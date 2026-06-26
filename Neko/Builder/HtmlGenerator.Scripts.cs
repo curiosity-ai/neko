@@ -77,7 +77,7 @@ namespace Neko.Builder
 
         // Toggles the blog-mode mobile menu (the hamburger drop-down). Swaps the
         // burger/cross glyphs, flips aria-expanded, locks body scroll while open, and
-        // auto-closes if the viewport grows back to the `md` desktop layout.
+        // auto-closes if the viewport grows back to the `lg` desktop layout.
         private void RenderBlogMobileMenuScript(StringBuilder sb)
         {
             if (!_isBlogMode) return;
@@ -101,7 +101,7 @@ namespace Neko.Builder
             sb.AppendLine("                if (e.target.closest('a')) setBlogMenu(false);");
             sb.AppendLine("            });");
             sb.AppendLine("            window.addEventListener('resize', function () {");
-            sb.AppendLine("                if (window.innerWidth >= 768 && !blogMobileMenu.classList.contains('hidden')) setBlogMenu(false);");
+            sb.AppendLine("                if (window.innerWidth >= 1024 && !blogMobileMenu.classList.contains('hidden')) setBlogMenu(false);");
             sb.AppendLine("            });");
             sb.AppendLine("        }");
         }

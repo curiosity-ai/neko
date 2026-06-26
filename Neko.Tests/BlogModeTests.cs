@@ -304,8 +304,9 @@ namespace Neko.Tests
             var html = new HtmlGenerator(config).Generate(Doc());
 
             // The links group carries the left-cluster margin (curiosity.ai layout),
-            // and the links render before the header action buttons.
-            Assert.That(html, Contains.Substring("md:ml-1.5"));
+            // and the links render before the header action buttons. The wide
+            // marketing nav collapses into the hamburger below `lg`.
+            Assert.That(html, Contains.Substring("lg:ml-1.5"));
             var linkIdx = html.IndexOf(">Product</a>");
             var actionIdx = html.IndexOf(">Book a Demo</a>");
             Assert.That(linkIdx, Is.GreaterThan(0));
@@ -324,7 +325,7 @@ namespace Neko.Tests
         }
 
         [Test]
-        public void BlogMode_CollapsesNavIntoHamburgerOnMobile()
+        public void BlogMode_CollapsesNavIntoHamburgerBelowLg()
         {
             var config = BlogConfig();
             config.Links = new List<LinkConfig>
@@ -342,13 +343,14 @@ namespace Neko.Tests
 
             var html = new HtmlGenerator(config).Generate(Doc());
 
-            // The desktop layout is unchanged: links + CTA row still show from `md` up.
-            Assert.That(html, Contains.Substring("hidden md:flex items-center gap-[22px]"));
-            Assert.That(html, Contains.Substring("gap-2.5 hidden md:flex"));
+            // Desktop links + CTA row only show from `lg` up (so they no longer
+            // overflow under the CTA pills at tablet widths like ~900px).
+            Assert.That(html, Contains.Substring("hidden lg:flex items-center gap-[22px]"));
+            Assert.That(html, Contains.Substring("gap-2.5 hidden lg:flex"));
 
-            // A hamburger button appears below `md` to open the mobile menu.
+            // A hamburger button appears below `lg` to open the mobile menu.
             Assert.That(html, Contains.Substring("id=\"blog-menu-btn\""));
-            Assert.That(html, Contains.Substring("class=\"md:hidden flex items-center justify-center"));
+            Assert.That(html, Contains.Substring("class=\"lg:hidden flex items-center justify-center"));
 
             // The mobile menu panel carries the links (flyout items flattened) and the
             // CTA pills so the whole marketing nav is reachable on small screens.

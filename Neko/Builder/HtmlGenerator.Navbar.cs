@@ -105,11 +105,11 @@ namespace Neko.Builder
             }
             RenderNavbarActions(sb);
 
-            // Blog mode collapses its marketing nav into a hamburger on mobile (below
-            // `md`) — the desktop links/CTAs are `hidden md:flex`, so on small screens
-            // this button is the only way to reach them. The desktop layout is left
-            // exactly as before. Docs mode has its own sidebar-driven mobile menu (see
-            // the `mobile-menu-btn` above).
+            // Blog mode collapses its (wide) marketing nav into a hamburger below the
+            // `lg` breakpoint — the desktop links/CTAs are `hidden lg:flex`, so on
+            // tablet and smaller screens this button is the only way to reach them. The
+            // ≥1024px desktop layout is left exactly as before. Docs mode has its own
+            // sidebar-driven mobile menu (see the `mobile-menu-btn` above).
             if (_isBlogMode)
             {
                 RenderBlogMobileMenuButton(sb);
@@ -125,10 +125,10 @@ namespace Neko.Builder
         }
 
         // The hamburger trigger for the blog-mode mobile menu. Sits at the right of
-        // the header row (the logo stays pinned left) and only shows below `md`.
+        // the header row (the logo stays pinned left) and only shows below `lg`.
         private void RenderBlogMobileMenuButton(StringBuilder sb)
         {
-            sb.AppendLine("        <button id=\"blog-menu-btn\" class=\"md:hidden flex items-center justify-center p-2 -mr-2 shrink-0 focus:outline-none\" style=\"color:var(--blog-ink)\" aria-label=\"Open menu\" aria-expanded=\"false\">");
+            sb.AppendLine("        <button id=\"blog-menu-btn\" class=\"lg:hidden flex items-center justify-center p-2 -mr-2 shrink-0 focus:outline-none\" style=\"color:var(--blog-ink)\" aria-label=\"Open menu\" aria-expanded=\"false\">");
             sb.AppendLine("            <i class=\"fi fi-rr-menu-burger text-xl\"></i>");
             sb.AppendLine("            <i class=\"fi fi-rr-cross-small text-2xl hidden\"></i>");
             sb.AppendLine("        </button>");
@@ -136,10 +136,10 @@ namespace Neko.Builder
 
         // The blog-mode mobile menu panel: a full-width drop-down (below the fixed
         // header) holding the nav links and CTA pills, stacked. Hidden by default and
-        // toggled by the hamburger; only ever visible below `md`.
+        // toggled by the hamburger; only ever visible below `lg`.
         private void RenderBlogMobileMenu(StringBuilder sb)
         {
-            sb.AppendLine("    <div id=\"blog-mobile-menu\" class=\"md:hidden hidden fixed inset-x-0 top-20 bottom-0 z-20 overflow-y-auto px-6 py-6\" style=\"background-color:var(--blog-bg);color:var(--blog-ink)\">");
+            sb.AppendLine("    <div id=\"blog-mobile-menu\" class=\"lg:hidden hidden fixed inset-x-0 top-20 bottom-0 z-20 overflow-y-auto px-6 py-6\" style=\"background-color:var(--blog-bg);color:var(--blog-ink)\">");
 
             if (_config.Links != null && _config.Links.Count > 0)
             {
@@ -306,11 +306,13 @@ namespace Neko.Builder
         private void RenderNavbarLinks(StringBuilder sb)
         {
             // Blog mode inks the nav links with the base colour (near-black on
-            // curiosity.ai); docs use the muted grey. On mobile (below `md`) the links
-            // collapse into the hamburger menu; the desktop layout is unchanged.
+            // curiosity.ai); docs use the muted grey. The wide marketing nav collapses
+            // into the hamburger below `lg` — it can't fit the logo + links + CTAs on a
+            // tablet (links overflow under the CTA pills around ~900px), so it is
+            // `hidden lg:flex`; true desktop (≥1024px) is unchanged.
             if (_isBlogMode)
             {
-                sb.AppendLine("        <div class=\"hidden md:flex items-center gap-[22px] text-sm font-medium md:ml-1.5\" style=\"color:var(--blog-ink)\">");
+                sb.AppendLine("        <div class=\"hidden lg:flex items-center gap-[22px] text-sm font-medium lg:ml-1.5\" style=\"color:var(--blog-ink)\">");
             }
             else
             {
@@ -426,7 +428,10 @@ namespace Neko.Builder
             // Blog mode sits its CTA pills closer together (curiosity.ai uses ~10px);
             // docs keeps the wider gap for its search/history/toggle row.
             var actionsGap = _isBlogMode ? "gap-2.5" : "gap-4";
-            sb.AppendLine($"        <div class=\"flex items-center {actionsGap} hidden md:flex\">");
+            // Blog mode hides the desktop CTA row below `lg` (the pills move into the
+            // mobile menu); docs keep their search/toggle row from `md` up.
+            var actionsBreakpoint = _isBlogMode ? "hidden lg:flex" : "hidden md:flex";
+            sb.AppendLine($"        <div class=\"flex items-center {actionsGap} {actionsBreakpoint}\">");
             // In blog mode the search box moves out of the header to the top of the
             // post list (see RenderContentSearchBar); docs keep it in the header.
             if (!_isBlogMode)
