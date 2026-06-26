@@ -143,6 +143,35 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void BlogMode_CardCoverSlot_IsConsistent_WithPlaceholderAndFallback()
+        {
+            var config = BlogConfig();
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "WithCover", Cover = "/assets/x.png" } }, "/blog/with"),
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "NoCover" } }, "/blog/without"),
+            };
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            // Every card renders the placeholder picture slot so the cover area
+            // always reserves the same space and stays consistent — present for the
+            // coverless card and behind the cover of the one that has it.
+            var slotCount = System.Text.RegularExpressions.Regex.Matches(html, "fi fi-rr-picture").Count;
+            Assert.That(slotCount, Is.EqualTo(2), "each card should render a cover placeholder slot");
+
+            // The cover image degrades gracefully: it hides itself if it fails to
+            // load (so no torn-image glyph) and hides the placeholder once it loads.
+            Assert.That(html, Contains.Substring("onerror=\"this.style.display='none'\""));
+            Assert.That(html, Contains.Substring("onload=\"this.previousElementSibling.style.display='none'\""));
+        }
+
+        [Test]
         public void BlogMode_WithoutTags_OmitsTagChipRow()
         {
             var config = BlogConfig();

@@ -185,6 +185,18 @@ Body of the beta post.
                 await tags.Locator("[data-tag=\"\"]").ClickAsync();
                 Assert.That(await grid.Locator("a:visible").CountAsync(), Is.EqualTo(2),
                     "the All chip restores every post card");
+
+                // The result thumbnail always reserves its fixed-size tile, even for a
+                // post with no cover (beta) — it falls back to a placeholder icon
+                // instead of collapsing the row, so rows stay visually consistent.
+                await input.FillAsync("beta");
+                await results.Locator("a").First.WaitForAsync(new() { Timeout = 10000 });
+                var firstRow = results.Locator("a").First;
+                var tile = firstRow.Locator("div.w-16.h-16").First;
+                Assert.That(await tile.CountAsync(), Is.GreaterThan(0),
+                    "every result reserves a fixed-size cover tile");
+                Assert.That(await tile.Locator("i.fi-rr-picture").CountAsync(), Is.GreaterThan(0),
+                    "a coverless post shows the placeholder icon in the tile");
             }
             finally
             {

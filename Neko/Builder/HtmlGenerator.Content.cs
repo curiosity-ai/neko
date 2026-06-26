@@ -633,10 +633,17 @@ namespace Neko.Builder
 
                 sb.AppendLine($"<a href=\"{url}\"{dataTags} class=\"group relative flex flex-col justify-between overflow-hidden rounded-[14px] h-[244px] p-[22px] no-underline\" style=\"background-color:var(--blog-ink, #1f1f1f)\">");
 
-                // Cover image, faded behind the content and zoomed slightly on hover.
+                // Cover slot, faded behind the content and zoomed slightly on hover.
+                // It is always rendered so every card reserves the same backdrop and
+                // stays visually consistent: a placeholder picture icon sits behind,
+                // and the real cover (when present and loadable) covers it. A missing
+                // or broken cover hides itself (onerror) so the placeholder shows
+                // instead of a torn-image glyph; a successful load hides the
+                // placeholder (onload).
+                sb.AppendLine("    <span class=\"absolute inset-0 flex items-center justify-center rounded-[14px]\" aria-hidden=\"true\"><i class=\"fi fi-rr-picture text-[44px] opacity-20\" style=\"color:var(--blog-bg, #f1f1f1)\"></i></span>");
                 if (!string.IsNullOrEmpty(cover))
                 {
-                    sb.AppendLine($"    <img src=\"{cover}\" alt=\"{EscapeHtmlAttr(title)}\" class=\"absolute inset-0 w-full h-full object-cover rounded-[14px] opacity-30 transition-transform duration-500 group-hover:scale-110\">");
+                    sb.AppendLine($"    <img src=\"{cover}\" alt=\"{EscapeHtmlAttr(title)}\" loading=\"lazy\" onload=\"this.previousElementSibling.style.display='none'\" onerror=\"this.style.display='none'\" class=\"absolute inset-0 w-full h-full object-cover rounded-[14px] opacity-30 transition-transform duration-500 group-hover:scale-110\">");
                 }
 
                 // Top row: title + up-right arrow.
