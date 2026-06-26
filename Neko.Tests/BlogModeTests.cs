@@ -331,5 +331,62 @@ namespace Neko.Tests
             Assert.That(html, Contains.Substring("https://rsms.me/inter/inter.css"));
             Assert.That(html, Contains.Substring("header { font-family: 'Inter var', sans-serif; }"));
         }
+
+        [Test]
+        public void BlogMode_RendersTagFilterRow_DerivedFromPosts_OrderedByCount()
+        {
+            var config = BlogConfig();
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            // "release news" appears on two posts, "guides" on one — so the filter
+            // row must list "release news" first (descending post count).
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Rel A", Tags = new[] { "release news" } } }, "/blog/rel-a"),
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Rel B", Tags = new[] { "release news" } } }, "/blog/rel-b"),
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Guide", Tags = new[] { "guides" } } }, "/blog/guide")
+            };
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            // The "Filter by" pill row is rendered, one pill per distinct tag.
+            Assert.That(html, Contains.Substring("id=\"neko-blog-filters\""));
+            Assert.That(html, Contains.Substring("data-filter=\"release news\""));
+            Assert.That(html, Contains.Substring("data-filter=\"guides\""));
+
+            // Ordered by descending post count: "release news" (2) before "guides" (1).
+            Assert.That(html.IndexOf("data-filter=\"release news\""),
+                Is.LessThan(html.IndexOf("data-filter=\"guides\"")));
+
+            // Each card carries its tags as a pipe-joined, lowercased data-tags list
+            // for the client-side filter, and shows the tag on the card.
+            Assert.That(html, Contains.Substring("data-tags=\"release news\""));
+            Assert.That(html, Contains.Substring("data-tags=\"guides\""));
+        }
+
+        [Test]
+        public void BlogMode_NoTags_OmitsFilterRow()
+        {
+            var config = BlogConfig();
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Untagged" } }, "/blog/untagged")
+            };
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            // With no tags on any post there is nothing to filter by, so the row
+            // (and the per-card data-tags attribute) are omitted entirely.
+            Assert.That(html, Does.Not.Contain("id=\"neko-blog-filters\""));
+            Assert.That(html, Does.Not.Contain("data-tags="));
+        }
     }
 }

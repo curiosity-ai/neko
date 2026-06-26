@@ -524,10 +524,50 @@
         });
     }
 
+    // Blog tag filter — the builder renders a "Filter by" pill row
+    // (#neko-blog-filters) above the post grid (#neko-blog-grid). Each pill
+    // carries a data-filter tag; each card carries a data-tags list (pipe
+    // separated, lowercased). Clicking a pill shows only the cards whose tags
+    // include it; clicking the active pill again clears the filter. This is
+    // independent of the inline search above: when a search is active the grid
+    // is hidden, so the two never fight.
+    function initBlogFilter() {
+        const bar = document.getElementById('neko-blog-filters');
+        const grid = document.getElementById('neko-blog-grid');
+        if (!bar || !grid) return;
+
+        const pills = Array.from(bar.querySelectorAll('.neko-blog-filter'));
+        const cards = Array.from(grid.children);
+        const activeClasses = ['bg-gray-900', 'dark:bg-gray-100', 'text-white', 'dark:text-gray-900', 'border-gray-900', 'dark:border-gray-100'];
+        let active = null;
+
+        function apply() {
+            cards.forEach((card) => {
+                const tags = (card.getAttribute('data-tags') || '').split('|');
+                const show = !active || tags.indexOf(active) !== -1;
+                card.classList.toggle('hidden', !show);
+            });
+            pills.forEach((pill) => {
+                const on = pill.getAttribute('data-filter') === active;
+                pill.setAttribute('aria-pressed', on ? 'true' : 'false');
+                activeClasses.forEach((c) => pill.classList.toggle(c, on));
+            });
+        }
+
+        pills.forEach((pill) => {
+            pill.addEventListener('click', () => {
+                const tag = pill.getAttribute('data-filter');
+                active = (active === tag) ? null : tag;
+                apply();
+            });
+        });
+    }
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initInlineSearch);
+        document.addEventListener('DOMContentLoaded', () => { initInlineSearch(); initBlogFilter(); });
     } else {
         initInlineSearch();
+        initBlogFilter();
     }
 
 })();

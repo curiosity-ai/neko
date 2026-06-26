@@ -575,6 +575,47 @@ namespace Neko.Builder
                 sb.AppendLine("</div>");
             }
 
+            // "Filter by" pill row. The vocabulary is *derived from the posts*:
+            // the union of every post's `tags`, in descending order of how many
+            // posts carry each tag (ties broken alphabetically). Clicking a pill
+            // filters the grid to posts carrying that tag; clicking the active
+            // pill again clears the filter. The filtering itself is done client
+            // side in search.js (initBlogFilter) off the `data-tags` attribute
+            // each card carries below.
+            if (_isBlogMode)
+            {
+                var tagCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var post in posts)
+                {
+                    var tags = post.Doc.FrontMatter.Tags;
+                    if (tags == null) continue;
+                    foreach (var raw in tags)
+                    {
+                        var tag = raw?.Trim();
+                        if (string.IsNullOrEmpty(tag)) continue;
+                        tagCounts.TryGetValue(tag, out var c);
+                        tagCounts[tag] = c + 1;
+                    }
+                }
+
+                if (tagCounts.Count > 0)
+                {
+                    var orderedTags = tagCounts
+                        .OrderByDescending(kv => kv.Value)
+                        .ThenBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+                        .Select(kv => kv.Key)
+                        .ToList();
+
+                    sb.AppendLine("<div id=\"neko-blog-filters\" class=\"not-prose mb-6 flex flex-wrap items-center gap-2\">");
+                    sb.AppendLine("    <span class=\"text-sm font-medium text-gray-500 dark:text-gray-400 mr-1\">Filter by</span>");
+                    foreach (var tag in orderedTags)
+                    {
+                        sb.AppendLine($"    <button type=\"button\" class=\"neko-blog-filter inline-flex items-center rounded-full border border-gray-300 dark:border-gray-600 px-3.5 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition-colors\" data-filter=\"{EscapeHtmlAttr(tag.ToLowerInvariant())}\" aria-pressed=\"false\">{EscapeHtmlAttr(tag)}</button>");
+                    }
+                    sb.AppendLine("</div>");
+                }
+            }
+
             var gridId = _isBlogMode ? " id=\"neko-blog-grid\"" : string.Empty;
             // Card grid mirroring curiosity.ai/resources/blog: a dark, rounded
             // tile per post with the cover image faded behind the content. The
@@ -593,8 +634,19 @@ namespace Neko.Builder
                 var author = post.Doc.FrontMatter.Author;
                 var cover = post.Doc.FrontMatter.Cover;
                 var url = post.Url;
+                var tags = (post.Doc.FrontMatter.Tags ?? System.Array.Empty<string>())
+                    .Select(t => t?.Trim())
+                    .Where(t => !string.IsNullOrEmpty(t))
+                    .ToList();
 
-                sb.AppendLine($"<a href=\"{url}\" class=\"group relative flex flex-col justify-between overflow-hidden rounded-[14px] h-[244px] p-[22px] no-underline\" style=\"background-color:var(--blog-ink, #1f1f1f)\">");
+                // Pipe-joined, lowercased tag list the client-side filter matches
+                // against (see initBlogFilter in search.js). Only emitted in blog
+                // mode, where the "Filter by" row exists.
+                var tagAttr = _isBlogMode && tags.Count > 0
+                    ? $" data-tags=\"{EscapeHtmlAttr(string.Join("|", tags.Select(t => t.ToLowerInvariant())))}\""
+                    : string.Empty;
+
+                sb.AppendLine($"<a href=\"{url}\"{tagAttr} class=\"group relative flex flex-col justify-between overflow-hidden rounded-[14px] h-[244px] p-[22px] no-underline\" style=\"background-color:var(--blog-ink, #1f1f1f)\">");
 
                 // Cover image, faded behind the content and zoomed slightly on hover.
                 if (!string.IsNullOrEmpty(cover))
@@ -607,6 +659,19 @@ namespace Neko.Builder
                 sb.AppendLine($"        <h3 class=\"flex-1 m-0 text-base font-medium leading-[1.4]\" style=\"color:var(--blog-bg, #f1f1f1)\">{title}</h3>");
                 sb.AppendLine("        <i class=\"fi fi-rr-arrow-up-right shrink-0 text-[32px] leading-none\" style=\"color:var(--blog-bg, #f1f1f1)\"></i>");
                 sb.AppendLine("    </div>");
+
+                // Tag pills, sitting just above the author/date row. They mirror
+                // the values in the "Filter by" row so a reader can see at a glance
+                // which bucket a post belongs to.
+                if (_isBlogMode && tags.Count > 0)
+                {
+                    sb.AppendLine("    <div class=\"relative z-10 flex flex-wrap gap-1.5\">");
+                    foreach (var tag in tags)
+                    {
+                        sb.AppendLine($"        <span class=\"inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium\" style=\"background-color:var(--blog-bg, #f1f1f1);color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(tag)}</span>");
+                    }
+                    sb.AppendLine("    </div>");
+                }
 
                 // Bottom row: author (left) + date (right), split by a hairline rule.
                 if (!string.IsNullOrEmpty(author) || !string.IsNullOrEmpty(date))
