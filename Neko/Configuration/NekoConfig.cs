@@ -71,6 +71,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "layout")]
         public LayoutConfig Layout { get; set; } = new LayoutConfig();
 
+        [YamlMember(Alias = "blog")]
+        public BlogConfig Blog { get; set; } = new BlogConfig();
+
         [YamlMember(Alias = "nav")]
         public NavConfig Nav { get; set; } = new NavConfig();
 
@@ -245,6 +248,15 @@ namespace Neko.Configuration
                     ImageGen.Size = parent.ImageGen.Size;
             }
 
+            // Inherit blog index header (per-field, only when the child left it unset).
+            if (Blog == null) Blog = new BlogConfig();
+            if (parent.Blog != null)
+            {
+                if (string.IsNullOrEmpty(Blog.Pill))        Blog.Pill        = parent.Blog.Pill;
+                if (string.IsNullOrEmpty(Blog.Title))       Blog.Title       = parent.Blog.Title;
+                if (string.IsNullOrEmpty(Blog.Description)) Blog.Description = parent.Blog.Description;
+            }
+
             // Inherit Tesserae settings (per-field, only when the child left the default)
             if (Tesserae == null) Tesserae = new TesseraeConfig();
             if (parent.Tesserae != null)
@@ -254,6 +266,23 @@ namespace Neko.Configuration
                 if (Tesserae.MeasureWidth == 0)             Tesserae.MeasureWidth = parent.Tesserae.MeasureWidth;
             }
         }
+    }
+
+    // Hero shown above the post grid on the blog index page (`blog` mode). The
+    // optional `pill` renders as a small rounded label, `title` as the large
+    // page heading and `description` as a lead paragraph beneath it — matching
+    // the curiosity.ai/resources/blog header. Every field is optional; when all
+    // are empty the index opens straight into the search box, as before.
+    public class BlogConfig
+    {
+        [YamlMember(Alias = "pill")]
+        public string Pill { get; set; }
+
+        [YamlMember(Alias = "title")]
+        public string Title { get; set; }
+
+        [YamlMember(Alias = "description")]
+        public string Description { get; set; }
     }
 
     public class TesseraeConfig

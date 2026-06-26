@@ -556,6 +556,39 @@ namespace Neko.Builder
             sb.AppendLine("                    </ul>");
         }
 
+        // The blog index hero — a small rounded pill, a large title and an
+        // optional lead paragraph — sitting above the search box on the `blog`
+        // index page. Driven entirely by the `blog:` block in neko.yml; when
+        // none of the fields are set the whole header is skipped so the index
+        // opens straight into the search box, preserving the previous layout.
+        private void RenderBlogIndexHeader(StringBuilder sb)
+        {
+            var blog = _config.Blog;
+            if (blog == null) return;
+
+            var hasPill        = !string.IsNullOrWhiteSpace(blog.Pill);
+            var hasTitle       = !string.IsNullOrWhiteSpace(blog.Title);
+            var hasDescription = !string.IsNullOrWhiteSpace(blog.Description);
+            if (!hasPill && !hasTitle && !hasDescription) return;
+
+            sb.AppendLine("<div class=\"not-prose mt-2\">");
+            if (hasPill)
+            {
+                sb.AppendLine($"    <span class=\"inline-flex items-center rounded-full border border-gray-300 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 px-4 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300\">{EscapeHtmlAttr(blog.Pill)}</span>");
+            }
+            if (hasTitle)
+            {
+                var topMargin = hasPill ? " mt-6" : string.Empty;
+                sb.AppendLine($"    <h1 class=\"{("text-4xl md:text-5xl font-semibold leading-tight text-gray-400 dark:text-gray-500" + topMargin)}\">{EscapeHtmlAttr(blog.Title)}</h1>");
+            }
+            if (hasDescription)
+            {
+                var topMargin = (hasPill || hasTitle) ? " mt-4" : string.Empty;
+                sb.AppendLine($"    <p class=\"{("max-w-2xl text-base md:text-lg text-gray-600 dark:text-gray-400" + topMargin)}\">{EscapeHtmlAttr(blog.Description)}</p>");
+            }
+            sb.AppendLine("</div>");
+        }
+
         private void RenderBlogIndex(StringBuilder sb, List<(ParsedDocument Doc, string Url)> posts)
         {
             if (posts == null || posts.Count == 0) return;
@@ -566,6 +599,8 @@ namespace Neko.Builder
             // hits in place of the post grid (see initInlineSearch in search.js).
             if (_isBlogMode)
             {
+                RenderBlogIndexHeader(sb);
+
                 sb.AppendLine("<div class=\"not-prose mt-8 mb-6\">");
                 sb.AppendLine("    <div class=\"relative\">");
                 sb.AppendLine("        <i class=\"fi fi-rr-search absolute left-5 top-1/2 -translate-y-1/2 text-base text-gray-400 dark:text-gray-500 pointer-events-none\"></i>");

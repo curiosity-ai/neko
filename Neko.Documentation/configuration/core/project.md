@@ -1500,6 +1500,41 @@ set their own `mode`.
 
 ---
 
+## blog
+
+The **hero** shown above the post grid on the blog index page (in
+[`blog` mode](#mode)) — a small rounded pill, the large page title, and an
+optional lead paragraph, matching the curiosity.ai blog header. Every field is
+optional; when all are unset the index opens straight into the search box.
+
+=== pill : `string`
+Text of the small rounded label rendered above the title (e.g. `Blog`). Omit to
+hide the pill.
+===
+
+=== title : `string`
+The large page heading shown at the top of the blog index.
+===
+
+=== description : `string`
+An optional lead paragraph rendered beneath the title.
+===
+
+```yml
+blog:
+  pill: Blog
+  title: Notes on how we build AI products and systems in practice
+  description: Product updates, engineering notes and release overviews.
+```
+
+!!!
+These fields only render on the blog index in `blog` mode. They are inherited by
+[multi-repo](/configuration/core/project) child sites per-field unless the child
+sets its own `blog` values.
+!!!
+
+---
+
 ## nav
 
 Navigation configuration options to control the behavior of the left sidebar navigation.

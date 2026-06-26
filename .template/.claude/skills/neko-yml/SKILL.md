@@ -48,6 +48,7 @@ links:
 | `actions`   | Header call-to-action buttons (pills), e.g. *Book a Demo*. Best in blog mode.|
 | `nav`       | Project-wide nav settings (`mode: stack`; `icons.mode` — sidebar icons, default `none`). |
 | `layout`    | Page chrome: `sidebar`/`toc` toggles and the `maxWidth` content cap.       |
+| `blog`      | Blog index hero (blog mode): `pill`, `title`, `description`.                |
 | `toc`       | Default right-sidebar TOC settings.                                        |
 | `backlinks` | Default inbound-link block behaviour.                                      |
 | `start`     | Dev-server tweaks (`pro: true`, ports).                                    |
@@ -232,6 +233,28 @@ mode: blog
 Blog mode pairs naturally with `layout.sidebar: false`, `layout.toc: false`,
 `actions:`, and the marketing `footer:` fields below. It is inherited by
 multi-repo child sites unless they set their own `mode`.
+
+## Blog index hero (`blog:`)
+
+In blog mode you can put a hero above the post grid on the index page — a small
+rounded pill, the large page title, and an optional lead paragraph:
+
+```yml
+blog:
+  pill: Blog
+  title: Notes on how we build AI products and systems in practice
+  description: Product updates, engineering notes and release overviews.
+```
+
+| Key           | Purpose                                                        |
+| ---           | ---                                                            |
+| `pill`        | Small rounded label shown above the title. Omit to hide it.    |
+| `title`       | Large page heading at the top of the blog index.              |
+| `description` | Optional lead paragraph beneath the title.                     |
+
+Every field is optional; when all are unset the index opens straight into the
+search box. The fields render only on the blog index in blog mode, and are
+inherited per-field by multi-repo child sites unless overridden.
 
 ## Header actions (CTA buttons)
 
