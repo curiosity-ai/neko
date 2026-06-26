@@ -566,12 +566,40 @@ namespace Neko.Builder
             // the palette.
             if (_isBlogMode)
             {
-                var indexTitle = !string.IsNullOrEmpty(document?.FrontMatter.Title)
-                    ? document.FrontMatter.Title
-                    : document?.FrontMatter.Label;
-                if (!string.IsNullOrEmpty(indexTitle))
+                var hero = _config?.Blog;
+                var heroTitle = hero?.Title;
+                var heroLead = !string.IsNullOrEmpty(hero?.Lead) ? hero.Lead : hero?.Description;
+
+                // When `blog.title` is configured, render the marketing hero: a small
+                // rounded pill, the large title, and an optional lead paragraph. This
+                // mirrors curiosity.ai/resources/blog. The pill uses a plain system
+                // sans-serif at 12px (not the brand body font); the title inherits the
+                // body font (Plus Jakarta Sans on the blog) at 30.4px / weight 500.
+                // Global `-webkit-font-smoothing: antialiased` (set in blog mode) thins
+                // both, matching the live site.
+                if (!string.IsNullOrEmpty(heroTitle))
                 {
-                    sb.AppendLine($"<h1 class=\"not-prose text-3xl md:text-4xl font-bold mt-2 mb-0\" style=\"color:var(--blog-ink,#1f1f1f)\">{EscapeHtmlAttr(indexTitle)}</h1>");
+                    sb.AppendLine("<div class=\"not-prose mt-2\">");
+                    if (!string.IsNullOrEmpty(hero.Pill))
+                    {
+                        sb.AppendLine($"    <span class=\"inline-flex items-center rounded-full px-3 py-1 text-[12px] font-medium mb-4\" style=\"font-family:sans-serif;background-color:var(--blog-ink,#1f1f1f);color:var(--blog-bg,#f1f1f1)\">{EscapeHtmlAttr(hero.Pill)}</span>");
+                    }
+                    sb.AppendLine($"    <h1 class=\"text-[30.4px] font-medium leading-tight mt-0 mb-0\" style=\"color:var(--blog-ink,#1f1f1f)\">{EscapeHtmlAttr(heroTitle)}</h1>");
+                    if (!string.IsNullOrEmpty(heroLead))
+                    {
+                        sb.AppendLine($"    <p class=\"mt-4 mb-0 text-base\" style=\"color:var(--blog-ink,#1f1f1f);opacity:0.75\">{EscapeHtmlAttr(heroLead)}</p>");
+                    }
+                    sb.AppendLine("</div>");
+                }
+                else
+                {
+                    var indexTitle = !string.IsNullOrEmpty(document?.FrontMatter.Title)
+                        ? document.FrontMatter.Title
+                        : document?.FrontMatter.Label;
+                    if (!string.IsNullOrEmpty(indexTitle))
+                    {
+                        sb.AppendLine($"<h1 class=\"not-prose text-3xl md:text-4xl font-bold mt-2 mb-0\" style=\"color:var(--blog-ink,#1f1f1f)\">{EscapeHtmlAttr(indexTitle)}</h1>");
+                    }
                 }
             }
 
@@ -636,7 +664,7 @@ namespace Neko.Builder
             // colour with bg-coloured text — so it tracks the theme, with the
             // curiosity.ai defaults (#1f1f1f / #f1f1f1) as hardcoded fallbacks
             // for docs-mode index pages where the palette vars are absent.
-            sb.AppendLine($"<div{gridId} class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[15px] mt-8 not-prose\">");
+            sb.AppendLine($"<div{gridId} class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[44px] mt-8 not-prose\">");
 
             foreach (var post in posts)
             {

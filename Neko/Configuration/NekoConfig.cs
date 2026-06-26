@@ -89,6 +89,9 @@ namespace Neko.Configuration
         [YamlMember(Alias = "apiDocs")]
         public ApiDocsConfig ApiDocs { get; set; } = new ApiDocsConfig();
 
+        [YamlMember(Alias = "blog")]
+        public BlogConfig Blog { get; set; } = new BlogConfig();
+
         public void NormalizeLinks()
         {
             if (Banner != null)
@@ -288,6 +291,27 @@ namespace Neko.Configuration
     {
         [YamlMember(Alias = "roots")]
         public Dictionary<string, string> Roots { get; set; }
+    }
+
+    // Hero shown above the post grid on the blog index page (blog mode): a small
+    // rounded pill, the large page title, and an optional lead paragraph. When
+    // `title` is set it replaces the plain label H1 that the index would
+    // otherwise render. Ignored outside blog mode.
+    public class BlogConfig
+    {
+        [YamlMember(Alias = "pill")]
+        public string Pill { get; set; }
+
+        [YamlMember(Alias = "title")]
+        public string Title { get; set; }
+
+        // Optional lead paragraph under the title. `lead` and `description` are
+        // accepted as aliases for the same slot; `lead` wins when both are set.
+        [YamlMember(Alias = "lead")]
+        public string Lead { get; set; }
+
+        [YamlMember(Alias = "description")]
+        public string Description { get; set; }
     }
 
     public class NavConfig

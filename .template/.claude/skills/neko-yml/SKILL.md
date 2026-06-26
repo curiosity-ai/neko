@@ -233,6 +233,30 @@ Blog mode pairs naturally with `layout.sidebar: false`, `layout.toc: false`,
 `actions:`, and the marketing `footer:` fields below. It is inherited by
 multi-repo child sites unless they set their own `mode`.
 
+## Blog hero (blog mode)
+
+In blog mode, the post-index page can lead with a marketing hero above the
+search bar and post grid: a rounded `pill`, a large `title`, and an optional
+`lead` paragraph. When `title` is set it **replaces** the plain label `<h1>`
+the index would otherwise show. Ignored outside blog mode.
+
+```yml
+blog:
+  pill: Blog
+  title: Notes on how we build AI products and systems in practice
+  lead: Product updates and monthly release overviews.   # `description` is an alias
+```
+
+| Key      | Purpose                                                          |
+| ---      | ---                                                              |
+| `pill`   | Short label in the rounded pill above the title. Omit to hide.  |
+| `title`  | The large hero heading; rendered as the page `<h1>`.            |
+| `lead`   | Optional lead paragraph under the title (alias: `description`).  |
+
+The pill renders in a plain system sans-serif at 12px; the title inherits the
+site body font (`theme.font`) at 30.4px / weight 500. Colours track
+`theme.base` (ink pill on the page background).
+
 ## Header actions (CTA buttons)
 
 `actions` renders pill-shaped call-to-action buttons on the right of the navbar.

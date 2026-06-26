@@ -50,7 +50,7 @@ namespace Neko.Tests
             // Tailwind escapes brackets/dots in selectors (e.g. `.rounded-\[14px\]`),
             // so strip the backslashes before matching the plain class token.
             var css = (await File.ReadAllTextAsync(Path.Combine(outDir, "assets", "tailwind.css"))).Replace("\\", "");
-            foreach (var cls in new[] { ".rounded-[14px]", ".h-[244px]", ".p-[22px]", ".gap-[15px]", ".leading-[1.4]", ".text-[20px]" })
+            foreach (var cls in new[] { ".rounded-[14px]", ".h-[244px]", ".p-[22px]", ".gap-[44px]", ".leading-[1.4]", ".text-[20px]" })
                 Assert.That(css, Contains.Substring(cls), $"tailwind.css is missing a rule for {cls}");
 
             // 3. Serve and open in a headless browser (skip if none available).
@@ -87,8 +87,8 @@ namespace Neko.Tests
                 catch { /* network idle best-effort */ }
                 await page.WaitForTimeoutAsync(200);
 
-                // The blog grid is uniquely identified by its gap-[15px] class.
-                var grid = page.Locator("div[class*='gap-[15px]']");
+                // The blog grid is uniquely identified by its gap-[44px] class.
+                var grid = page.Locator("div[class*='gap-[44px]']");
                 var cardCount = await grid.Locator("> a").CountAsync();
                 Assert.That(cardCount, Is.EqualTo(2), "one card per blog post");
 

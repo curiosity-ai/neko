@@ -105,6 +105,72 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void BlogMode_RendersHero_PillAndTitle_WithSpecFonts()
+        {
+            var config = BlogConfig();
+            config.Blog = new BlogConfig
+            {
+                Pill = "Blog",
+                Title = "Notes on how we build AI products and systems in practice",
+                Lead = "Product updates and release overviews."
+            };
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Label = "Blog", Layout = "blog" }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Post" } }, "/blog/post")
+            };
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            // The pill: plain system sans-serif at 12px (not the brand body font).
+            Assert.That(html, Contains.Substring("font-family:sans-serif"));
+            Assert.That(html, Contains.Substring("text-[12px]"));
+            Assert.That(html, Contains.Substring(">Blog</span>"));
+
+            // The title: rendered as the H1 at 30.4px / weight 500, inheriting the
+            // body font. It replaces the plain label H1.
+            Assert.That(html, Contains.Substring("text-[30.4px]"));
+            Assert.That(html, Contains.Substring("font-medium"));
+            Assert.That(html, Contains.Substring("Notes on how we build AI products and systems in practice"));
+            // The fallback label H1 must NOT also render when a hero title is set.
+            Assert.That(html, Does.Not.Contain("text-3xl md:text-4xl font-bold mt-2 mb-0"));
+
+            // The optional lead paragraph renders under the title.
+            Assert.That(html, Contains.Substring("Product updates and release overviews."));
+
+            // The hero renders above the search box and post grid.
+            var heroIdx = html.IndexOf("Notes on how we build");
+            var searchIdx = html.IndexOf("id=\"neko-inline-search\"");
+            Assert.That(heroIdx, Is.GreaterThan(0));
+            Assert.That(heroIdx, Is.LessThan(searchIdx), "hero should render above the search box");
+        }
+
+        [Test]
+        public void BlogMode_NoHeroTitle_FallsBackToLabelH1()
+        {
+            var config = BlogConfig();   // config.Blog left at its empty default
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Label = "Blog", Layout = "blog" }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Post" } }, "/blog/post")
+            };
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            // With no blog.title configured the index keeps the plain label H1.
+            Assert.That(html, Contains.Substring("text-3xl md:text-4xl font-bold mt-2 mb-0"));
+            Assert.That(html, Does.Not.Contain("text-[30.4px]"));
+        }
+
+        [Test]
         public void BlogMode_RendersTagChips_AndTagsCards_ForTagFiltering()
         {
             var config = BlogConfig();
