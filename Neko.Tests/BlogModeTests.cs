@@ -363,9 +363,9 @@ namespace Neko.Tests
         [Test]
         public void BlogCard_Arrow_RotatesOnHover()
         {
-            // A small right-pointing arrow rotates 45° on card hover (over 300ms),
-            // swinging from "→" to "↗" like curiosity.ai/resources/blog. `group` lives
-            // on the card <a>.
+            // A small right-pointing arrow rotates 45° counter-clockwise on card hover
+            // (over 300ms), swinging from "→" to "↗" like curiosity.ai/resources/blog.
+            // `group` lives on the card <a>.
             var doc = new ParsedDocument
             {
                 Html = "<p>Intro</p>",
@@ -381,7 +381,7 @@ namespace Neko.Tests
             Assert.That(html, Contains.Substring("fi-rr-arrow-small-right"));
             Assert.That(html, Contains.Substring("transition-transform"));
             Assert.That(html, Contains.Substring("duration-300"));
-            Assert.That(html, Contains.Substring("group-hover:rotate-45"));
+            Assert.That(html, Contains.Substring("group-hover:-rotate-45"));
         }
 
         [Test]
