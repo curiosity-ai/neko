@@ -211,6 +211,9 @@ namespace Neko.Tests
 
             // No theme toggle, light is locked, and no dark palette override.
             Assert.That(html, Does.Not.Contain("id=\"theme-toggle\""));
+            // The toggle button is absent, so the theme-switch script must guard
+            // the listener wiring instead of dereferencing a null element.
+            Assert.That(html, Contains.Substring("if (themeToggleBtn) {"));
             Assert.That(html, Contains.Substring("localStorage.theme = 'light'"));
             Assert.That(html, Contains.Substring("--blog-bg: #f1f1f1"));
             Assert.That(html, Contains.Substring("--blog-ink: #1f1f1f"));

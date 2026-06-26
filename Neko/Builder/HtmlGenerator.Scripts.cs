@@ -378,9 +378,12 @@ namespace Neko.Builder
             sb.AppendLine("            });");
             sb.AppendLine("        }");
             sb.AppendLine("");
-            sb.AppendLine("        themeToggleBtn.addEventListener('click', () => {");
-            sb.AppendLine("            setTheme(!document.documentElement.classList.contains('dark'));");
-            sb.AppendLine("        });");
+            sb.AppendLine("        // The toggle button is absent in blog mode without dark themes; guard against null.");
+            sb.AppendLine("        if (themeToggleBtn) {");
+            sb.AppendLine("            themeToggleBtn.addEventListener('click', () => {");
+            sb.AppendLine("                setTheme(!document.documentElement.classList.contains('dark'));");
+            sb.AppendLine("            });");
+            sb.AppendLine("        }");
             sb.AppendLine("");
             sb.AppendLine("        if (document.documentElement.classList.contains('dark')) {");
             sb.AppendLine("            highlightLink.href = darkHref;");
