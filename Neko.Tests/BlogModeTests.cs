@@ -412,7 +412,7 @@ namespace Neko.Tests
                 FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
             };
             var indexHtml = new HtmlGenerator(BlogConfig()).Generate(doc, currentUrl: "/blog/index");
-            Assert.That(indexHtml, Contains.Substring("max-w-6xl mx-auto prose"));
+            Assert.That(indexHtml, Contains.Substring("max-w-6xl grow w-full mx-auto prose"));
 
             // A regular blog post keeps the comfortable max-w-4xl reading column.
             var postDoc = new ParsedDocument
@@ -421,15 +421,16 @@ namespace Neko.Tests
                 FrontMatter = new FrontMatter { Title = "A Post" }
             };
             var postHtml = new HtmlGenerator(BlogConfig()).Generate(postDoc, currentUrl: "/blog/a-post");
-            Assert.That(postHtml, Contains.Substring("max-w-4xl mx-auto prose"));
-            Assert.That(postHtml, Does.Not.Contain("max-w-6xl mx-auto prose"));
+            Assert.That(postHtml, Contains.Substring("max-w-4xl grow w-full mx-auto prose"));
+            Assert.That(postHtml, Does.Not.Contain("max-w-6xl grow w-full mx-auto prose"));
         }
 
         [Test]
-        public void BlogCard_Arrow_NudgesDiagonallyOnHover()
+        public void BlogCard_Arrow_RotatesOnHover()
         {
-            // The up-right arrow animates on card hover (translate up-and-right over
-            // 300ms) like curiosity.ai/resources/blog. `group` lives on the card <a>.
+            // A small right-pointing arrow rotates 45° on card hover (over 300ms),
+            // swinging from "→" to "↗" like curiosity.ai/resources/blog. `group` lives
+            // on the card <a>.
             var doc = new ParsedDocument
             {
                 Html = "<p>Intro</p>",
@@ -442,11 +443,10 @@ namespace Neko.Tests
 
             var html = new HtmlGenerator(BlogConfig()).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
 
-            Assert.That(html, Contains.Substring("fi-rr-arrow-up-right"));
+            Assert.That(html, Contains.Substring("fi-rr-arrow-small-right"));
             Assert.That(html, Contains.Substring("transition-transform"));
             Assert.That(html, Contains.Substring("duration-300"));
-            Assert.That(html, Contains.Substring("group-hover:translate-x-1"));
-            Assert.That(html, Contains.Substring("group-hover:-translate-y-1"));
+            Assert.That(html, Contains.Substring("group-hover:rotate-45"));
         }
 
         [Test]

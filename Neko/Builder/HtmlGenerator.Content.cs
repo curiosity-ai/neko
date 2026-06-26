@@ -556,9 +556,24 @@ namespace Neko.Builder
             sb.AppendLine("                    </ul>");
         }
 
-        private void RenderBlogIndex(StringBuilder sb, List<(ParsedDocument Doc, string Url)> posts)
+        private void RenderBlogIndex(StringBuilder sb, List<(ParsedDocument Doc, string Url)> posts, ParsedDocument document = null)
         {
             if (posts == null || posts.Count == 0) return;
+
+            // The index page carries no H1 of its own (unlike post pages, whose title
+            // is rendered by RenderBlogPostHeader), so surface the page title/label
+            // here above the search + filter row. Uses the blog ink colour so it tracks
+            // the palette.
+            if (_isBlogMode)
+            {
+                var indexTitle = !string.IsNullOrEmpty(document?.FrontMatter.Title)
+                    ? document.FrontMatter.Title
+                    : document?.FrontMatter.Label;
+                if (!string.IsNullOrEmpty(indexTitle))
+                {
+                    sb.AppendLine($"<h1 class=\"not-prose text-3xl md:text-4xl font-bold mt-2 mb-0\" style=\"color:var(--blog-ink,#1f1f1f)\">{EscapeHtmlAttr(indexTitle)}</h1>");
+                }
+            }
 
             // In blog mode the header has no search box — it lives at the top of
             // the post list instead. Unlike docs mode (which opens a modal), the
@@ -589,14 +604,21 @@ namespace Neko.Builder
 
                 if (blogTags.Count > 0)
                 {
-                    const string chipActive = "neko-blog-tag inline-flex items-center gap-1.5 text-sm font-medium rounded-full border px-3 py-1 transition-colors cursor-pointer bg-primary-600 border-primary-600 text-white";
-                    const string chipIdle = "neko-blog-tag inline-flex items-center gap-1.5 text-sm font-medium rounded-full border px-3 py-1 transition-colors cursor-pointer border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50";
+                    // Active chips invert to the blog ink (#1f1f1f) over the page bg
+                    // (#f1f1f1) — driven by the palette vars so they track dark mode —
+                    // rather than the docs-mode blue. The colour lives in an inline style
+                    // (Tailwind arbitrary colours only accept literals, not CSS vars), so
+                    // the base class carries everything except the active fill. Must mirror
+                    // chipClass()/applyChipStyle() in search.js.
+                    const string chipBase = "neko-blog-tag inline-flex items-center gap-1.5 text-sm font-medium rounded-full border px-3 py-1 transition-colors cursor-pointer";
+                    const string chipIdleColors = "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50";
+                    const string chipActiveStyle = "background-color:var(--blog-ink,#1f1f1f);border-color:var(--blog-ink,#1f1f1f);color:var(--blog-bg,#f1f1f1)";
 
                     sb.AppendLine("    <div id=\"neko-blog-tags\" class=\"flex flex-wrap items-center gap-2 mt-4\">");
-                    sb.AppendLine($"        <button type=\"button\" data-tag=\"\" class=\"{chipActive}\">All</button>");
+                    sb.AppendLine($"        <button type=\"button\" data-tag=\"\" class=\"{chipBase}\" style=\"{chipActiveStyle}\">All</button>");
                     foreach (var tag in blogTags)
                     {
-                        sb.AppendLine($"        <button type=\"button\" data-tag=\"{EscapeHtmlAttr(tag.ToLowerInvariant())}\" class=\"{chipIdle}\"><i class=\"fi fi-rr-hashtag text-[10px] opacity-70\" aria-hidden=\"true\"></i>{EscapeHtmlAttr(tag)}</button>");
+                        sb.AppendLine($"        <button type=\"button\" data-tag=\"{EscapeHtmlAttr(tag.ToLowerInvariant())}\" class=\"{chipBase} {chipIdleColors}\"><i class=\"fi fi-rr-hashtag text-[10px] opacity-70\" aria-hidden=\"true\"></i>{EscapeHtmlAttr(tag)}</button>");
                     }
                     sb.AppendLine("    </div>");
                 }
@@ -647,13 +669,13 @@ namespace Neko.Builder
                     sb.AppendLine($"    <img src=\"{cover}\" alt=\"{EscapeHtmlAttr(title)}\" loading=\"lazy\" onload=\"this.previousElementSibling.style.display='none'\" onerror=\"this.style.display='none'\" class=\"absolute inset-0 w-full h-full object-cover rounded-[14px] opacity-30 transition-transform duration-500 group-hover:scale-110\">");
                 }
 
-                // Top row: title + up-right arrow.
+                // Top row: title + arrow.
                 sb.AppendLine("    <div class=\"relative z-10 flex items-center gap-2.5\">");
                 sb.AppendLine($"        <h3 class=\"flex-1 m-0 text-base font-medium leading-[1.4]\" style=\"color:var(--blog-bg, #f1f1f1)\">{title}</h3>");
-                // The arrow nudges diagonally up-and-right on card hover, matching the
-                // curiosity.ai/resources/blog interaction (a single arrow sliding along
-                // its own axis — there is no second-arrow "loop"). `group` is on the card.
-                sb.AppendLine("        <i class=\"fi fi-rr-arrow-up-right shrink-0 text-[32px] leading-none transition-transform duration-300 ease-out group-hover:translate-x-1 group-hover:-translate-y-1\" style=\"color:var(--blog-bg, #f1f1f1)\"></i>");
+                // A small right-pointing arrow that rotates 45° on card hover, so it
+                // swings from "→" to "↗" — the curiosity.ai/resources/blog interaction.
+                // `group` is on the card.
+                sb.AppendLine("        <i class=\"fi fi-rr-arrow-small-right shrink-0 text-[20px] leading-none transition-transform duration-300 ease-out group-hover:rotate-45\" style=\"color:var(--blog-bg, #f1f1f1)\"></i>");
                 sb.AppendLine("    </div>");
 
                 // Tag pills, sitting just above the author/date row. They mirror
