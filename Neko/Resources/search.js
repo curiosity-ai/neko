@@ -480,19 +480,35 @@
             return Array.isArray(r.tags) && r.tags.some(t => t && String(t).toLowerCase() === tag);
         }
 
-        // Must mirror chipActive/chipIdle in RenderBlogIndex (HtmlGenerator.Content.cs)
-        // so the script-applied state matches the server-rendered initial state.
+        // Must mirror chipBase/chipIdleColors/chipActiveStyle in RenderBlogIndex
+        // (HtmlGenerator.Content.cs) so the script-applied state matches the
+        // server-rendered initial state. The active fill is the blog ink colour,
+        // applied as an inline style (CSS vars can't go through a Tailwind class).
         function chipClass(on) {
-            return 'neko-blog-tag inline-flex items-center gap-1.5 text-sm font-medium rounded-full border px-3 py-1 transition-colors cursor-pointer '
+            return 'neko-blog-tag inline-flex items-center gap-1.5 text-sm font-medium rounded-full border px-3 py-1 transition-colors cursor-pointer'
                 + (on
-                    ? 'bg-primary-600 border-primary-600 text-white'
-                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50');
+                    ? ''
+                    : ' border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50');
+        }
+
+        function applyChipStyle(btn, on) {
+            if (on) {
+                btn.style.backgroundColor = 'var(--blog-ink,#1f1f1f)';
+                btn.style.borderColor = 'var(--blog-ink,#1f1f1f)';
+                btn.style.color = 'var(--blog-bg,#f1f1f1)';
+            } else {
+                btn.style.backgroundColor = '';
+                btn.style.borderColor = '';
+                btn.style.color = '';
+            }
         }
 
         function styleChips() {
             if (!tagsContainer) return;
             tagsContainer.querySelectorAll('[data-tag]').forEach(btn => {
-                btn.className = chipClass((btn.getAttribute('data-tag') || '') === activeTag);
+                const on = (btn.getAttribute('data-tag') || '') === activeTag;
+                btn.className = chipClass(on);
+                applyChipStyle(btn, on);
             });
         }
 

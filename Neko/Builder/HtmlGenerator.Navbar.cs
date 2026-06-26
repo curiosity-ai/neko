@@ -59,12 +59,11 @@ namespace Neko.Builder
             // (driven by the `theme.base` palette).
             if (_isBlogMode)
             {
-                // curiosity.ai pins the header as a translucent overlay: a transparent
-                // `backdrop-filter:blur` bar fixed to the top, with the page content
-                // scrolling underneath it (`#main-scroll` is padded to clear it). At
-                // the top of the page the blurred page background reads as the base
-                // colour; once scrolled, content shows faintly through the blur.
-                sb.AppendLine("    <header style=\"background-color:transparent;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)\" class=\"absolute top-0 inset-x-0 h-20 flex items-center px-6 z-30\">");
+                // The header is pinned as an overlay bar at the top, with the page
+                // content scrolling underneath it (`#main-scroll` is padded to clear
+                // it). It is filled with the base page colour (#f1f1f1) so the bar reads
+                // as a solid topbar rather than letting scrolled content show through.
+                sb.AppendLine("    <header style=\"background-color:var(--blog-bg)\" class=\"absolute top-0 inset-x-0 h-20 flex items-center px-6 z-30\">");
             }
             else
             {
