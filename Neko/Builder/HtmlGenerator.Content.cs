@@ -605,7 +605,10 @@ namespace Neko.Builder
                 // Top row: title + up-right arrow.
                 sb.AppendLine("    <div class=\"relative z-10 flex items-center gap-2.5\">");
                 sb.AppendLine($"        <h3 class=\"flex-1 m-0 text-base font-medium leading-[1.4]\" style=\"color:var(--blog-bg, #f1f1f1)\">{title}</h3>");
-                sb.AppendLine("        <i class=\"fi fi-rr-arrow-up-right shrink-0 text-[32px] leading-none\" style=\"color:var(--blog-bg, #f1f1f1)\"></i>");
+                // The arrow nudges diagonally up-and-right on card hover, matching the
+                // curiosity.ai/resources/blog interaction (a single arrow sliding along
+                // its own axis — there is no second-arrow "loop"). `group` is on the card.
+                sb.AppendLine("        <i class=\"fi fi-rr-arrow-up-right shrink-0 text-[32px] leading-none transition-transform duration-300 ease-out group-hover:translate-x-1 group-hover:-translate-y-1\" style=\"color:var(--blog-bg, #f1f1f1)\"></i>");
                 sb.AppendLine("    </div>");
 
                 // Bottom row: author (left) + date (right), split by a hairline rule.
