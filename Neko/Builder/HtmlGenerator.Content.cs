@@ -40,13 +40,15 @@ namespace Neko.Builder
             sb.AppendLine("<div class=\"mb-8 not-prose\">");
             if (!string.IsNullOrEmpty(document.FrontMatter.Cover))
             {
-                sb.AppendLine($"<div class=\"aspect-video w-full rounded-lg overflow-hidden mb-6 bg-gray-100 dark:bg-gray-900\">");
-                sb.AppendLine($"    <img src=\"{document.FrontMatter.Cover}\" class=\"w-full h-full object-cover\">");
+                // Wide panoramic banner matching curiosity.ai/resources/blog (~3:1),
+                // rather than the 16:9 the post page used before.
+                sb.AppendLine($"<div class=\"aspect-[3/1] w-full rounded-lg overflow-hidden mb-6 bg-gray-100 dark:bg-gray-900\">");
+                sb.AppendLine($"    <img src=\"{EscapeHtmlAttr(EncodeAssetUrl(document.FrontMatter.Cover))}\" class=\"w-full h-full object-cover\">");
                 sb.AppendLine($"</div>");
             }
 
             var blogTitle = !string.IsNullOrEmpty(document.FrontMatter.Title) ? document.FrontMatter.Title : document.FrontMatter.Label;
-            sb.AppendLine($"<h1 class=\"text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4\">{blogTitle}</h1>");
+            sb.AppendLine($"<h1 class=\"text-3xl md:text-4xl font-bold text-[#848484] mb-4\">{blogTitle}</h1>");
 
             sb.AppendLine("<div class=\"flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400\">");
             if (!string.IsNullOrEmpty(document.FrontMatter.Author))
@@ -705,7 +707,7 @@ namespace Neko.Builder
                 sb.AppendLine("    <span class=\"absolute inset-0 flex items-center justify-center rounded-[14px]\" aria-hidden=\"true\"><i class=\"fi fi-rr-picture text-[44px] opacity-20\" style=\"color:var(--blog-bg, #f1f1f1)\"></i></span>");
                 if (!string.IsNullOrEmpty(cover))
                 {
-                    sb.AppendLine($"    <img src=\"{cover}\" alt=\"{EscapeHtmlAttr(title)}\" loading=\"lazy\" onload=\"this.previousElementSibling.style.display='none'\" onerror=\"this.style.display='none'\" class=\"absolute inset-0 w-full h-full object-cover rounded-[14px] opacity-30 transition-transform duration-500 group-hover:scale-110\">");
+                    sb.AppendLine($"    <img src=\"{EscapeHtmlAttr(EncodeAssetUrl(cover))}\" alt=\"{EscapeHtmlAttr(title)}\" loading=\"lazy\" onload=\"this.previousElementSibling.style.display='none'\" onerror=\"this.style.display='none'\" class=\"absolute inset-0 w-full h-full object-cover rounded-[14px] opacity-30 transition-transform duration-500 group-hover:scale-110\">");
                 }
 
                 // Top row: title + arrow.

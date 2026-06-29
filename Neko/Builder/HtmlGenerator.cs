@@ -334,6 +334,15 @@ namespace Neko.Builder
             return value.Replace("&", "&amp;").Replace("\"", "&quot;").Replace("<", "&lt;").Replace(">", "&gt;");
         }
 
+        // Percent-encode characters in an asset URL that would otherwise break the
+        // link — notably spaces, which appear when assets live under a folder like
+        // "blog covers/". Path separators and the rest of the URL are left intact.
+        private static string EncodeAssetUrl(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return string.Empty;
+            return value.Replace(" ", "%20");
+        }
+
         private static string NormalizeTarget(string target)
         {
             if (string.IsNullOrEmpty(target)) return null;

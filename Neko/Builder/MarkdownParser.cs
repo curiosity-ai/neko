@@ -238,6 +238,46 @@ namespace Neko.Builder
             return samples;
         }
 
+        // Resolves a local (non-absolute, non-anchor) asset URL to a root-relative
+        // path. If the file exists exactly where the URL points (relative to the
+        // page), the URL is returned unchanged; otherwise the asset is searched for
+        // up the folder tree (matching the authored sub-path, or an `assets/` folder
+        // when the URL is a bare filename) and rewritten to `/<path-from-root>`.
+        // Unresolvable, external (`://`) and anchor (`#`) URLs are returned as-is.
+        private static string ResolveAssetUrl(string url, string currentDir, string rootDir)
+        {
+            if (string.IsNullOrEmpty(url) || url.Contains("://") || url.StartsWith("#")) return url;
+
+            var trimmedUrl = url.TrimStart('/');
+            var targetPath = Path.Combine(currentDir, trimmedUrl);
+
+            // If file exists as is, no need to resolve.
+            if (File.Exists(targetPath)) return url;
+
+            // Try to resolve in folders up the tree.
+            var fileName = Path.GetFileName(trimmedUrl);
+            var urlDir = Path.GetDirectoryName(trimmedUrl)?.Replace('\\', '/');
+
+            var searchDir = currentDir;
+            while (searchDir.StartsWith(rootDir, System.StringComparison.OrdinalIgnoreCase))
+            {
+                string candidateDir = string.IsNullOrEmpty(urlDir) ? Path.Combine(searchDir, "assets") : Path.Combine(searchDir, urlDir);
+                var assetPath = Path.GetFullPath(Path.Combine(candidateDir, fileName));
+
+                if (File.Exists(assetPath))
+                {
+                    // Calculate relative path from rootDir to foundPath.
+                    return "/" + Path.GetRelativePath(rootDir, assetPath).Replace("\\", "/");
+                }
+
+                var parent = Directory.GetParent(searchDir);
+                if (parent == null) break;
+                searchDir = parent.FullName;
+            }
+
+            return url;
+        }
+
         public ParsedDocument Parse(string markdown, string filePath = null, string rootDirectory = null)
         {
             // Pre-process includes
@@ -262,42 +302,7 @@ namespace Neko.Builder
                     // Process image URLs
                     if (link.IsImage && !string.IsNullOrEmpty(link.Url) && !link.Url.Contains("://") && !link.Url.StartsWith("#"))
                     {
-                        var url = link.Url;
-                        var trimmedUrl = url.TrimStart('/');
-                        var targetPath = Path.Combine(currentDir, trimmedUrl);
-
-                        // If file exists as is, no need to resolve
-                        if (File.Exists(targetPath)) continue;
-
-                        // Try to resolve in folders up the tree
-                        var fileName = Path.GetFileName(trimmedUrl);
-                        var urlDir = Path.GetDirectoryName(trimmedUrl)?.Replace('\\', '/');
-
-                        var searchDir = currentDir;
-                        string foundPath = null;
-
-                        while (searchDir.StartsWith(rootDir, System.StringComparison.OrdinalIgnoreCase))
-                        {
-                            string candidateDir = string.IsNullOrEmpty(urlDir) ? Path.Combine(searchDir, "assets") : Path.Combine(searchDir, urlDir);
-                            var assetPath = Path.GetFullPath(Path.Combine(candidateDir, fileName));
-
-                            if (File.Exists(assetPath))
-                            {
-                                foundPath = assetPath;
-                                break;
-                            }
-
-                            var parent = Directory.GetParent(searchDir);
-                            if (parent == null) break;
-                            searchDir = parent.FullName;
-                        }
-
-                        if (foundPath != null)
-                        {
-                            // Calculate relative path from rootDir to foundPath
-                            var relativePath = "/" + Path.GetRelativePath(rootDir, foundPath).Replace("\\", "/");
-                            link.Url = relativePath;
-                        }
+                        link.Url = ResolveAssetUrl(link.Url, currentDir, rootDir);
                     }
                 }
             }
@@ -314,6 +319,19 @@ namespace Neko.Builder
                     .IgnoreUnmatchedProperties()
                     .Build();
                 frontMatter = deserializer.Deserialize<FrontMatter>(yaml) ?? new FrontMatter();
+            }
+
+            // Resolve image-bearing front-matter paths (cover, author image) the same
+            // way body images are resolved above. These are emitted straight into the
+            // HTML by the generator, so without this a relative `cover: assets/…` would
+            // resolve against the page URL (e.g. `/blog/<post>/assets/…`) and 404 on
+            // single post pages. Rewriting to a root-relative `/assets/…` fixes that.
+            if (!string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(rootDirectory) && File.Exists(filePath))
+            {
+                var currentDir = Path.GetDirectoryName(Path.GetFullPath(filePath));
+                var rootDir = Path.GetFullPath(rootDirectory);
+                frontMatter.Cover = ResolveAssetUrl(frontMatter.Cover, currentDir, rootDir);
+                frontMatter.AuthorImage = ResolveAssetUrl(frontMatter.AuthorImage, currentDir, rootDir);
             }
 
             // Extract TOC
