@@ -255,6 +255,24 @@ namespace Neko.Configuration
                 if (string.IsNullOrEmpty(Blog.Pill))        Blog.Pill        = parent.Blog.Pill;
                 if (string.IsNullOrEmpty(Blog.Title))       Blog.Title       = parent.Blog.Title;
                 if (string.IsNullOrEmpty(Blog.Description)) Blog.Description = parent.Blog.Description;
+
+                // Read-next section (per-field).
+                if (Blog.ReadNext == null) Blog.ReadNext = new BlogReadNextConfig();
+                if (parent.Blog.ReadNext != null)
+                {
+                    if (string.IsNullOrEmpty(Blog.ReadNext.Title))       Blog.ReadNext.Title       = parent.Blog.ReadNext.Title;
+                    if (string.IsNullOrEmpty(Blog.ReadNext.Description)) Blog.ReadNext.Description = parent.Blog.ReadNext.Description;
+                }
+
+                // CTA band (per-field; actions inherited only when the child sets none).
+                if (Blog.Cta == null) Blog.Cta = new BlogCtaConfig();
+                if (parent.Blog.Cta != null)
+                {
+                    if (string.IsNullOrEmpty(Blog.Cta.Title))       Blog.Cta.Title       = parent.Blog.Cta.Title;
+                    if (string.IsNullOrEmpty(Blog.Cta.Description)) Blog.Cta.Description = parent.Blog.Cta.Description;
+                    if ((Blog.Cta.Actions == null || Blog.Cta.Actions.Count == 0) && parent.Blog.Cta.Actions != null)
+                        Blog.Cta.Actions = parent.Blog.Cta.Actions;
+                }
             }
 
             // Inherit Tesserae settings (per-field, only when the child left the default)
@@ -283,6 +301,57 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "description")]
         public string Description { get; set; }
+
+        // "Read next" related-posts section shown at the foot of every blog post
+        // (blog mode). The posts themselves are listed per page via the
+        // `readNext:` frontmatter key; this block only configures the section's
+        // heading/description and the auto-fill fallback.
+        [YamlMember(Alias = "readNext")]
+        public BlogReadNextConfig ReadNext { get; set; } = new BlogReadNextConfig();
+
+        // Call-to-action band shown above the footer on blog-mode pages
+        // (e.g. "Connected knowledge for AI systems" + the demo/sales pills).
+        [YamlMember(Alias = "cta")]
+        public BlogCtaConfig Cta { get; set; } = new BlogCtaConfig();
+    }
+
+    public class BlogReadNextConfig
+    {
+        // Section heading. Defaults to "Read next" when unset.
+        [YamlMember(Alias = "title")]
+        public string Title { get; set; }
+
+        // Optional lead line under the heading.
+        [YamlMember(Alias = "description")]
+        public string Description { get; set; }
+
+        // How many cards the section shows. When a page lists fewer posts in its
+        // `readNext:` frontmatter, the remaining slots are filled with the most
+        // recent other posts. Set to 0 to disable the auto-fill and show only the
+        // posts a page lists explicitly.
+        [YamlMember(Alias = "count")]
+        public int Count { get; set; } = 3;
+
+        // When false, the section is never rendered (even if a page lists posts).
+        [YamlMember(Alias = "enabled")]
+        public bool Enabled { get; set; } = true;
+    }
+
+    public class BlogCtaConfig
+    {
+        // The large CTA headline. The band only renders when this is set.
+        [YamlMember(Alias = "title")]
+        public string Title { get; set; }
+
+        // Optional supporting line under the headline.
+        [YamlMember(Alias = "description")]
+        public string Description { get; set; }
+
+        // CTA buttons. Falls back to the top-level `actions:` (the header CTA
+        // pills) when omitted, so the band reuses "Book a Demo" / "Talk to Sales"
+        // without redeclaring them.
+        [YamlMember(Alias = "actions")]
+        public List<ActionConfig> Actions { get; set; }
     }
 
     public class TesseraeConfig

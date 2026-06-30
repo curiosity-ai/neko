@@ -1537,6 +1537,77 @@ These fields only render on the blog index in `blog` mode. They are inherited by
 sets its own `blog` values.
 !!!
 
+### blog.readNext{#blog-readnext}
+
+The **Read next** section rendered at the foot of every blog post (in
+[`blog` mode](#mode)) — a heading, an optional lead line, and a grid of
+related-post cards (the same card used on the index). Each post chooses its own
+related articles with the [`readNext`](/configuration/core/page#readnext)
+frontmatter key; this block only configures the section heading and the
+auto-fill fallback.
+
+When a post lists fewer related posts than `count` (or lists none at all), the
+remaining cards are filled with the most recent **other** posts, so the section
+appears on every post without per-page setup.
+
+=== title : `string`
+Section heading. Defaults to `Read next`.
+===
+
+=== description : `string`
+Optional lead line shown under the heading.
+===
+
+=== count : `number`
+How many cards the section shows (default `3`). Posts listed in a page's
+`readNext` frontmatter come first, in order; any remaining slots are topped up
+with the most recent other posts. Set to `0` to disable the auto-fill and show
+**only** the posts a page lists explicitly.
+===
+
+=== enabled : `boolean`
+Set to `false` to turn the section off site-wide (default `true`).
+===
+
+```yml
+blog:
+  readNext:
+    title: Read next
+    description: Articles on context graphs, enterprise search and industrial AI
+    count: 3
+```
+
+### blog.cta{#blog-cta}
+
+A **call-to-action band** shown above the footer on `blog`-mode pages (the post
+pages and the index) — a large centred headline, an optional supporting line,
+and a row of buttons. The band only renders when `title` is set.
+
+The buttons come from `blog.cta.actions`; when omitted it reuses the top-level
+[`actions`](#actions) (the header CTA pills), so a typical site sets only the
+headline and the demo/sales pills carry over automatically.
+
+=== title : `string`
+The headline. The band is hidden when this is unset.
+===
+
+=== description : `string`
+Optional supporting line under the headline.
+===
+
+=== actions : `list`
+The CTA buttons, each with the same fields as a top-level [`action`](#actions)
+(`text`, `link`, `icon`, `target`, `variant`). Omit to fall back to the
+top-level `actions`.
+===
+
+```yml
+blog:
+  cta:
+    title: Connected knowledge for AI systems
+    # actions omitted → reuses the top-level `actions:` pills
+```
+
 ---
 
 ## nav

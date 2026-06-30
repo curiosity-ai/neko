@@ -704,5 +704,176 @@ namespace Neko.Tests
             Assert.That(child.Blog.Title, Is.EqualTo("Child title"));
             Assert.That(child.Blog.Pill, Is.EqualTo("Blog"));
         }
+
+        // --- "Read next" related-posts section ------------------------------
+
+        private static (ParsedDocument doc, List<(ParsedDocument, string)> posts) ReadNextFixture(string[] readNext = null)
+        {
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Body</p>",
+                FrontMatter = new FrontMatter { Title = "Current post", ReadNext = readNext }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                // newest-first, matching SiteBuilder's ordering
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Current post", ReadNext = readNext } }, "/blog/current"),
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Newest other", Author = "Curiosity", Date = "Jun 28, 2026" } }, "/blog/newest"),
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Middle other" } }, "/blog/middle"),
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Oldest other" } }, "/blog/oldest"),
+            };
+            return (doc, posts);
+        }
+
+        [Test]
+        public void BlogPost_ReadNext_UsesFrontmatterPostsInOrder()
+        {
+            var config = BlogConfig();
+            config.Blog.ReadNext = new BlogReadNextConfig { Title = "Read next", Description = "More to read", Count = 3 };
+            // List two explicit posts (by file path and by slug); count fills a third.
+            var (doc, posts) = ReadNextFixture(new[] { "oldest.md", "middle" });
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/current");
+
+            Assert.That(html, Contains.Substring(">Read next</h2>"));
+            Assert.That(html, Contains.Substring("More to read"));
+
+            // The two explicitly listed posts appear, in the authored order, ahead of
+            // the auto-filled one. The current post is never shown.
+            var oldestIdx = html.IndexOf("href=\"/blog/oldest\"");
+            var middleIdx = html.IndexOf("href=\"/blog/middle\"");
+            var newestIdx = html.IndexOf("href=\"/blog/newest\"");   // auto-fill
+            Assert.That(oldestIdx, Is.GreaterThan(0));
+            Assert.That(middleIdx, Is.GreaterThan(oldestIdx), "listed posts keep their authored order");
+            Assert.That(newestIdx, Is.GreaterThan(middleIdx), "auto-filled post comes after the listed ones");
+            Assert.That(html, Does.Not.Contain("href=\"/blog/current\""), "the current post is excluded");
+        }
+
+        [Test]
+        public void BlogPost_ReadNext_AutoFillsWhenNoFrontmatter()
+        {
+            // A post with no `readNext` still gets the section, filled with the most
+            // recent other posts up to `count`.
+            var config = BlogConfig();
+            config.Blog.ReadNext = new BlogReadNextConfig { Count = 2 };
+            var (doc, posts) = ReadNextFixture();
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/current");
+
+            Assert.That(html, Contains.Substring(">Read next</h2>"));   // default heading
+            Assert.That(html, Contains.Substring("href=\"/blog/newest\""));
+            Assert.That(html, Contains.Substring("href=\"/blog/middle\""));
+            // count: 2 → the oldest other post is left out.
+            Assert.That(html, Does.Not.Contain("href=\"/blog/oldest\""));
+        }
+
+        [Test]
+        public void BlogPost_ReadNext_CountZero_ShowsOnlyListedPosts()
+        {
+            var config = BlogConfig();
+            config.Blog.ReadNext = new BlogReadNextConfig { Count = 0 };
+            var (doc, posts) = ReadNextFixture(new[] { "middle" });
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/current");
+
+            Assert.That(html, Contains.Substring("href=\"/blog/middle\""));
+            // No auto-fill: the other posts are not pulled in.
+            Assert.That(html, Does.Not.Contain("href=\"/blog/newest\""));
+        }
+
+        [Test]
+        public void BlogPost_ReadNext_Disabled_OmitsSection()
+        {
+            var config = BlogConfig();
+            config.Blog.ReadNext = new BlogReadNextConfig { Enabled = false };
+            var (doc, posts) = ReadNextFixture(new[] { "middle" });
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/current");
+
+            Assert.That(html, Does.Not.Contain(">Read next</h2>"));
+        }
+
+        [Test]
+        public void BlogIndex_DoesNotRenderReadNext()
+        {
+            var config = BlogConfig();
+            var doc = new ParsedDocument { Html = "<p>Intro</p>", FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" } };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "A" } }, "/blog/a"),
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "B" } }, "/blog/b"),
+            };
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            // The index lists every post already; it gets no separate "Read next".
+            Assert.That(html, Does.Not.Contain(">Read next</h2>"));
+        }
+
+        // --- CTA band -------------------------------------------------------
+
+        [Test]
+        public void BlogPost_Cta_RendersHeadlineAndReusesActions()
+        {
+            var config = BlogConfig();   // Actions = Book a Demo / Talk to Sales
+            config.Blog.Cta = new BlogCtaConfig { Title = "Connected knowledge for AI systems" };
+            var (doc, posts) = ReadNextFixture();
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/current");
+
+            Assert.That(html, Contains.Substring(">Connected knowledge for AI systems</h2>"));
+            // With no cta.actions, the band reuses the top-level header CTA pills.
+            // (They also render in the navbar, so expect more than one occurrence.)
+            Assert.That(html.Split(">Book a Demo</a>").Length - 1, Is.GreaterThanOrEqualTo(2));
+            Assert.That(html, Contains.Substring("background-color:var(--blog-ink);color:var(--blog-bg)"));
+        }
+
+        [Test]
+        public void BlogPost_Cta_OmittedWhenNoTitle()
+        {
+            var config = BlogConfig();
+            // Blog.Cta left at its empty default (no title).
+            var (doc, posts) = ReadNextFixture();
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/current");
+
+            Assert.That(html, Does.Not.Contain("Connected knowledge"));
+        }
+
+        [Test]
+        public void BlogPost_Cta_CustomActionsOverrideTopLevel()
+        {
+            var config = BlogConfig();
+            config.Blog.Cta = new BlogCtaConfig
+            {
+                Title = "Get started",
+                Actions = new List<ActionConfig> { new ActionConfig { Text = "Sign up", Link = "/signup", Variant = "primary" } }
+            };
+            var (doc, posts) = ReadNextFixture();
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/current");
+
+            Assert.That(html, Contains.Substring(">Sign up</a>"));
+        }
+
+        [Test]
+        public void BlogCta_Inherited_PerFieldFromParent()
+        {
+            var parent = new NekoConfig
+            {
+                Mode = "blog",
+                Blog = new BlogConfig
+                {
+                    Cta = new BlogCtaConfig { Title = "Parent CTA" },
+                    ReadNext = new BlogReadNextConfig { Description = "Parent desc" }
+                }
+            };
+            var child = new NekoConfig { Mode = "blog", Blog = new BlogConfig() };
+
+            child.MergeWith(parent);
+
+            Assert.That(child.Blog.Cta.Title, Is.EqualTo("Parent CTA"));
+            Assert.That(child.Blog.ReadNext.Description, Is.EqualTo("Parent desc"));
+        }
     }
 }

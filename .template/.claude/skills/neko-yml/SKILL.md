@@ -253,12 +253,39 @@ blog:
 | `description` | Optional lead paragraph beneath the title.                     |
 
 Every field is optional; when all are unset the index opens straight into the
-search box. The fields render only on the blog index in blog mode, and are
-inherited per-field by multi-repo child sites unless overridden.
+search box. The `pill` / `title` / `description` fields render only on the blog
+index in blog mode, and are inherited per-field by multi-repo child sites unless
+overridden.
 
 The pill renders in a plain system sans-serif at 12px while the title inherits
 the site body font (`theme.font`) at 30.4px / weight 500, both picking up blog
 mode's antialiased smoothing.
+
+### Read next + CTA (`blog.readNext`, `blog.cta`)
+
+In blog mode every **post** ends with a **Read next** related-post grid and a
+marketing **CTA** band, both configured under `blog:`:
+
+```yml
+blog:
+  readNext:
+    title: Read next                                     # default
+    description: Articles on context graphs and AI       # optional lead line
+    count: 3                                             # cards to show (0 = no auto-fill)
+  cta:
+    title: Connected knowledge for AI systems            # band only shows when set
+    # description: optional supporting line
+    # actions: omitted → reuses the top-level `actions:` pills
+```
+
+- **`readNext`** — each post lists its own related posts via the
+  [`readNext`](../frontmatter/SKILL.md) frontmatter key; unfilled slots (up to
+  `count`) auto-fill with the most recent other posts, so the section shows on
+  every post. Set `count: 0` to show only the posts a page lists, or
+  `enabled: false` to turn the section off.
+- **`cta`** — a centred headline + buttons above the footer, on posts and the
+  index. The band only renders when `cta.title` is set; `cta.actions` defaults
+  to the top-level `actions` so the demo/sales pills carry over automatically.
 
 ## Header actions (CTA buttons)
 

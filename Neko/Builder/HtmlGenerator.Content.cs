@@ -681,80 +681,9 @@ namespace Neko.Builder
 
             foreach (var post in posts)
             {
-                var title = !string.IsNullOrEmpty(post.Doc.FrontMatter.Title) ? post.Doc.FrontMatter.Title : post.Doc.FrontMatter.Label;
-                var date = post.Doc.FrontMatter.Date;
-                var author = post.Doc.FrontMatter.Author;
-                var cover = post.Doc.FrontMatter.Cover;
-                var url = post.Url;
-                var tags = (post.Doc.FrontMatter.Tags ?? System.Array.Empty<string>())
-                    .Select(t => t?.Trim())
-                    .Where(t => !string.IsNullOrEmpty(t))
-                    .ToList();
-
-                // Lowercased, pipe-joined tag list so the inline tag chips can filter
-                // the grid client-side without re-querying the search index.
-                var dataTags = _isBlogMode ? $" data-tags=\"{EscapeHtmlAttr(string.Join("|", tags.Select(t => t.ToLowerInvariant())))}\"" : string.Empty;
-
-                sb.AppendLine($"<a href=\"{url}\"{dataTags} class=\"group relative flex flex-col justify-between overflow-hidden rounded-[14px] h-[244px] p-[22px] no-underline\" style=\"background-color:var(--blog-ink, #1f1f1f)\">");
-
-                // Cover slot, faded behind the content and zoomed slightly on hover.
-                // It is always rendered so every card reserves the same backdrop and
-                // stays visually consistent: a placeholder picture icon sits behind,
-                // and the real cover (when present and loadable) covers it. A missing
-                // or broken cover hides itself (onerror) so the placeholder shows
-                // instead of a torn-image glyph; a successful load hides the
-                // placeholder (onload).
-                sb.AppendLine("    <span class=\"absolute inset-0 flex items-center justify-center rounded-[14px]\" aria-hidden=\"true\"><i class=\"fi fi-rr-picture text-[44px] opacity-20\" style=\"color:var(--blog-bg, #f1f1f1)\"></i></span>");
-                if (!string.IsNullOrEmpty(cover))
-                {
-                    sb.AppendLine($"    <img src=\"{EscapeHtmlAttr(EncodeAssetUrl(cover))}\" alt=\"{EscapeHtmlAttr(title)}\" loading=\"lazy\" onload=\"this.previousElementSibling.style.display='none'\" onerror=\"this.style.display='none'\" class=\"absolute inset-0 w-full h-full object-cover rounded-[14px] opacity-30 transition-transform duration-500 group-hover:scale-110\">");
-                }
-
-                // Top row: title + arrow.
-                sb.AppendLine("    <div class=\"relative z-10 flex items-center gap-2.5\">");
-                sb.AppendLine($"        <h3 class=\"flex-1 m-0 text-base font-medium leading-[1.4]\" style=\"color:var(--blog-bg, #f1f1f1)\">{title}</h3>");
-                // A small right-pointing arrow that rotates 45° counter-clockwise on
-                // card hover, so it swings from "→" to "↗" (up-and-right) — the
-                // curiosity.ai/resources/blog interaction. `group` is on the card.
-                sb.AppendLine("        <i class=\"fi fi-rr-arrow-small-right shrink-0 text-[24px] leading-none transition-transform duration-300 ease-out group-hover:-rotate-45\" style=\"color:var(--blog-bg, #f1f1f1)\"></i>");
-                sb.AppendLine("    </div>");
-
-                // Bottom group, pinned to the foot of the card: the tag pills sit
-                // right-aligned just above the author/date hairline row (so they read in
-                // the bottom-right corner). Tags mirror the values in the tag-filter
-                // chips above so a reader can see at a glance which bucket a post is in.
-                var hasTags = _isBlogMode && tags.Count > 0;
-                var hasMeta = !string.IsNullOrEmpty(author) || !string.IsNullOrEmpty(date);
-                if (hasTags || hasMeta)
-                {
-                    sb.AppendLine("    <div class=\"relative z-10 flex flex-col gap-2\">");
-
-                    if (hasTags)
-                    {
-                        sb.AppendLine("        <div class=\"flex flex-wrap justify-end gap-1.5\">");
-                        foreach (var tag in tags)
-                        {
-                            sb.AppendLine($"            <span class=\"inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium\" style=\"background-color:var(--blog-bg, #f1f1f1);color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(tag)}</span>");
-                        }
-                        sb.AppendLine("        </div>");
-                    }
-
-                    // Author (left) + date (right), split by a hairline rule.
-                    if (hasMeta)
-                    {
-                        sb.AppendLine("        <div class=\"flex items-center justify-between gap-2 pt-2 border-t\" style=\"border-color:var(--blog-bg, #f1f1f1)\">");
-                        sb.AppendLine($"            <span class=\"text-sm font-medium\" style=\"color:var(--blog-bg, #f1f1f1)\">{author}</span>");
-                        if (!string.IsNullOrEmpty(date))
-                        {
-                            sb.AppendLine($"            <span class=\"text-sm font-medium\" style=\"color:var(--blog-bg, #f1f1f1)\">{date}</span>");
-                        }
-                        sb.AppendLine("        </div>");
-                    }
-
-                    sb.AppendLine("    </div>");
-                }
-
-                sb.AppendLine("</a>");
+                // On the index, the tag chips filter the grid client-side, so each
+                // card carries its tags as a data attribute.
+                RenderBlogPostCard(sb, post.Doc, post.Url, includeTagData: _isBlogMode);
             }
 
             sb.AppendLine("</div>");
@@ -765,6 +694,226 @@ namespace Neko.Builder
             {
                 sb.AppendLine("<p id=\"neko-blog-empty\" class=\"hidden text-center text-sm text-gray-500 dark:text-gray-400 mt-8 not-prose\">No posts match this tag.</p>");
             }
+        }
+
+        // A single blog post card: a dark, rounded tile with the cover faded
+        // behind the content, the title + arrow up top, and the author/date (plus
+        // optional tag pills) pinned to the foot. Shared by the blog index grid
+        // and the "Read next" section so both stay visually identical. Colours use
+        // the blog palette inverted (ink fill, page-bg text) with the curiosity.ai
+        // defaults (#1f1f1f / #f1f1f1) as fallbacks for docs-mode index pages.
+        private void RenderBlogPostCard(StringBuilder sb, ParsedDocument doc, string url, bool includeTagData)
+        {
+            var title = !string.IsNullOrEmpty(doc.FrontMatter.Title) ? doc.FrontMatter.Title : doc.FrontMatter.Label;
+            var date = doc.FrontMatter.Date;
+            var author = doc.FrontMatter.Author;
+            var cover = doc.FrontMatter.Cover;
+            var tags = (doc.FrontMatter.Tags ?? System.Array.Empty<string>())
+                .Select(t => t?.Trim())
+                .Where(t => !string.IsNullOrEmpty(t))
+                .ToList();
+
+            // Lowercased, pipe-joined tag list so the inline tag chips can filter
+            // the grid client-side without re-querying the search index.
+            var dataTags = includeTagData ? $" data-tags=\"{EscapeHtmlAttr(string.Join("|", tags.Select(t => t.ToLowerInvariant())))}\"" : string.Empty;
+
+            sb.AppendLine($"<a href=\"{url}\"{dataTags} class=\"group relative flex flex-col justify-between overflow-hidden rounded-[14px] h-[244px] p-[22px] no-underline\" style=\"background-color:var(--blog-ink, #1f1f1f)\">");
+
+            // Cover slot, faded behind the content and zoomed slightly on hover.
+            // It is always rendered so every card reserves the same backdrop and
+            // stays visually consistent: a placeholder picture icon sits behind,
+            // and the real cover (when present and loadable) covers it. A missing
+            // or broken cover hides itself (onerror) so the placeholder shows
+            // instead of a torn-image glyph; a successful load hides the
+            // placeholder (onload).
+            sb.AppendLine("    <span class=\"absolute inset-0 flex items-center justify-center rounded-[14px]\" aria-hidden=\"true\"><i class=\"fi fi-rr-picture text-[44px] opacity-20\" style=\"color:var(--blog-bg, #f1f1f1)\"></i></span>");
+            if (!string.IsNullOrEmpty(cover))
+            {
+                sb.AppendLine($"    <img src=\"{EscapeHtmlAttr(EncodeAssetUrl(cover))}\" alt=\"{EscapeHtmlAttr(title)}\" loading=\"lazy\" onload=\"this.previousElementSibling.style.display='none'\" onerror=\"this.style.display='none'\" class=\"absolute inset-0 w-full h-full object-cover rounded-[14px] opacity-30 transition-transform duration-500 group-hover:scale-110\">");
+            }
+
+            // Top row: title + arrow.
+            sb.AppendLine("    <div class=\"relative z-10 flex items-center gap-2.5\">");
+            sb.AppendLine($"        <h3 class=\"flex-1 m-0 text-base font-medium leading-[1.4]\" style=\"color:var(--blog-bg, #f1f1f1)\">{title}</h3>");
+            // A small right-pointing arrow that rotates 45° counter-clockwise on
+            // card hover, so it swings from "→" to "↗" (up-and-right) — the
+            // curiosity.ai/resources/blog interaction. `group` is on the card.
+            sb.AppendLine("        <i class=\"fi fi-rr-arrow-small-right shrink-0 text-[24px] leading-none transition-transform duration-300 ease-out group-hover:-rotate-45\" style=\"color:var(--blog-bg, #f1f1f1)\"></i>");
+            sb.AppendLine("    </div>");
+
+            // Bottom group, pinned to the foot of the card: the tag pills sit
+            // right-aligned just above the author/date hairline row (so they read in
+            // the bottom-right corner). Tags mirror the values in the tag-filter
+            // chips above so a reader can see at a glance which bucket a post is in.
+            var hasTags = includeTagData && tags.Count > 0;
+            var hasMeta = !string.IsNullOrEmpty(author) || !string.IsNullOrEmpty(date);
+            if (hasTags || hasMeta)
+            {
+                sb.AppendLine("    <div class=\"relative z-10 flex flex-col gap-2\">");
+
+                if (hasTags)
+                {
+                    sb.AppendLine("        <div class=\"flex flex-wrap justify-end gap-1.5\">");
+                    foreach (var tag in tags)
+                    {
+                        sb.AppendLine($"            <span class=\"inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium\" style=\"background-color:var(--blog-bg, #f1f1f1);color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(tag)}</span>");
+                    }
+                    sb.AppendLine("        </div>");
+                }
+
+                // Author (left) + date (right), split by a hairline rule.
+                if (hasMeta)
+                {
+                    sb.AppendLine("        <div class=\"flex items-center justify-between gap-2 pt-2 border-t\" style=\"border-color:var(--blog-bg, #f1f1f1)\">");
+                    sb.AppendLine($"            <span class=\"text-sm font-medium\" style=\"color:var(--blog-bg, #f1f1f1)\">{author}</span>");
+                    if (!string.IsNullOrEmpty(date))
+                    {
+                        sb.AppendLine($"            <span class=\"text-sm font-medium\" style=\"color:var(--blog-bg, #f1f1f1)\">{date}</span>");
+                    }
+                    sb.AppendLine("        </div>");
+                }
+
+                sb.AppendLine("    </div>");
+            }
+
+            sb.AppendLine("</a>");
+        }
+
+        // True when `currentUrl` is an individual blog post page (not the index).
+        // Mirrors the guard in RenderBlogPostHeader.
+        private bool IsBlogPostPage(string currentUrl)
+            => currentUrl != null && currentUrl.StartsWith("/blog/") && !currentUrl.EndsWith("/index");
+
+        // Normalises a blog link or post URL to a comparable slug: the last path
+        // segment, without the .md suffix or any query/anchor, lowercased. So
+        // "other-post.md", "/blog/other-post", and "other-post" all match the
+        // post served at "/blog/other-post".
+        private static string BlogPostSlug(string linkOrUrl)
+        {
+            if (string.IsNullOrWhiteSpace(linkOrUrl)) return string.Empty;
+            var s = linkOrUrl.Trim();
+            var cut = s.IndexOfAny(new[] { '#', '?' });
+            if (cut >= 0) s = s.Substring(0, cut);
+            if (s.EndsWith(".md", System.StringComparison.OrdinalIgnoreCase)) s = s.Substring(0, s.Length - 3);
+            s = s.TrimEnd('/');
+            var slash = s.LastIndexOf('/');
+            if (slash >= 0) s = s.Substring(slash + 1);
+            return s.ToLowerInvariant();
+        }
+
+        // The "Read next" related-posts section at the foot of a blog post. Posts
+        // are taken from the page's `readNext:` frontmatter (resolved against the
+        // site's blog posts) and, when the configured count isn't met, topped up
+        // with the most recent other posts. Renders nothing off blog-post pages,
+        // when disabled, or when there are no other posts to show.
+        private void RenderBlogReadNext(StringBuilder sb, ParsedDocument document, List<(ParsedDocument Doc, string Url)> blogPosts, string currentUrl)
+        {
+            if (!_isBlogMode || !IsBlogPostPage(currentUrl)) return;
+            var cfg = _config.Blog?.ReadNext;
+            if (cfg != null && !cfg.Enabled) return;
+            if (blogPosts == null || blogPosts.Count == 0) return;
+
+            var currentSlug = BlogPostSlug(currentUrl);
+
+            // Everything except the current post, keyed by slug for lookup.
+            var others = blogPosts
+                .Where(p => BlogPostSlug(p.Url) != currentSlug)
+                .ToList();
+            if (others.Count == 0) return;
+
+            var selected = new List<(ParsedDocument Doc, string Url)>();
+            var seen = new System.Collections.Generic.HashSet<string>();
+
+            // 1. The posts the page lists explicitly, in the authored order.
+            if (document.FrontMatter.ReadNext != null)
+            {
+                foreach (var entry in document.FrontMatter.ReadNext)
+                {
+                    var slug = BlogPostSlug(entry);
+                    if (string.IsNullOrEmpty(slug) || slug == currentSlug || !seen.Add(slug)) continue;
+                    var match = others.FirstOrDefault(p => BlogPostSlug(p.Url) == slug);
+                    if (match.Doc != null) selected.Add(match);
+                }
+            }
+
+            // 2. Top up with the most recent other posts (blogPosts is already
+            // newest-first) up to the configured count. count <= 0 disables the
+            // auto-fill — only the explicitly listed posts show.
+            var count = cfg?.Count ?? 3;
+            if (count > 0)
+            {
+                foreach (var p in others)
+                {
+                    if (selected.Count >= count) break;
+                    var slug = BlogPostSlug(p.Url);
+                    if (!seen.Add(slug)) continue;
+                    selected.Add(p);
+                }
+                if (selected.Count > count) selected = selected.Take(count).ToList();
+            }
+
+            if (selected.Count == 0) return;
+
+            var title = string.IsNullOrWhiteSpace(cfg?.Title) ? "Read next" : cfg.Title;
+
+            sb.AppendLine("                <section class=\"not-prose mt-16\">");
+            sb.AppendLine($"                    <h2 class=\"text-2xl md:text-3xl font-bold m-0\" style=\"color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(title)}</h2>");
+            if (!string.IsNullOrWhiteSpace(cfg?.Description))
+            {
+                sb.AppendLine($"                    <p class=\"mt-2 text-base text-gray-500 dark:text-gray-400\">{EscapeHtmlAttr(cfg.Description)}</p>");
+            }
+            sb.AppendLine("                    <div class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[44px] mt-8\">");
+            foreach (var p in selected)
+            {
+                RenderBlogPostCard(sb, p.Doc, p.Url, includeTagData: false);
+            }
+            sb.AppendLine("                    </div>");
+            sb.AppendLine("                </section>");
+        }
+
+        // The call-to-action band shown above the footer on blog-mode pages
+        // (e.g. "Connected knowledge for AI systems" + the demo/sales pills).
+        // Renders nothing unless blog mode is on and `blog.cta.title` is set.
+        // The buttons come from `blog.cta.actions`, falling back to the top-level
+        // `actions:` so the band reuses the header CTA pills.
+        private void RenderBlogCta(StringBuilder sb, string currentUrl)
+        {
+            if (!_isBlogMode) return;
+            var cta = _config.Blog?.Cta;
+            if (cta == null || string.IsNullOrWhiteSpace(cta.Title)) return;
+
+            var actions = (cta.Actions != null && cta.Actions.Count > 0) ? cta.Actions : _config.Actions;
+
+            sb.AppendLine("                <section class=\"not-prose mt-20 md:mt-28 mb-8 md:mb-12 text-center\">");
+            sb.AppendLine($"                    <h2 class=\"text-4xl md:text-5xl font-bold tracking-tight m-0 max-w-3xl mx-auto\" style=\"color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(cta.Title)}</h2>");
+            if (!string.IsNullOrWhiteSpace(cta.Description))
+            {
+                sb.AppendLine($"                    <p class=\"mt-4 text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto\">{EscapeHtmlAttr(cta.Description)}</p>");
+            }
+
+            if (actions != null && actions.Count > 0)
+            {
+                sb.AppendLine("                    <div class=\"mt-8 flex flex-wrap items-center justify-center gap-3\">");
+                foreach (var action in actions)
+                {
+                    if (string.IsNullOrEmpty(action.Text)) continue;
+                    var href = action.Link ?? "#";
+                    var target = !string.IsNullOrEmpty(action.Target) ? $" target=\"{NormalizeTarget(action.Target)}\"" : "";
+                    var rel = target.Contains("_blank") ? " rel=\"noopener noreferrer\"" : "";
+                    var isOutline = string.Equals(action.Variant, "outline", System.StringComparison.OrdinalIgnoreCase);
+                    var iconHtml = string.IsNullOrEmpty(action.Icon) ? "" : $"<i class=\"{Neko.Builder.IconHelper.GetIconClass(action.Icon)}\"></i>";
+                    // Same pill styling as the navbar CTA buttons (blog palette):
+                    // solid = ink fill / page-bg text; outline = inset ink border.
+                    var pill = "inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-80 whitespace-nowrap";
+                    var style = isOutline
+                        ? "box-shadow:inset 0 0 0 1px var(--blog-ink);color:var(--blog-ink)"
+                        : "background-color:var(--blog-ink);color:var(--blog-bg)";
+                    sb.AppendLine($"                        <a href=\"{href}\"{target}{rel} class=\"{pill}\" style=\"{style}\">{iconHtml}{action.Text}</a>");
+                }
+                sb.AppendLine("                    </div>");
+            }
+
+            sb.AppendLine("                </section>");
         }
 
         private void RenderChangelogIndex(StringBuilder sb, List<(ParsedDocument Doc, string Url, string Version)> entries)

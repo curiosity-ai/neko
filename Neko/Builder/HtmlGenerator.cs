@@ -205,6 +205,8 @@ namespace Neko.Builder
                 inner.AppendLine(BuildIndexableContent(document, blogPosts, changelogEntries, currentUrl));
                 RenderPageNavigation(inner, navContext);
                 RenderBacklinks(inner, backlinks);
+                RenderBlogReadNext(inner, document, blogPosts, currentUrl);
+                RenderBlogCta(inner, currentUrl);
                 RenderProtectedColumn(sb, inner.ToString(), effectivePassword);
             }
             else
@@ -214,6 +216,10 @@ namespace Neko.Builder
                 sb.AppendLine(BuildIndexableContent(document, blogPosts, changelogEntries, currentUrl));
                 RenderPageNavigation(sb, navContext);
                 RenderBacklinks(sb, backlinks);
+                // Blog-mode post outro: the "Read next" related-post grid followed
+                // by the marketing CTA band, both above the footer.
+                RenderBlogReadNext(sb, document, blogPosts, currentUrl);
+                RenderBlogCta(sb, currentUrl);
             }
 
             // The full-width marketing footer is site chrome (rendered after the

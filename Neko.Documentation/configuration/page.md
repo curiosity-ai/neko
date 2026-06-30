@@ -769,6 +769,35 @@ File path | Old URL | New URL
 
 ---
 
+## readNext
+
+=== readNext : `list`
+
+The related posts shown in the **Read next** section at the foot of this blog
+post (in [`blog` mode](/configuration/core/project#mode)). Each entry is a link
+to another blog post — a file path, a site URL, or just the slug — and renders
+as a card, in the order listed.
+
+```yml
+---
+readNext:
+  - other-post.md          # file path
+  - /blog/another-post     # site URL
+  - a-third-post           # slug
+---
+```
+
+The section is rendered by blog mode itself, so it appears on **every** post: a
+post that lists fewer than [`blog.readNext.count`](/configuration/core/project#blog-readnext)
+related posts (or none) has the remaining cards filled with the most recent
+other posts. List posts here only when you want to override that automatic
+selection. The heading, lead line, card count and the auto-fill are configured
+site-wide under [`blog.readNext`](/configuration/core/project#blog-readnext).
+
+===
+
+---
+
 ## redirect
 
 === redirect : `string`

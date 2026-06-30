@@ -84,6 +84,14 @@ namespace Neko.Builder
         // linked version badge in the timeline header.
         [YamlMember(Alias = "link")]
         public string Link { get; set; }
+
+        // Blog "Read next" related posts. Each entry is a link to another blog
+        // post — a file path (`other-post.md`), a site URL (`/blog/other-post`),
+        // or just the slug (`other-post`). Rendered (blog mode) as the card grid
+        // in the "Read next" section at the foot of the post. When fewer than the
+        // configured count are listed, the section auto-fills with recent posts.
+        [YamlMember(Alias = "readNext")]
+        public string[] ReadNext { get; set; }
     }
 
     public static class UrlHelper
