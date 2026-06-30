@@ -184,9 +184,12 @@ namespace Neko.Builder
             // curiosity.ai/resources/blog layout. Article (post) pages keep 4xl.
             var isBlogIndex = _isBlogMode && (currentUrl == "/blog/index" || document.FrontMatter.Layout == "blog");
             var contentColClass = isBlogIndex ? "max-w-6xl" : "max-w-4xl";
-            // `grow` (blog mode) lets the column expand to fill the flex-column main,
-            // pushing the deferred full-bleed footer to the bottom of short pages.
-            var growClass = _isBlogMode ? " grow w-full" : string.Empty;
+            // The reading column no longer `grow`s in blog mode: the Read next / CTA
+            // outro and a trailing spacer sit after it (outside the column, at the
+            // wider index width) and the spacer is what pushes the full-bleed footer
+            // to the bottom of short pages — so the outro hugs the article instead of
+            // floating away from it.
+            var growClass = _isBlogMode ? " w-full" : string.Empty;
             sb.AppendLine($"                <div class=\"{contentColClass}{growClass} mx-auto prose dark:prose-invert\">");
 
             // The marketing (blog-mode) footer breaks out of the reading column to
@@ -205,8 +208,6 @@ namespace Neko.Builder
                 inner.AppendLine(BuildIndexableContent(document, blogPosts, changelogEntries, currentUrl));
                 RenderPageNavigation(inner, navContext);
                 RenderBacklinks(inner, backlinks);
-                RenderBlogReadNext(inner, document, blogPosts, currentUrl);
-                RenderBlogCta(inner, currentUrl);
                 RenderProtectedColumn(sb, inner.ToString(), effectivePassword);
             }
             else
@@ -216,20 +217,32 @@ namespace Neko.Builder
                 sb.AppendLine(BuildIndexableContent(document, blogPosts, changelogEntries, currentUrl));
                 RenderPageNavigation(sb, navContext);
                 RenderBacklinks(sb, backlinks);
-                // Blog-mode post outro: the "Read next" related-post grid followed
-                // by the marketing CTA band, both above the footer.
-                RenderBlogReadNext(sb, document, blogPosts, currentUrl);
-                RenderBlogCta(sb, currentUrl);
             }
 
-            // The full-width marketing footer is site chrome (rendered after the
-            // prose div); otherwise the slim footer stays in the reading column.
-            if (!deferFooterFullWidth)
+            // The slim in-column footer stays inside the reading column in docs mode.
+            // In blog mode it is rendered after the outro instead (below), so the
+            // Read next / CTA sit above it.
+            if (!deferFooterFullWidth && !_isBlogMode)
             {
                 RenderFooter(sb);
             }
 
             sb.AppendLine("                </div>");
+
+            // Blog-mode post outro — the "Read next" related-post grid and the
+            // marketing CTA band — rendered outside the reading column so they span
+            // the wider index width (max-w-6xl), matching curiosity.ai. A trailing
+            // `grow` spacer pins the footer to the bottom of short pages.
+            if (_isBlogMode)
+            {
+                RenderBlogReadNext(sb, document, blogPosts, currentUrl);
+                RenderBlogCta(sb, currentUrl);
+                sb.AppendLine("                <div class=\"grow\"></div>");
+                if (!deferFooterFullWidth)
+                {
+                    RenderFooter(sb);
+                }
+            }
 
             if (deferFooterFullWidth)
             {

@@ -480,7 +480,7 @@ namespace Neko.Tests
                 FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
             };
             var indexHtml = new HtmlGenerator(BlogConfig()).Generate(doc, currentUrl: "/blog/index");
-            Assert.That(indexHtml, Contains.Substring("max-w-6xl grow w-full mx-auto prose"));
+            Assert.That(indexHtml, Contains.Substring("max-w-6xl w-full mx-auto prose"));
 
             // A regular blog post keeps the comfortable max-w-4xl reading column.
             var postDoc = new ParsedDocument
@@ -489,8 +489,8 @@ namespace Neko.Tests
                 FrontMatter = new FrontMatter { Title = "A Post" }
             };
             var postHtml = new HtmlGenerator(BlogConfig()).Generate(postDoc, currentUrl: "/blog/a-post");
-            Assert.That(postHtml, Contains.Substring("max-w-4xl grow w-full mx-auto prose"));
-            Assert.That(postHtml, Does.Not.Contain("max-w-6xl grow w-full mx-auto prose"));
+            Assert.That(postHtml, Contains.Substring("max-w-4xl w-full mx-auto prose"));
+            Assert.That(postHtml, Does.Not.Contain("max-w-6xl w-full mx-auto prose"));
         }
 
         [Test]

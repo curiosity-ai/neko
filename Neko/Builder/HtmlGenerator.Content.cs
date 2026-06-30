@@ -856,8 +856,11 @@ namespace Neko.Builder
 
             var title = string.IsNullOrWhiteSpace(cfg?.Title) ? "Read next" : cfg.Title;
 
-            sb.AppendLine("                <section class=\"not-prose mt-16\">");
-            sb.AppendLine($"                    <h2 class=\"text-2xl md:text-3xl font-bold m-0\" style=\"color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(title)}</h2>");
+            // Rendered outside the article reading column, capped at the wider blog
+            // index width (max-w-6xl) and left-aligned with it, so the card grid
+            // matches curiosity.ai/resources/blog rather than the narrow prose column.
+            sb.AppendLine("                <section class=\"not-prose max-w-6xl w-full mx-auto mt-16\">");
+            sb.AppendLine($"                    <h2 class=\"text-xl font-bold m-0\" style=\"color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(title)}</h2>");
             if (!string.IsNullOrWhiteSpace(cfg?.Description))
             {
                 sb.AppendLine($"                    <p class=\"mt-2 text-base text-gray-500 dark:text-gray-400\">{EscapeHtmlAttr(cfg.Description)}</p>");
@@ -884,8 +887,8 @@ namespace Neko.Builder
 
             var actions = (cta.Actions != null && cta.Actions.Count > 0) ? cta.Actions : _config.Actions;
 
-            sb.AppendLine("                <section class=\"not-prose mt-20 md:mt-28 mb-8 md:mb-12 text-center\">");
-            sb.AppendLine($"                    <h2 class=\"text-4xl md:text-5xl font-bold tracking-tight m-0 max-w-3xl mx-auto\" style=\"color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(cta.Title)}</h2>");
+            sb.AppendLine("                <section class=\"not-prose max-w-6xl w-full mx-auto mt-24 md:mt-32 mb-10 md:mb-16 text-center\">");
+            sb.AppendLine($"                    <h2 class=\"text-4xl md:text-5xl font-bold tracking-tight leading-[1.1] m-0 max-w-2xl mx-auto\" style=\"color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(cta.Title)}</h2>");
             if (!string.IsNullOrWhiteSpace(cta.Description))
             {
                 sb.AppendLine($"                    <p class=\"mt-4 text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto\">{EscapeHtmlAttr(cta.Description)}</p>");
