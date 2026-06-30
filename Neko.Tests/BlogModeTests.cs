@@ -472,8 +472,9 @@ namespace Neko.Tests
         [Test]
         public void BlogIndex_UsesWiderContentColumn_ForCardGridAndSearch()
         {
-            // The blog index (cards + search) gets a roomier max-w-6xl column to
-            // match curiosity.ai/resources/blog; article reading width is unchanged.
+            // Both the blog index (cards + search) and the article pages use the
+            // roomier max-w-6xl column, so the post body lines up with the Read next
+            // / CTA card grid below it. Docs pages keep the narrow reading column.
             var doc = new ParsedDocument
             {
                 Html = "<p>Intro</p>",
@@ -482,15 +483,21 @@ namespace Neko.Tests
             var indexHtml = new HtmlGenerator(BlogConfig()).Generate(doc, currentUrl: "/blog/index");
             Assert.That(indexHtml, Contains.Substring("max-w-6xl w-full mx-auto prose"));
 
-            // A regular blog post keeps the comfortable max-w-4xl reading column.
+            // A blog post now uses the same wide column as the index and the cards.
             var postDoc = new ParsedDocument
             {
                 Html = "<p>Body</p>",
                 FrontMatter = new FrontMatter { Title = "A Post" }
             };
             var postHtml = new HtmlGenerator(BlogConfig()).Generate(postDoc, currentUrl: "/blog/a-post");
-            Assert.That(postHtml, Contains.Substring("max-w-4xl w-full mx-auto prose"));
-            Assert.That(postHtml, Does.Not.Contain("max-w-6xl w-full mx-auto prose"));
+            Assert.That(postHtml, Contains.Substring("max-w-6xl w-full mx-auto prose"));
+            Assert.That(postHtml, Does.Not.Contain("max-w-4xl w-full mx-auto prose"));
+
+            // Docs mode keeps the comfortable max-w-4xl reading column.
+            var docsConfig = BlogConfig();
+            docsConfig.Mode = "docs";
+            var docsHtml = new HtmlGenerator(docsConfig).Generate(postDoc, currentUrl: "/guides/a-page");
+            Assert.That(docsHtml, Contains.Substring("max-w-4xl"));
         }
 
         [Test]
