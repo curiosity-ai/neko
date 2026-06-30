@@ -472,9 +472,8 @@ namespace Neko.Tests
         [Test]
         public void BlogIndex_UsesWiderContentColumn_ForCardGridAndSearch()
         {
-            // Both the blog index (cards + search) and the article pages use the
-            // roomier max-w-6xl column, so the post body lines up with the Read next
-            // / CTA card grid below it. Docs pages keep the narrow reading column.
+            // The blog index (cards + search) gets a roomier max-w-6xl column to
+            // match curiosity.ai/resources/blog; article reading width is unchanged.
             var doc = new ParsedDocument
             {
                 Html = "<p>Intro</p>",
@@ -483,21 +482,15 @@ namespace Neko.Tests
             var indexHtml = new HtmlGenerator(BlogConfig()).Generate(doc, currentUrl: "/blog/index");
             Assert.That(indexHtml, Contains.Substring("max-w-6xl w-full mx-auto prose"));
 
-            // A blog post now uses the same wide column as the index and the cards.
+            // A regular blog post keeps the comfortable max-w-4xl reading column.
             var postDoc = new ParsedDocument
             {
                 Html = "<p>Body</p>",
                 FrontMatter = new FrontMatter { Title = "A Post" }
             };
             var postHtml = new HtmlGenerator(BlogConfig()).Generate(postDoc, currentUrl: "/blog/a-post");
-            Assert.That(postHtml, Contains.Substring("max-w-6xl w-full mx-auto prose"));
-            Assert.That(postHtml, Does.Not.Contain("max-w-4xl w-full mx-auto prose"));
-
-            // Docs mode keeps the comfortable max-w-4xl reading column.
-            var docsConfig = BlogConfig();
-            docsConfig.Mode = "docs";
-            var docsHtml = new HtmlGenerator(docsConfig).Generate(postDoc, currentUrl: "/guides/a-page");
-            Assert.That(docsHtml, Contains.Substring("max-w-4xl"));
+            Assert.That(postHtml, Contains.Substring("max-w-4xl w-full mx-auto prose"));
+            Assert.That(postHtml, Does.Not.Contain("max-w-6xl w-full mx-auto prose"));
         }
 
         [Test]
@@ -772,6 +765,25 @@ namespace Neko.Tests
             Assert.That(html, Contains.Substring("href=\"/blog/middle\""));
             // count: 2 → the oldest other post is left out.
             Assert.That(html, Does.Not.Contain("href=\"/blog/oldest\""));
+        }
+
+        [Test]
+        public void BlogPost_Outro_MatchesArticleBodyWidth()
+        {
+            // The Read next grid and CTA band sit outside the prose column but are
+            // capped at the same max-w-4xl width and centred the same way, so they
+            // line up with the article body above them.
+            var config = BlogConfig();
+            config.Blog.ReadNext = new BlogReadNextConfig { Count = 3 };
+            config.Blog.Cta = new BlogCtaConfig { Title = "Connected knowledge for AI systems" };
+            var (doc, posts) = ReadNextFixture();
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/current");
+
+            // Both outro sections use the body width (4xl), not the wider index width.
+            Assert.That(html, Contains.Substring("<section class=\"not-prose max-w-4xl w-full mx-auto mt-16\">"));
+            Assert.That(html, Contains.Substring("max-w-4xl w-full mx-auto mt-24 md:mt-32"));
+            Assert.That(html, Does.Not.Contain("max-w-6xl w-full mx-auto mt-16"));
         }
 
         [Test]

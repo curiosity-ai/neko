@@ -856,10 +856,10 @@ namespace Neko.Builder
 
             var title = string.IsNullOrWhiteSpace(cfg?.Title) ? "Read next" : cfg.Title;
 
-            // Rendered outside the article reading column, capped at the wider blog
-            // index width (max-w-6xl) and left-aligned with it, so the card grid
-            // matches curiosity.ai/resources/blog rather than the narrow prose column.
-            sb.AppendLine("                <section class=\"not-prose max-w-6xl w-full mx-auto mt-16\">");
+            // Rendered outside the prose column but capped at the same `max-w-4xl`
+            // width and centred the same way, so the card grid lines up with the
+            // article body above it (same width and left edge).
+            sb.AppendLine("                <section class=\"not-prose max-w-4xl w-full mx-auto mt-16\">");
             sb.AppendLine($"                    <h2 class=\"text-xl font-bold m-0\" style=\"color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(title)}</h2>");
             if (!string.IsNullOrWhiteSpace(cfg?.Description))
             {
@@ -887,7 +887,7 @@ namespace Neko.Builder
 
             var actions = (cta.Actions != null && cta.Actions.Count > 0) ? cta.Actions : _config.Actions;
 
-            sb.AppendLine("                <section class=\"not-prose max-w-6xl w-full mx-auto mt-24 md:mt-32 mb-10 md:mb-16 text-center\">");
+            sb.AppendLine("                <section class=\"not-prose max-w-4xl w-full mx-auto mt-24 md:mt-32 mb-10 md:mb-16 text-center\">");
             sb.AppendLine($"                    <h2 class=\"text-4xl md:text-5xl font-bold tracking-tight leading-[1.1] m-0 max-w-2xl mx-auto\" style=\"color:var(--blog-ink, #1f1f1f)\">{EscapeHtmlAttr(cta.Title)}</h2>");
             if (!string.IsNullOrWhiteSpace(cta.Description))
             {
