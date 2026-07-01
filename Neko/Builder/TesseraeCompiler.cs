@@ -27,6 +27,9 @@ namespace Neko.Builder
 
     public static class TesseraeCompiler
     {
+        private static readonly System.Text.RegularExpressions.Regex _closingScriptTag =
+            new System.Text.RegularExpressions.Regex("</(?=script)", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
         private static readonly HttpClient _httpClient = new HttpClient();
         private static Dictionary<string, NuGetVersion> _cachedLatestVersion = new Dictionary<string, NuGetVersion>();
 
@@ -51,13 +54,25 @@ namespace Neko.Builder
         // newer one — otherwise the cached HTML can reference asset variants the new
         // build no longer writes (e.g. `h5.min.js` vs `h5.js`), 404ing the runtime
         // and leaving the live preview blank.
-        private const string CacheFormatVersion = "5";
+        private const string CacheFormatVersion = "6";
 
         // Tesserae's own surface colours (see tss.common.css): white in light
         // mode, #222 in dark mode. Hard-coded here so the live-preview iframe can
         // paint the right background *before* the Tesserae stylesheet has loaded.
         private const string LightBackground = "#ffffff";
         private const string DarkBackground = "#222222";
+
+        /// <summary>
+        /// Makes compiled app JS safe to inline inside a &lt;script&gt; element. The compiled
+        /// app can legitimately contain the literal "&lt;/script&gt;" — for example a Sandbox
+        /// sample whose <c>srcdoc</c> HTML embeds its own &lt;script&gt; block. Inlined verbatim,
+        /// the HTML parser closes the surrounding &lt;script&gt; tag at that inner sequence and
+        /// dumps the rest of the app as page text, so the sample never runs. Backslash-escaping
+        /// the slash keeps the JS identical (the sequence only ever occurs inside a string,
+        /// regex or comment) while hiding it from the HTML parser.
+        /// </summary>
+        internal static string EscapeForInlineScript(string js) =>
+            string.IsNullOrEmpty(js) ? js : _closingScriptTag.Replace(js, "<\\/");
 
         // Runs in <head>, before the Tesserae stylesheet, so the iframe paints in
         // the docs page's light/dark surface colour from the very first frame
@@ -707,7 +722,7 @@ namespace Neko.Builder
                 // read that class directly on load, then react to later toggles which
                 // the page broadcasts via postMessage (see RenderThemeSwitchScript).
                 htmlBuilder.AppendLine(ThemeBridgeScript);
-                htmlBuilder.AppendLine($"<script>{result.AppJsContent}</script>");
+                htmlBuilder.AppendLine($"<script>{EscapeForInlineScript(result.AppJsContent)}</script>");
                 htmlBuilder.AppendLine("</body>");
                 htmlBuilder.AppendLine("</html>");
 
