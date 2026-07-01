@@ -833,7 +833,17 @@ namespace Neko.Builder
                 File.WriteAllText(htmlPath, measureHtml);
                 var pageUrl = new Uri(htmlPath).AbsoluteUri;
 
-                var pageId = SnapFrameNavigate(pageUrl, _measureWidth);
+                // The first navigate of a run cold-starts Chromium, and that launch
+                // occasionally returns before a PageId is reported — which would drop
+                // whichever sample happens to be measured first (no capture is even
+                // attempted). Retry the navigate a few times so a cold start can't
+                // silently skip a sample.
+                string pageId = null;
+                for (int navAttempt = 0; navAttempt < NavigateAttempts && string.IsNullOrEmpty(pageId); navAttempt++)
+                {
+                    if (navAttempt > 0) Thread.Sleep(NavigateRetryDelayMs);
+                    pageId = SnapFrameNavigate(pageUrl, _measureWidth);
+                }
                 if (string.IsNullOrEmpty(pageId)) return 0;
 
                 try
@@ -876,6 +886,12 @@ namespace Neko.Builder
                 try { if (File.Exists(pngPath)) File.Delete(pngPath); } catch { }
             }
         }
+
+        // How many times to attempt the initial navigate before giving up on a
+        // sample, and how long to wait between attempts. The first attempt of a run
+        // races Chromium's cold start; the retries let the browser finish launching.
+        private const int NavigateAttempts = 4;
+        private const int NavigateRetryDelayMs = 1000;
 
         // Hard ceiling on any single snapframe invocation. A wedged browser
         // (e.g. Chromium failing to launch) must not hang the whole command — on
