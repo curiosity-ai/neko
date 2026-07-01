@@ -39,7 +39,12 @@
     <PackageReference Include="Mosaik.Core" Version="26.6.2351" />
     <PackageReference Include="System.CommandLine" Version="2.0.9" />
     <PackageReference Include="YamlDotNet" Version="18.1.0" />
-    <PackageReference Include="ZLogger" Version="2.5.10" />
+    <!-- Pinned to 1.x: h5.Compiler.Service calls the ZLogger 1.x logging API
+         (e.g. ZLogTrace(ILogger, string)) but does not declare the dependency,
+         so the host app must supply it. ZLogger 2.x is a source-generator
+         rewrite that removed those signatures and throws MissingMethodException
+         at runtime when h5 warms Tesserae samples. -->
+    <PackageReference Include="ZLogger" Version="1.7.1" />
   </ItemGroup>
 
   <ItemGroup>

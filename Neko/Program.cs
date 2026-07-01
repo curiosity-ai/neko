@@ -1,5 +1,4 @@
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.Threading;
 using System.Threading.Tasks;
 using Neko.Builder;
@@ -25,65 +24,69 @@ namespace Neko
             // Build Command
             var buildCommand = new Command("build", "Build the documentation");
 
-            var inputOption  = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
-            var outputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
+            var inputOption  = new Option<string>("--input", "-i") { Description = "Input directory path", DefaultValueFactory = _ => "." };
+            var outputOption = new Option<string?>("--output", "-o") { Description = "Output directory path" };
 
-            var buildNoApiSyncOption = new Option<bool>(new[] { "--no-api-sync" }, () => false, "Skip refreshing API-reference pages from source before building");
+            var buildNoApiSyncOption = new Option<bool>("--no-api-sync") { Description = "Skip refreshing API-reference pages from source before building", DefaultValueFactory = _ => false };
 
-            buildCommand.AddOption(inputOption);
-            buildCommand.AddOption(outputOption);
-            buildCommand.AddOption(buildNoApiSyncOption);
+            buildCommand.Options.Add(inputOption);
+            buildCommand.Options.Add(outputOption);
+            buildCommand.Options.Add(buildNoApiSyncOption);
 
-            buildCommand.SetHandler(async (string input, string? output, bool noApiSync) =>
+            buildCommand.SetAction(async parseResult =>
             {
+                var input = parseResult.GetValue(inputOption)!;
+                var output = parseResult.GetValue(outputOption);
+                var noApiSync = parseResult.GetValue(buildNoApiSyncOption);
                 if (!noApiSync) ApiDocsSync.Run(Path.GetFullPath(input));
                 await BuildRunner.RunAsync(input, output);
-            }, inputOption, outputOption, buildNoApiSyncOption);
+            });
 
             // Snap Command
             var snapCommand = new Command("snap", "Capture screenshots referenced by [!snapframe ...] directives via Playwright");
-            var snapInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
-            var snapAllOption = new Option<bool>(new[] { "--all" }, () => false, "Re-capture all screenshots (overwrite existing images)");
-            snapCommand.AddOption(snapInputOption);
-            snapCommand.AddOption(snapAllOption);
+            var snapInputOption = new Option<string>("--input", "-i") { Description = "Input directory path", DefaultValueFactory = _ => "." };
+            var snapAllOption = new Option<bool>("--all") { Description = "Re-capture all screenshots (overwrite existing images)", DefaultValueFactory = _ => false };
+            snapCommand.Options.Add(snapInputOption);
+            snapCommand.Options.Add(snapAllOption);
 
-            snapCommand.SetHandler((string input, bool all) =>
+            snapCommand.SetAction(parseResult =>
             {
+                var input = parseResult.GetValue(snapInputOption)!;
+                var all = parseResult.GetValue(snapAllOption);
                 var inputFullPath = Path.GetFullPath(input);
                 var snap = new Neko.Builder.SnapCommand(inputFullPath, all);
                 snap.Run();
-            }, snapInputOption, snapAllOption);
+            });
 
             // Watch Command
             var watchCommand = new Command("watch", "Watch for changes and rebuild");
             // macOS' AirPlay Receiver (ControlCenter) binds port 5000 and answers
             // with HTTP 403, so default to 5050 there to avoid the collision.
             var defaultPort  = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 5050 : 5000;
-            var portOption   = new Option<int?>(new[] { "--port", "-p" }, $"Port to use (default: {defaultPort})");
-            var watchInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
-            var watchOutputOption = new Option<string?>(new[] { "--output", "-o" }, "Output directory path");
+            var portOption   = new Option<int?>("--port", "-p") { Description = $"Port to use (default: {defaultPort})" };
+            var watchInputOption = new Option<string>("--input", "-i") { Description = "Input directory path", DefaultValueFactory = _ => "." };
+            var watchOutputOption = new Option<string?>("--output", "-o") { Description = "Output directory path" };
 
-            var watchNoApiSyncOption = new Option<bool>(new[] { "--no-api-sync" }, () => false, "Skip refreshing API-reference pages from source on startup");
+            var watchNoApiSyncOption = new Option<bool>("--no-api-sync") { Description = "Skip refreshing API-reference pages from source on startup", DefaultValueFactory = _ => false };
 
             // Live-only preview: keep live-reload but hide all in-browser editing
             // chrome (header/sidebar edit buttons, drag-reorder, the Monaco modal),
             // so localhost matches what a release build ships.
-            var watchLiveOption = new Option<bool>(new[] { "--live", "--no-editor" }, () => false, "Live preview only: keep live-reload but hide the in-browser editor (edit buttons, drag-reorder)");
+            var watchLiveOption = new Option<bool>("--live", "--no-editor") { Description = "Live preview only: keep live-reload but hide the in-browser editor (edit buttons, drag-reorder)", DefaultValueFactory = _ => false };
 
-            watchCommand.AddOption(watchInputOption);
-            watchCommand.AddOption(portOption);
-            watchCommand.AddOption(watchOutputOption);
-            watchCommand.AddOption(watchNoApiSyncOption);
-            watchCommand.AddOption(watchLiveOption);
+            watchCommand.Options.Add(watchInputOption);
+            watchCommand.Options.Add(portOption);
+            watchCommand.Options.Add(watchOutputOption);
+            watchCommand.Options.Add(watchNoApiSyncOption);
+            watchCommand.Options.Add(watchLiveOption);
 
-            watchCommand.SetHandler(async (context) =>
+            watchCommand.SetAction(async (parseResult, token) =>
             {
-                var input = context.ParseResult.GetValueForOption(watchInputOption) ?? ".";
-                var output = context.ParseResult.GetValueForOption(watchOutputOption);
-                var port = context.ParseResult.GetValueForOption(portOption) ?? defaultPort;
-                var noApiSync = context.ParseResult.GetValueForOption(watchNoApiSyncOption);
-                var liveOnly = context.ParseResult.GetValueForOption(watchLiveOption);
-                var token = context.GetCancellationToken();
+                var input = parseResult.GetValue(watchInputOption) ?? ".";
+                var output = parseResult.GetValue(watchOutputOption);
+                var port = parseResult.GetValue(portOption) ?? defaultPort;
+                var noApiSync = parseResult.GetValue(watchNoApiSyncOption);
+                var liveOnly = parseResult.GetValue(watchLiveOption);
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
 
@@ -316,17 +319,21 @@ namespace Neko
             // folder, and rewrite the directive to a real Markdown image with
             // the original directive preserved as an HTML comment.
             var genImagesCommand = new Command("gen-images", "Generate images for every [!img-gen ...] directive using OpenAI");
-            var genInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
-            var genApiKeyOption = new Option<string?>(new[] { "--api-key" }, "OpenAI API key (defaults to the OPENAI_API_KEY environment variable)");
-            var genImageModelOption = new Option<string>(new[] { "--image-model" }, () => "gpt-image-1", "OpenAI image model to use");
-            var genLlmModelOption = new Option<string>(new[] { "--llm-model" }, () => "gpt-4o-mini", "OpenAI chat model used to generate filename and alt text");
-            genImagesCommand.AddOption(genInputOption);
-            genImagesCommand.AddOption(genApiKeyOption);
-            genImagesCommand.AddOption(genImageModelOption);
-            genImagesCommand.AddOption(genLlmModelOption);
+            var genInputOption = new Option<string>("--input", "-i") { Description = "Input directory path", DefaultValueFactory = _ => "." };
+            var genApiKeyOption = new Option<string?>("--api-key") { Description = "OpenAI API key (defaults to the OPENAI_API_KEY environment variable)" };
+            var genImageModelOption = new Option<string>("--image-model") { Description = "OpenAI image model to use", DefaultValueFactory = _ => "gpt-image-1" };
+            var genLlmModelOption = new Option<string>("--llm-model") { Description = "OpenAI chat model used to generate filename and alt text", DefaultValueFactory = _ => "gpt-4o-mini" };
+            genImagesCommand.Options.Add(genInputOption);
+            genImagesCommand.Options.Add(genApiKeyOption);
+            genImagesCommand.Options.Add(genImageModelOption);
+            genImagesCommand.Options.Add(genLlmModelOption);
 
-            genImagesCommand.SetHandler(async (string input, string? apiKey, string imageModel, string llmModel) =>
+            genImagesCommand.SetAction(async parseResult =>
             {
+                var input = parseResult.GetValue(genInputOption)!;
+                var apiKey = parseResult.GetValue(genApiKeyOption);
+                var imageModel = parseResult.GetValue(genImageModelOption)!;
+                var llmModel = parseResult.GetValue(genLlmModelOption)!;
                 var inputFullPath = Path.GetFullPath(input);
                 var key = apiKey;
                 if (string.IsNullOrWhiteSpace(key))
@@ -338,8 +345,8 @@ namespace Neko
                     ? Neko.Configuration.ConfigParser.Parse(configPath)
                     : new Neko.Configuration.NekoConfig();
                 var cmd = new Neko.Builder.ImageGenCommand(inputFullPath, key ?? "", imageModel, llmModel, nekoConfig.ImageGen);
-                Environment.ExitCode = await cmd.RunAsync();
-            }, genInputOption, genApiKeyOption, genImageModelOption, genLlmModelOption);
+                return await cmd.RunAsync();
+            });
 
             // Gen-Dark-Images Command — walk every `assets/img-gen/*.png`
             // reference in the input tree and, for any image that doesn't yet
@@ -347,15 +354,18 @@ namespace Neko
             // dark-mode variant via the OpenAI image-edit endpoint and rewrite
             // the Markdown to point at both files.
             var darkImagesCommand = new Command("gen-dark-images", "Generate missing dark-mode variants for images previously created by [!img-gen]");
-            var darkInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
-            var darkApiKeyOption = new Option<string?>(new[] { "--api-key" }, "OpenAI API key (defaults to the OPENAI_API_KEY environment variable)");
-            var darkImageModelOption = new Option<string>(new[] { "--image-model" }, () => "gpt-image-1", "OpenAI image model to use");
-            darkImagesCommand.AddOption(darkInputOption);
-            darkImagesCommand.AddOption(darkApiKeyOption);
-            darkImagesCommand.AddOption(darkImageModelOption);
+            var darkInputOption = new Option<string>("--input", "-i") { Description = "Input directory path", DefaultValueFactory = _ => "." };
+            var darkApiKeyOption = new Option<string?>("--api-key") { Description = "OpenAI API key (defaults to the OPENAI_API_KEY environment variable)" };
+            var darkImageModelOption = new Option<string>("--image-model") { Description = "OpenAI image model to use", DefaultValueFactory = _ => "gpt-image-1" };
+            darkImagesCommand.Options.Add(darkInputOption);
+            darkImagesCommand.Options.Add(darkApiKeyOption);
+            darkImagesCommand.Options.Add(darkImageModelOption);
 
-            darkImagesCommand.SetHandler(async (string input, string? apiKey, string imageModel) =>
+            darkImagesCommand.SetAction(async parseResult =>
             {
+                var input = parseResult.GetValue(darkInputOption)!;
+                var apiKey = parseResult.GetValue(darkApiKeyOption);
+                var imageModel = parseResult.GetValue(darkImageModelOption)!;
                 var inputFullPath = Path.GetFullPath(input);
                 var key = apiKey;
                 if (string.IsNullOrWhiteSpace(key))
@@ -367,112 +377,120 @@ namespace Neko
                     ? Neko.Configuration.ConfigParser.Parse(configPath)
                     : new Neko.Configuration.NekoConfig();
                 var cmd = new Neko.Builder.ImageGenCommand(inputFullPath, key ?? "", imageModel, llmModel: "gpt-4o-mini", nekoConfig.ImageGen);
-                Environment.ExitCode = await cmd.BackfillDarkImagesAsync();
-            }, darkInputOption, darkApiKeyOption, darkImageModelOption);
+                return await cmd.BackfillDarkImagesAsync();
+            });
 
             // Check-Links Command — build the site into a throwaway folder and
             // verify every internal page/asset link (and #anchor) resolves, plus
             // optionally probe external http(s) links. Exits non-zero when any
             // link is broken so it can gate CI.
             var checkLinksCommand = new Command("check-links", "Build the project and report any broken links in the generated site");
-            var checkLinksInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
-            var checkLinksExternalOption = new Option<bool>(new[] { "--external" }, () => false, "Also verify external http(s) links over the network");
-            var checkLinksNoAnchorsOption = new Option<bool>(new[] { "--no-anchors" }, () => false, "Skip validation of #fragment anchors");
-            var checkLinksRedirectsOption = new Option<bool>(new[] { "--redirects" }, () => false, "Report external links that resolve via an HTTP redirect (implies --external)");
-            checkLinksCommand.AddOption(checkLinksInputOption);
-            checkLinksCommand.AddOption(checkLinksExternalOption);
-            checkLinksCommand.AddOption(checkLinksNoAnchorsOption);
-            checkLinksCommand.AddOption(checkLinksRedirectsOption);
+            var checkLinksInputOption = new Option<string>("--input", "-i") { Description = "Input directory path", DefaultValueFactory = _ => "." };
+            var checkLinksExternalOption = new Option<bool>("--external") { Description = "Also verify external http(s) links over the network", DefaultValueFactory = _ => false };
+            var checkLinksNoAnchorsOption = new Option<bool>("--no-anchors") { Description = "Skip validation of #fragment anchors", DefaultValueFactory = _ => false };
+            var checkLinksRedirectsOption = new Option<bool>("--redirects") { Description = "Report external links that resolve via an HTTP redirect (implies --external)", DefaultValueFactory = _ => false };
+            checkLinksCommand.Options.Add(checkLinksInputOption);
+            checkLinksCommand.Options.Add(checkLinksExternalOption);
+            checkLinksCommand.Options.Add(checkLinksNoAnchorsOption);
+            checkLinksCommand.Options.Add(checkLinksRedirectsOption);
 
-            // Use the InvocationContext so the broken-link exit code propagates
-            // as the process exit code (InvokeAsync's return value, which Main
-            // returns, otherwise wins over Environment.ExitCode).
-            checkLinksCommand.SetHandler(async (context) =>
+            // Return the broken-link exit code so it propagates as the process
+            // exit code (the action's result becomes InvokeAsync's return value,
+            // which Main returns).
+            checkLinksCommand.SetAction(async parseResult =>
             {
-                var input = context.ParseResult.GetValueForOption(checkLinksInputOption) ?? ".";
-                var external = context.ParseResult.GetValueForOption(checkLinksExternalOption);
-                var noAnchors = context.ParseResult.GetValueForOption(checkLinksNoAnchorsOption);
-                var redirects = context.ParseResult.GetValueForOption(checkLinksRedirectsOption);
+                var input = parseResult.GetValue(checkLinksInputOption) ?? ".";
+                var external = parseResult.GetValue(checkLinksExternalOption);
+                var noAnchors = parseResult.GetValue(checkLinksNoAnchorsOption);
+                var redirects = parseResult.GetValue(checkLinksRedirectsOption);
 
                 var cmd = new Neko.Builder.CheckLinksCommand(input, external, checkAnchors: !noAnchors, checkRedirects: redirects);
-                context.ExitCode = await cmd.RunAsync();
+                return await cmd.RunAsync();
             });
 
             // New Command — scaffold a new documentation project from the
             // embedded .template/ starter zip.
             var newCommand = new Command("new", "Initialize a new Neko documentation project from the built-in template");
-            var newPathOption = new Option<string?>(new[] { "--path", "-p" }, "Target directory for the new project (default: current directory)");
-            var newForceOption = new Option<bool>(new[] { "--force", "-f" }, () => false, "Overwrite existing files at the target path");
-            newCommand.AddOption(newPathOption);
-            newCommand.AddOption(newForceOption);
+            var newPathOption = new Option<string?>("--path", "-p") { Description = "Target directory for the new project (default: current directory)" };
+            var newForceOption = new Option<bool>("--force", "-f") { Description = "Overwrite existing files at the target path", DefaultValueFactory = _ => false };
+            newCommand.Options.Add(newPathOption);
+            newCommand.Options.Add(newForceOption);
 
-            newCommand.SetHandler((string? newPath, bool newForce) =>
+            newCommand.SetAction(parseResult =>
             {
-                var exitCode = Neko.Builder.NewCommand.Run(newPath, newForce);
-                Environment.ExitCode = exitCode;
-            }, newPathOption, newForceOption);
+                var newPath = parseResult.GetValue(newPathOption);
+                var newForce = parseResult.GetValue(newForceOption);
+                return Neko.Builder.NewCommand.Run(newPath, newForce);
+            });
 
             // Update-Skills Command — refresh the Neko-managed skills under
             // an existing project's .claude/skills/ folder, leaving custom
             // (non-Neko) skills untouched.
             var updateSkillsCommand = new Command("update-skills", "Update Neko-managed skills under a target project's .claude/skills/ folder");
-            var updateSkillsPathOption = new Option<string?>(new[] { "--path", "-p" }, "Target project directory (default: current directory)");
-            var updateSkillsDryRunOption = new Option<bool>(new[] { "--dry-run" }, () => false, "List the changes that would be made without writing files");
-            updateSkillsCommand.AddOption(updateSkillsPathOption);
-            updateSkillsCommand.AddOption(updateSkillsDryRunOption);
+            var updateSkillsPathOption = new Option<string?>("--path", "-p") { Description = "Target project directory (default: current directory)" };
+            var updateSkillsDryRunOption = new Option<bool>("--dry-run") { Description = "List the changes that would be made without writing files", DefaultValueFactory = _ => false };
+            updateSkillsCommand.Options.Add(updateSkillsPathOption);
+            updateSkillsCommand.Options.Add(updateSkillsDryRunOption);
 
-            updateSkillsCommand.SetHandler((string? updatePath, bool dryRun) =>
+            updateSkillsCommand.SetAction(parseResult =>
             {
-                var exitCode = Neko.Builder.UpdateSkillsCommand.Run(updatePath, dryRun);
-                Environment.ExitCode = exitCode;
-            }, updateSkillsPathOption, updateSkillsDryRunOption);
+                var updatePath = parseResult.GetValue(updateSkillsPathOption);
+                var dryRun = parseResult.GetValue(updateSkillsDryRunOption);
+                return Neko.Builder.UpdateSkillsCommand.Run(updatePath, dryRun);
+            });
 
             // Sync-Api-Docs Command — regenerate every `<!-- api:source ... -->`
             // block from the public surface of real source. Runs by default before
             // `build`/`watch` (disable with --no-api-sync); exposed standalone so it
             // can be run on demand or in CI.
             var syncApiDocsCommand = new Command("sync-api-docs", "Refresh API-reference pages from source (public surface only)");
-            var syncInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
-            var syncVerboseOption = new Option<bool>(new[] { "--verbose", "-v" }, () => false, "List each updated page");
-            var syncDryRunOption = new Option<bool>(new[] { "--dry-run" }, () => false, "Report changes without writing");
-            syncApiDocsCommand.AddOption(syncInputOption);
-            syncApiDocsCommand.AddOption(syncVerboseOption);
-            syncApiDocsCommand.AddOption(syncDryRunOption);
+            var syncInputOption = new Option<string>("--input", "-i") { Description = "Input directory path", DefaultValueFactory = _ => "." };
+            var syncVerboseOption = new Option<bool>("--verbose", "-v") { Description = "List each updated page", DefaultValueFactory = _ => false };
+            var syncDryRunOption = new Option<bool>("--dry-run") { Description = "Report changes without writing", DefaultValueFactory = _ => false };
+            syncApiDocsCommand.Options.Add(syncInputOption);
+            syncApiDocsCommand.Options.Add(syncVerboseOption);
+            syncApiDocsCommand.Options.Add(syncDryRunOption);
 
-            syncApiDocsCommand.SetHandler((string input, bool verbose, bool dryRun) =>
+            syncApiDocsCommand.SetAction(parseResult =>
             {
+                var input = parseResult.GetValue(syncInputOption)!;
+                var verbose = parseResult.GetValue(syncVerboseOption);
+                var dryRun = parseResult.GetValue(syncDryRunOption);
                 Neko.Builder.ApiDocsSync.Run(Path.GetFullPath(input), verbose, dryRun);
-            }, syncInputOption, syncVerboseOption, syncDryRunOption);
+            });
 
             // Gen-Tesserae-Heights Command — measure each `tesserae` live sample's
             // rendered height with a headless browser and bake a `height=NNN` token
             // into its fence, so normal builds size the preview iframe up front
             // without ever launching a browser.
             var tesseraeHeightsCommand = new Command("gen-tesserae-heights", "Measure tesserae live samples and bake iframe heights into their fences");
-            var thInputOption = new Option<string>(new[] { "--input", "-i" }, () => ".", "Input directory path");
-            var thForceOption = new Option<bool>(new[] { "--force", "-f" }, () => false, "Re-measure every sample, even ones that already have a height token");
-            var thFileOption = new Option<string?>(new[] { "--file" }, () => null, "Measure only the samples in this one Markdown file (always re-measures it; no hash cache)");
-            tesseraeHeightsCommand.AddOption(thInputOption);
-            tesseraeHeightsCommand.AddOption(thForceOption);
-            tesseraeHeightsCommand.AddOption(thFileOption);
-            tesseraeHeightsCommand.SetHandler(async (string input, bool force, string? file) =>
+            var thInputOption = new Option<string>("--input", "-i") { Description = "Input directory path", DefaultValueFactory = _ => "." };
+            var thForceOption = new Option<bool>("--force", "-f") { Description = "Re-measure every sample, even ones that already have a height token", DefaultValueFactory = _ => false };
+            var thFileOption = new Option<string?>("--file") { Description = "Measure only the samples in this one Markdown file (always re-measures it; no hash cache)" };
+            tesseraeHeightsCommand.Options.Add(thInputOption);
+            tesseraeHeightsCommand.Options.Add(thForceOption);
+            tesseraeHeightsCommand.Options.Add(thFileOption);
+            tesseraeHeightsCommand.SetAction(async parseResult =>
             {
+                var input = parseResult.GetValue(thInputOption)!;
+                var force = parseResult.GetValue(thForceOption);
+                var file = parseResult.GetValue(thFileOption);
                 var cmd = new Neko.Builder.TesseraeHeightsCommand(input, force, file);
-                Environment.ExitCode = await cmd.RunAsync();
-            }, thInputOption, thForceOption, thFileOption);
+                return await cmd.RunAsync();
+            });
 
-            rootCommand.AddCommand(buildCommand);
-            rootCommand.AddCommand(watchCommand);
-            rootCommand.AddCommand(syncApiDocsCommand);
-            rootCommand.AddCommand(checkLinksCommand);
-            rootCommand.AddCommand(tesseraeHeightsCommand);
-            rootCommand.AddCommand(snapCommand);
-            rootCommand.AddCommand(genImagesCommand);
-            rootCommand.AddCommand(darkImagesCommand);
-            rootCommand.AddCommand(newCommand);
-            rootCommand.AddCommand(updateSkillsCommand);
+            rootCommand.Subcommands.Add(buildCommand);
+            rootCommand.Subcommands.Add(watchCommand);
+            rootCommand.Subcommands.Add(syncApiDocsCommand);
+            rootCommand.Subcommands.Add(checkLinksCommand);
+            rootCommand.Subcommands.Add(tesseraeHeightsCommand);
+            rootCommand.Subcommands.Add(snapCommand);
+            rootCommand.Subcommands.Add(genImagesCommand);
+            rootCommand.Subcommands.Add(darkImagesCommand);
+            rootCommand.Subcommands.Add(newCommand);
+            rootCommand.Subcommands.Add(updateSkillsCommand);
 
-            return await rootCommand.InvokeAsync(args);
+            return await rootCommand.Parse(args).InvokeAsync();
         }
 
         private static void InitializeMSBuild()

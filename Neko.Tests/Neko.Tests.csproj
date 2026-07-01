@@ -33,7 +33,9 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="NUnit3TestAdapter" Version="6.2.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="4.0.0" />
+    <!-- Pinned to 3.1.x: ImageSharp 4.0 switched to the Six Labors Split
+         License and enforces a paid license key at build time. -->
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
   </ItemGroup>
 
   <ItemGroup>
