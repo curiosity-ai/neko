@@ -171,7 +171,7 @@ the full per-component reference** — this section is just a map.
 | Panel (collapse)   | `===` / `==-`          | panel                             |
 | Inline shortcode   | `[!name attr=…]`       | badge, version-badge, button, ref, file, embed, lesson, command-example, color-chip |
 | Fence block        | ` ```lang `            | code blocks, mermaid, force-graph, workflow, tesserae, csharp-docs, math-formulas, links (link-card) |
-| Container          | `::: name { attrs }`   | card, example, generic container  |
+| Container          | `::: name { attrs }`   | card, example, change, generic container |
 | Inline emoji/icon  | `:name:` / `:icon-…:`  | emoji, icon                       |
 | Image attrs        | `![cap](url){…}`       | image, pdf                        |
 | Front-matter only  | n/a                    | banner (project-level), backlinks |
@@ -239,13 +239,13 @@ The `.claude/skills/` folder contains one skill per Neko component. Skills are
 just `SKILL.md` files; load them on demand when you need precise syntax for a
 component. The set covers:
 
-alert · backlinks · badge · banner · button · callout · cards · changelog ·
-code-block · code-inline · code-snippet · color-chip · column · command-example ·
-comments · container · csharp-docs · embed · emoji · example · file ·
-file-download · force-graph · icon · image · img-gen · lesson · list · math ·
-math-formulas · mermaid · panel · pdf · reference-link · snapframe · steps ·
-tab · table · tesserae · workflow · youtube · frontmatter · neko-yml ·
-folder-index.
+alert · backlinks · badge · banner · button · callout · cards · change ·
+changelog · code-block · code-inline · code-snippet · color-chip · column ·
+command-example · comments · container · csharp-docs · embed · emoji · endpoint ·
+example · file · file-download · force-graph · icon · image · img-gen · lesson ·
+links · list · math · math-formulas · mermaid · panel · pdf · quiz ·
+reference-link · snapframe · steps · tab · table · tesserae · workflow ·
+youtube · frontmatter · neko-yml · folder-index.
 
 There is also one **workflow** skill that is not tied to a single component:
 
