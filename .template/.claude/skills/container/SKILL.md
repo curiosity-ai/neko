@@ -58,5 +58,12 @@ Three columns of children.
 
 Avoid containers for things that have a dedicated component — use
 [`card`](../cards/SKILL.md), [`panel`](../panel/SKILL.md),
-[`column`](../column/SKILL.md), [`tab`](../tab/SKILL.md), or
-[`alert`](../alert/SKILL.md) instead.
+[`column`](../column/SKILL.md), [`tab`](../tab/SKILL.md),
+[`change`](../change/SKILL.md), or [`alert`](../alert/SKILL.md) instead.
+
+## Reserved container names
+
+These first tokens are intercepted and rendered by their own component, so they
+are not generic `<div>` wrappers: `card`, `card-grid`, `example`,
+[`change`](../change/SKILL.md), `roadmap`, `lane`, `roadmap-item`, `panel`,
+`column`, `columns`.
