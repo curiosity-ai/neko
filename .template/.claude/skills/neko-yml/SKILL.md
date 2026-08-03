@@ -62,6 +62,8 @@ links:
 branding:
   title: Project
   label: Docs                  # text right of the title
+  link: https://example.com    # brand target; default is the homepage (/index)
+  linkTarget: blank            # blank | self | parent | top (default: same tab)
   logo: /assets/logo.png
   logoDark: /assets/logo-dark.png
   logoAlign: left              # or right
@@ -69,6 +71,11 @@ branding:
   baseColor: "#5495f1"
   repository: https://github.com/owner/repo
 ```
+
+`link` overrides where the navbar brand (the title, and the logo wordmark in
+blog mode) points — use it to send the brand back to a marketing site, to a
+specific internal page (`link: /overview`, `.md` suffixes are stripped), or to
+`#` to make it inert. Sub-projects inherit it when they don't set their own.
 
 ## Breadcrumb (cross-project search)
 
