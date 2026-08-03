@@ -178,6 +178,50 @@ The `label` is rendered as the following label in the upper-left corner of the g
 ![](/static/project-branding-title.png)
 ===
 
+### link {#branding-link}
+
+=== link : `string`
+
+Overrides the target of the navbar brand — the clickable [`title`](#branding-title) (and, in [`blog` mode](#mode), the [`logo`](#logo) wordmark) in the upper-left corner.
+
+By default the brand links to the site homepage (`/index`). Set `link` to point it somewhere else, for example back to a marketing site:
+
+```yml Link the brand to an external site
+branding:
+  title: Example Docs
+  link: https://example.com
+  linkTarget: blank
+```
+
+An internal path works too, which is handy when the documentation homepage is not the page you want the brand to open:
+
+```yml Link the brand to an internal page
+branding:
+  title: Example Docs
+  link: /overview
+```
+
+Internal targets may be written with their source extension (`link: docs/overview.md`) — the `.md` / `.html` suffix is stripped like any other configured link. Use `link: "#"` to make the brand inert (no navigation).
+
+In a multi-project site, `link` is inherited by sub-projects that don't define their own, so every sub-site's brand can point at the shared root.
+
+===
+
+### linkTarget
+
+=== linkTarget : `string`
+
+The `target` used for the brand [`link`](#branding-link). Accepts `blank`, `self`, `parent`, and `top` (with or without the leading underscore).
+
+Default is `null` — the brand navigates in the current tab. A `blank` target also gets `rel="noopener noreferrer"`.
+
+```yml Open the brand link in a new tab
+branding:
+  link: https://example.com
+  linkTarget: blank
+```
+===
+
 ### logo
 
 === logo : `string`

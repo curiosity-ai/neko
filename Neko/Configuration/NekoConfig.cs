@@ -98,6 +98,10 @@ namespace Neko.Configuration
             {
                 Banner.Link = LinkNormalizer.Normalize(Banner.Link);
             }
+            if (Branding != null)
+            {
+                Branding.Link = LinkNormalizer.Normalize(Branding.Link);
+            }
             NormalizeLinkList(Links);
             if (Actions != null)
             {
@@ -129,6 +133,8 @@ namespace Neko.Configuration
             // Inherit Branding properties if not set
             if (string.IsNullOrEmpty(Branding.Title)) Branding.Title = parent.Branding.Title;
             if (string.IsNullOrEmpty(Branding.Label)) Branding.Label = parent.Branding.Label;
+            if (string.IsNullOrEmpty(Branding.Link)) Branding.Link = parent.Branding.Link;
+            if (string.IsNullOrEmpty(Branding.LinkTarget)) Branding.LinkTarget = parent.Branding.LinkTarget;
             if (string.IsNullOrEmpty(Branding.Logo)) Branding.Logo = parent.Branding.Logo;
             if (string.IsNullOrEmpty(Branding.LogoDark)) Branding.LogoDark = parent.Branding.LogoDark;
             if (string.IsNullOrEmpty(Branding.Icon)) Branding.Icon = parent.Branding.Icon;
@@ -505,6 +511,19 @@ namespace Neko.Configuration
 
         [YamlMember(Alias = "label")]
         public string Label { get; set; }
+
+        // Overrides where the navbar brand (logo + title) points. Defaults to
+        // the site homepage (`/index`) when unset. Accepts an internal path, an
+        // absolute URL (e.g. back to a marketing site), or `#` to make the
+        // brand inert.
+        [YamlMember(Alias = "link")]
+        public string Link { get; set; }
+
+        // Optional `target` for the brand link — same accepted values as any
+        // other configured link (`blank`/`_blank`, `self`, `parent`, `top`).
+        // Useful when `link` points at an external site.
+        [YamlMember(Alias = "linkTarget")]
+        public string LinkTarget { get; set; }
 
         [YamlMember(Alias = "logo")]
         public string Logo { get; set; }

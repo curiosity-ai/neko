@@ -192,6 +192,33 @@ namespace Neko.Builder
             sb.AppendLine("    </div>");
         }
 
+        // Where the navbar brand (logo and/or title) points. Defaults to the site
+        // homepage; `branding.link` in neko.yml overrides it — e.g. to send the
+        // brand back to a marketing site, to a sub-project root, or to `#` to
+        // make it inert.
+        private string NavbarBrandHref
+        {
+            get
+            {
+                var link = _config.Branding?.Link?.Trim();
+                return string.IsNullOrEmpty(link) ? "/index" : link;
+            }
+        }
+
+        // The `target`/`rel` attribute pair for the brand link (empty unless
+        // `branding.linkTarget` is set). External brand links opened in a new tab
+        // get `rel="noopener noreferrer"`, matching the configured nav actions.
+        private string NavbarBrandTargetAttrs
+        {
+            get
+            {
+                var target = NormalizeTarget(_config.Branding?.LinkTarget);
+                if (string.IsNullOrEmpty(target)) return string.Empty;
+                var rel = target == "_blank" ? " rel=\"noopener noreferrer\"" : string.Empty;
+                return $" target=\"{EscapeHtmlAttr(target)}\"{rel}";
+            }
+        }
+
         private void RenderNavbarBrand(StringBuilder sb, string currentUrl)
         {
             // In blog mode the logo image is a full wordmark, so pairing it with
@@ -205,7 +232,7 @@ namespace Neko.Builder
             {
                 // `shrink-0` so the crowded marketing nav never squeezes the wordmark
                 // (flexbox would otherwise shrink the image before the text links).
-                sb.AppendLine($"            <a href=\"/index\" class=\"flex items-center shrink-0\" aria-label=\"{_config.Branding.Title}\">");
+                sb.AppendLine($"            <a href=\"{NavbarBrandHref}\"{NavbarBrandTargetAttrs} class=\"flex items-center shrink-0\" aria-label=\"{_config.Branding.Title}\">");
                 RenderNavbarLogoImages(sb, currentUrl);
                 sb.AppendLine("            </a>");
                 return;
@@ -220,7 +247,7 @@ namespace Neko.Builder
                 sb.AppendLine($"            <i class=\"{_config.Branding.Icon} text-2xl text-primary-600 dark:text-primary-400\"></i>");
             }
 
-            sb.AppendLine($"            <a href=\"/index\" class=\"font-bold text-xl hover:text-primary-600 transition-colors\">{_config.Branding.Title}</a>");
+            sb.AppendLine($"            <a href=\"{NavbarBrandHref}\"{NavbarBrandTargetAttrs} class=\"font-bold text-xl hover:text-primary-600 transition-colors\">{_config.Branding.Title}</a>");
         }
 
         private void RenderNavbarLogoImages(StringBuilder sb, string currentUrl)
