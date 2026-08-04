@@ -7,7 +7,6 @@ using System.IO;
 using System;
 using Neko.Configuration;
 using System.Text;
-using Microsoft.Build.Locator;
 using System.Runtime.InteropServices;
 
 namespace Neko
@@ -17,7 +16,6 @@ namespace Neko
         static async Task<int> Main(string[] args)
         {
             ForceInvariantCultureAndUTF8Output();
-            InitializeMSBuild();
 
             var rootCommand = new RootCommand("Neko CLI - Static Site Generator");
 
@@ -491,30 +489,6 @@ namespace Neko
             rootCommand.Subcommands.Add(updateSkillsCommand);
 
             return await rootCommand.Parse(args).InvokeAsync();
-        }
-
-        private static void InitializeMSBuild()
-        {
-            // Initialize MSBuild
-            try
-            {
-                var instances = MSBuildLocator.QueryVisualStudioInstances().ToArray();
-                if (instances.Length > 0)
-                {
-                    var instance = instances.OrderByDescending(x => x.Version).First();
-                    MSBuildLocator.RegisterInstance(instance);
-                    Console.WriteLine($"Registered MSBuild instance: {instance.Name} {instance.Version} at {instance.MSBuildPath}");
-                }
-                else
-                {
-                    MSBuildLocator.RegisterDefaults();
-                    Console.WriteLine("Registered default MSBuild instance.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"MSBuildLocator initialization warning: {ex.Message}");
-            }
         }
 
         public static void ForceInvariantCultureAndUTF8Output()

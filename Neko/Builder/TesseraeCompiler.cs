@@ -11,9 +11,7 @@ using System.Text;
 using System.Net.Http;
 using System.Text.Json;
 using NuGet.Versioning;
-using H5.Compiler;
-using H5.Compiler.Hosted;
-using H5.Translator;
+using Transpose.Compiler.Library;
 using UID;
 
 namespace Neko.Builder
@@ -43,18 +41,20 @@ namespace Neko.Builder
         private static readonly ConcurrentDictionary<string, TesseraeCompilerResult> _memCache =
             new ConcurrentDictionary<string, TesseraeCompilerResult>();
 
-        // Parallel compiles emit the same shared runtime files (h5.js, css, …);
+        // Parallel compiles restore the same shared runtime files (tps.js, css, …);
         // serialise the actual file writes so two threads never write one path at
-        // once. The heavy H5 compilation itself stays parallel.
+        // once. The Transpose compilation itself stays parallel.
         private static readonly object _assetWriteLock = new object();
 
         // Bumped whenever the *shape* of a compiled result changes (the generated
         // OutputHtml, the asset file names it references, …). It is part of the cache
         // key so a stale `.neko-cache` written by an older neko isn't reused by a
         // newer one — otherwise the cached HTML can reference asset variants the new
-        // build no longer writes (e.g. `h5.min.js` vs `h5.js`), 404ing the runtime
-        // and leaving the live preview blank.
-        private const string CacheFormatVersion = "6";
+        // build no longer writes (e.g. the h5 runtime's `h5.js` vs Transpose's
+        // `tps.js`), 404ing the runtime and leaving the live preview blank.
+        // 7: samples are compiled by Transpose (`Transpose.Compiler.Library`) rather
+        //    than H5, so every asset name and the load order changed.
+        private const string CacheFormatVersion = "7";
 
         // Tesserae's own surface colours (see tss.common.css): white in light
         // mode, #222 in dark mode. Hard-coded here so the live-preview iframe can
@@ -135,7 +135,7 @@ namespace Neko.Builder
 
         // Headless height measurement spins up a Chromium page per unique sample.
         // Cap how many run at once so a high compile parallelism doesn't open a
-        // browser tab per core; the heavy H5 compilation stays at _maxParallelism.
+        // browser tab per core; the Transpose compilation stays at _maxParallelism.
         private static readonly SemaphoreSlim _measureLock = new SemaphoreSlim(Math.Max(1, Math.Min(4, Environment.ProcessorCount)));
 
         // Whether the snapframe toolchain is usable, resolved once on first measure.
@@ -230,12 +230,21 @@ namespace Neko.Builder
             return Path.Combine(GetCacheDir(), $"{hash}_{tesseraeVersion}.json");
         }
 
-        // The compiled shared runtime (h5.js, h5.core.js, css, …) is identical for
-        // every sample built against the same Tesserae version, so it is stored
-        // once per version rather than once per sample.
+        // The compiled shared runtime (tps.js, tss.js, the Tesserae stylesheet and
+        // its fonts, …) is identical for every sample built against the same
+        // Tesserae version, so it is stored once per version rather than once per
+        // sample. See EnsureSharedRuntimeAsync for how it is produced.
         private static string GetSharedAssetsDir(NuGetVersion tesseraeVersion)
         {
             return Path.Combine(GetCacheDir(), $"shared_{tesseraeVersion}");
+        }
+
+        // The order in which the shared runtime files must be loaded, recorded next
+        // to (not inside) the shared assets directory so RestoreSharedAssets never
+        // copies it into the site output.
+        private static string GetSharedLayoutPath(NuGetVersion tesseraeVersion)
+        {
+            return Path.Combine(GetCacheDir(), $"layout_{tesseraeVersion}.json");
         }
 
         private const string AssetUrlPrefix = "/assets/tesserae/";
@@ -252,20 +261,245 @@ namespace Neko.Builder
             return p.TrimStart('/');
         }
 
-        // Write a shared asset to both the live output directory and the persistent
-        // per-version cache, skipping files that already exist. Idempotent and safe
-        // to call from parallel compiles (serialised on _assetWriteLock).
-        private static void WriteSharedAsset(string relativePath, byte[] content, string siteAssetsDir, string sharedAssetsDir)
+        // ---- the shared runtime (built once per Tesserae version) ----
+
+        /// <summary>
+        /// The runtime files every sample of one Tesserae version loads, and the order
+        /// they load in. Produced by a full Transpose site build of a scaffold project
+        /// (see <see cref="BuildSharedRuntime"/>) and persisted next to the shared
+        /// assets, so later builds — and later `neko` runs — reuse both.
+        /// </summary>
+        internal sealed class SharedRuntimeLayout
         {
-            lock (_assetWriteLock)
+            // Stylesheets, in the order the generated index.html links them.
+            public List<string> Css { get; set; } = new List<string>();
+
+            // Scripts, in the order the generated index.html loads them. The sample's
+            // own bundle is not among them — it is inlined into the preview document.
+            public List<string> Js { get; set; } = new List<string>();
+
+            // Every shared file, including the ones nothing links directly (the icon
+            // fonts the stylesheet pulls in).
+            public List<string> Assets { get; set; } = new List<string>();
+        }
+
+        // Resolved layouts by Tesserae version, so a warm process answers without
+        // touching disk.
+        private static readonly ConcurrentDictionary<string, SharedRuntimeLayout> _sharedLayouts =
+            new ConcurrentDictionary<string, SharedRuntimeLayout>();
+
+        // One shared runtime build at a time: parallel sample compiles all need the
+        // same one, and it writes a single directory.
+        private static readonly SemaphoreSlim _sharedRuntimeLock = new SemaphoreSlim(1, 1);
+
+        // The scaffold whose site build produces the shared runtime. Nothing about the
+        // sample matters — the runtime comes from the referenced packages — but it has
+        // to be a valid Tesserae app so the build succeeds and index.html is generated.
+        private const string SharedRuntimeSource = @"using Tesserae;
+using static Tesserae.UI;
+
+public static class NekoSharedRuntime
+{
+    public static void Main()
+    {
+        MountToBody(TextBlock(""Neko""));
+    }
+}
+";
+
+        /// <summary>
+        /// Makes sure the shared runtime for <paramref name="tesseraeVersion"/> exists in the
+        /// per-version cache and has been copied into <paramref name="siteAssetsDir"/>, and
+        /// returns its load order. Builds it on first use; every later call is a lookup.
+        /// </summary>
+        private static async Task<SharedRuntimeLayout> EnsureSharedRuntimeAsync(NuGetVersion tesseraeVersion, string siteAssetsDir)
+        {
+            var key = tesseraeVersion.ToString();
+
+            if (_sharedLayouts.TryGetValue(key, out var known) && RestoreSharedAssets(tesseraeVersion, siteAssetsDir))
             {
-                foreach (var baseDir in new[] { siteAssetsDir, sharedAssetsDir })
+                return known;
+            }
+
+            await _sharedRuntimeLock.WaitAsync();
+            try
+            {
+                // Another sample may have built it while we waited.
+                if (_sharedLayouts.TryGetValue(key, out known) && RestoreSharedAssets(tesseraeVersion, siteAssetsDir))
                 {
-                    var dest = Path.Combine(baseDir, relativePath);
-                    if (File.Exists(dest)) continue;
-                    Directory.CreateDirectory(Path.GetDirectoryName(dest));
-                    File.WriteAllBytes(dest, content);
+                    return known;
                 }
+
+                // A previous run's shared build, still on disk: reuse it rather than
+                // paying for a site build on every `neko build`.
+                var layoutPath = GetSharedLayoutPath(tesseraeVersion);
+                if (File.Exists(layoutPath))
+                {
+                    try
+                    {
+                        var stored = JsonSerializer.Deserialize<SharedRuntimeLayout>(await File.ReadAllTextAsync(layoutPath));
+                        if (stored != null && stored.Js.Count > 0 && RestoreSharedAssets(tesseraeVersion, siteAssetsDir))
+                        {
+                            _sharedLayouts[key] = stored;
+                            return stored;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to read the cached Tesserae runtime layout: {ex.Message}");
+                    }
+                }
+
+                var layout = await Task.Run(() => BuildSharedRuntime(tesseraeVersion));
+                _sharedLayouts[key] = layout;
+                RestoreSharedAssets(tesseraeVersion, siteAssetsDir);
+                return layout;
+            }
+            finally
+            {
+                _sharedRuntimeLock.Release();
+            }
+        }
+
+        /// <summary>
+        /// Builds the shared runtime: writes a scaffold Tesserae project into the cache,
+        /// runs a full Transpose site build of it, then keeps everything the build
+        /// emitted except the scaffold's own bundle and the generated page — whose
+        /// script/link order is read out first and recorded as the layout.
+        /// </summary>
+        private static SharedRuntimeLayout BuildSharedRuntime(NuGetVersion tesseraeVersion)
+        {
+            Console.WriteLine($"Building the shared Tesserae {tesseraeVersion} runtime (once per version)...");
+            var sw = Stopwatch.StartNew();
+
+            var scaffoldDir = Path.Combine(GetCacheDir(), $"scaffold_{tesseraeVersion}");
+            var sharedDir = GetSharedAssetsDir(tesseraeVersion);
+
+            // Start from a clean slate in both: a half-written directory from an
+            // interrupted run must not be mistaken for a usable runtime.
+            TryDeleteDirectory(scaffoldDir);
+            TryDeleteDirectory(sharedDir);
+            Directory.CreateDirectory(scaffoldDir);
+
+            File.WriteAllText(Path.Combine(scaffoldDir, "App.csproj"), $@"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>App</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""Tesserae"" Version=""{tesseraeVersion}"" />
+  </ItemGroup>
+</Project>
+");
+            // `outputFormatting: Formatted` keeps the runtime readable, which is what
+            // a live sample in the docs wants when something goes wrong in it.
+            File.WriteAllText(Path.Combine(scaffoldDir, "tps.json"),
+                @"{ ""fileName"": ""app.js"", ""outputFormatting"": ""Formatted"" }");
+            File.WriteAllText(Path.Combine(scaffoldDir, "App.cs"), SharedRuntimeSource);
+
+            var build = TransposeCompilerLibrary.BuildProject(new ProjectBuildRequest(Path.Combine(scaffoldDir, "App.csproj"))
+            {
+                Configuration = "Release",
+                SiteDirectory = sharedDir,
+                Quiet = true,
+            });
+
+            if (!build.Success)
+            {
+                throw new Exception("Failed to build the shared Tesserae runtime: " +
+                                    (build.Errors.Count > 0
+                                        ? string.Join(Environment.NewLine, build.Errors)
+                                        : string.Join(Environment.NewLine, build.Output)));
+            }
+
+            var indexPath = Path.Combine(sharedDir, "index.html");
+            if (!File.Exists(indexPath))
+            {
+                throw new Exception("The shared Tesserae runtime build produced no index.html to read the load order from.");
+            }
+
+            var layout = ReadLayout(File.ReadAllText(indexPath));
+
+            // Drop the scaffold's own output. The bundle is per-sample (keeping it
+            // would make every preview on a page load the scaffold's `App` class and
+            // then collide with the sample's inline copy), and neither the generated
+            // page nor the build manifest is an asset a preview loads.
+            foreach (var file in Directory.GetFiles(sharedDir, "*", SearchOption.AllDirectories))
+            {
+                if (IsScaffoldOutput(Path.GetRelativePath(sharedDir, file)))
+                {
+                    try { File.Delete(file); } catch { /* the layout simply won't reference it */ }
+                }
+            }
+
+            layout.Assets = Directory
+                .GetFiles(sharedDir, "*", SearchOption.AllDirectories)
+                .Select(f => Path.GetRelativePath(sharedDir, f).Replace('\\', '/'))
+                .OrderBy(f => f, StringComparer.Ordinal)
+                .ToList();
+
+            File.WriteAllText(GetSharedLayoutPath(tesseraeVersion), JsonSerializer.Serialize(layout));
+
+            Console.WriteLine($"Built the shared Tesserae {tesseraeVersion} runtime in {sw.Elapsed.TotalSeconds:n1}s ({layout.Assets.Count} file(s))");
+            return layout;
+        }
+
+        // Output that belongs to the scaffold rather than to the shared runtime.
+        private static bool IsScaffoldOutput(string relativePath)
+        {
+            var name = Path.GetFileName(relativePath).Replace('\\', '/');
+
+            if (name.StartsWith(".tps-manifest.", StringComparison.OrdinalIgnoreCase)) return true;
+            if (name.Equals("index.html", StringComparison.OrdinalIgnoreCase)) return true;
+            if (name.Equals("index.min.html", StringComparison.OrdinalIgnoreCase)) return true;
+
+            // app.js / app.min.js / app.meta.js / app.min.meta.js — the scaffold bundle
+            // in any of the variants a build can emit.
+            var normalized = name.Replace(".min.", ".");
+            return normalized.Equals("app.js", StringComparison.OrdinalIgnoreCase)
+                || normalized.Equals("app.meta.js", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex _stylesheetHref = new System.Text.RegularExpressions.Regex(
+            "<link\\b[^>]*rel\\s*=\\s*[\"']stylesheet[\"'][^>]*href\\s*=\\s*[\"']([^\"']+)[\"']",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly System.Text.RegularExpressions.Regex _scriptSrc = new System.Text.RegularExpressions.Regex(
+            "<script\\b[^>]*src\\s*=\\s*[\"']([^\"']+)[\"']",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        // Read the generated index.html's own load order. Taking it from the compiler
+        // rather than re-deriving it here means a new runtime file, or a change in
+        // which file has to come first, needs no change in Neko.
+        internal static SharedRuntimeLayout ReadLayout(string indexHtml)
+        {
+            var layout = new SharedRuntimeLayout();
+
+            foreach (System.Text.RegularExpressions.Match m in _stylesheetHref.Matches(indexHtml ?? string.Empty))
+            {
+                var href = m.Groups[1].Value.Replace('\\', '/').TrimStart('/');
+                if (href.Length > 0 && !IsScaffoldOutput(href)) layout.Css.Add(href);
+            }
+
+            foreach (System.Text.RegularExpressions.Match m in _scriptSrc.Matches(indexHtml ?? string.Empty))
+            {
+                var src = m.Groups[1].Value.Replace('\\', '/').TrimStart('/');
+                if (src.Length > 0 && !IsScaffoldOutput(src)) layout.Js.Add(src);
+            }
+
+            return layout;
+        }
+
+        private static void TryDeleteDirectory(string path)
+        {
+            try
+            {
+                if (Directory.Exists(path)) Directory.Delete(path, recursive: true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Could not clear '{path}': {ex.Message}");
             }
         }
 
@@ -298,7 +532,11 @@ namespace Neko.Builder
 
         // ---- version resolution (recorded on disk, no expiry) ----
 
-        private static string GetVersionsFilePath() => Path.Combine(GetCacheDir(), "versions.json");
+        // Deliberately not the historical `versions.json`: that file may still record
+        // an H5-era Tesserae release from a cache written before Neko moved to
+        // Transpose, and reusing it would pin the build to a package that no longer
+        // compiles. A fresh file name lets the version be resolved again.
+        private static string GetVersionsFilePath() => Path.Combine(GetCacheDir(), "versions.tps.json");
 
         private static Dictionary<string, string> LoadVersionsFile()
         {
@@ -337,9 +575,45 @@ namespace Neko.Builder
             if (_pinnedTesseraeVersion != null && NuGetVersion.TryParse(_pinnedTesseraeVersion, out var pinned))
             {
                 await EnsurePackageRestored(pinned, "Tesserae");
+                EnsureTransposeCompatible(pinned);
                 return pinned;
             }
-            return await GetLatestVersionAsync("Tesserae");
+            var latest = await GetLatestVersionAsync("Tesserae");
+            EnsureTransposeCompatible(latest);
+            return latest;
+        }
+
+        // Tesserae releases up to mid-2026 were built for the H5 compiler and bind
+        // against `h5`/`h5.core`; Neko now compiles samples with Transpose, which
+        // cannot bind them. Such a package fails with a wall of CS0234s about
+        // missing `Tesserae`/`H5` namespaces, so check the restored package's own
+        // dependency list up front and say what is actually wrong instead.
+        private static void EnsureTransposeCompatible(NuGetVersion version)
+        {
+            var nuspec = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".nuget", "packages", "tesserae", version.ToString(), "tesserae.nuspec");
+
+            // Only reject a package we can actually read and that demonstrably
+            // targets H5 — an unreadable or unusually-shaped nuspec is not evidence.
+            string nuspecText;
+            try
+            {
+                if (!File.Exists(nuspec)) return;
+                nuspecText = File.ReadAllText(nuspec);
+            }
+            catch
+            {
+                return;
+            }
+
+            if (nuspecText.Contains("id=\"Transpose", StringComparison.OrdinalIgnoreCase)) return;
+            if (!nuspecText.Contains("id=\"h5", StringComparison.OrdinalIgnoreCase)) return;
+
+            throw new Exception(
+                $"Tesserae {version} is built for the H5 compiler, which Neko no longer uses. " +
+                "Remove the `tesserae.version` pin from neko.yml (or raise it to a Transpose-based " +
+                "release, 2026.7 or newer) so live samples can be compiled with Transpose.");
         }
 
         private static async Task<NuGetVersion> GetLatestVersionAsync(string package)
@@ -437,7 +711,7 @@ namespace Neko.Builder
 
             Console.WriteLine($"Package {package} version {version} not found in cache. Restoring...");
 
-            var tempDir = Path.Combine(GetCacheDir(), "h5-restore-" + Guid.NewGuid());
+            var tempDir = Path.Combine(GetCacheDir(), "restore-" + Guid.NewGuid());
             Directory.CreateDirectory(tempDir);
 
             try
@@ -543,7 +817,6 @@ namespace Neko.Builder
             var tesseraeVersion = await ResolveTesseraeVersionAsync();
             var cacheKey = $"{hash}_{tesseraeVersion}";
             var cacheFilePath = GetCacheFilePath(hash, tesseraeVersion);
-            var sharedAssetsDir = GetSharedAssetsDir(tesseraeVersion);
 
             // In-memory hit: served without touching disk. Still make sure the shared
             // runtime exists in the (possibly freshly wiped) output directory.
@@ -581,57 +854,37 @@ namespace Neko.Builder
 
             var sw = Stopwatch.StartNew();
 
-            var h5Version = await GetLatestVersionAsync("h5");
-            var h5TargetVersion = await GetLatestVersionAsync("h5.Target");
-            var h5CoreVer = await GetLatestVersionAsync("h5.core");
-            var h5JsonVer = await GetLatestVersionAsync("h5.Newtonsoft.Json");
-
-            var settings = new H5DotJson_AssemblySettings()
-            {
-                Reflection = new ReflectionConfig()
-                {
-                    Disabled = false,
-                    Target = H5.Contract.MetadataTarget.Inline,
-                },
-                IgnoreDuplicateTypes = true
-            };
-
-            var request = new CompilationRequest("App", settings)
-                            //.NoHTML()
-                            //.WithLanguageVersion("Latest")
-                            .WithPackageReference("h5", h5Version)
-                            .WithPackageReference("Tesserae", tesseraeVersion)
-                            .WithPackageReference("h5.core", h5CoreVer)
-                            .WithPackageReference("h5.Newtonsoft.Json", h5JsonVer)
-                            .WithSourceFile("App.cs", csharpCode);
-
             var result = new TesseraeCompilerResult();
             var compiled = false;
 
             try
             {
+                // The runtime every sample shares (tps.js, the Tesserae bundles, its
+                // stylesheet and fonts) is produced once per Tesserae version by a
+                // full site build, and restored into the output directory from there.
+                // Only the sample's own JavaScript is compiled per sample, in memory.
+                var layout = await EnsureSharedRuntimeAsync(tesseraeVersion, siteAssetsDir);
 
-                var compiledJavascript = await CompilationProcessor.CompileAsync(request);
+                var request = new Transpose.Compiler.Library.CompilationRequest("App")
+                                .WithPackageReference("Tesserae", tesseraeVersion.ToString())
+                                // Inline, so the sample is a single self-contained script
+                                // that can be embedded in the preview document — a separate
+                                // `app.meta.js` would have to be served per sample, which
+                                // is exactly what the shared assets directory cannot hold.
+                                .WithMetadataTarget(Transpose.Translator.MetadataTarget.Inline)
+                                .WithSourceFile("App.cs", csharpCode);
 
-                if (compiledJavascript.Output == null || !compiledJavascript.Output.Any())
+                var compilation = await TransposeCompilerLibrary.CompileAsync(request);
+
+                if (!compilation.Success || string.IsNullOrEmpty(compilation.Javascript))
                 {
-                    throw new Exception("H5 compilation failed or produced no output.");
+                    throw new Exception(compilation.Errors.Count > 0
+                        ? string.Join(Environment.NewLine, compilation.Errors)
+                        : "Transpose compilation produced no output.");
                 }
 
-                // Read app.js
-                var appJsFile = compiledJavascript.Output.FirstOrDefault(f => f.Key.Equals("app.js", StringComparison.OrdinalIgnoreCase) || f.Key.EndsWith("/app.js", StringComparison.OrdinalIgnoreCase) || f.Key.EndsWith("\\app.js", StringComparison.OrdinalIgnoreCase));
+                result.AppJsContent = compilation.Javascript;
 
-
-                if (appJsFile.Value != null)
-                {
-                    result.AppJsContent = CompilationOutput.GetAsText(appJsFile.Value);
-                }
-                else
-                {
-                    throw new Exception("Could not find compiled app.js");
-                }
-
-                // Collect other assets
                 var htmlBuilder = new StringBuilder();
                 htmlBuilder.AppendLine("<!DOCTYPE html>");
                 htmlBuilder.AppendLine("<html>");
@@ -643,74 +896,26 @@ namespace Neko.Builder
                 // while the sample is still compiling/booting.
                 htmlBuilder.AppendLine(ThemeBridgeHeadScript);
 
-                // We need to keep h5.js, h5.core.js first, then other js, then css
-                var jsFiles = new List<string>();
-                var cssFiles = new List<string>();
-
-                // Collapse each runtime file's min/non-min pair to a single variant.
-                // Order first so the kept representative is deterministic across builds
-                // (".js" sorts before ".min.js"): otherwise the generated <script>/<link>
-                // hrefs could pick a different variant than a previous build wrote to
-                // disk, 404ing the runtime in the live preview.
-                foreach (var file in compiledJavascript.Output
-                             .OrderBy(v => v.Key, StringComparer.Ordinal)
-                             .DistinctBy(v => v.Key.Replace(".min.", ".")))
+                // Every file the shared build produced is part of the runtime this
+                // sample loads; record them all so a cached result knows the shared
+                // assets have to be restored before it can be served.
+                foreach (var asset in layout.Assets)
                 {
-                    var fileName = Path.GetFileName(file.Key);
-
-                    // Skip the per-sample app, both the readable `app.js` (inlined
-                    // above as AppJsContent) and its minified `App.min.js` sibling.
-                    // The app is unique to each sample, so it must never be written
-                    // to the shared, per-version assets directory: doing so makes
-                    // every sample on a page load whichever sample compiled last and
-                    // then throw "Class 'App' is already defined" on the inline copy.
-                    var normalizedName = fileName.Replace(".min.", ".");
-                    if (normalizedName.Equals("app.js", StringComparison.OrdinalIgnoreCase)) continue;
-
-                    var relativePath = file.Key.Replace("\\", "/");
-
-                    // app.js aside, every emitted file is part of the shared runtime
-                    // that is identical for all samples of this Tesserae version, so
-                    // it is written once (per version) into both the output and the
-                    // shared cache rather than duplicated per sample.
-                    byte[] bytes;
-                    using (var ms = new MemoryStream())
-                    {
-                        await file.Value.CopyToAsync(ms);
-                        bytes = ms.ToArray();
-                    }
-                    WriteSharedAsset(relativePath, bytes, siteAssetsDir, sharedAssetsDir);
-
-                    var assetUrl = $"/assets/tesserae/{relativePath}";
-                    result.AssetsPath.Add(assetUrl);
-
-                    if (fileName.EndsWith(".js", StringComparison.OrdinalIgnoreCase))
-                    {
-                        jsFiles.Add(assetUrl);
-                    }
-                    else if (fileName.EndsWith(".css", StringComparison.OrdinalIgnoreCase))
-                    {
-                        cssFiles.Add(assetUrl);
-                    }
+                    result.AssetsPath.Add(AssetUrlPrefix + asset);
                 }
 
-                // Sort JS: h5.js first, h5.core.js second, others
-                jsFiles = jsFiles.OrderBy(f =>
+                // The load order is the compiler's own — taken from the index.html it
+                // generated for the shared build — rather than a hand-maintained rule
+                // about which runtime file comes first. The scripts are emitted
+                // without `defer` so they run during parsing, before the inline app
+                // script at the end of <body>.
+                foreach (var css in layout.Css)
                 {
-                    var name = Path.GetFileName(f).ToLowerInvariant();
-                    if (name == "h5.js") return 0;
-                    if (name == "h5.core.js") return 1;
-                    if (name.StartsWith("h5.")) return 2;
-                    return 10;
-                }).ToList();
-
-                foreach (var css in cssFiles)
-                {
-                    htmlBuilder.AppendLine($"<link rel=\"stylesheet\" href=\"{SiteBuilder.CurrentRoutePrefix}{css}\" />");
+                    htmlBuilder.AppendLine($"<link rel=\"stylesheet\" href=\"{SiteBuilder.CurrentRoutePrefix}{AssetUrlPrefix}{css}\" />");
                 }
-                foreach (var js in jsFiles)
+                foreach (var js in layout.Js)
                 {
-                    htmlBuilder.AppendLine($"<script src=\"{SiteBuilder.CurrentRoutePrefix}{js}\"></script>");
+                    htmlBuilder.AppendLine($"<script src=\"{SiteBuilder.CurrentRoutePrefix}{AssetUrlPrefix}{js}\"></script>");
                 }
 
                 htmlBuilder.AppendLine("</head>");
@@ -736,9 +941,15 @@ namespace Neko.Builder
             {
                 Console.WriteLine($"Failed to compile code for {codeBlockArguments}: {ex.Message}");
 
+                // Transpose reports one diagnostic per line, so keep the line breaks
+                // rather than running every error together into one paragraph.
+                var message = System.Net.WebUtility.HtmlEncode(ex.Message)
+                    .Replace("\r\n", "<br/>")
+                    .Replace("\n", "<br/>");
+
                 result = new Builder.TesseraeCompilerResult()
                 {
-                    OutputHtml = $"<div class=\"text-red-500 font-bold p-4 border border-red-500 rounded my-4\">Tesserae compilation failed:<br/>{System.Net.WebUtility.HtmlEncode(ex.Message)}</div>"
+                    OutputHtml = $"<div class=\"text-red-500 font-bold p-4 border border-red-500 rounded my-4\">Tesserae compilation failed:<br/>{message}</div>"
                 };
             }
 
@@ -863,7 +1074,7 @@ namespace Neko.Builder
 
                 try
                 {
-                    // The H5 runtime compiles and mounts the app asynchronously, so a
+                    // The Transpose runtime boots and mounts the app asynchronously, so a
                     // capture taken too early grabs a blank page — a full-page shot of
                     // which is just the (tiny) viewport, i.e. a bogus ~viewport-height
                     // reading. Retry with growing settle/capture delays, and reject a

@@ -32,6 +32,10 @@ public class TodoApp
 - A call into Tesserae's `MountToBody(...)` (or equivalent) at the end so the
   block produces a rendered UI.
 - The `Tesserae` and `Tesserae.UI` namespaces — both already on the classpath.
+- Browser APIs come from Tesserae's compiler, [Transpose](https://www.nuget.org/packages/Transpose.Compiler.Library):
+  `using static Transpose.Core.dom;` for `window`/`document`, and `using Transpose;`
+  for `Script.Write<T>(...)`. (Samples written for Tesserae's previous compiler
+  used `H5.Core.dom` / `H5` — rename those two usings.)
 
 ## When to use
 
@@ -101,6 +105,9 @@ public class App { public static void Main() { /* idiomatic version */ } }
   of recompiling. Add `.neko-cache/` to your `.gitignore`.
 - Samples compile in parallel in a warm-up pass before pages render. Tune the
   degree with `tesserae.maxParallelism` in `neko.yml` (`0` = CPU count).
+- The runtime every sample shares (the Transpose runtime, the Tesserae bundles,
+  its stylesheet and icon fonts) is built once per Tesserae version and cached
+  under `.neko-cache/`; only each sample's own code is compiled per sample.
 - Pin the Tesserae version with `tesserae.version` in `neko.yml` for
   deterministic builds — otherwise Neko resolves the latest stable version once
   and records it on disk, reusing it on every later build (no expiry). See the
