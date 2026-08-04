@@ -8,7 +8,7 @@ order: 100
 
 # Tesserae
 
-You can embed interactive UI components written in C# using the **Tesserae** framework directly into your documentation. Neko will automatically compile the C# code using the `H5.Compiler.Service`, bundle it with the required Tesserae packages, and render a two-tab interface containing your original code and a live HTML preview.
+You can embed interactive UI components written in C# using the **Tesserae** framework directly into your documentation. Neko will automatically compile the C# code with the [Transpose](https://www.nuget.org/packages/Transpose.Compiler.Library) C#-to-JavaScript compiler, bundle it with the required Tesserae packages, and render a two-tab interface containing your original code and a live HTML preview.
 
 ## Usage
 
@@ -18,8 +18,8 @@ Create a code block and set its language to `tesserae`. Below is a full TODO sam
 using System;
 using Tesserae;
 using static Tesserae.UI;
-using static H5.Core.dom;
-using H5;
+using static Transpose.Core.dom;
+using Transpose;
 
 namespace Neko.Documentation
 {

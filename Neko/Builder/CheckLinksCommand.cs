@@ -74,7 +74,7 @@ namespace Neko.Builder
 
             // Scan documentation pages, but skip HTML that lives under an
             // `assets/` folder: those are build artifacts of components (e.g. the
-            // Tesserae/H5 live-preview micro-app), not documentation pages, and
+            // Tesserae/Transpose live-preview micro-app), not documentation pages, and
             // their internal asset wiring is not something we should validate.
             var allHtml = Directory.GetFiles(outputRoot, "*.html", SearchOption.AllDirectories);
             var htmlFiles = allHtml.Where(f => !IsUnderAssets(outputRoot, f)).ToArray();
