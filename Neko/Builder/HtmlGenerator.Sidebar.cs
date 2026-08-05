@@ -94,7 +94,11 @@ namespace Neko.Builder
                 }
 
                 string effectivePassword = null;
-                if (!string.IsNullOrEmpty(link.Password))
+                if (_config.DisablePassword)
+                {
+                    // no-op: password bypassed for this `neko watch` session
+                }
+                else if (!string.IsNullOrEmpty(link.Password))
                 {
                     if (!link.Password.Equals("none", System.StringComparison.OrdinalIgnoreCase))
                     {
