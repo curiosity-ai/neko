@@ -199,7 +199,10 @@
         let selectedIndex = -1;
         const modal = document.createElement('div');
         modal.id = 'search-modal';
-        modal.className = 'fixed inset-0 z-50 flex items-start justify-center pt-24 hidden';
+        // Phones get a smaller top offset and side padding so the panel doesn't sit
+        // half a screen down and doesn't run edge-to-edge (which clips its rounded
+        // corners); from `sm` up it keeps the original centred-at-24 placement.
+        modal.className = 'fixed inset-0 z-50 flex items-start justify-center px-4 pt-16 sm:px-0 sm:pt-24 hidden';
         modal.innerHTML = `
             <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" id="search-backdrop"></div>
             <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl ring-1 ring-black/5 overflow-hidden">
@@ -208,8 +211,8 @@
                     <input type="text" id="search-input" class="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900 dark:text-gray-100 placeholder-gray-500 mr-3 px-0 py-1" placeholder="Search documentation..." autocomplete="off">
                     <button id="search-close" class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-500 border border-gray-200 dark:border-gray-600">ESC</button>
                 </div>
-                <div id="search-results" class="max-h-96 overflow-y-auto py-2"></div>
-                <div id="search-footer" class="px-4 py-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 flex justify-end items-center space-x-4">
+                <div id="search-results" class="max-h-[60vh] sm:max-h-96 overflow-y-auto py-2"></div>
+                <div id="search-footer" class="px-4 py-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 hidden sm:flex justify-end items-center space-x-4">
                     <div class="flex items-center space-x-1">
                         <kbd class="px-1.5 py-0.5 text-[10px] font-sans bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-gray-500 dark:text-gray-400">↑</kbd>
                         <kbd class="px-1.5 py-0.5 text-[10px] font-sans bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-gray-500 dark:text-gray-400">↓</kbd>
