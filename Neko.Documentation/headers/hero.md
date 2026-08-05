@@ -43,6 +43,42 @@ Use the `[!hero ...]` syntax to insert a hero section.
     cta2-link="#"
 ]
 
+### Three CTAs
+
+A third CTA (`cta3-text` / `cta3-link`) renders after `cta2`, in the same
+outline style. Use it when a page splits into more than one next step —
+e.g. two tracks a reader can pick between.
+
+```markdown
+[!hero
+    eyebrow="Training paths"
+    title="Curiosity Academy"
+    subtitle="Guided training for the people who build projects and the people who run them."
+    align="center"
+    cta1-text="Start with the Introduction"
+    cta1-link="/lesson/index"
+    cta2-text="Developer track"
+    cta2-link="#"
+    cta3-text="Consultant track"
+    cta3-link="#"
+]
+```
+
+**Preview:**
+
+[!hero
+    eyebrow="Training paths"
+    title="Curiosity Academy"
+    subtitle="Guided training for the people who build projects and the people who run them."
+    align="center"
+    cta1-text="Start with the Introduction"
+    cta1-link="/lesson/index"
+    cta2-text="Developer track"
+    cta2-link="#"
+    cta3-text="Consultant track"
+    cta3-link="#"
+]
+
 ### Left Aligned with Background Image
 
 You can align content to the left and provide a custom background image.
@@ -81,7 +117,9 @@ You can align content to the left and provide a custom background image.
 | `badge-link` | Link for the badge. If omitted, badge is just text. | |
 | `cta1-text` | Text for the primary button. | |
 | `cta1-link` | URL for the primary button. | `#` |
-| `cta2-text` | Text for the secondary button. | |
+| `cta2-text` | Text for the secondary button (outline style). | |
 | `cta2-link` | URL for the secondary button. | `#` |
+| `cta3-text` | Text for a third button, after `cta2` (same outline style). | |
+| `cta3-link` | URL for the third button. | `#` |
 | `image` | URL for an optional background image (overlaid with low opacity). | |
 | `align` | Alignment of text content (`center` or `left`). | `left` |

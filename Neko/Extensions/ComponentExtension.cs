@@ -798,6 +798,8 @@ namespace Neko.Extensions
             var cta1Link = obj.GetAttribute("cta1-link");
             var cta2Text = obj.GetAttribute("cta2-text");
             var cta2Link = obj.GetAttribute("cta2-link");
+            var cta3Text = obj.GetAttribute("cta3-text");
+            var cta3Link = obj.GetAttribute("cta3-link");
             var image = obj.GetAttribute("image");
             var align = obj.GetAttribute("align", "left");
 
@@ -862,7 +864,7 @@ namespace Neko.Extensions
                 renderer.Write("</p>");
             }
 
-            if (!string.IsNullOrEmpty(cta1Text) || !string.IsNullOrEmpty(cta2Text))
+            if (!string.IsNullOrEmpty(cta1Text) || !string.IsNullOrEmpty(cta2Text) || !string.IsNullOrEmpty(cta3Text))
             {
                 var justifyClass = align == "center" ? "justify-center" : "justify-start";
                 renderer.Write($"<div class=\"mt-10 flex flex-wrap items-center {justifyClass} gap-3\">");
@@ -877,21 +879,26 @@ namespace Neko.Extensions
                     renderer.Write("</a>");
                 }
 
-                if (!string.IsNullOrEmpty(cta2Text))
-                {
-                    var link = cta2Link ?? "#";
-                    renderer.Write("<a href=\"");
-                    renderer.WriteEscapeUrl(link);
-                    renderer.Write("\" class=\"inline-flex items-center rounded-full px-5 py-2.5 text-sm font-semibold text-gray-900 dark:text-white ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-gray-300 dark:hover:ring-gray-500 transition-colors no-underline\">");
-                    renderer.WriteEscape(cta2Text);
-                    renderer.Write(" <span aria-hidden=\"true\" class=\"ml-1\">→</span></a>");
-                }
+                WriteHeroOutlineCta(renderer, cta2Text, cta2Link);
+                WriteHeroOutlineCta(renderer, cta3Text, cta3Link);
 
                 renderer.Write("</div>");
             }
 
             renderer.Write("</div>");
             renderer.Write("</div>");
+        }
+
+        // Shared outline-pill style for every hero CTA after the primary (cta2, cta3, ...).
+        private void WriteHeroOutlineCta(HtmlRenderer renderer, string? text, string? link)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+
+            renderer.Write("<a href=\"");
+            renderer.WriteEscapeUrl(link ?? "#");
+            renderer.Write("\" class=\"inline-flex items-center rounded-full px-5 py-2.5 text-sm font-semibold text-gray-900 dark:text-white ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-gray-300 dark:hover:ring-gray-500 transition-colors no-underline\">");
+            renderer.WriteEscape(text);
+            renderer.Write(" <span aria-hidden=\"true\" class=\"ml-1\">→</span></a>");
         }
 
         private void RenderButton(HtmlRenderer renderer, ComponentInline obj)

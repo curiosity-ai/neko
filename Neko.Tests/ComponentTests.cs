@@ -148,6 +148,36 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void TestHeroThreeCtas()
+        {
+            var markdown = "[!hero title=\"Hero Title\" cta1-text=\"Primary\" cta1-link=\"/primary\" cta2-text=\"Secondary\" cta2-link=\"/secondary\" cta3-text=\"Tertiary\" cta3-link=\"/tertiary\"]";
+            var doc = _parser.Parse(markdown);
+
+            Assert.That(doc.Html, Contains.Substring("Primary"));
+            Assert.That(doc.Html, Contains.Substring("href=\"/primary\""));
+            Assert.That(doc.Html, Contains.Substring("Secondary"));
+            Assert.That(doc.Html, Contains.Substring("href=\"/secondary\""));
+            Assert.That(doc.Html, Contains.Substring("Tertiary"));
+            Assert.That(doc.Html, Contains.Substring("href=\"/tertiary\""));
+
+            // cta2 and cta3 share the same outline-pill style, distinct from cta1's filled style.
+            var secondaryIdx = doc.Html.IndexOf("Secondary", StringComparison.Ordinal);
+            var tertiaryIdx = doc.Html.IndexOf("Tertiary", StringComparison.Ordinal);
+            Assert.That(secondaryIdx, Is.GreaterThan(0));
+            Assert.That(tertiaryIdx, Is.GreaterThan(secondaryIdx));
+        }
+
+        [Test]
+        public void TestHeroOmitsCta3WhenNotProvided()
+        {
+            var markdown = "[!hero title=\"Hero Title\" cta1-text=\"Primary\" cta1-link=\"/primary\"]";
+            var doc = _parser.Parse(markdown);
+
+            Assert.That(doc.Html, Contains.Substring("Primary"));
+            Assert.That(doc.Html, Does.Not.Contain("cta3"));
+        }
+
+        [Test]
         public void TestBentoGrid()
         {
             // Create a bento grid with 4 items to test the alternating span logic
