@@ -55,6 +55,20 @@ Neko pays the cost **once per session**:
 
 A hard refresh or a new tab clears `sessionStorage`, so the visitor enters the password once more — paying the one-time derivation again for that new session.
 
+## Disabling password protection while developing locally
+
+Typing a password on every reload gets old fast when you're the one editing a
+protected site. Pass `--no-password` to [`neko watch`](/guides/live-editing):
+
+```bash
+neko watch --input docs/ --no-password
+```
+
+This bypasses every password check — the site-wide `password` in `neko.yml`
+and any page's own frontmatter `password` — for that `watch` process only. It
+never modifies `neko.yml` on disk, so `neko build` (and the deployed site)
+keeps password protection intact regardless of how you ran `watch` locally.
+
 ## Live Demo
 
 Try it out yourself! Visit the [password protected sample page](/samples/password-protected).

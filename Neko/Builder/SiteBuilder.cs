@@ -16,6 +16,7 @@ namespace Neko.Builder
         private readonly bool _editorEnabled;
         private readonly bool _disablePasswords;
         private readonly string? _routePrefix;
+        private readonly bool _disablePassword;
         private NekoConfig _config;
 
         // This sub-project's *own* identity (branding/breadcrumb label), captured
@@ -51,6 +52,7 @@ namespace Neko.Builder
             _editorEnabled = editorEnabled;
             _disablePasswords = disablePasswords;
             _routePrefix = routePrefix;
+            _disablePassword = disablePassword;
         }
 
         private static readonly SemaphoreSlim _singleBuild = new SemaphoreSlim(1, 1);
@@ -611,8 +613,9 @@ namespace Neko.Builder
                             var pagePassword = item.Doc.FrontMatter.Password;
                             var isPageOptedOut = !string.IsNullOrEmpty(pagePassword)
                                 && pagePassword.Equals("none", StringComparison.OrdinalIgnoreCase);
-                            var isProtected = !string.IsNullOrEmpty(pagePassword) && !isPageOptedOut
-                                || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password);
+                            var isProtected = !_config.DisablePassword &&
+                                (!string.IsNullOrEmpty(pagePassword) && !isPageOptedOut
+                                || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password));
                             if (isProtected) continue;
 
                             // Build a clean, extensionless URL (matching the rest of the site).
@@ -838,8 +841,9 @@ namespace Neko.Builder
             var pagePassword = item.Doc.FrontMatter.Password;
             var isPageOptedOut = !string.IsNullOrEmpty(pagePassword)
                 && pagePassword.Equals("none", StringComparison.OrdinalIgnoreCase);
-            var isProtected = !string.IsNullOrEmpty(pagePassword) && !isPageOptedOut
-                || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password);
+            var isProtected = !_config.DisablePassword &&
+                (!string.IsNullOrEmpty(pagePassword) && !isPageOptedOut
+                || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password));
 
             var isSearchExcluded = item.Doc.FrontMatter.SearchExclude
                 || SidebarGenerator.IsHiddenVisibility(item.Doc.FrontMatter.Visibility)
