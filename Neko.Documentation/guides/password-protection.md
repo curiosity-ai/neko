@@ -58,7 +58,9 @@ A hard refresh or a new tab clears `sessionStorage`, so the visitor enters the p
 ## Disabling password protection while developing locally
 
 Typing a password on every reload gets old fast when you're the one editing a
-protected site. Pass `--no-password` to [`neko watch`](/guides/live-editing):
+protected site. Pass `--no-password` (alias `--disable-passwords`) to
+[`neko watch`](/guides/live-editing.md#disabling-password-protection-while-watching)
+to skip it for the lifetime of the watch session:
 
 ```bash
 neko watch --input docs/ --no-password
@@ -74,11 +76,3 @@ keeps password protection intact regardless of how you ran `watch` locally.
 Try it out yourself! Visit the [password protected sample page](/samples/password-protected).
 
 The password is: `letmein`
-
-## Disabling passwords while authoring locally
-
-Re-entering a password on every reload gets old fast while you're editing
-content in `neko watch`. Pass `--no-password` (alias `--disable-passwords`) to
-skip password protection for the lifetime of the watch session — see
-[Live Editing](/guides/live-editing.md#disabling-password-protection-while-watching).
-It has no effect on `neko build`, so nothing changes for the published site.
