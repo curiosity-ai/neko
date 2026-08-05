@@ -103,6 +103,7 @@ namespace Neko.Builder
                 RenderNavbarLinks(sb);
             }
             RenderNavbarActions(sb);
+            RenderMobileSearchButton(sb);
 
             // Blog mode collapses its (wide) marketing nav into a hamburger below the
             // `lg` breakpoint — the desktop links/CTAs are `hidden lg:flex`, so on
@@ -507,6 +508,24 @@ namespace Neko.Builder
             RenderNavbarActionButtons(sb);
 
             sb.AppendLine("        </div>");
+        }
+
+        // The whole header actions row is `hidden md:flex`, so on phones the wide
+        // "Search ⌘K" box disappears — and with it the only way to reach search,
+        // since the ⌘K shortcut needs a keyboard. This renders a compact icon-only
+        // trigger that is visible *only* below `md`, sitting at the right edge of
+        // the header row (it is the last flex child, and the header is
+        // `justify-between`). It opens the same modal as the desktop box.
+        //
+        // Blog mode is skipped: there the search box lives in the page content
+        // (see RenderContentSearchBar), not in the header, on every viewport.
+        private void RenderMobileSearchButton(StringBuilder sb)
+        {
+            if (_isBlogMode) return;
+
+            sb.AppendLine("        <button id=\"mobile-search-btn\" onclick=\"openSearch()\" aria-label=\"Search\" title=\"Search\" class=\"md:hidden flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:ring-2 focus:ring-primary-500\">");
+            sb.AppendLine("            <i class=\"fi fi-rr-search text-lg\"></i>");
+            sb.AppendLine("        </button>");
         }
 
         // Renders the configured `actions:` as pill-shaped call-to-action buttons
