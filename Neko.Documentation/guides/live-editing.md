@@ -53,17 +53,20 @@ but it omits the in-browser editor entirely: the header edit button, the sidebar
 pencil icons, the drag-to-reorder handles, and the Monaco editor modal are all
 left out, just as they are in a `neko build` output.
 
-## Skipping the login on a password-protected site
+## Disabling password protection while watching
 
-If your project (or a page in it) is [password protected](/guides/password-protection),
-`watch` still enforces it by default, so you'd otherwise have to unlock the
-site again after every browser refresh. Pass `--no-password` to skip that for
-the current `watch` session:
+[Password-protected](/guides/password-protection.md) pages normally show the
+same lock-screen prompt during local authoring as they do in production —
+useful for verifying the feature, but tedious if you're just iterating on
+content and keep hitting the prompt on every reload. Pass `--no-password`
+(alias `--disable-passwords`) to `neko watch` to skip it for the lifetime of
+the watch session:
 
 ```bash
 neko watch --input docs/ --no-password
 ```
 
-This only affects the running `watch` process — it doesn't touch `neko.yml` or
-any page's frontmatter, so a `neko build` (or `watch` without the flag) still
-requires the password.
+This ignores both the site-wide `password:` key in **neko.yml** and any
+page-level `password:` frontmatter, rendering every page in plaintext. It has
+no effect on `neko build` — a production build always respects passwords
+regardless of how the site was previewed locally.

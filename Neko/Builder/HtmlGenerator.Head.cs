@@ -194,12 +194,18 @@ namespace Neko.Builder
                 sb.AppendLine("    <style>html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }</style>");
             }
 
-            // Flaticon UIcons (self-hosted v4 — see Neko.Tools.UIcons)
-            sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/uicons-regular-rounded.css\">");
-            sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/uicons-brands.css\">");
+            // Flaticon UIcons (self-hosted v4 — see Neko.Tools.UIcons). Root-relative
+            // like the other stylesheets below, but scoped to this (sub-)site's own
+            // route prefix — otherwise a sub-project (multi-repo `neko watch`, or any
+            // deployment that nests projects under one domain) requests the *root*
+            // project's copy of these assets instead of its own, 404ing (and leaving
+            // icons unrendered) whenever there's no root project sharing that path.
+            var iconsPrefix = (SiteBuilder.CurrentRoutePrefix ?? string.Empty).TrimEnd('/');
+            sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{iconsPrefix}/assets/uicons-regular-rounded.css\">");
+            sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{iconsPrefix}/assets/uicons-brands.css\">");
 
             // Emoji CSS
-            sb.AppendLine("    <link rel=\"stylesheet\" href=\"/assets/emoji.css\">");
+            sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{iconsPrefix}/assets/emoji.css\">");
 
         }
 
@@ -413,21 +419,26 @@ namespace Neko.Builder
 
         private void RenderHeadAuxiliaryScripts(StringBuilder sb)
         {
+            // Root-relative but scoped to this (sub-)site's own route prefix — see
+            // the note on the UIcons links above for why the prefix matters here.
+            var prefix = (SiteBuilder.CurrentRoutePrefix ?? string.Empty).TrimEnd('/');
+
             // Force Graph
-            sb.AppendLine("    <script src=\"/assets/force-graph.min.js\"></script>");
+            sb.AppendLine($"    <script src=\"{prefix}/assets/force-graph.min.js\"></script>");
 
             // Search Assets
-            sb.AppendLine("    <script src=\"/assets/minisearch.min.js\"></script>");
-            sb.AppendLine("    <script defer src=\"/assets/search.js\"></script>");
-            sb.AppendLine("    <script defer src=\"/assets/history.js\"></script>");
-            sb.AppendLine("    <script defer src=\"/assets/icons.js\"></script>");
+            sb.AppendLine($"    <script src=\"{prefix}/assets/minisearch.min.js\"></script>");
+            sb.AppendLine($"    <script defer src=\"{prefix}/assets/search.js\"></script>");
+            sb.AppendLine($"    <script defer src=\"{prefix}/assets/history.js\"></script>");
+            sb.AppendLine($"    <script defer src=\"{prefix}/assets/icons.js\"></script>");
         }
 
         private void RenderHeadHighlightJs(StringBuilder sb)
         {
+            var prefix = (SiteBuilder.CurrentRoutePrefix ?? string.Empty).TrimEnd('/');
             var darkTheme = _config.Theme.Highlight.Dark;
-            sb.AppendLine($"    <link id=\"highlight-theme\" rel=\"stylesheet\" href=\"/assets/highlight/{darkTheme}.min.css\">");
-            sb.AppendLine("    <script src=\"/assets/highlight/highlight.min.js\"></script>");
+            sb.AppendLine($"    <link id=\"highlight-theme\" rel=\"stylesheet\" href=\"{prefix}/assets/highlight/{darkTheme}.min.css\">");
+            sb.AppendLine($"    <script src=\"{prefix}/assets/highlight/highlight.min.js\"></script>");
             sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js\"></script>");
             sb.AppendLine("    <style>");
             sb.AppendLine("        /* Inline code (Tailwind Typography overrides) */");

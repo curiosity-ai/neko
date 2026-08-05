@@ -155,7 +155,8 @@ namespace Neko.Builder
                 data = encryptionResult.Data
             });
             sb.AppendLine($"<script type=\"application/json\" id=\"encrypted-data\">{payload}</script>");
-            sb.AppendLine($"<script src=\"/assets/password.js\"></script>");
+            var passwordJsPrefix = (SiteBuilder.CurrentRoutePrefix ?? string.Empty).TrimEnd('/');
+            sb.AppendLine($"<script src=\"{passwordJsPrefix}/assets/password.js\"></script>");
         }
 
         private void RenderPageNavigation(StringBuilder sb, NavigationContext navContext)

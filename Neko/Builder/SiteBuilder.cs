@@ -14,6 +14,7 @@ namespace Neko.Builder
         private readonly string? _outputDirectoryOverride;
         private readonly bool _isWatchMode;
         private readonly bool _editorEnabled;
+        private readonly bool _disablePasswords;
         private readonly string? _routePrefix;
         private readonly bool _disablePassword;
         private NekoConfig _config;
@@ -43,12 +44,13 @@ namespace Neko.Builder
         private (string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs, string Cover)?[] _lastIndexRequests;
         private List<(string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs, string Cover)> _lastChangelogIndexRequests;
 
-        public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false, string? routePrefix = null, bool editorEnabled = true, bool disablePassword = false)
+        public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false, string? routePrefix = null, bool editorEnabled = true, bool disablePasswords = false)
         {
             _inputDirectory = Path.GetFullPath(inputDirectory);
             _outputDirectoryOverride = outputDirectory;
             _isWatchMode = isWatchMode;
             _editorEnabled = editorEnabled;
+            _disablePasswords = disablePasswords;
             _routePrefix = routePrefix;
             _disablePassword = disablePassword;
         }
@@ -112,9 +114,13 @@ namespace Neko.Builder
                     _config = new NekoConfig();
                 }
 
-                // Applied fresh after every (re)parse above — `neko.yml` never carries
-                // this flag, so a rebuild triggered by an on-disk edit can't clear it.
-                _config.DisablePassword = _disablePassword;
+                // `neko watch --no-password` clears the site-wide password so
+                // local preview never gates content behind a prompt. Per-page
+                // passwords are cleared as each document is parsed below.
+                if (_disablePasswords)
+                {
+                    _config.Password = null;
+                }
 
                 // Resolve output directory
                 if (!string.IsNullOrEmpty(_outputDirectoryOverride))
@@ -256,6 +262,7 @@ namespace Neko.Builder
                     Console.WriteLine($"Parsing {Path.GetFileName(file)}...");
                     var markdown = await File.ReadAllTextAsync(file);
                     var doc = parser.Parse(markdown, file, _inputDirectory);
+                    if (_disablePasswords) doc.FrontMatter.Password = null;
                     var relativePath = Path.GetRelativePath(_inputDirectory, file);
                     parsedDocs.Add((file, relativePath, doc, markdown));
                 }
@@ -940,6 +947,7 @@ namespace Neko.Builder
                 }
 
                 var doc = parser.Parse(markdown, fullPath, _inputDirectory);
+                if (_disablePasswords) doc.FrontMatter.Password = null;
 
                 // If anything other pages depend on changed (sidebar label, order,
                 // the title shown in their prev/next, outgoing links feeding their
