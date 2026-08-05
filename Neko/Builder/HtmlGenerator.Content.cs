@@ -74,6 +74,8 @@ namespace Neko.Builder
         // `password: none`. Null when the page is public.
         private string ResolveEffectivePassword(ParsedDocument document)
         {
+            if (_config.DisablePassword) return null;
+
             if (!string.IsNullOrEmpty(document.FrontMatter.Password))
             {
                 return document.FrontMatter.Password.Equals("none", System.StringComparison.OrdinalIgnoreCase)

@@ -15,6 +15,7 @@ namespace Neko.Builder
         private readonly bool _isWatchMode;
         private readonly bool _editorEnabled;
         private readonly string? _routePrefix;
+        private readonly bool _disablePassword;
         private NekoConfig _config;
 
         // This sub-project's *own* identity (branding/breadcrumb label), captured
@@ -42,13 +43,14 @@ namespace Neko.Builder
         private (string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs, string Cover)?[] _lastIndexRequests;
         private List<(string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs, string Cover)> _lastChangelogIndexRequests;
 
-        public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false, string? routePrefix = null, bool editorEnabled = true)
+        public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false, string? routePrefix = null, bool editorEnabled = true, bool disablePassword = false)
         {
             _inputDirectory = Path.GetFullPath(inputDirectory);
             _outputDirectoryOverride = outputDirectory;
             _isWatchMode = isWatchMode;
             _editorEnabled = editorEnabled;
             _routePrefix = routePrefix;
+            _disablePassword = disablePassword;
         }
 
         private static readonly SemaphoreSlim _singleBuild = new SemaphoreSlim(1, 1);
@@ -109,6 +111,10 @@ namespace Neko.Builder
                     // ConfigParser usually handles missing file by returning default config.
                     _config = new NekoConfig();
                 }
+
+                // Applied fresh after every (re)parse above — `neko.yml` never carries
+                // this flag, so a rebuild triggered by an on-disk edit can't clear it.
+                _config.DisablePassword = _disablePassword;
 
                 // Resolve output directory
                 if (!string.IsNullOrEmpty(_outputDirectoryOverride))
@@ -600,8 +606,9 @@ namespace Neko.Builder
                             var pagePassword = item.Doc.FrontMatter.Password;
                             var isPageOptedOut = !string.IsNullOrEmpty(pagePassword)
                                 && pagePassword.Equals("none", StringComparison.OrdinalIgnoreCase);
-                            var isProtected = !string.IsNullOrEmpty(pagePassword) && !isPageOptedOut
-                                || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password);
+                            var isProtected = !_config.DisablePassword &&
+                                (!string.IsNullOrEmpty(pagePassword) && !isPageOptedOut
+                                || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password));
                             if (isProtected) continue;
 
                             // Build a clean, extensionless URL (matching the rest of the site).
@@ -827,8 +834,9 @@ namespace Neko.Builder
             var pagePassword = item.Doc.FrontMatter.Password;
             var isPageOptedOut = !string.IsNullOrEmpty(pagePassword)
                 && pagePassword.Equals("none", StringComparison.OrdinalIgnoreCase);
-            var isProtected = !string.IsNullOrEmpty(pagePassword) && !isPageOptedOut
-                || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password);
+            var isProtected = !_config.DisablePassword &&
+                (!string.IsNullOrEmpty(pagePassword) && !isPageOptedOut
+                || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password));
 
             var isSearchExcluded = item.Doc.FrontMatter.SearchExclude
                 || SidebarGenerator.IsHiddenVisibility(item.Doc.FrontMatter.Visibility)
