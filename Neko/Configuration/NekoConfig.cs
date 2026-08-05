@@ -30,13 +30,6 @@ namespace Neko.Configuration
         [YamlMember(Alias = "password")]
         public string Password { get; set; }
 
-        // Runtime-only override set by `neko watch --no-password`. Never read from
-        // or written to neko.yml (no YamlMember alias), so it can't leak into a
-        // committed config and has no effect on `neko build`. When true, every page
-        // resolves as unprotected for this process regardless of the site-wide
-        // `password` or a page's own frontmatter `password`.
-        public bool DisablePassword { get; set; }
-
         [YamlMember(Alias = "sitemap")]
         public bool Sitemap { get; set; } = true;
 
