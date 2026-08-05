@@ -72,11 +72,18 @@ namespace Neko
             // so localhost matches what a release build ships.
             var watchLiveOption = new Option<bool>("--live", "--no-editor") { Description = "Live preview only: keep live-reload but hide the in-browser editor (edit buttons, drag-reorder)", DefaultValueFactory = _ => false };
 
+            // Password protection is meant to gate a published site, not slow down
+            // local authoring — this drops the site-wide password and every
+            // per-page `password:` frontmatter for the lifetime of the watch
+            // session so protected pages render straight through.
+            var watchNoPasswordOption = new Option<bool>("--no-password", "--disable-passwords") { Description = "Disable password protection while watching (ignores the site-wide password and any page-level password: frontmatter)", DefaultValueFactory = _ => false };
+
             watchCommand.Options.Add(watchInputOption);
             watchCommand.Options.Add(portOption);
             watchCommand.Options.Add(watchOutputOption);
             watchCommand.Options.Add(watchNoApiSyncOption);
             watchCommand.Options.Add(watchLiveOption);
+            watchCommand.Options.Add(watchNoPasswordOption);
 
             watchCommand.SetAction(async (parseResult, token) =>
             {
@@ -85,6 +92,7 @@ namespace Neko
                 var port = parseResult.GetValue(portOption) ?? defaultPort;
                 var noApiSync = parseResult.GetValue(watchNoApiSyncOption);
                 var liveOnly = parseResult.GetValue(watchLiveOption);
+                var disablePasswords = parseResult.GetValue(watchNoPasswordOption);
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
 
@@ -106,7 +114,7 @@ namespace Neko
 
                 var isMultiRepo = configFiles.Length > 1 || (configFiles.Length == 1 && Path.GetDirectoryName(configFiles[0]) != inputFullPath);
 
-                Console.WriteLine($"Watching {input}{(isMultiRepo ? " (Multi-Repo Mode)" : "")}{(liveOnly ? " (Live preview only — editor disabled)" : "")}...");
+                Console.WriteLine($"Watching {input}{(isMultiRepo ? " (Multi-Repo Mode)" : "")}{(liveOnly ? " (Live preview only — editor disabled)" : "")}{(disablePasswords ? " (Passwords disabled)" : "")}...");
 
                 var sites    = new List<SiteInfo>();
                 var builders = new Dictionary<string, SiteBuilder>();
@@ -140,7 +148,7 @@ namespace Neko
 
                 foreach (var p in projects)
                 {
-                    builders[p.Dir] = new SiteBuilder(p.Dir, p.Output, true, p.RoutePrefix, editorEnabled: !liveOnly);
+                    builders[p.Dir] = new SiteBuilder(p.Dir, p.Output, true, p.RoutePrefix, editorEnabled: !liveOnly, disablePasswords: disablePasswords);
                 }
 
                 string rootOutput = null;

@@ -60,3 +60,11 @@ A hard refresh or a new tab clears `sessionStorage`, so the visitor enters the p
 Try it out yourself! Visit the [password protected sample page](/samples/password-protected).
 
 The password is: `letmein`
+
+## Disabling passwords while authoring locally
+
+Re-entering a password on every reload gets old fast while you're editing
+content in `neko watch`. Pass `--no-password` (alias `--disable-passwords`) to
+skip password protection for the lifetime of the watch session — see
+[Live Editing](/guides/live-editing.md#disabling-password-protection-while-watching).
+It has no effect on `neko build`, so nothing changes for the published site.
