@@ -146,11 +146,9 @@ Options:
   -?, -h, --help         Show help and usage information
 ```
 
-///region override
 ### `--override`
 
-See the [`--override`](#neko---override) docs below for additional details.
-///endregion
+See the [`--override`](#neko-override) docs below for additional details.
 
 ---
 
@@ -255,7 +253,7 @@ Before building, `neko build` (and `neko watch`, on startup) refreshes any
 `<!-- api:source … -->` markers — see [`neko sync-api-docs`](#neko-sync-api-docs).
 Pass `--no-api-sync` to skip that step.
 
-{{ include "cli.md#override" }}
+For details on the `--override` option, see the [`neko --override`](#neko-override) docs below.
 
 ---
 
@@ -451,7 +449,7 @@ Options:
   -?, -h, --help  Show help and usage information
 ```
 
-{{ include "cli.md#override" }}
+For details on the `--override` option, see the [`neko --override`](#neko-override) docs below.
 
 ---
 
