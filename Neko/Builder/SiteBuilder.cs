@@ -16,6 +16,13 @@ namespace Neko.Builder
         private readonly bool _editorEnabled;
         private readonly bool _disablePasswords;
         private readonly string? _routePrefix;
+
+        // Watch-mode focus scope (`neko watch --focus`), or null when focus mode is
+        // off. When set, only pages under the scope are regenerated and the output
+        // directory is never wiped, so every other page keeps the HTML the previous
+        // build wrote. See FocusScope.
+        private readonly FocusScope? _focus;
+
         private NekoConfig _config;
 
         // This sub-project's *own* identity (branding/breadcrumb label), captured
@@ -43,7 +50,12 @@ namespace Neko.Builder
         private (string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs, string Cover)?[] _lastIndexRequests;
         private List<(string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs, string Cover)> _lastChangelogIndexRequests;
 
-        public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false, string? routePrefix = null, bool editorEnabled = true, bool disablePasswords = false)
+        // Focus mode only: search-index entries carried over from the previous build
+        // for the pages this build skipped, so an incremental rebuild can rewrite
+        // search.json without losing them.
+        private List<SearchDocument> _lastCarriedOverSearchDocs;
+
+        public SiteBuilder(string inputDirectory, string? outputDirectory = null, bool isWatchMode = false, string? routePrefix = null, bool editorEnabled = true, bool disablePasswords = false, FocusScope? focus = null)
         {
             _inputDirectory = Path.GetFullPath(inputDirectory);
             _outputDirectoryOverride = outputDirectory;
@@ -51,6 +63,7 @@ namespace Neko.Builder
             _editorEnabled = editorEnabled;
             _disablePasswords = disablePasswords;
             _routePrefix = routePrefix;
+            _focus = focus;
         }
 
         private static readonly SemaphoreSlim _singleBuild = new SemaphoreSlim(1, 1);
@@ -139,8 +152,26 @@ namespace Neko.Builder
 
                 Console.WriteLine($"Output directory: {OutputDirectory}");
 
-                // Clear Output Directory
-                if (Directory.Exists(OutputDirectory))
+                // Focus mode: this project has nothing under the focus path, so leave
+                // its output exactly as the last build left it and serve that.
+                if (_focus != null && _focus.SkipsProject)
+                {
+                    if (Directory.Exists(OutputDirectory))
+                    {
+                        Console.WriteLine($"Outside the focus path — reusing the existing output in {OutputDirectory}.");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Outside the focus path and never built: {OutputDirectory} does not exist yet. Run once without --focus to generate the full site.");
+                    }
+                    return;
+                }
+
+                // Clear Output Directory. Never in focus mode: the pages that are not
+                // being rebuilt are precisely the ones already sitting in there. (In
+                // multi-repo builds with a shared `-o`, the root project's output
+                // folder also holds every sub-project's.)
+                if (Directory.Exists(OutputDirectory) && _focus == null)
                 {
                     try
                     {
@@ -227,8 +258,35 @@ namespace Neko.Builder
                     }
                 }
 
+                // Changelog folders: any folder whose index.yml / <foldername>.yml sets
+                // `changelog: true`. Their version-named `.md` files are aggregated into a
+                // single timeline page rendered at the folder URL (newest version first),
+                // and are not emitted as standalone pages. Discovered here (from the
+                // folder configs, not from the parsed pages) because focus mode needs to
+                // know which files feed an aggregated page before deciding what to render.
+                var changelogFolders = DiscoverChangelogFolders(excludedDirs);
+
                 // 4. Process Files
                 var parsedDocs = new List<(string FilePath, string RelativePath, ParsedDocument Doc, string Markdown)>();
+
+                // Focus mode: which files still need their body rendered. Pages outside
+                // the focus path keep the HTML the previous build wrote, so rendering
+                // them again would only redo the expensive work (Tesserae compilation,
+                // includes, live samples) for output nobody reads. Files that feed an
+                // aggregated page — blog posts and changelog entries — are the exception:
+                // the page that aggregates them may itself be in focus, and it renders
+                // from their parsed bodies.
+                bool NeedsBody(string file)
+                {
+                    if (_focus == null || !_focus.IsPartial) return true;
+
+                    var relative = Path.GetRelativePath(_inputDirectory, file).Replace("\\", "/");
+                    if (_focus.Includes(relative)) return true;
+                    if (relative.StartsWith("blog/", StringComparison.OrdinalIgnoreCase)) return true;
+
+                    var dir = Path.GetFullPath(Path.GetDirectoryName(file) ?? string.Empty);
+                    return changelogFolders.ContainsKey(dir);
+                }
 
                 // Pass 0: Warm the Tesserae compile cache in parallel. Compilation
                 // otherwise happens inline during the (synchronous, sequential) parse
@@ -236,30 +294,37 @@ namespace Neko.Builder
                 // awaited. Compiling every sample up front turns each parse into a fast
                 // cache hit and lets independent samples build concurrently.
                 Builder.TesseraeCompiler.Configure(_config.Tesserae?.Version, _config.Tesserae?.MaxParallelism ?? 0);
-                var tesseraeSamples = new List<(string Arguments, string Code)>();
-                foreach (var file in files)
+                if (!Builder.TesseraeCompiler.Disabled)
                 {
-                    try
+                    var tesseraeSamples = new List<(string Arguments, string Code)>();
+                    foreach (var file in files)
                     {
-                        var markdown = await File.ReadAllTextAsync(file);
-                        tesseraeSamples.AddRange(parser.ExtractTesseraeSamples(markdown, file, _inputDirectory));
+                        if (!NeedsBody(file)) continue;
+                        try
+                        {
+                            var markdown = await File.ReadAllTextAsync(file);
+                            tesseraeSamples.AddRange(parser.ExtractTesseraeSamples(markdown, file, _inputDirectory));
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Warning: failed to scan {Path.GetFileName(file)} for Tesserae samples: {ex.Message}");
+                        }
                     }
-                    catch (Exception ex)
+                    if (tesseraeSamples.Count > 0)
                     {
-                        Console.WriteLine($"Warning: failed to scan {Path.GetFileName(file)} for Tesserae samples: {ex.Message}");
+                        await Builder.TesseraeCompiler.WarmAsync(tesseraeSamples, Environment.CurrentDirectory);
                     }
-                }
-                if (tesseraeSamples.Count > 0)
-                {
-                    await Builder.TesseraeCompiler.WarmAsync(tesseraeSamples, Environment.CurrentDirectory);
                 }
 
-                // Pass 1: Parse all files
+                // Pass 1: Parse all files. Every file is parsed even in focus mode —
+                // frontmatter, headings and outgoing links feed the sidebar, navigation
+                // and backlink map, which the focused pages render against.
                 foreach (var file in files)
                 {
-                    Console.WriteLine($"Parsing {Path.GetFileName(file)}...");
+                    var renderBody = NeedsBody(file);
+                    if (renderBody) Console.WriteLine($"Parsing {Path.GetFileName(file)}...");
                     var markdown = await File.ReadAllTextAsync(file);
-                    var doc = parser.Parse(markdown, file, _inputDirectory);
+                    var doc = parser.Parse(markdown, file, _inputDirectory, renderHtml: renderBody);
                     if (_disablePasswords) doc.FrontMatter.Password = null;
                     var relativePath = Path.GetRelativePath(_inputDirectory, file);
                     parsedDocs.Add((file, relativePath, doc, markdown));
@@ -379,11 +444,6 @@ namespace Neko.Builder
                     .OrderByDescending(p => p.Doc.FrontMatter.Date ?? "")
                     .ToList();
 
-                // Changelog folders: any folder whose index.yml / <foldername>.yml sets
-                // `changelog: true`. Their version-named `.md` files are aggregated into a
-                // single timeline page rendered at the folder URL (newest version first),
-                // and are not emitted as standalone pages.
-                var changelogFolders = DiscoverChangelogFolders(excludedDirs);
                 var changelogManagedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var changelogEntriesByFolder = new Dictionary<string, List<(ParsedDocument Doc, string Url, string Version)>>(StringComparer.OrdinalIgnoreCase);
 
@@ -455,8 +515,31 @@ namespace Neko.Builder
                 var indexRequests =
                     new (string FileName, string Title, string Content, string Description, string[] Tags, string[] Breadcrumbs, string Cover)?[parsedDocs.Count];
 
+                // Focus mode: pages outside the focus path are not written again — the
+                // file the previous build produced stays in the output directory. Their
+                // search-index entries are carried over from that build below, so search
+                // still covers the whole site.
+                var skippedSearchPaths = new List<string>();
+                var pagesToRender = new List<int>(parsedDocs.Count);
+                for (int i = 0; i < parsedDocs.Count; i++)
+                {
+                    if (_focus == null || _focus.Includes(parsedDocs[i].RelativePath))
+                    {
+                        pagesToRender.Add(i);
+                    }
+                    else if (!changelogManagedFiles.Contains(Path.GetFullPath(parsedDocs[i].FilePath)))
+                    {
+                        skippedSearchPaths.Add(Path.ChangeExtension(parsedDocs[i].RelativePath, ".html").Replace("\\", "/"));
+                    }
+                }
+
+                if (skippedSearchPaths.Count > 0)
+                {
+                    Console.WriteLine($"Focus '{_focus.Path}': rebuilding {pagesToRender.Count} page(s), reusing {skippedSearchPaths.Count} already-generated one(s).");
+                }
+
                 await Parallel.ForEachAsync(
-                    Enumerable.Range(0, parsedDocs.Count),
+                    pagesToRender,
                     new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
                     async (pageIndex, ct) =>
                 {
@@ -475,6 +558,17 @@ namespace Neko.Builder
                     searchIndexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs, r.Cover);
                 }
 
+                // Focus mode: the pages this build skipped were never rendered, so their
+                // content only exists in the index the previous build wrote — carry those
+                // entries over instead of dropping them from search.
+                var carriedOverSearchDocs = new List<SearchDocument>();
+                if (skippedSearchPaths.Count > 0)
+                {
+                    carriedOverSearchDocs.AddRange(
+                        await SearchIndexGenerator.ReadPreviousDocumentsAsync(OutputDirectory, skippedSearchPaths, _routePrefix));
+                    searchIndexer.AddDocuments(carriedOverSearchDocs);
+                }
+
                 // Pass 4: Generate one aggregated timeline page per changelog folder.
                 // Collect their search-index entries here (rather than adding them to
                 // the indexer inline) so the cached state can rebuild search.json on an
@@ -485,6 +579,18 @@ namespace Neko.Builder
                     if (!changelogEntriesByFolder.TryGetValue(folderFullPath, out var entries)) continue;
 
                     var relativeFolder = Path.GetRelativePath(_inputDirectory, folderFullPath).Replace("\\", "/");
+
+                    // Focus mode: regenerate the aggregated page when the folder holds
+                    // (or sits under) the focus target; otherwise keep the existing one.
+                    if (_focus != null && !_focus.Intersects(relativeFolder))
+                    {
+                        var carried = await SearchIndexGenerator.ReadPreviousDocumentsAsync(
+                            OutputDirectory, new[] { relativeFolder + "/index.html" }, _routePrefix);
+                        searchIndexer.AddDocuments(carried);
+                        carriedOverSearchDocs.AddRange(carried);
+                        continue;
+                    }
+
                     var folderUrl = "/" + relativeFolder;
                     if (!string.IsNullOrEmpty(_routePrefix)) folderUrl = _routePrefix + folderUrl;
 
@@ -735,6 +841,7 @@ namespace Neko.Builder
                 _lastProjectName            = searchIndexer.ProjectName;
                 _lastIndexRequests          = indexRequests;
                 _lastChangelogIndexRequests = changelogIndexRequests;
+                _lastCarriedOverSearchDocs  = carriedOverSearchDocs;
 
                 Console.WriteLine($"Build complete. Output in {OutputDirectory}");
             }
@@ -1054,6 +1161,10 @@ namespace Neko.Builder
                     indexer.AddDocument(r.FileName, r.Title, r.Content, r.Description, r.Tags, r.Breadcrumbs, r.Cover);
                 }
             }
+
+            // Focus mode: keep the entries carried over from the previous build for the
+            // pages the focused build didn't render.
+            indexer.AddDocuments(_lastCarriedOverSearchDocs);
 
             await indexer.WriteIndexAsync(OutputDirectory);
         }

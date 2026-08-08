@@ -17,6 +17,14 @@ The CLI lives at the root of the parent repository. You only need two commands:
 - `neko start` — live-reload dev server. Watches the folder, rebuilds, refreshes.
 - `neko build` — one-shot static build into the `output:` folder (default `.neko`).
 
+On a large tree, narrow a watch session to the part you are editing with
+`neko watch --focus <path>` (relative to the input directory, a folder or a
+single file). Only pages under that path are regenerated; everything else — up
+to whole sub-projects — is served from the previous build's output, so build the
+site once without `--focus` first. `--no-tesserae` and `--no-snapframe` skip the
+two external toolchains for the session (live samples fall back to static C#
+blocks; no browser is launched).
+
 ## Folder structure
 
 Neko discovers content automatically. Anything ending in `.md` becomes a page;

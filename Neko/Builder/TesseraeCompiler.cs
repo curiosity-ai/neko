@@ -133,6 +133,12 @@ namespace Neko.Builder
 
         public static int MaxParallelism => _maxParallelism;
 
+        // `neko watch --no-tesserae`: skip compiling and running live samples for the
+        // session. WarmAsync and CompileAsync become no-ops, and the renderer falls
+        // back to a plain, syntax-highlighted C# block (its normal behaviour when a
+        // sample can't be compiled).
+        public static bool Disabled { get; set; }
+
         // Headless height measurement spins up a Chromium page per unique sample.
         // Cap how many run at once so a high compile parallelism doesn't open a
         // browser tab per core; the Transpose compilation stays at _maxParallelism.
@@ -769,6 +775,7 @@ public static class NekoSharedRuntime
         // Identical samples are compiled only once.
         public static async Task WarmAsync(IReadOnlyList<(string Arguments, string Code)> samples, string siteOutputRoot)
         {
+            if (Disabled) return;
             if (samples == null || samples.Count == 0) return;
 
             var routePrefix = SiteBuilder.CurrentRoutePrefix ?? string.Empty;
@@ -807,6 +814,11 @@ public static class NekoSharedRuntime
 
         public static async Task<TesseraeCompilerResult> CompileAsync(string codeBlockArguments, string csharpCode, string siteOutputRoot)
         {
+            // --no-tesserae: no compile, no live preview. Returning null is the same
+            // signal the renderer already handles for an unavailable toolchain, so the
+            // sample renders as a static C# block.
+            if (Disabled) return null;
+
             var siteAssetsDir = Path.Combine(siteOutputRoot, "assets", "tesserae");
             Directory.CreateDirectory(siteAssetsDir);
 

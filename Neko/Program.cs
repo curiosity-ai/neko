@@ -78,12 +78,25 @@ namespace Neko
             // session so protected pages render straight through.
             var watchNoPasswordOption = new Option<bool>("--no-password", "--disable-passwords") { Description = "Disable password protection while watching (ignores the site-wide password and any page-level password: frontmatter)", DefaultValueFactory = _ => false };
 
+            // Focus mode: narrow the session to one folder (or file) of the docs tree.
+            // Only pages under it are regenerated; everything else — including whole
+            // sub-projects in a multi-repo layout — is served from the output the last
+            // build produced.
+            var watchFocusOption = new Option<string?>("--focus", "--focus-path") { Description = "Only rebuild pages under this path (relative to the input directory); every other page is served from the previous build's output" };
+
+            // Escape hatches for the two slow, external-toolchain steps of a build.
+            var watchNoTesseraeOption = new Option<bool>("--no-tesserae", "--disable-tesserae") { Description = "Skip compiling Tesserae live samples (they render as static C# code blocks)", DefaultValueFactory = _ => false };
+            var watchNoSnapframeOption = new Option<bool>("--no-snapframe", "--disable-snapframe") { Description = "Skip snapframe screenshot generation (never launches or installs the browser toolchain)", DefaultValueFactory = _ => false };
+
             watchCommand.Options.Add(watchInputOption);
             watchCommand.Options.Add(portOption);
             watchCommand.Options.Add(watchOutputOption);
             watchCommand.Options.Add(watchNoApiSyncOption);
             watchCommand.Options.Add(watchLiveOption);
             watchCommand.Options.Add(watchNoPasswordOption);
+            watchCommand.Options.Add(watchFocusOption);
+            watchCommand.Options.Add(watchNoTesseraeOption);
+            watchCommand.Options.Add(watchNoSnapframeOption);
 
             watchCommand.SetAction(async (parseResult, token) =>
             {
@@ -93,6 +106,10 @@ namespace Neko
                 var noApiSync = parseResult.GetValue(watchNoApiSyncOption);
                 var liveOnly = parseResult.GetValue(watchLiveOption);
                 var disablePasswords = parseResult.GetValue(watchNoPasswordOption);
+                var focusArg = parseResult.GetValue(watchFocusOption);
+
+                Neko.Builder.TesseraeCompiler.Disabled = parseResult.GetValue(watchNoTesseraeOption);
+                Neko.Extensions.SnapFrameExtension.Disabled = parseResult.GetValue(watchNoSnapframeOption);
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
 
@@ -112,9 +129,29 @@ namespace Neko
                 // .neko-cache folder rather than the OS temp directory.
                 Neko.Builder.TesseraeCompiler.SetCacheRoot(Path.Combine(inputFullPath, ".neko-cache"));
 
+                // `--focus <path>` is relative to the input directory, and must point at
+                // a folder or Markdown file that exists — a typo would otherwise silently
+                // rebuild nothing at all.
+                string? focusFullPath = null;
+                if (!string.IsNullOrWhiteSpace(focusArg))
+                {
+                    focusFullPath = Path.GetFullPath(Path.Combine(inputFullPath, focusArg.Replace('\\', '/').Trim().TrimStart('/')));
+                    if (!Directory.Exists(focusFullPath) && !File.Exists(focusFullPath))
+                    {
+                        Console.Error.WriteLine($"--focus path not found: {focusArg} (resolved to {focusFullPath})");
+                        return 1;
+                    }
+                }
+
                 var isMultiRepo = configFiles.Length > 1 || (configFiles.Length == 1 && Path.GetDirectoryName(configFiles[0]) != inputFullPath);
 
-                Console.WriteLine($"Watching {input}{(isMultiRepo ? " (Multi-Repo Mode)" : "")}{(liveOnly ? " (Live preview only — editor disabled)" : "")}{(disablePasswords ? " (Passwords disabled)" : "")}...");
+                var focusLabel = focusFullPath == null
+                    ? ""
+                    : $" (Focus: {Path.GetRelativePath(inputFullPath, focusFullPath).Replace("\\", "/")})";
+                var skipLabel = (Neko.Builder.TesseraeCompiler.Disabled ? " (Tesserae disabled)" : "")
+                    + (Neko.Extensions.SnapFrameExtension.Disabled ? " (SnapFrame disabled)" : "");
+
+                Console.WriteLine($"Watching {input}{(isMultiRepo ? " (Multi-Repo Mode)" : "")}{(liveOnly ? " (Live preview only — editor disabled)" : "")}{(disablePasswords ? " (Passwords disabled)" : "")}{focusLabel}{skipLabel}...");
 
                 var sites    = new List<SiteInfo>();
                 var builders = new Dictionary<string, SiteBuilder>();
@@ -146,9 +183,30 @@ namespace Neko
                     projects.Add((inputFullPath, output, null, true));
                 }
 
+                // Split the focus path across the projects: the one that owns it rebuilds
+                // just that sub-path, projects that sit entirely inside it rebuild in
+                // full, and the rest are skipped and served from their existing output.
+                var projectDirs = projects.Select(p => p.Dir).ToList();
+                var focusScopes = new Dictionary<string, FocusScope?>();
                 foreach (var p in projects)
                 {
-                    builders[p.Dir] = new SiteBuilder(p.Dir, p.Output, true, p.RoutePrefix, editorEnabled: !liveOnly, disablePasswords: disablePasswords);
+                    focusScopes[p.Dir] = focusFullPath == null
+                        ? null
+                        : FocusScope.Resolve(p.Dir, focusFullPath, projectDirs);
+                }
+
+                if (focusFullPath != null)
+                {
+                    var skipped = focusScopes.Values.Count(s => s!.SkipsProject);
+                    if (skipped > 0)
+                    {
+                        Console.WriteLine($"Focus mode: {skipped} of {projects.Count} project(s) are outside the focus path and will be served from their existing output.");
+                    }
+                }
+
+                foreach (var p in projects)
+                {
+                    builders[p.Dir] = new SiteBuilder(p.Dir, p.Output, true, p.RoutePrefix, editorEnabled: !liveOnly, disablePasswords: disablePasswords, focus: focusScopes[p.Dir]);
                 }
 
                 string rootOutput = null;
@@ -221,6 +279,7 @@ namespace Neko
                 // Watch file changes
                 var watchers = new System.Collections.Generic.List<FileSystemWatcher>();
                 DateTime lastBuild = DateTime.MinValue;
+                DateTime lastSkipLog = DateTime.MinValue;
                 var rebuildLock = new object();
 
                 foreach (var site in sites.ToList())
@@ -243,6 +302,22 @@ namespace Neko
                                 return;
                         }
                         if (changed.Contains($"{Path.DirectorySeparatorChar}.neko-cache{Path.DirectorySeparatorChar}")) return;
+
+                        // Focus mode: changes outside the focus path are ignored, so the
+                        // pages served from the previous build stay exactly as they are.
+                        // Nested projects mean several watchers see the same file — log
+                        // the skip once per burst (on its own timestamp, so this never
+                        // eats the rebuild debounce below).
+                        if (focusFullPath != null && !IsUnderFocus(changed, focusFullPath))
+                        {
+                            lock (rebuildLock)
+                            {
+                                if ((DateTime.Now - lastSkipLog).TotalMilliseconds < 500) return;
+                                lastSkipLog = DateTime.Now;
+                            }
+                            Console.WriteLine($"Change detected: {e.Name}. Outside the focus path — skipped.");
+                            return;
+                        }
 
                         lock (rebuildLock)
                         {
@@ -317,6 +392,8 @@ namespace Neko
                         w.Dispose();
                     }
                 }
+
+                return 0;
             });
 
             // Gen-Images Command — find every [!img-gen ...] directive, ask the
@@ -497,6 +574,17 @@ namespace Neko
             rootCommand.Subcommands.Add(updateSkillsCommand);
 
             return await rootCommand.Parse(args).InvokeAsync();
+        }
+
+        // True when a changed file is the `--focus` target itself or lives under it.
+        private static bool IsUnderFocus(string changedFullPath, string focusFullPath)
+        {
+            if (string.Equals(changedFullPath, focusFullPath, StringComparison.OrdinalIgnoreCase)) return true;
+
+            var root = focusFullPath.EndsWith(Path.DirectorySeparatorChar)
+                ? focusFullPath
+                : focusFullPath + Path.DirectorySeparatorChar;
+            return changedFullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase);
         }
 
         public static void ForceInvariantCultureAndUTF8Output()
