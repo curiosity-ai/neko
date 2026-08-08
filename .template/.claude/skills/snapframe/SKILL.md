@@ -50,6 +50,8 @@ Each interaction line runs before the screenshot. Common verbs:
 ## Tips
 
 - Run `neko snap` only in CI or locally when you want updated screenshots.
+- `neko watch --no-snapframe` keeps the browser toolchain out of a watch session
+  entirely — nothing is captured, and snapframe is never auto-installed.
 - Commit the generated PNGs so visitors see images even if a future snap
   fails.
 - Path-relative writes are resolved against the page's location; keep all

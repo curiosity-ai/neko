@@ -257,6 +257,94 @@ For details on the `--override` option, see the [`neko --override`](#neko-overri
 
 ---
 
+## `neko watch`
+
+The `neko watch` command builds the project, serves it on `localhost`, and
+rebuilds on every file change with live reload in the browser. It is the command
+behind [live editing](/guides/live-editing).
+
+```bash
+neko watch --input docs/ --port 5000
+```
+
+A change to a single Markdown body regenerates just that page; a change that
+affects other pages (frontmatter, `index.yml`, a new or deleted file) rebuilds
+the project that owns it.
+
+### Focus on part of the site
+
+On a large repository — especially a
+[multi-repo](/configuration/core/project) tree where each folder with
+its own `neko.yml` is a separate project — a startup build covers every page,
+even the ones you have no intention of touching. `--focus` narrows the session to
+one folder (or one file), given **relative to the input directory**:
+
+```bash
+neko watch --focus workspace-build/ai-and-agents
+neko watch --focus guides/installation.md
+```
+
+With a focus path set:
+
+- Only pages under it are generated. Every other page is served from the output
+  the previous build produced, and projects with nothing under the focus path
+  are not built at all.
+- The output directory is **not** cleared, since the reused pages live there.
+- Changes outside the focus path are ignored (the console says so) rather than
+  triggering a rebuild.
+- Search still covers the whole site: entries for the pages that were skipped
+  are carried over from the previous build's `search.json`.
+
+!!!warning Build the full site once first
+Focus mode reuses what the previous build wrote — it never generates the pages
+outside the focus path. Run `neko watch` (or `neko build`) once without
+`--focus`, then focus. Pages that were never built are simply missing, and
+pages you delete during a focused session stay in the output until the next
+full build.
+!!!
+
+### Skip the external toolchains
+
+Two build steps shell out to external tooling and dominate build time on sites
+that use them. Each has a switch that turns it off for the session:
+
+- `--no-tesserae` — skip compiling [`tesserae`](/components/tesserae) live
+  samples. Samples render as static, syntax-highlighted C# code blocks, exactly
+  as they do when the toolchain is unavailable.
+- `--no-snapframe` — skip [snapframe](/components/snapframe) screenshot
+  generation. No browser is launched, and the tool is never auto-installed.
+
+```bash
+neko watch --focus guides --no-tesserae --no-snapframe
+```
+
+Both switches affect the watch session only — a `neko build` still produces the
+complete site, so nothing is lost from the published output.
+
+### Options
+
+```
+Description:
+  Watch for changes and rebuild
+
+Usage:
+  neko watch [options]
+
+Options:
+  -i, --input <input>                  Input directory path [default: .]
+  -p, --port <port>                    Port to use (default: 5000)
+  -o, --output <output>                Output directory path
+  --no-api-sync                        Skip refreshing API-reference pages from source on startup
+  --live, --no-editor                  Live preview only: keep live-reload but hide the in-browser editor (edit buttons, drag-reorder)
+  --disable-passwords, --no-password   Disable password protection while watching (ignores the site-wide password and any page-level password: frontmatter)
+  --focus, --focus-path <focus>        Only rebuild pages under this path (relative to the input directory); every other page is served from the previous build's output
+  --disable-tesserae, --no-tesserae    Skip compiling Tesserae live samples (they render as static C# code blocks)
+  --disable-snapframe, --no-snapframe  Skip snapframe screenshot generation (never launches or installs the browser toolchain)
+  -?, -h, --help                       Show help and usage information
+```
+
+---
+
 ## `neko sync-api-docs`
 
 Regenerates the `csharp-docs` blocks on API-reference pages from the **public

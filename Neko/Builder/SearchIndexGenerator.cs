@@ -183,6 +183,78 @@ namespace Neko.Builder
             }
         }
 
+        /// <summary>
+        /// Appends already-built documents to this index. Used by focus mode to carry
+        /// entries for pages this build skipped over from the previous index.
+        /// </summary>
+        public void AddDocuments(IEnumerable<SearchDocument> documents)
+        {
+            if (documents == null) return;
+            foreach (var document in documents)
+            {
+                if (document != null) _documents.Add(document);
+            }
+        }
+
+        /// <summary>
+        /// Reads the entries a previous build wrote to <paramref name="outputDir"/>'s
+        /// <c>search.json</c> that belong to <paramref name="paths"/> (project-relative
+        /// output paths such as <c>guides/install.html</c>), including their per-section
+        /// entries. Returns an empty list when there is no previous index.
+        ///
+        /// This is what keeps site-wide search working during a <c>--focus</c> session:
+        /// pages outside the focus path are not re-rendered, so their content is only
+        /// available from the index the last full build left behind.
+        /// </summary>
+        public static async Task<List<SearchDocument>> ReadPreviousDocumentsAsync(string outputDir, IEnumerable<string> paths, string routePrefix = null)
+        {
+            var results = new List<SearchDocument>();
+            if (string.IsNullOrEmpty(outputDir) || paths == null) return results;
+
+            var indexPath = Path.Combine(outputDir, "search.json");
+            if (!File.Exists(indexPath)) return results;
+
+            var prefix = NormalizeRoutePrefix(routePrefix);
+            var wanted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var path in paths)
+            {
+                if (string.IsNullOrWhiteSpace(path)) continue;
+                var normalized = path.Replace('\\', '/').TrimStart('/');
+                wanted.Add(string.IsNullOrEmpty(prefix) ? normalized : prefix + "/" + normalized);
+            }
+            if (wanted.Count == 0) return results;
+
+            List<SearchDocument> previous;
+            try
+            {
+                previous = JsonSerializer.Deserialize<List<SearchDocument>>(
+                    await File.ReadAllTextAsync(indexPath),
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: could not reuse the previous search index ({ex.Message}).");
+                return results;
+            }
+
+            if (previous == null) return results;
+
+            foreach (var document in previous)
+            {
+                if (document?.Id == null) continue;
+
+                // Page entries are keyed by the output path; section entries add a
+                // `#anchor` suffix and carry the page path in `parentId`.
+                var pageId = document.ParentId ?? document.Id;
+                var hashIndex = pageId.IndexOf('#');
+                if (hashIndex >= 0) pageId = pageId.Substring(0, hashIndex);
+
+                if (wanted.Contains(pageId)) results.Add(document);
+            }
+
+            return results;
+        }
+
         public async Task WriteIndexAsync(string outputDir)
         {
             var json = JsonSerializer.Serialize(_documents, new JsonSerializerOptions
@@ -191,7 +263,19 @@ namespace Neko.Builder
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             });
 
-            await File.WriteAllTextAsync(Path.Combine(outputDir, "search.json"), json);
+            await WriteAtomicAsync(Path.Combine(outputDir, "search.json"), json);
+        }
+
+        // search.json is written on every rebuild and read back by later ones (focus
+        // mode carries entries forward from it, and the multi-repo aggregate merges
+        // every project's copy). Writing through a temp file keeps a build that is
+        // interrupted mid-write — Ctrl+C during a watch session — from leaving a
+        // truncated index behind.
+        private static async Task WriteAtomicAsync(string path, string contents)
+        {
+            var tempPath = path + ".tmp";
+            await File.WriteAllTextAsync(tempPath, contents);
+            File.Move(tempPath, path, overwrite: true);
         }
 
         // Reads every `search.json` produced by a multi-repo build (one per
@@ -205,7 +289,16 @@ namespace Neko.Builder
             var merged = new List<JsonElement>();
             var seenIds = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (var dir in subProjectOutputDirs)
+            // The root output's own search.json is the file this method overwrites, so
+            // it may still hold the *previous* aggregate (that happens in focus mode,
+            // where the root project isn't rebuilt). Merge it last: the first entry for
+            // an id wins, and a sub-project's freshly written index is always the
+            // authority for its own pages.
+            var sources = (subProjectOutputDirs ?? Enumerable.Empty<string>())
+                .OrderBy(dir => IsSameDirectory(dir, rootOutputDir) ? 1 : 0)
+                .ToList();
+
+            foreach (var dir in sources)
             {
                 if (string.IsNullOrEmpty(dir)) continue;
                 var path = Path.Combine(dir, "search.json");
@@ -222,13 +315,28 @@ namespace Neko.Builder
             }
 
             Directory.CreateDirectory(rootOutputDir);
-            var outputPath = Path.Combine(rootOutputDir, "search.json");
-            await using var stream = File.Create(outputPath);
-            await JsonSerializer.SerializeAsync(stream, merged, new JsonSerializerOptions
+            var json = JsonSerializer.Serialize(merged, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             });
+            await WriteAtomicAsync(Path.Combine(rootOutputDir, "search.json"), json);
+        }
+
+        private static bool IsSameDirectory(string a, string b)
+        {
+            if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return false;
+            try
+            {
+                return string.Equals(
+                    Path.GetFullPath(a).TrimEnd(Path.DirectorySeparatorChar),
+                    Path.GetFullPath(b).TrimEnd(Path.DirectorySeparatorChar),
+                    StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public static string HtmlToText(string html)

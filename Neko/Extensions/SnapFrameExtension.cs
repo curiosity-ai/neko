@@ -121,8 +121,16 @@ namespace Neko.Extensions
             }
         }
 
+        // `neko watch --no-snapframe`: never shell out to the snapframe/Playwright
+        // toolchain for the session. Screenshot capture is skipped, and so is anything
+        // that depends on a browser (e.g. Tesserae sample height measurement), which
+        // also means the tool is never auto-installed.
+        public static bool Disabled { get; set; }
+
         public static bool EnsureToolInstalled()
         {
+            if (Disabled) return false;
+
             try
             {
                 var isWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows);
@@ -211,6 +219,12 @@ namespace Neko.Extensions
         {
             try
             {
+                if (Disabled)
+                {
+                    Console.WriteLine($"[SnapFrame] Screenshot generation disabled; skipping {url}.");
+                    return;
+                }
+
                 if (!EnsureToolInstalled())
                 {
                     Console.WriteLine("[SnapFrame] SnapFrame tool could not be executed or installed. Skipping screenshot capture.");

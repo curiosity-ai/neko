@@ -286,7 +286,15 @@ namespace Neko.Builder
             return url;
         }
 
-        public ParsedDocument Parse(string markdown, string filePath = null, string rootDirectory = null)
+        /// <param name="renderHtml">
+        /// When false, the document's body is not rendered to HTML — frontmatter, TOC
+        /// and outgoing links are still extracted, so the page keeps its place in the
+        /// sidebar, navigation and backlink map. Used by <c>neko watch --focus</c> for
+        /// pages outside the focus path, whose previously generated HTML is reused;
+        /// skipping the render also skips everything the renderers trigger (Tesserae
+        /// compilation, includes, live samples).
+        /// </param>
+        public ParsedDocument Parse(string markdown, string filePath = null, string rootDirectory = null, bool renderHtml = true)
         {
             // Pre-process includes
             if (!string.IsNullOrEmpty(markdown) && !string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(rootDirectory))
@@ -375,7 +383,7 @@ namespace Neko.Builder
                 }
             }
 
-            var html = document.ToHtml(_pipeline);
+            var html = renderHtml ? document.ToHtml(_pipeline) : null;
 
             return new ParsedDocument
             {

@@ -105,6 +105,10 @@ public class App { public static void Main() { /* idiomatic version */ } }
   of recompiling. Add `.neko-cache/` to your `.gitignore`.
 - Samples compile in parallel in a warm-up pass before pages render. Tune the
   degree with `tesserae.maxParallelism` in `neko.yml` (`0` = CPU count).
+- When editing prose on a Tesserae-heavy site, run `neko watch --no-tesserae` to
+  skip compilation for the session: samples render as static, syntax-highlighted
+  C# blocks. `neko build` still compiles them, so nothing is lost from the
+  published site.
 - The runtime every sample shares (the Transpose runtime, the Tesserae bundles,
   its stylesheet and icon fonts) is built once per Tesserae version and cached
   under `.neko-cache/`; only each sample's own code is compiled per sample.
