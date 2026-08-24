@@ -28,18 +28,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="LlmTornado" Version="3.8.60" />
+    <PackageReference Include="LlmTornado" Version="3.8.67" />
     <PackageReference Include="Markdig" Version="1.3.2" />
     <!-- Kept at the version Transpose.Compiler.Library binds against; a lower
          direct reference would be a downgrade of its transitive dependency. -->
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.6.0" />
-    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.9" />
-    <PackageReference Include="NuGet.Versioning" Version="7.6.0" />
-    <PackageReference Include="Mosaik.Core" Version="26.6.2351" />
-    <PackageReference Include="System.CommandLine" Version="2.0.9" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.9.0" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.11" />
+    <PackageReference Include="NuGet.Versioning" Version="7.9.0" />
+    <PackageReference Include="Mosaik.Core" Version="26.8.3972" />
+    <PackageReference Include="System.CommandLine" Version="2.0.11" />
     <!-- Compiles the live `tesserae` C# samples to JavaScript in-process. -->
-    <PackageReference Include="Transpose.Compiler.Library" Version="26.8.3510" />
+    <PackageReference Include="Transpose.Compiler.Library" Version="26.8.4468" />
     <PackageReference Include="YamlDotNet" Version="18.1.0" />
   </ItemGroup>
 
