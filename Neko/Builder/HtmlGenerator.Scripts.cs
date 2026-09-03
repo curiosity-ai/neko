@@ -559,25 +559,63 @@ namespace Neko.Builder
             sb.AppendLine("        });");
         }
 
-        // Fragment scroll on load. The content scrolls inside #main-scroll, not
-        // the document, so on reload the browser restores that container's offset
-        // instead of re-running the hash scroll — and async content (highlight.js
-        // line numbers, mermaid, KaTeX) shifts layout after the initial jump. Once
-        // everything has settled, re-align to the URL fragment so reloading a
-        // deep link lands on the right heading.
+        // Fragment alignment. The content scrolls inside #main-scroll, not the
+        // document, so the browser has no document offset that corresponds to the URL
+        // fragment: on reload it restores the container's own offset instead of
+        // re-running the hash scroll (and async content — highlight.js line numbers,
+        // mermaid, KaTeX — shifts layout after the initial jump), and on a back/forward
+        // step between two anchors of the same page it has nothing to restore at all,
+        // leaving the reader wherever the previous anchor put them. Both cases are
+        // handled here by scrolling the pane to whatever the current fragment names.
         private void RenderFragmentScrollScript(StringBuilder sb)
         {
-            sb.AppendLine("        window.addEventListener('load', function() {");
-            sb.AppendLine("            if (!location.hash) return;");
-            sb.AppendLine("            var id;");
-            sb.AppendLine("            try { id = decodeURIComponent(location.hash.slice(1)); } catch (_) { id = location.hash.slice(1); }");
-            sb.AppendLine("            if (!id) return;");
-            sb.AppendLine("            var target = document.getElementById(id);");
-            sb.AppendLine("            if (!target) return;");
-            sb.AppendLine("            requestAnimationFrame(function() {");
-            sb.AppendLine("                requestAnimationFrame(function() { target.scrollIntoView({ block: 'start', behavior: 'auto' }); });");
+            sb.AppendLine("        (function() {");
+            sb.AppendLine("            var pane = document.getElementById('main-scroll');");
+            sb.AppendLine("");
+            sb.AppendLine("            function fragmentTarget() {");
+            sb.AppendLine("                var raw = location.hash.slice(1);");
+            sb.AppendLine("                if (!raw) return null;");
+            sb.AppendLine("                var id;");
+            sb.AppendLine("                try { id = decodeURIComponent(raw); } catch (_) { id = raw; }");
+            sb.AppendLine("                if (!id) return null;");
+            sb.AppendLine("                return document.getElementById(id) || document.getElementsByName(id)[0] || null;");
+            sb.AppendLine("            }");
+            sb.AppendLine("");
+            // Stepping back past the *first* anchor lands on an entry with no fragment.
+            // There is no heading to align to there, and the pane's own offset is long
+            // gone, so remember where the reader was while that entry was current.
+            sb.AppendLine("            var fragmentlessTop = 0;");
+            sb.AppendLine("            if (pane) {");
+            sb.AppendLine("                pane.addEventListener('scroll', function() {");
+            sb.AppendLine("                    if (!location.hash) fragmentlessTop = pane.scrollTop;");
+            sb.AppendLine("                }, { passive: true });");
+            sb.AppendLine("            }");
+            sb.AppendLine("");
+            // `behavior: 'auto'` honours the pane's `scroll-smooth`, so this matches the
+            // browser's own click-driven fragment scroll rather than fighting it: on an
+            // ordinary anchor click both aim at the same offset and nothing is visible.
+            sb.AppendLine("            function alignToFragment() {");
+            sb.AppendLine("                var target = fragmentTarget();");
+            sb.AppendLine("                if (target) {");
+            sb.AppendLine("                    target.scrollIntoView({ block: 'start', behavior: 'auto' });");
+            sb.AppendLine("                } else if (pane && (!location.hash || location.hash === '#top')) {");
+            sb.AppendLine("                    pane.scrollTo({ top: fragmentlessTop, behavior: 'auto' });");
+            sb.AppendLine("                }");
+            sb.AppendLine("            }");
+            sb.AppendLine("");
+            sb.AppendLine("            window.addEventListener('load', function() {");
+            sb.AppendLine("                if (!fragmentTarget()) return;");
+            sb.AppendLine("                requestAnimationFrame(function() {");
+            sb.AppendLine("                    requestAnimationFrame(alignToFragment);");
+            sb.AppendLine("                });");
             sb.AppendLine("            });");
-            sb.AppendLine("        });");
+            sb.AppendLine("");
+            // `hashchange` covers every same-document fragment change — anchor clicks and
+            // history traversal alike. It never fires for a cross-document back/forward,
+            // where the browser restores the pane offset from its own cache, so a
+            // bfcache restore is left alone.
+            sb.AppendLine("            window.addEventListener('hashchange', alignToFragment);");
+            sb.AppendLine("        })();");
         }
 
         // Page links: resolve ${page}, ${url}, ${selection} variables at click time
