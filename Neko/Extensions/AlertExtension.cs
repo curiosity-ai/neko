@@ -227,7 +227,14 @@ namespace Neko.Extensions
             renderer.Write($"<i class=\"{Neko.Builder.IconHelper.GetIconClass(icon)}\"></i>");
             renderer.Write("</div>");
 
-            renderer.Write("<div class=\"flex-1\">");
+            // The body column of the note's flex row. `min-w-0` lets it shrink
+            // below its content's min-content width, so a long path, an
+            // unbreakable token or a wide code block no longer stretches the
+            // note past the content column; `break-words` wraps the prose that
+            // can wrap. What can't wrap scrolls in place — a code block already
+            // does, and `.neko-alert-body table` (see HtmlGenerator.Head.cs)
+            // makes a table inside a note a scroll container too.
+            renderer.Write("<div class=\"flex-1 min-w-0 break-words neko-alert-body\">");
 
             if (!string.IsNullOrEmpty(obj.Title))
             {

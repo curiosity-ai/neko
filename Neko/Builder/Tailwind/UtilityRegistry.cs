@@ -1359,6 +1359,13 @@ namespace Neko.Builder.Tailwind
             ["align-bottom"] = D(("vertical-align", "bottom")),
             ["align-baseline"] = D(("vertical-align", "baseline")),
 
+            // Word-breaking: `break-words` is what keeps long prose, paths and
+            // inline code inside a fixed-width box instead of widening it.
+            ["break-normal"] = D(("overflow-wrap", "normal"), ("word-break", "normal")),
+            ["break-words"] = D(("overflow-wrap", "break-word")),
+            ["break-all"] = D(("word-break", "break-all")),
+            ["break-keep"] = D(("word-break", "keep-all")),
+
             ["list-none"] = D(("list-style-type", "none")),
             ["list-disc"] = D(("list-style-type", "disc")),
             ["list-decimal"] = D(("list-style-type", "decimal")),
