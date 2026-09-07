@@ -97,5 +97,27 @@ var x = 1;
             Assert.That(doc.Html, Contains.Substring("<pre>"));
             Assert.That(doc.Html, Contains.Substring("var x = 1;"));
         }
+
+        [Test]
+        public void TestCalloutBodyCanShrinkBelowItsContent()
+        {
+            // The body sits in a flex row next to the icon. Without min-w-0 the
+            // column keeps its content's min-content width, so a long path or a
+            // code block widens the whole note past the page (and the prose needs
+            // break-words to wrap what it can).
+            var markdown = "!!! warning Long content\nA path: `E:\\Curiosity\\CuriosityWorkspace\\curiosity.exe`\n!!!";
+            var doc = _parser.Parse(markdown);
+
+            Assert.That(doc.Html, Contains.Substring("flex-1 min-w-0 break-words neko-alert-body"));
+        }
+
+        [Test]
+        public void TestGitHubAlertBodyCanShrinkBelowItsContent()
+        {
+            var markdown = "> [!WARNING]\n> A path: `E:\\Curiosity\\CuriosityWorkspace\\curiosity.exe`";
+            var doc = _parser.Parse(markdown);
+
+            Assert.That(doc.Html, Contains.Substring("flex-1 min-w-0 break-words neko-alert-body"));
+        }
     }
 }

@@ -470,6 +470,14 @@ namespace Neko.Builder
             sb.AppendLine("        /* — first line indented, the rest flush. Force block so padding is even. */");
             sb.AppendLine("        .prose .neko-code-block pre code { display: block; }");
             sb.AppendLine("");
+            sb.AppendLine("        /* Alerts / notes: the content has to stay inside the box. The body */");
+            sb.AppendLine("        /* column carries min-w-0 + break-words, so prose and inline code wrap */");
+            sb.AppendLine("        /* instead of widening the note. What cannot wrap scrolls: a code */");
+            sb.AppendLine("        /* block already scrolls (its <code> carries overflow-x-auto), and a */");
+            sb.AppendLine("        /* table becomes a scroll container of its own — display:block, since */");
+            sb.AppendLine("        /* overflow does not apply to a table box. */");
+            sb.AppendLine("        .neko-alert-body table:not(.hljs-ln) { display: block; overflow-x: auto; max-width: 100%; }");
+            sb.AppendLine("");
             sb.AppendLine("        /* Highlight.js Line Numbers CSS */");
             sb.AppendLine("        .prose table.hljs-ln tr { border: none !important; }");
             sb.AppendLine("        .prose table.hljs-ln td { padding: 0 !important; }");
