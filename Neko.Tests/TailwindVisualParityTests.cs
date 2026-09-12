@@ -7,8 +7,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Playwright;
 using Neko.Builder;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using SkiaSharp;
 
 namespace Neko.Tests
 {
@@ -138,25 +137,47 @@ namespace Neko.Tests
 
         private static double PixelDiffFraction(byte[] a, byte[] b, out string note)
         {
-            using var ia = Image.Load<Rgba32>(a);
-            using var ib = Image.Load<Rgba32>(b);
+            using var ia = DecodeRgba(a);
+            using var ib = DecodeRgba(b);
             if (ia.Width != ib.Width || ia.Height != ib.Height)
             {
                 note = $"(size {ia.Width}x{ia.Height} vs {ib.Width}x{ib.Height})";
                 return 1.0;
             }
+
+            var pa = ia.GetPixelSpan();
+            var pb = ib.GetPixelSpan();
             long differing = 0;
             long total = (long)ia.Width * ia.Height;
-            for (int y = 0; y < ia.Height; y++)
-            for (int x = 0; x < ia.Width; x++)
+            for (long i = 0; i < total; i++)
             {
-                var pa = ia[x, y];
-                var pb = ib[x, y];
-                int d = Math.Abs(pa.R - pb.R) + Math.Abs(pa.G - pb.G) + Math.Abs(pa.B - pb.B) + Math.Abs(pa.A - pb.A);
+                int o = (int)(i * 4);
+                int d = Math.Abs(pa[o] - pb[o]) + Math.Abs(pa[o + 1] - pb[o + 1]) + Math.Abs(pa[o + 2] - pb[o + 2]) + Math.Abs(pa[o + 3] - pb[o + 3]);
                 if (d > 16) differing++; // tolerate minor anti-aliasing
             }
             note = "";
             return (double)differing / total;
+        }
+
+        //Decoded into an explicit RGBA layout so the comparison reads the same bytes whatever the
+        //platform's native colour type is, and so a row is exactly Width * 4 bytes with no padding.
+        private static SKBitmap DecodeRgba(byte[] png)
+        {
+            using var codec = SKCodec.Create(new MemoryStream(png));
+            if (codec is null) throw new InvalidOperationException("Could not decode the screenshot as an image.");
+
+            var info   = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+            var bitmap = new SKBitmap(info);
+
+            var result = codec.GetPixels(info, bitmap.GetPixels());
+
+            if (result != SKCodecResult.Success && result != SKCodecResult.IncompleteInput)
+            {
+                bitmap.Dispose();
+                throw new InvalidOperationException($"Could not decode the screenshot as an image ({result}).");
+            }
+
+            return bitmap;
         }
 
         // --- helpers --------------------------------------------------------
