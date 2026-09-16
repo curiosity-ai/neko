@@ -62,6 +62,8 @@ A presentation page is deliberately not a documentation page:
   middle of a talk with no context, so decks are excluded from `search.json`
   automatically — no `searchExclude:` needed.
 - **It can be locked.** `password:` works exactly as it does on any other page.
+- **It can carry a standing brand mark.** `logo:` and `logoText:` pin a logo and
+  a line of text to the bottom-right corner of every slide.
 
 ## Reading order
 

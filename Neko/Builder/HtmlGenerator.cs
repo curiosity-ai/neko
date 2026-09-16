@@ -25,7 +25,30 @@ namespace Neko.Builder
         // these classes and would otherwise omit their CSS rules — leaving
         // protected pages with broken styling (most visibly missing `dark:`
         // variants). The static stylesheet generator unions these in.
-        public HashSet<string> ProtectedPageClassTokens { get; } = new HashSet<string>();
+        //
+        // Pages are rendered in parallel, so two protected pages can harvest at
+        // the same time — writes go through AddProtectedPageClassTokens, and the
+        // property hands out a snapshot rather than the live set.
+        private readonly HashSet<string> _protectedPageClassTokens = new HashSet<string>();
+
+        public HashSet<string> ProtectedPageClassTokens
+        {
+            get
+            {
+                lock (_protectedPageClassTokens)
+                {
+                    return new HashSet<string>(_protectedPageClassTokens);
+                }
+            }
+        }
+
+        private void AddProtectedPageClassTokens(IEnumerable<string> tokens)
+        {
+            lock (_protectedPageClassTokens)
+            {
+                _protectedPageClassTokens.UnionWith(tokens);
+            }
+        }
 
         public HtmlGenerator(NekoConfig config, bool isWatchMode = false, string headIncludes = null, bool editorEnabled = true)
         {

@@ -199,6 +199,91 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void BrandMark_RendersLogoAndTextInTheCorner()
+        {
+            var config = new NekoConfig();
+            config.Branding.Title = "Demo";
+            var doc = NewParser().Parse(
+                "---\ntitle: Branded\npresentation:\n  logo: /assets/logo.png\n  logoText: Built with Neko\n  logoLink: https://neko.curiosity.ai\n---\n\n# One\n");
+            var html = new HtmlGenerator(config).GeneratePresentation(doc);
+
+            Assert.That(doc.Presentation!.HasBrand, Is.True);
+            Assert.That(html, Does.Contain("data-deck-brand=\"true\""), "the bar reserves room only when there is a mark");
+            Assert.That(html, Does.Contain("<a class=\"deck-brand\" href=\"https://neko.curiosity.ai\""));
+            Assert.That(html, Does.Contain("target=\"_blank\""), "an external brand link opens in a new tab");
+            Assert.That(html, Does.Contain("src=\"/assets/logo.png\""));
+            Assert.That(html, Does.Contain("Built with Neko"));
+            // With a wordmark beside it the logo is decorative.
+            Assert.That(html, Does.Contain("alt=\"\""));
+        }
+
+        [Test]
+        public void BrandMark_WorksWithTextOnlyAndWithLogoOnly()
+        {
+            var config = new NekoConfig();
+            config.Branding.Title = "Demo";
+
+            var textOnly = new HtmlGenerator(config).GeneratePresentation(
+                NewParser().Parse("---\npresentation:\n  logoText: Built with Neko\n---\n\n# One\n"));
+            Assert.That(textOnly, Does.Contain("<div class=\"deck-brand\""), "no link means no anchor");
+            Assert.That(textOnly, Does.Contain("Built with Neko"));
+            Assert.That(textOnly, Does.Not.Contain("<img"));
+
+            var logoOnly = new HtmlGenerator(config).GeneratePresentation(
+                NewParser().Parse("---\npresentation:\n  logo: /assets/logo.png\n---\n\n# One\n"));
+            Assert.That(logoOnly, Does.Contain("src=\"/assets/logo.png\""));
+            Assert.That(logoOnly, Does.Contain("alt=\"Demo\""), "with no wordmark the logo carries the alt text");
+            Assert.That(logoOnly, Does.Not.Contain("deck-brand-text"));
+        }
+
+        [Test]
+        public void BrandMark_IsAbsentWhenUnconfigured()
+        {
+            var html = new HtmlGenerator(new NekoConfig()).GeneratePresentation(
+                NewParser().Parse("---\npresentation: true\n---\n\n# One\n"));
+
+            Assert.That(html, Does.Not.Contain("deck-brand"));
+            Assert.That(html, Does.Not.Contain("data-deck-brand"));
+        }
+
+        [Test]
+        public void BrandMark_StaysOutsideTheEncryptedPayload()
+        {
+            var config = new NekoConfig();
+            config.Branding.Title = "Demo";
+            var doc = NewParser().Parse(
+                "---\ntitle: Secret\npassword: hunter2\npresentation:\n  logo: /assets/logo.png\n  logoText: Built with Neko\n---\n\n# The secret heading\n");
+            var html = new HtmlGenerator(config).GeneratePresentation(doc);
+
+            Assert.That(html, Does.Contain("Built with Neko"), "a locked deck still carries its owner's mark");
+            Assert.That(html, Does.Not.Contain("The secret heading"));
+        }
+
+        [Test]
+        public void BrandMark_LogoPathIsResolvedLikeAnyPageAsset()
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "neko-brand-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path.Combine(dir, "assets"));
+            Directory.CreateDirectory(Path.Combine(dir, "decks"));
+            try
+            {
+                File.WriteAllBytes(Path.Combine(dir, "assets", "logo.png"), new byte[] { 1 });
+                var deck = Path.Combine(dir, "decks", "talk.md");
+                var markdown = "---\npresentation:\n  logo: logo.png\n  logoText: Built with Neko\n---\n\n# One\n";
+                File.WriteAllText(deck, markdown);
+
+                var doc = NewParser().Parse(markdown, deck, dir);
+
+                Assert.That(doc.Presentation!.Logo, Is.EqualTo("/assets/logo.png"),
+                    "a bare file name resolves up the tree to the nearest assets folder");
+            }
+            finally
+            {
+                try { Directory.Delete(dir, true); } catch { }
+            }
+        }
+
+        [Test]
         public void DeckComponent_RendersAFramedIframePreview()
         {
             var doc = NewParser().Parse("[!deck link=\"decks/foo.md\" title=\"A deck\" description=\"Caption.\" slide=\"3\" ratio=\"4:3\"]");

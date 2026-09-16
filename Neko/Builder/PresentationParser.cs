@@ -50,6 +50,28 @@ namespace Neko.Builder
         public string Ratio { get; set; } = "16:9";
 
         /// <summary>
+        /// Image for the brand mark pinned to the bottom-right corner of every slide.
+        /// Resolved like any other page asset, so a bare file name finds the nearest
+        /// <c>assets/</c> folder.
+        /// </summary>
+        public string Logo { get; set; }
+
+        /// <summary>Text shown beside the logo in the brand mark. Works without a logo.</summary>
+        public string LogoText { get; set; }
+
+        /// <summary>Optional href — turns the brand mark into a link.</summary>
+        public string LogoLink { get; set; }
+
+        /// <summary>
+        /// Alternative text for the logo image. Only used when there is no
+        /// <see cref="LogoText"/>; with text beside it the image is decorative.
+        /// </summary>
+        public string LogoAlt { get; set; }
+
+        /// <summary>True when the deck shows a brand mark at all.</summary>
+        public bool HasBrand => !string.IsNullOrEmpty(Logo) || !string.IsNullOrEmpty(LogoText);
+
+        /// <summary>
         /// True when the front matter marks this document as a deck. Everything else on
         /// this object is only meaningful when this is set.
         /// </summary>
@@ -106,6 +128,10 @@ namespace Neko.Builder
                         case "gauge": options.Gauge = !IsFalsey(value); break;
                         case "fonts": if (!string.IsNullOrEmpty(value)) options.Fonts = value.ToLowerInvariant(); break;
                         case "ratio": if (!string.IsNullOrEmpty(value)) options.Ratio = value; break;
+                        case "logo": options.Logo = value; break;
+                        case "logotext": case "logo-text": options.LogoText = value; break;
+                        case "logolink": case "logo-link": options.LogoLink = value; break;
+                        case "logoalt": case "logo-alt": options.LogoAlt = value; break;
                     }
                 }
                 return true;

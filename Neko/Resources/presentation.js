@@ -85,6 +85,35 @@
         return isNaN(n) ? -1 : n - 1;
     }
 
+    // The brand mark is pinned to the same corner the slide counter lives in, so
+    // the control bar has to reserve exactly as much room as the mark takes. Its
+    // width depends on the wordmark, the font and the logo, none of which CSS can
+    // predict — so measure it and hand the bar a custom property. offsetWidth is
+    // layout pixels, which stays correct under the embed scale applied above.
+    function applyBrandInset() {
+        var brand = document.querySelector('.deck-brand');
+        if (!brand) return;
+        document.documentElement.style.setProperty('--deck-brand-width', brand.offsetWidth + 'px');
+    }
+
+    function watchBrand() {
+        var brand = document.querySelector('.deck-brand');
+        if (!brand || brand.dataset.deckWired === 'true') return;
+        brand.dataset.deckWired = 'true';
+
+        applyBrandInset();
+
+        // The mark grows once the logo and the mono wordmark actually arrive.
+        var logo = brand.querySelector('img');
+        if (logo && !logo.complete) {
+            logo.addEventListener('load', applyBrandInset, { once: true });
+            logo.addEventListener('error', applyBrandInset, { once: true });
+        }
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(applyBrandInset).catch(function () {});
+        }
+    }
+
     function show(index, pushHash) {
         if (!state) return;
         var count = state.slides.length;
@@ -165,7 +194,10 @@
             y0 = null;
         }, { passive: true });
 
-        window.addEventListener('resize', applyEmbedScale);
+        window.addEventListener('resize', function () {
+            applyEmbedScale();
+            applyBrandInset();
+        });
 
         window.addEventListener('hashchange', function () {
             if (!state) return;
@@ -214,6 +246,7 @@
         wireBack();
         wireGlobalListeners();
         applyEmbedScale();
+        watchBrand();
 
         // Only now does the stylesheet switch from "show every slide" (the no-JS /
         // still-decrypting fallback) to one slide at a time.

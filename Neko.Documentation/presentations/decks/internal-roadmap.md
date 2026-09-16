@@ -6,6 +6,9 @@ presentation:
   eyebrow: Internal
   accent: amber
   back: /presentations/protecting-a-deck
+  logo: /assets/neko-logo.png
+  logoText: Built with Neko
+  logoLink: https://neko.curiosity.ai
 ---
 
 # The deck behind the lock
