@@ -411,6 +411,11 @@ public static class NekoSharedRuntime
                 Quiet = true,
             });
 
+            // An outdated compiler is not a problem with this build in particular —
+            // report it as itself so it fails the run rather than being folded into
+            // the generic runtime-build failure below.
+            TransposeCompilerOutdatedException.ThrowIfOutdated(build.Diagnostics);
+
             if (!build.Success)
             {
                 throw new Exception("Failed to build the shared Tesserae runtime: " +
@@ -792,22 +797,42 @@ public static class NekoSharedRuntime
             Console.WriteLine($"Warming {distinct.Count} Tesserae sample(s) using up to {_maxParallelism} parallel compile(s)...");
             var sw = Stopwatch.StartNew();
 
-            await Parallel.ForEachAsync(
-                distinct,
-                new ParallelOptions { MaxDegreeOfParallelism = _maxParallelism },
-                async (sample, ct) =>
-                {
-                    try
+            // An outdated compiler fails every sample identically, so the first one to
+            // hit it cancels the pass and is rethrown once the loop unwinds — rather
+            // than compiling the whole site to collect the same error N times.
+            TransposeCompilerOutdatedException outdated = null;
+            using var cts = new CancellationTokenSource();
+
+            try
+            {
+                await Parallel.ForEachAsync(
+                    distinct,
+                    new ParallelOptions { MaxDegreeOfParallelism = _maxParallelism, CancellationToken = cts.Token },
+                    async (sample, ct) =>
                     {
-                        await CompileAsync(sample.Arguments, sample.Code, siteOutputRoot);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Never let one bad sample abort the warm pass; the failure is
-                        // surfaced again (and rendered as an error block) at render time.
-                        Console.WriteLine($"Warm compile failed for {sample.Arguments}: {ex.Message}");
-                    }
-                });
+                        try
+                        {
+                            await CompileAsync(sample.Arguments, sample.Code, siteOutputRoot);
+                        }
+                        catch (TransposeCompilerOutdatedException ex)
+                        {
+                            Interlocked.CompareExchange(ref outdated, ex, null);
+                            cts.Cancel();
+                        }
+                        catch (Exception ex)
+                        {
+                            // Never let one bad sample abort the warm pass; the failure is
+                            // surfaced again (and rendered as an error block) at render time.
+                            Console.WriteLine($"Warm compile failed for {sample.Arguments}: {ex.Message}");
+                        }
+                    });
+            }
+            catch (OperationCanceledException) when (outdated != null)
+            {
+                // The cancellation above; the real failure is rethrown below.
+            }
+
+            if (outdated != null) throw outdated;
 
             Console.WriteLine($"Warmed Tesserae samples in {sw.Elapsed.TotalSeconds:n1}s");
         }
@@ -888,6 +913,8 @@ public static class NekoSharedRuntime
 
                 var compilation = await TransposeCompilerLibrary.CompileAsync(request);
 
+                TransposeCompilerOutdatedException.ThrowIfOutdated(compilation.Diagnostics);
+
                 if (!compilation.Success || string.IsNullOrEmpty(compilation.Javascript))
                 {
                     throw new Exception(compilation.Errors.Count > 0
@@ -948,6 +975,13 @@ public static class NekoSharedRuntime
 
                 Console.WriteLine($"Compiled Tesserae code for {codeBlockArguments} in {sw.Elapsed.TotalSeconds:n1}s");
 
+            }
+            // Not caught below: an outdated compiler applies to every sample in the
+            // site, so rendering it as a per-sample error block would publish the
+            // failure instead of reporting it. Let it fail the build.
+            catch (TransposeCompilerOutdatedException)
+            {
+                throw;
             }
             catch (System.Exception ex)
             {
