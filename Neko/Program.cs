@@ -573,7 +573,37 @@ namespace Neko
             rootCommand.Subcommands.Add(newCommand);
             rootCommand.Subcommands.Add(updateSkillsCommand);
 
-            return await rootCommand.Parse(args).InvokeAsync();
+            // System.CommandLine's own handler turns any escaping exception into a
+            // stack-trace dump. That is the right fallback for a bug, but the
+            // outdated-compiler failure below is an actionable message rather than a
+            // crash, so take the handling over here. The other two cases reproduce
+            // what that handler did, so nothing else changes.
+            var invocation = new InvocationConfiguration { EnableDefaultExceptionHandler = false };
+
+            try
+            {
+                return await rootCommand.Parse(args).InvokeAsync(invocation);
+            }
+            catch (Neko.Builder.TransposeCompilerOutdatedException ex)
+            {
+                // Transpose refused the compilation because the Transpose compiler Neko
+                // is built against is older than the assemblies it binds against
+                // (TPS0008). That is a Neko packaging problem, not a problem with the
+                // site being built, so fail the run with a clear message rather than
+                // writing the error into the generated pages.
+                Console.Error.WriteLine("neko : error " + Neko.Builder.TransposeCompilerOutdatedException.DiagnosticId
+                                        + ": " + ex.Message.Replace("\r\n", " ").Replace("\n", " "));
+                return 1;
+            }
+            catch (OperationCanceledException)
+            {
+                return 130;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Unhandled exception: " + ex);
+                return 1;
+            }
         }
 
         // True when a changed file is the `--focus` target itself or lives under it.
