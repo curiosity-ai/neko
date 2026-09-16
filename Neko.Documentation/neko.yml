@@ -43,6 +43,10 @@ links:
         link: /guides/themes
         description: Style your documentation with ease
         icon: palette
+      - text: Presentations
+        link: /presentations/presentations
+        description: Build full-screen slide decks from a single Markdown file
+        icon: presentation
     footerItems:
       - text: Get Started
         link: /guides/getting-started

@@ -104,6 +104,10 @@ namespace Neko.Builder
             {
                 var fileName = Path.GetFileName(file.FilePath);
 
+                // Presentations are full-screen decks reached from the page that
+                // embeds them ([!deck]) — never a navbar destination of their own.
+                if (file.Doc.IsPresentation) continue;
+
                 // Skip index/README if not in root, as they are handled by folder logic
                 if (directory != _inputDirectory && (fileName.Equals("index.md", StringComparison.OrdinalIgnoreCase) || fileName.Equals("README.md", StringComparison.OrdinalIgnoreCase)))
                 {

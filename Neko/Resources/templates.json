@@ -47,5 +47,19 @@
   "neko-pdf": "![${1:caption}](${2:url.pdf}){$3}",
   "neko-roadmap": "::::: roadmap\n:::: lane {title=\"Under Consideration\" count=\"1\" accent=\"gray\"}\n::: roadmap-item {title=\"\" tag=\"Feature\" tag-color=\"emerald\" votes=\"0\"}\n:::\n::::\n:::: lane {title=\"Planned\" count=\"1\" accent=\"teal\"}\n::: roadmap-item {title=\"\" tag=\"Feature\" tag-color=\"emerald\" votes=\"0\"}\n:::\n::::\n:::: lane {title=\"In Progress\" count=\"1\" accent=\"amber\"}\n::: roadmap-item {title=\"\" tag=\"Feature\" tag-color=\"emerald\" votes=\"0\"}\n:::\n::::\n:::: lane {title=\"Public Beta\" count=\"1\" accent=\"sky\"}\n::: roadmap-item {title=\"\" tag=\"Feature\" tag-color=\"emerald\" votes=\"0\"}\n:::\n::::\n:::::",
   "neko-roadmap-lane": ":::: lane {title=\"\" count=\"0\" accent=\"gray\"}\n::: roadmap-item {title=\"\" tag=\"Feature\" tag-color=\"emerald\" votes=\"0\"}\n:::\n::::",
-  "neko-roadmap-item": "::: roadmap-item {title=\"\" tag=\"Feature\" tag-color=\"emerald\" date=\"\" votes=\"0\"}\n:::"
+  "neko-roadmap-item": "::: roadmap-item {title=\"\" tag=\"Feature\" tag-color=\"emerald\" date=\"\" votes=\"0\"}\n:::",
+  "neko-presentation": "---\ntitle: \npresentation:\n  eyebrow: \n---\n\n# First slide\n\nThe lead paragraph.\n\n> The claim this slide is making.\n\n--- {eyebrow=\"\"}\n\n## Second slide\n\nThe lead paragraph.\n",
+  "neko-slide": "--- {eyebrow=\"\" accent=\"cyan\"}\n\n## Slide title\n\nThe lead paragraph.\n",
+  "neko-slide-rows": "Key\n:   The value, in prose.\n\nAnother key\n:   Another value.\n",
+  "neko-slide-cols": ":::: cols\n::: box {title=\"\"}\n- point\n:::\n\n::: box {title=\"\" tone=\"warn\"}\n- point\n:::\n::::\n",
+  "neko-slide-box": "::: box {title=\"\" tone=\"warn\"}\nContent\n:::",
+  "neko-slide-note": "::: note\nA closing aside.\n:::",
+  "neko-slide-note-limit": "::: note {tone=\"limit\"}\nThe caveat that has to land.\n:::",
+  "neko-slide-claim": "::: claim\nThe one sentence this slide is making.\n:::",
+  "neko-slide-lead": "::: lead\nThe standfirst under the heading.\n:::",
+  "neko-slide-figure": "::: figure {caption=\"\" label=\"\"}\n```embed\n<svg viewBox=\"0 0 880 300\"></svg>\n```\n:::",
+  "neko-slide-embed": "```embed\n<svg viewBox=\"0 0 880 300\"></svg>\n```",
+  "neko-tag": "[!tag text=\"\" tone=\"warn\"]",
+  "neko-deck": "[!deck link=\"\" title=\"\" description=\"\"]",
+  "neko-deck-ratio": "[!deck link=\"\" title=\"\" ratio=\"4:3\" chrome=\"none\"]"
 }

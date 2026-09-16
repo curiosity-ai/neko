@@ -183,6 +183,7 @@ the full per-component reference** — this section is just a map.
 | Inline emoji/icon  | `:name:` / `:icon-…:`  | emoji, icon                       |
 | Image attrs        | `![cap](url){…}`       | image, pdf                        |
 | Front-matter only  | n/a                    | banner (project-level), backlinks |
+| Presentation       | `presentation: true` + `---` slide separators | presentation (full-screen slide decks) |
 
 Components you should know first:
 
@@ -197,6 +198,10 @@ Components you should know first:
 - **Badge** / **Button** / **Ref** (`[!badge …]`, `[!button …]`, `[!ref …]`).
 - **Icon** (`:icon-name:`) — uses Flaticon UIcons (Regular Rounded). Icons are
   also accepted in frontmatter `icon:` and component `icon=` attributes.
+- **Presentation** (`presentation: true` in front matter) — turns the file into a
+  full-screen slide deck, one file for the whole deck, slides split on `---`.
+  Embed one in a normal page with `[!deck link="…"]`. See the `presentation`
+  skill.
 
 For every component, look up its skill:
 `.claude/skills/<component>/SKILL.md`. Each skill includes syntax, every
@@ -252,8 +257,8 @@ changelog · code-block · code-inline · code-snippet · color-chip · column �
 command-example · comments · container · csharp-docs · embed · emoji · endpoint ·
 example · file · file-download · force-graph · icon · image · img-gen · lesson ·
 links · list · math · math-formulas · mermaid · panel · pdf · quiz ·
-reference-link · snapframe · steps · tab · table · tesserae · workflow ·
-youtube · frontmatter · neko-yml · folder-index.
+presentation · reference-link · snapframe · steps · tab · table · tesserae ·
+workflow · youtube · frontmatter · neko-yml · folder-index.
 
 There is also one **workflow** skill that is not tied to a single component:
 

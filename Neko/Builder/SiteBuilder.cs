@@ -926,7 +926,11 @@ namespace Neko.Builder
                 if (lessonNext != null) navContext.LessonNext = new NavigationItem { Title = lessonNext.Title, Url = lessonNext.Url };
             }
 
-            var html = generator.Generate(item.Doc, backlinks, navContext, sidebarLinks, blogPosts, null, relativeUrl);
+            // A presentation is its own document: a full-viewport deck with no
+            // documentation chrome around it (see HtmlGenerator.Presentation).
+            var html = item.Doc.IsPresentation
+                ? generator.GeneratePresentation(item.Doc)
+                : generator.Generate(item.Doc, backlinks, navContext, sidebarLinks, blogPosts, null, relativeUrl);
 
             var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html");
             var outputPath = Path.Combine(OutputDirectory, htmlFileName);
@@ -949,6 +953,11 @@ namespace Neko.Builder
                 || string.IsNullOrEmpty(pagePassword) && !string.IsNullOrEmpty(_config.Password);
 
             var isSearchExcluded = item.Doc.FrontMatter.SearchExclude
+                // Decks are always out of the index: their slides are fragments of a
+                // talk, not prose, and a hit on slide 9 lands the reader in the middle
+                // of a deck with no way to tell why. They are reached from the page
+                // that embeds them ([!deck]) instead.
+                || item.Doc.IsPresentation
                 || SidebarGenerator.IsHiddenVisibility(item.Doc.FrontMatter.Visibility)
                 || IsInSearchExcludedFolder(item.FilePath, searchExcludedFolders)
                 || IsInDotOrUnderscoreFolder(item.RelativePath);

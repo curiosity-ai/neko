@@ -27,6 +27,18 @@ namespace Neko.Builder
         public FrontMatter FrontMatter { get; set; } = new FrontMatter();
         public List<TocItem> Toc { get; set; } = new List<TocItem>();
         public List<string> OutgoingLinks { get; set; } = new List<string>();
+
+        /// <summary>
+        /// Deck options when the page's front matter marks it as a presentation
+        /// (<c>presentation: true</c>), otherwise null. A presentation is rendered as a
+        /// standalone full-page slide deck instead of a documentation article.
+        /// </summary>
+        public PresentationOptions Presentation { get; set; }
+
+        /// <summary>The rendered slides of a presentation page. Null for ordinary pages.</summary>
+        public List<PresentationSlide> Slides { get; set; }
+
+        public bool IsPresentation => Presentation != null;
     }
 
     public class FrontMatter
@@ -66,6 +78,13 @@ namespace Neko.Builder
 
         [YamlMember(Alias = "layout")]
         public string Layout { get; set; }
+
+        // Marks the file as a self-contained slide deck. Accepts a bare `true` or a
+        // mapping of deck options (theme, accent, eyebrow, back, fonts, …) — see
+        // PresentationOptions. Deck pages render full-screen with their own chrome,
+        // and are kept out of the sidebar and the search index.
+        [YamlMember(Alias = "presentation")]
+        public object Presentation { get; set; }
 
         [YamlMember(Alias = "searchExclude")]
         public bool SearchExclude { get; set; }
@@ -383,15 +402,73 @@ namespace Neko.Builder
                 }
             }
 
-            var html = renderHtml ? document.ToHtml(_pipeline) : null;
+            // A presentation renders as a list of slides instead of one article body:
+            // the deck is authored as a single self-contained file, split on `---`
+            // separators, and each slide is parsed on its own so every Neko component
+            // still works inside it.
+            PresentationOptions presentation = null;
+            List<PresentationSlide> slides = null;
+            if (PresentationOptions.TryParse(frontMatter.Presentation, out var deckOptions))
+            {
+                presentation = deckOptions;
+                if (renderHtml)
+                {
+                    slides = PresentationParser.Split(PresentationParser.StripFrontMatter(markdown));
+                    foreach (var slide in slides)
+                    {
+                        slide.Html = RenderFragment(slide.Markdown, filePath, rootDirectory);
+                    }
+                }
+            }
+
+            var html = (renderHtml && slides == null) ? document.ToHtml(_pipeline) : null;
 
             return new ParsedDocument
             {
                 Html = html,
                 FrontMatter = frontMatter,
                 Toc = toc,
-                OutgoingLinks = outgoingLinks
+                OutgoingLinks = outgoingLinks,
+                Presentation = presentation,
+                Slides = slides
             };
+        }
+
+        // Renders a standalone chunk of a document (a deck slide) through the same
+        // pipeline as a full page, applying the asset resolution and `.md` link
+        // rewriting that Parse does for the document as a whole.
+        private string RenderFragment(string markdown, string filePath, string rootDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
+
+            // The presentation containers only claim their names inside a deck.
+            using var scope = Neko.Extensions.PresentationScope.Enter();
+
+            var document = Markdig.Markdown.Parse(markdown, _pipeline);
+
+            if (!string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(rootDirectory) && File.Exists(filePath))
+            {
+                var currentDir = Path.GetDirectoryName(Path.GetFullPath(filePath));
+                var rootDir = Path.GetFullPath(rootDirectory);
+
+                foreach (var link in document.Descendants<LinkInline>())
+                {
+                    if (link.IsImage && !string.IsNullOrEmpty(link.Url) && !link.Url.Contains("://") && !link.Url.StartsWith("#"))
+                    {
+                        link.Url = ResolveAssetUrl(link.Url, currentDir, rootDir);
+                    }
+                }
+            }
+
+            foreach (var link in document.Descendants<LinkInline>())
+            {
+                if (!link.IsImage && !string.IsNullOrEmpty(link.Url) && !link.Url.Contains("://") && !link.Url.StartsWith("#") && !link.Url.StartsWith("mailto:"))
+                {
+                    link.Url = UrlHelper.StripMarkdownExtension(link.Url);
+                }
+            }
+
+            return document.ToHtml(_pipeline);
         }
     }
 }

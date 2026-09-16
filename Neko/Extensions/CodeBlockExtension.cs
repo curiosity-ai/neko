@@ -172,6 +172,29 @@ namespace Neko.Extensions
                 return;
             }
 
+            // Raw passthrough: ```embed (aliases ```embed-html / ```embed-svg) emits
+            // its contents verbatim, unescaped and unwrapped. Markdown already passes
+            // a block-level HTML element through, but only while it has no blank line
+            // inside it — which most hand-written SVG diagrams do. A fence keeps the
+            // whole thing intact, so a slide can carry a diagram without a side file.
+            var embedInfo = (fencedBlock.Info ?? "").ToLower();
+            if (embedInfo == "embed" || embedInfo == "embed-html" || embedInfo == "embed-svg")
+            {
+                var embedLeaf = obj as Markdig.Syntax.LeafBlock;
+                if (embedLeaf != null)
+                {
+                    var embedLines = embedLeaf.Lines;
+                    for (int i = 0; i < embedLines.Count; i++)
+                    {
+                        var slice = embedLines.Lines[i].Slice;
+                        if (slice.Text == null) continue;
+                        renderer.Write(slice.ToString());
+                        renderer.Write("\n");
+                    }
+                }
+                return;
+            }
+
             // Handle Quiz
             if ((fencedBlock.Info ?? "").ToLower() == "quiz")
             {

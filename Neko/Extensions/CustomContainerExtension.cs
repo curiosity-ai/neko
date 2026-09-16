@@ -72,6 +72,39 @@ namespace Neko.Extensions
                 return;
             }
 
+            // Presentation-mode blocks. They carry deck classes rather than utility
+            // classes: presentation.css styles them against the slide palette, so a
+            // deck keeps its own look instead of inheriting the documentation theme.
+            //
+            // Only while a slide is being rendered. `::: name` is otherwise Neko's
+            // generic container — the name becomes the div's class — and claiming
+            // six ordinary words like `note` and `box` site-wide would quietly
+            // change what existing pages render.
+            if (PresentationScope.IsRenderingSlide)
+            {
+                switch (type)
+                {
+                    case "cols":
+                        RenderDeckCols(renderer, obj);
+                        return;
+                    case "box":
+                        RenderDeckBox(renderer, obj);
+                        return;
+                    case "note":
+                        RenderDeckNote(renderer, obj);
+                        return;
+                    case "claim":
+                        RenderDeckClaim(renderer, obj);
+                        return;
+                    case "lead":
+                        RenderDeckLead(renderer, obj);
+                        return;
+                    case "figure":
+                        RenderDeckFigure(renderer, obj);
+                        return;
+                }
+            }
+
             if (type == "panel")
             {
                 var classes = "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-6 my-4";
@@ -270,6 +303,92 @@ namespace Neko.Extensions
             }
 
             renderer.Write("</div>");
+        }
+
+        // ---------------------------------------------------------------------
+        // Presentation-mode containers
+        // ---------------------------------------------------------------------
+
+        // `::: cols {count="3"}` — the side-by-side column band of a slide. Two
+        // columns by default; the children are whatever the author writes, most
+        // often a pair of `::: box` blocks or two bullet lists.
+        private void RenderDeckCols(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var count = GetAttribute(obj.GetAttributes(), "count")
+                        ?? GetAttribute(obj.GetAttributes(), "cols")
+                        ?? "2";
+            renderer.Write($"<div class=\"deck-cols\" data-cols=\"{WebUtility.HtmlEncode(count)}\">");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
+        }
+
+        // `::: box {title="…" tone="warn"}` — a bordered panel. `tone` tints the
+        // border and title: warn (amber), stop (rose), ok (green), default (rule).
+        private void RenderDeckBox(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var attributes = obj.GetAttributes();
+            var title = GetAttribute(attributes, "title");
+            var tone = GetAttribute(attributes, "tone") ?? "default";
+
+            renderer.Write($"<div class=\"deck-box\" data-tone=\"{WebUtility.HtmlEncode(tone)}\">");
+            if (!string.IsNullOrEmpty(title))
+            {
+                renderer.Write($"<h3 class=\"deck-box-title\">{WebUtility.HtmlEncode(title)}</h3>");
+            }
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
+        }
+
+        // `::: note {tone="limit"}` — the small, rule-led aside at the foot of a
+        // slide. `tone="limit"` turns it rose, for the caveat that has to land.
+        private void RenderDeckNote(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var tone = GetAttribute(obj.GetAttributes(), "tone") ?? "default";
+            renderer.Write($"<div class=\"deck-note\" data-tone=\"{WebUtility.HtmlEncode(tone)}\">");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
+        }
+
+        // `::: claim` — the one sentence a slide is making. A plain Markdown
+        // blockquote renders identically; this is the explicit form.
+        private void RenderDeckClaim(HtmlRenderer renderer, CustomContainer obj)
+        {
+            renderer.Write("<div class=\"deck-claim\">");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
+        }
+
+        // `::: lead` — the dimmed standfirst under a heading. The paragraph that
+        // directly follows a slide's heading already gets this treatment; the
+        // container opts any other block in.
+        private void RenderDeckLead(HtmlRenderer renderer, CustomContainer obj)
+        {
+            renderer.Write("<div class=\"deck-lead\">");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
+        }
+
+        // `::: figure {caption="…"}` — wraps a diagram (an inline SVG, an embedded
+        // HTML block, an image) so it scrolls rather than overflows, with an
+        // optional mono caption underneath.
+        private void RenderDeckFigure(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var attributes = obj.GetAttributes();
+            var caption = GetAttribute(attributes, "caption");
+            var label = GetAttribute(attributes, "label");
+
+            renderer.Write("<figure class=\"deck-figure\"");
+            if (!string.IsNullOrEmpty(label))
+            {
+                renderer.Write($" role=\"img\" aria-label=\"{WebUtility.HtmlEncode(label)}\"");
+            }
+            renderer.Write(">");
+            renderer.WriteChildren(obj);
+            if (!string.IsNullOrEmpty(caption))
+            {
+                renderer.Write($"<figcaption class=\"deck-figure-caption\">{WebUtility.HtmlEncode(caption)}</figcaption>");
+            }
+            renderer.Write("</figure>");
         }
 
         private string? GetAttribute(HtmlAttributes attributes, string key)

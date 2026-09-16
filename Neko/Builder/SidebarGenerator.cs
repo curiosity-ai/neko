@@ -210,6 +210,10 @@ namespace Neko.Builder
                 // out of the sidebar while still building it.
                 if (IsHiddenVisibility(doc.FrontMatter.Visibility)) continue;
 
+                // A presentation is a full-screen deck reached from the page that
+                // embeds it, not a documentation page — it never joins the sidebar.
+                if (doc.IsPresentation) continue;
+
                 string title = doc.FrontMatter.Label;
 
                 if (string.IsNullOrEmpty(title))
