@@ -609,6 +609,50 @@ html.dark.neko-deck-html body.neko-deck-body {
   transition: width .25s ease;
 }
 
+/* ---------- brand mark ----------
+   A logo and/or a line of text pinned to the bottom-right corner of every
+   slide. It shares the control bar's baseline, and the bar reserves room for it
+   (--deck-brand-width, measured by the runtime) so the slide counter sits to its
+   left rather than underneath it. */
+
+.deck-brand {
+  position: fixed;
+  right: clamp(14px, 4vw, 28px);
+  bottom: calc(.6rem + env(safe-area-inset-bottom));
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  /* Match the logo's height even when there isn't one, so a text-only mark
+     shares the control bar's baseline instead of dropping below it. */
+  min-height: 22px;
+  gap: .55em;
+  font-family: var(--deck-font-mono);
+  font-size: .72rem;
+  line-height: 1;
+  color: var(--deck-ink-dim);
+  text-decoration: none;
+  opacity: .85;
+}
+
+.deck-brand img {
+  height: 22px;
+  width: auto;
+  display: block;
+}
+
+a.deck-brand:hover { color: var(--deck-cyan); opacity: 1; }
+a.deck-brand:focus-visible { outline: 2px solid var(--deck-cyan); outline-offset: 3px; border-radius: 3px; }
+
+.neko-deck-body[data-deck-brand="true"] .deck-bar {
+  padding-right: calc(clamp(14px, 4vw, 28px) + var(--deck-brand-width, 0px) + .85rem);
+}
+
+/* On a narrow screen the wordmark would crowd the counter out; the logo alone
+   still carries the brand. With no logo the text stays — it is all there is. */
+@media (max-width: 560px) {
+  .deck-brand:has(img) .deck-brand-text { display: none; }
+}
+
 /* ---------- back to the docs ---------- */
 
 .deck-back {

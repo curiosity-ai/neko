@@ -4,6 +4,9 @@ description: The similarity engine, from raw text to a ranked list — the graph
 presentation:
   eyebrow: Curiosity Workspace
   back: /presentations/presentations
+  logo: /assets/neko-logo.png
+  logoText: Built with Neko
+  logoLink: https://neko.curiosity.ai
 ---
 
 # Similar to what, exactly?

@@ -4,6 +4,7 @@ description: The sample presentation that ships with the Neko starter.
 presentation:
   eyebrow: Neko starter
   back: /
+  logoText: Built with Neko
 ---
 
 # A whole deck, in one Markdown file

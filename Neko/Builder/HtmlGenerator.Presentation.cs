@@ -43,7 +43,8 @@ namespace Neko.Builder
             sb.AppendLine($"<html lang=\"en\" class=\"neko-deck-html\" data-deck-theme=\"{EscapeHtmlAttr(options.Theme)}\">");
             GeneratePresentationHead(sb, headTitle, headDescription, options, prefix);
 
-            sb.AppendLine($"<body class=\"neko-deck-body\" data-deck-accent=\"{EscapeHtmlAttr(options.Accent)}\">");
+            var brandAttr = options.HasBrand ? " data-deck-brand=\"true\"" : string.Empty;
+            sb.AppendLine($"<body class=\"neko-deck-body\" data-deck-accent=\"{EscapeHtmlAttr(options.Accent)}\"{brandAttr}>");
 
             if (options.Grid)
             {
@@ -59,6 +60,7 @@ namespace Neko.Builder
             }
 
             RenderDeckBackButton(sb, options, prefix);
+            RenderDeckBrand(sb, options);
 
             var body = new StringBuilder();
             RenderSlides(body, slides, options);
@@ -196,6 +198,47 @@ namespace Neko.Builder
             sb.AppendLine("  <i class=\"fi fi-rr-angle-small-left\" aria-hidden=\"true\"></i>");
             sb.AppendLine($"  <span>{EscapeHtmlText(text)}</span>");
             sb.AppendLine("</a>");
+        }
+
+        // The deck's standing brand mark: a logo, a line of text, or both, pinned to
+        // the bottom-right corner of every slide. It sits outside the encrypted
+        // payload alongside the back control, so a locked deck still carries its
+        // owner's mark, and the control bar reserves room for it so the slide
+        // counter never lands underneath (see presentation.css / presentation.js).
+        private void RenderDeckBrand(StringBuilder sb, PresentationOptions options)
+        {
+            if (!options.HasBrand) return;
+
+            var hasLink = !string.IsNullOrEmpty(options.LogoLink);
+            var tag = hasLink ? "a" : "div";
+
+            sb.Append($"<{tag} class=\"deck-brand\"");
+            if (hasLink)
+            {
+                sb.Append($" href=\"{EscapeHtmlAttr(options.LogoLink)}\"");
+                if (options.LogoLink.Contains("://"))
+                {
+                    sb.Append(" target=\"_blank\" rel=\"noopener noreferrer\"");
+                }
+            }
+            sb.AppendLine(">");
+
+            if (!string.IsNullOrEmpty(options.Logo))
+            {
+                // With text beside it the logo is decorative — an alt would have a
+                // screen reader announce the same brand twice.
+                var alt = !string.IsNullOrEmpty(options.LogoText)
+                    ? string.Empty
+                    : (options.LogoAlt ?? _config.Branding?.Title ?? string.Empty);
+                sb.AppendLine($"  <img src=\"{EscapeHtmlAttr(EncodeAssetUrl(options.Logo))}\" alt=\"{EscapeHtmlAttr(alt)}\">");
+            }
+
+            if (!string.IsNullOrEmpty(options.LogoText))
+            {
+                sb.AppendLine($"  <span class=\"deck-brand-text\">{EscapeHtmlText(options.LogoText)}</span>");
+            }
+
+            sb.AppendLine($"</{tag}>");
         }
 
         private static string EscapeHtmlText(string value)

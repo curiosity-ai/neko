@@ -55,10 +55,44 @@ page, which is handy while a deck is still a draft.
 | `counter` | `true` | The `3 / 14` counter in the control bar. |
 | `fonts` | `google` | `none` drops the Google Fonts link and falls back to local stacks — for air-gapped sites. |
 | `ratio` | `16:9` | The aspect ratio the deck is designed for; read by `[!deck]` previews. |
+| `logo` | — | Image for the brand mark in the bottom-right corner. See below. |
+| `logoText` | — | Text beside the logo. Works on its own, with no image. |
+| `logoLink` | — | Turns the brand mark into a link. External URLs open in a new tab. |
+| `logoAlt` | branding title | Alt text for the logo — only used when there is no `logoText`. |
 
 Ordinary page keys still apply. `title` and `description` become the document
 title and meta description, and `password` locks the deck — see
 [Protecting a deck](/presentations/protecting-a-deck).
+
+### The brand mark
+
+`logo` and `logoText` pin a standing mark to the **bottom-right corner of every
+slide** — the deck equivalent of the logo in the corner of a PowerPoint master.
+
+```yaml
+---
+title: The similarity engine, end to end
+presentation:
+  eyebrow: Curiosity Workspace
+  logo: /assets/neko-logo.png
+  logoText: Built with Neko
+  logoLink: https://neko.curiosity.ai
+---
+```
+
+Either key works on its own: a logo with no text, or a wordmark with no image.
+
+The mark shares the control bar's baseline and the bar reserves exactly as much
+room as the mark needs, so the slide counter always sits to its left. Below
+560px the wordmark is dropped and the logo carries the brand alone — unless
+there is no logo, in which case the text stays.
+
+Like `cover:`, the `logo` path is resolved against the page and then up the
+folder tree, so `logo: neko-logo.png` finds the nearest `assets/` folder.
+
+The mark is page furniture rather than content, so on a
+[password-protected deck](/presentations/protecting-a-deck.md) it renders
+alongside the unlock prompt instead of being encrypted with the slides.
 
 ## Slides
 

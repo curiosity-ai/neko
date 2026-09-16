@@ -61,5 +61,6 @@
   "neko-slide-embed": "```embed\n<svg viewBox=\"0 0 880 300\"></svg>\n```",
   "neko-tag": "[!tag text=\"\" tone=\"warn\"]",
   "neko-deck": "[!deck link=\"\" title=\"\" description=\"\"]",
-  "neko-deck-ratio": "[!deck link=\"\" title=\"\" ratio=\"4:3\" chrome=\"none\"]"
+  "neko-deck-ratio": "[!deck link=\"\" title=\"\" ratio=\"4:3\" chrome=\"none\"]",
+  "neko-presentation-branded": "---\ntitle: \npresentation:\n  eyebrow: \n  logo: /assets/logo.png\n  logoText: \n  logoLink: \n---\n\n# First slide\n\nThe lead paragraph.\n"
 }

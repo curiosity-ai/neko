@@ -44,10 +44,18 @@ title: Home
 [!deck link=""/decks/talk"" title=""The talk"" description=""Three slides.""]
 ");
 
+            Directory.CreateDirectory(Path.Combine(inputDir, "assets"));
+            // A tiny real PNG so the brand logo actually loads and contributes width.
+            File.WriteAllBytes(Path.Combine(inputDir, "assets", "logo.png"), Convert.FromBase64String(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="));
+
             File.WriteAllText(Path.Combine(inputDir, "decks", "talk.md"), @"---
 title: The talk
 presentation:
   eyebrow: Demo deck
+  logo: /assets/logo.png
+  logoText: Built with Neko
+  logoLink: https://neko.curiosity.ai
 ---
 
 # Opening slide
@@ -95,6 +103,16 @@ Body of the locked deck.
 ---
 
 ## The second locked slide
+");
+
+            File.WriteAllText(Path.Combine(inputDir, "decks", "locked-brand.md"), @"---
+title: Locked but branded
+password: hunter2
+presentation:
+  logoText: Built with Neko
+---
+
+# Hidden until unlocked
 ");
 
             _outDir = Path.Combine(Path.GetTempPath(), "neko-deck-pw-out-" + Guid.NewGuid().ToString("N"));
@@ -292,6 +310,74 @@ Body of the locked deck.
 
                 Assert.That(await page.TitleAsync(), Does.Contain("A distinctive locked heading"),
                     "the real title is restored from the decrypted H1");
+            }
+            finally
+            {
+                await CloseAsync(pw, browser);
+            }
+        }
+
+        [Test]
+        public async Task BrandMark_SitsInTheCornerOnEverySlide_WithoutCoveringTheCounter()
+        {
+            using var server = new StaticServer(_outDir);
+            var baseUrl = server.Start();
+
+            var (pw, browser) = await LaunchAsync();
+            try
+            {
+                var page = await browser.NewPageAsync(new() { ViewportSize = new() { Width = 1280, Height = 800 } });
+                await page.GotoAsync($"{baseUrl}/decks/talk", new() { WaitUntil = WaitUntilState.NetworkIdle });
+
+                var brand = page.Locator(".deck-brand");
+                await Assertions.Expect(brand).ToBeVisibleAsync();
+                await Assertions.Expect(brand).ToHaveAttributeAsync("href", "https://neko.curiosity.ai");
+
+                for (var slide = 1; slide <= 3; slide++)
+                {
+                    var brandBox = await brand.BoundingBoxAsync();
+                    var countBox = await page.Locator("#deck-count").BoundingBoxAsync();
+                    Assert.That(brandBox, Is.Not.Null);
+                    Assert.That(countBox, Is.Not.Null);
+
+                    // Pinned to the bottom-right corner…
+                    Assert.That(brandBox!.X + brandBox.Width, Is.GreaterThan(1280 * 0.75),
+                        $"slide {slide}: the mark hugs the right edge");
+                    Assert.That(brandBox.Y, Is.GreaterThan(800 * 0.85),
+                        $"slide {slide}: the mark hugs the bottom edge");
+
+                    // …and the control bar reserves room, so the counter sits to its left.
+                    Assert.That(countBox!.X + countBox.Width, Is.LessThanOrEqualTo(brandBox.X),
+                        $"slide {slide}: the slide counter must not run under the brand mark");
+
+                    if (slide < 3)
+                    {
+                        await page.Keyboard.PressAsync("ArrowRight");
+                        await page.WaitForTimeoutAsync(300);
+                    }
+                }
+            }
+            finally
+            {
+                await CloseAsync(pw, browser);
+            }
+        }
+
+        [Test]
+        public async Task BrandMark_ShowsOnALockedDeckBeforeItIsUnlocked()
+        {
+            using var server = new StaticServer(_outDir);
+            var baseUrl = server.Start();
+
+            var (pw, browser) = await LaunchAsync();
+            try
+            {
+                var page = await browser.NewPageAsync(new() { ViewportSize = new() { Width = 1280, Height = 800 } });
+                await page.GotoAsync($"{baseUrl}/decks/locked-brand", new() { WaitUntil = WaitUntilState.NetworkIdle });
+
+                await Assertions.Expect(page.Locator("#password-input")).ToBeVisibleAsync();
+                await Assertions.Expect(page.Locator(".deck-brand")).ToBeVisibleAsync();
+                await Assertions.Expect(page.Locator(".deck-brand-text")).ToHaveTextAsync("Built with Neko");
             }
             finally
             {

@@ -90,7 +90,7 @@ namespace Neko.Builder
             // Tailwind scanner can't recover these classes from the emitted file;
             // collecting them here keeps the generated stylesheet complete for
             // protected pages (notably their dark-mode variants).
-            ProtectedPageClassTokens.UnionWith(
+            AddProtectedPageClassTokens(
                 Neko.Builder.Tailwind.ClassExtractor.Extract(new[] { innerHtml }));
 
             var encryptionResult = Neko.Encryption.PageEncryptor.Encrypt(innerHtml, effectivePassword);

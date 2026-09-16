@@ -36,8 +36,9 @@ Everything that is content:
   defaults until the deck is unlocked.
 
 What stays in the clear is page furniture with nothing to give away — the
-blueprint ground, the progress rail and the back control. They frame the unlock
-prompt, which is centred in the deck viewport rather than left in a corner.
+blueprint ground, the progress rail, the back control and the brand mark. They
+frame the unlock prompt, which is centred in the deck viewport rather than left
+in a corner, and a locked deck still carries its owner's logo.
 
 [!deck link="/presentations/decks/internal-roadmap" title="Internal roadmap review" description="The demo deck below is locked. Its password is neko."]
 

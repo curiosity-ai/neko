@@ -411,6 +411,19 @@ namespace Neko.Builder
             if (PresentationOptions.TryParse(frontMatter.Presentation, out var deckOptions))
             {
                 presentation = deckOptions;
+
+                // The brand-mark logo is a page asset like `cover:` — resolve it the
+                // same way, so a bare file name finds the nearest `assets/` folder
+                // instead of resolving against the deck's own URL.
+                if (!string.IsNullOrEmpty(presentation.Logo)
+                    && !string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(rootDirectory) && File.Exists(filePath))
+                {
+                    presentation.Logo = ResolveAssetUrl(
+                        presentation.Logo,
+                        Path.GetDirectoryName(Path.GetFullPath(filePath)),
+                        Path.GetFullPath(rootDirectory));
+                }
+
                 if (renderHtml)
                 {
                     slides = PresentationParser.Split(PresentationParser.StripFrontMatter(markdown));

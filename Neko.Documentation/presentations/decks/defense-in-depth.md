@@ -4,6 +4,9 @@ description: How applications built on Curiosity Workspace keep an AI assistant 
 presentation:
   eyebrow: Curiosity Workspace
   back: /presentations/presentations
+  logo: /assets/neko-logo.png
+  logoText: Built with Neko
+  logoLink: https://neko.curiosity.ai
 ---
 
 # Five layers between a question and your data

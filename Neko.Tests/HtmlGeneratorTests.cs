@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using Neko.Builder;
 using Neko.Configuration;
+using System.Linq;
 
 namespace Neko.Tests
 {
@@ -21,6 +22,44 @@ namespace Neko.Tests
                 }
             };
             _generator = new HtmlGenerator(_config);
+        }
+
+        // Pages are generated in parallel, and every password-protected page harvests
+        // its utility classes into one shared set on the generator before encrypting.
+        // That set used to be a bare HashSet, so a site with more than one protected
+        // page could corrupt it mid-build ("Operations that change non-concurrent
+        // collections must have exclusive access") and fail the whole run.
+        [Test]
+        public void ProtectedPages_HarvestClassTokensSafelyInParallel()
+        {
+            var generator = new HtmlGenerator(_config);
+
+            const int pages = 256;
+
+            Assert.DoesNotThrow(() =>
+                System.Threading.Tasks.Parallel.For(0, pages, i =>
+                {
+                    // Many distinct classes per page, so the shared set keeps growing
+                    // and rehashing while other threads are writing to it — which is
+                    // where an unguarded HashSet corrupts.
+                    var classes = string.Join(" ",
+                        System.Linq.Enumerable.Range(0, 40).Select(j => $"protected-token-{i}-{j}"));
+                    var doc = new ParsedDocument
+                    {
+                        FrontMatter = new FrontMatter { Title = $"Secret {i}", Password = "hunter2" },
+                        Html = $"<p class=\"{classes}\">Secret body {i}</p>"
+                    };
+                    generator.Generate(doc);
+                }));
+
+            // The set also picks up the unlock form's own utility classes, so check
+            // that every harvested page class survived rather than an exact count.
+            var tokens = generator.ProtectedPageClassTokens;
+            var expected = System.Linq.Enumerable.Range(0, pages)
+                .SelectMany(i => System.Linq.Enumerable.Range(0, 40).Select(j => $"protected-token-{i}-{j}"))
+                .ToList();
+            Assert.That(expected.Where(t => !tokens.Contains(t)), Is.Empty,
+                "every page's classes survive the parallel harvest");
         }
 
         [Test]
