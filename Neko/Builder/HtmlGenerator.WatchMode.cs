@@ -34,6 +34,27 @@ namespace Neko.Builder
             sb.AppendLine("    </div>");
         }
 
+        // Live reload on its own: the WebSocket that refreshes the page when a source
+        // file changes, with none of the in-browser editing chrome. Used by
+        // presentation pages, whose full-screen deck layout has no navbar or sidebar
+        // for the editor controls to hang off.
+        private void RenderLiveReloadScript(StringBuilder sb)
+        {
+            sb.AppendLine("    <script>");
+            sb.AppendLine("    (function () {");
+            sb.AppendLine("        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';");
+            sb.AppendLine("        const wsUrl = `${protocol}//${window.location.host}/neko-live`;");
+            sb.AppendLine("        let ws;");
+            sb.AppendLine("        function connectWs() {");
+            sb.AppendLine("            ws = new WebSocket(wsUrl);");
+            sb.AppendLine("            ws.onmessage = (event) => { if (event.data === 'reload') { window.location.reload(); } };");
+            sb.AppendLine("            ws.onclose = () => { setTimeout(connectWs, 1000); };");
+            sb.AppendLine("        }");
+            sb.AppendLine("        connectWs();");
+            sb.AppendLine("    })();");
+            sb.AppendLine("    </script>");
+        }
+
         private void RenderWatchScript(StringBuilder sb)
         {
             sb.AppendLine("    <script>");

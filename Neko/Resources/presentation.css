@@ -1,0 +1,717 @@
+/* ==========================================================================
+   Neko presentation mode — the stylesheet for `presentation: true` pages.
+
+   A deck page is not a documentation article: it fills the viewport, shows one
+   slide at a time, and draws its own chrome. Everything here is scoped to
+   `.neko-deck-body` (or `.deck-slide`) so it can never leak into a normal page,
+   and it is linked last so the deck palette wins over the documentation
+   chrome's background rules.
+
+   The palette, type scale and slide furniture mirror the "blueprint" deck look:
+   a deep navy ground with a faint engineering grid, a geometric display face for
+   headings, a reading serif for prose, and a mono for labels and code.
+   ========================================================================== */
+
+:root,
+.neko-deck-body {
+  --deck-ground: #0C1626;
+  --deck-ground-2: #111F35;
+  --deck-panel: #16263F;
+  --deck-rule: #20344F;
+  --deck-rule-bright: #2F5478;
+  --deck-ink: #DCE6F2;
+  --deck-ink-dim: #93AAC6;
+  --deck-ink-strong: #FFFFFF;
+  --deck-cyan: #5FD0D8;
+  --deck-amber: #E9A94A;
+  --deck-rose: #E0736B;
+  --deck-leaf: #7FC08A;
+  --deck-font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --deck-font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --deck-font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --deck-accent: var(--deck-cyan);
+}
+
+/* The light counterpart, for decks that set `theme: daylight`. Same geometry,
+   same type — only the ground and ink flip. */
+.neko-deck-html[data-deck-theme="daylight"] .neko-deck-body {
+  --deck-ground: #F7F5F0;
+  --deck-ground-2: #FFFFFF;
+  --deck-panel: #FFFFFF;
+  --deck-rule: #DED8CC;
+  --deck-rule-bright: #B9AF9C;
+  --deck-ink: #1B2430;
+  --deck-ink-dim: #5A6673;
+  --deck-ink-strong: #0B1118;
+  --deck-cyan: #0F7C86;
+  --deck-amber: #9A6B12;
+  --deck-rose: #B3423A;
+  --deck-leaf: #2F7A45;
+}
+
+/* Paint the root element too: `html` keeps the documentation background
+   otherwise, which shows through on overscroll and during view transitions. */
+html.neko-deck-html,
+html.neko-deck-html body.neko-deck-body,
+html.dark.neko-deck-html body.neko-deck-body {
+  background-color: var(--deck-ground);
+}
+
+.neko-deck-body {
+  margin: 0;
+  padding: 0;
+  color: var(--deck-ink);
+  font-family: var(--deck-font-body);
+  font-size: clamp(15px, 1.05vw + 11px, 19px);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Per-slide accent: every accented element reads `--deck-accent`, so a slide
+   only has to set the variable once. */
+.deck-slide[data-accent="amber"] { --deck-accent: var(--deck-amber); }
+.deck-slide[data-accent="rose"]  { --deck-accent: var(--deck-rose); }
+.deck-slide[data-accent="leaf"]  { --deck-accent: var(--deck-leaf); }
+.deck-slide[data-accent="cyan"]  { --deck-accent: var(--deck-cyan); }
+
+/* ---------- blueprint ground ---------- */
+
+.deck-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(47, 84, 120, .16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(47, 84, 120, .16) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(120% 90% at 20% 10%, #000 30%, transparent 85%);
+  mask-image: radial-gradient(120% 90% at 20% 10%, #000 30%, transparent 85%);
+}
+
+.neko-deck-html[data-deck-theme="daylight"] .deck-grid {
+  background-image:
+    linear-gradient(to right, rgba(120, 108, 88, .16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(120, 108, 88, .16) 1px, transparent 1px);
+}
+
+/* ---------- deck shell ---------- */
+
+.deck {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.deck-slide {
+  /* `--deck-slide-height` is set by the runtime only when the deck is scaled down
+     inside a `[!deck]` preview; everywhere else this is the viewport. */
+  min-height: var(--deck-slide-height, 100dvh);
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(28px, 5vw, 80px) clamp(20px, 6vw, 110px) clamp(96px, 10vh, 132px);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.deck-slide.is-on { display: flex; }
+
+/* Before the runtime wires up (no JS, or the deck is still decrypting) every
+   slide is shown in sequence, so the content is always reachable. */
+.neko-deck-body:not([data-deck-ready="true"]) .deck-slide {
+  display: flex;
+}
+
+.deck-slide[data-layout="center"] { text-align: center; align-items: center; }
+.deck-slide[data-layout="center"] > * { margin-left: auto; margin-right: auto; }
+.deck-slide[data-layout="wide"] { max-width: 1480px; }
+.deck-slide[data-layout="full"] {
+  max-width: none;
+  padding-left: clamp(16px, 3vw, 48px);
+  padding-right: clamp(16px, 3vw, 48px);
+}
+
+/* On a phone the back control sits over where the first line of a slide would
+   start, so the slide reserves room for it. */
+@media (max-width: 760px) {
+  .deck-slide { padding-top: 72px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .deck-slide.is-on { animation: deck-rise .34s cubic-bezier(.2, .7, .3, 1) both; }
+  @keyframes deck-rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+  }
+}
+
+/* ---------- depth gauge ---------- */
+
+.deck-gauge {
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: clamp(30px, 4vw, 54px);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  align-items: center;
+  pointer-events: none;
+  border-right: 1px solid var(--deck-rule);
+  background: linear-gradient(to right, color-mix(in srgb, var(--deck-ground) 90%, transparent), transparent);
+}
+
+.deck-gauge b {
+  display: block;
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--deck-rule-bright);
+  opacity: .5;
+  transition: all .25s ease;
+}
+
+.deck-gauge b.on { background: var(--deck-cyan); opacity: 1; height: 30px; }
+
+@media (max-width: 640px) { .deck-gauge { display: none; } }
+
+/* ---------- type ---------- */
+
+.deck-eyebrow {
+  font-family: var(--deck-font-mono);
+  font-size: .7em;
+  letter-spacing: .02em;
+  color: var(--deck-accent);
+  margin: 0 0 .9em;
+  display: flex;
+  align-items: center;
+  gap: .6em;
+}
+
+.deck-eyebrow span {
+  width: 28px;
+  height: 1px;
+  background: var(--deck-accent);
+  display: inline-block;
+  opacity: .6;
+}
+
+.deck-slide[data-layout="center"] .deck-eyebrow { justify-content: center; }
+
+.deck-slide h1 {
+  font-family: var(--deck-font-display);
+  font-weight: 800;
+  font-size: clamp(2.1rem, 6.4vw, 4.4rem);
+  line-height: .98;
+  letter-spacing: -.025em;
+  margin: 0 0 .5em;
+  max-width: 17ch;
+  color: var(--deck-ink);
+}
+
+.deck-slide h2 {
+  font-family: var(--deck-font-display);
+  font-weight: 700;
+  font-size: clamp(1.55rem, 3.6vw, 2.7rem);
+  line-height: 1.06;
+  letter-spacing: -.02em;
+  margin: 0 0 .5rem;
+  max-width: 20ch;
+  color: var(--deck-ink);
+}
+
+.deck-slide h3 {
+  font-family: var(--deck-font-display);
+  font-weight: 600;
+  font-size: 1.02em;
+  letter-spacing: -.005em;
+  margin: 0 0 .3rem;
+  color: var(--deck-ink);
+}
+
+.deck-slide h4,
+.deck-slide h5,
+.deck-slide h6 {
+  font-family: var(--deck-font-display);
+  font-weight: 600;
+  font-size: .95em;
+  margin: 0 0 .3rem;
+  color: var(--deck-ink-dim);
+}
+
+.deck-slide p {
+  max-width: 64ch;
+  margin: 0 0 1rem;
+}
+
+.deck-slide[data-layout="center"] h1,
+.deck-slide[data-layout="center"] h2,
+.deck-slide[data-layout="center"] p { max-width: none; }
+
+/* The paragraph immediately after the slide's heading is its lead — larger,
+   dimmed, wider measure. Authors get it for free by writing plain Markdown;
+   `::: lead` opts any other paragraph in. */
+.deck-slide h1 + p,
+.deck-slide h2 + p,
+.deck-slide .deck-lead,
+.deck-slide .deck-lead p {
+  font-size: 1.06em;
+  color: var(--deck-ink-dim);
+  max-width: 62ch;
+  margin: 0 0 1.6rem;
+}
+
+.deck-slide .deck-lead p:last-child { margin-bottom: 0; }
+
+.deck-slide a {
+  color: var(--deck-accent);
+  text-decoration: underline;
+  text-underline-offset: .18em;
+  text-decoration-thickness: 1px;
+}
+
+.deck-slide a:hover { color: var(--deck-ink); }
+
+.deck-slide strong { color: var(--deck-ink); font-weight: 600; }
+.deck-slide em { font-style: italic; }
+
+.deck-slide code,
+.deck-slide .mono {
+  font-family: var(--deck-font-mono);
+  font-size: .84em;
+  color: var(--deck-cyan);
+  background: none;
+  padding: 0;
+}
+
+.deck-slide pre {
+  background: var(--deck-ground-2);
+  border: 1px solid var(--deck-rule);
+  border-radius: 5px;
+  padding: .9rem 1.1rem;
+  overflow-x: auto;
+  margin: .4rem 0 1.2rem;
+}
+
+.deck-slide pre code {
+  font-size: .8em;
+  color: var(--deck-ink);
+  line-height: 1.5;
+}
+
+/* A blockquote is the deck's "claim" — the one sentence the slide is really
+   making, set in the display face against an amber rule. */
+.deck-slide blockquote,
+.deck-slide .deck-claim {
+  font-family: var(--deck-font-display);
+  font-weight: 600;
+  font-size: clamp(1.15rem, 2.5vw, 1.72rem);
+  line-height: 1.25;
+  letter-spacing: -.015em;
+  max-width: 28ch;
+  border-left: 3px solid var(--deck-amber);
+  padding: 0 0 0 .8em;
+  margin: 0 0 1rem;
+  color: var(--deck-ink-strong);
+  font-style: normal;
+}
+
+.deck-slide blockquote p,
+.deck-slide .deck-claim p {
+  font-size: inherit;
+  color: inherit;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-slide[data-accent="rose"] blockquote,
+.deck-slide[data-accent="rose"] .deck-claim { border-left-color: var(--deck-rose); }
+
+/* ---------- key / value rows ----------
+   Authored as a Markdown definition list:
+
+     Typed nodes
+     : Every node has a type and a stable key.
+*/
+
+.deck-slide dl,
+.deck-slide .deck-rows {
+  border-top: 1px solid var(--deck-rule);
+  margin: .4rem 0 1.2rem;
+}
+
+.deck-slide dt {
+  font-family: var(--deck-font-display);
+  font-weight: 600;
+  font-size: .98em;
+  color: var(--deck-ink);
+  margin: 0;
+  padding: .95rem 0 .15rem 1.1rem;
+}
+
+.deck-slide dd {
+  color: var(--deck-ink-dim);
+  font-size: .94em;
+  max-width: 70ch;
+  margin: 0;
+  padding: 0 0 .95rem 1.1rem;
+  border-bottom: 1px solid var(--deck-rule);
+}
+
+.deck-slide dd p { margin: 0; max-width: none; font-size: inherit; color: inherit; }
+
+/* Two columns from tablet up: the key on the left, the value beside it. The row
+   rule is drawn as a border on each cell rather than as a gap over a tinted
+   container background, so a short key next to a tall value never leaves a
+   band of the wrong colour behind it. */
+@media (min-width: 760px) {
+  .deck-slide dl,
+  .deck-slide .deck-rows {
+    display: grid;
+    /* 15.5rem of key, plus the key cell's own left inset and the gap to the
+       value — so the value column lines up while the row rule still runs the
+       full width of the list. */
+    grid-template-columns: calc(15.5rem + 1.1rem + 1.6rem) minmax(0, 1fr);
+  }
+  /* No column gap: the key's right padding opens the space instead, so the row
+     rule runs unbroken from the key straight through the value. */
+  .deck-slide dt {
+    padding: .95rem 1.6rem .95rem 1.1rem;
+    border-bottom: 1px solid var(--deck-rule);
+  }
+  .deck-slide dd {
+    padding: .95rem 0;
+    font-size: .96em;
+    max-width: none;
+  }
+}
+
+/* ---------- columns and boxes ---------- */
+
+.deck-slide .deck-cols {
+  display: grid;
+  gap: 1.4rem;
+  grid-template-columns: 1fr;
+  margin: 0 0 1.2rem;
+}
+
+@media (min-width: 820px) {
+  .deck-slide .deck-cols { grid-template-columns: 1fr 1fr; gap: 2.4rem; }
+  .deck-slide .deck-cols[data-cols="3"] { grid-template-columns: repeat(3, 1fr); gap: 1.8rem; }
+  .deck-slide .deck-cols[data-cols="1"] { grid-template-columns: 1fr; }
+}
+
+.deck-slide .deck-box {
+  border: 1px solid var(--deck-rule);
+  background: var(--deck-panel);
+  border-radius: 5px;
+  padding: 1.1rem 1.25rem;
+}
+
+.deck-slide .deck-box > :last-child { margin-bottom: 0; }
+.deck-slide .deck-box[data-tone="warn"] { border-color: var(--deck-amber); }
+.deck-slide .deck-box[data-tone="stop"] { border-color: var(--deck-rose); }
+.deck-slide .deck-box[data-tone="ok"] { border-color: var(--deck-leaf); }
+
+.deck-slide .deck-box-title {
+  font-family: var(--deck-font-display);
+  font-weight: 600;
+  font-size: 1.02em;
+  letter-spacing: -.005em;
+  margin: 0 0 .4rem;
+  color: var(--deck-accent);
+}
+
+.deck-slide .deck-box[data-tone="warn"] .deck-box-title { color: var(--deck-amber); }
+.deck-slide .deck-box[data-tone="stop"] .deck-box-title { color: var(--deck-rose); }
+.deck-slide .deck-box[data-tone="ok"] .deck-box-title { color: var(--deck-leaf); }
+
+.deck-slide .deck-box p { font-size: .95em; color: var(--deck-ink-dim); margin: .2rem 0 1rem; }
+.deck-slide .deck-box p:last-child { margin-bottom: 0; }
+
+/* ---------- note ---------- */
+
+.deck-slide .deck-note {
+  border-left: 2px solid var(--deck-rule-bright);
+  padding: 0 0 0 1rem;
+  color: var(--deck-ink-dim);
+  font-size: .94em;
+  max-width: 64ch;
+  margin: 1.2rem 0 0;
+}
+
+.deck-slide .deck-note p { font-size: inherit; color: inherit; max-width: none; margin: 0 0 .5rem; }
+.deck-slide .deck-note > :last-child { margin-bottom: 0; }
+.deck-slide .deck-note[data-tone="limit"] { border-left-color: var(--deck-rose); color: var(--deck-rose); }
+.deck-slide .deck-note[data-tone="limit"] code { color: var(--deck-rose); }
+
+/* ---------- lists ---------- */
+
+.deck-slide ul,
+.deck-slide ol {
+  margin: .3rem 0 1rem;
+  padding-left: 1.1rem;
+  list-style: disc;
+}
+
+.deck-slide ol { list-style: decimal; }
+
+.deck-slide li {
+  margin: .42rem 0;
+  max-width: 62ch;
+  color: var(--deck-ink-dim);
+  display: list-item;
+}
+
+/* A bold lead-in inside a bullet reads as a mini-heading, in the display face. */
+.deck-slide li strong,
+.deck-slide li b {
+  color: var(--deck-ink);
+  font-weight: 400;
+  font-family: var(--deck-font-display);
+  font-size: .93em;
+}
+
+/* ---------- figures, tables, media ---------- */
+
+.deck-slide figure,
+.deck-slide .deck-figure {
+  margin: 0 0 1.2rem;
+  overflow-x: auto;
+}
+
+.deck-slide figure svg,
+.deck-slide .deck-figure svg,
+.deck-slide svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.deck-slide figcaption,
+.deck-slide .deck-figure-caption {
+  font-family: var(--deck-font-mono);
+  font-size: .72em;
+  color: var(--deck-ink-dim);
+  margin-top: .6rem;
+}
+
+.deck-slide img { max-width: 100%; height: auto; display: block; }
+
+.deck-slide table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: .93em;
+  margin: .2rem 0 1rem;
+}
+
+.deck-slide th,
+.deck-slide td {
+  text-align: left;
+  padding: .6rem .9rem .6rem 0;
+  border-bottom: 1px solid var(--deck-rule);
+  vertical-align: top;
+}
+
+.deck-slide th {
+  font-family: var(--deck-font-display);
+  font-weight: 600;
+  color: var(--deck-ink);
+  font-size: .95em;
+}
+
+.deck-slide td { color: var(--deck-ink-dim); }
+
+/* A first column of bare `code` reads as the mono key column of the source
+   decks, without asking the author for a class. */
+.deck-slide td > code:only-child {
+  font-family: var(--deck-font-mono);
+  font-size: .88em;
+  color: var(--deck-cyan);
+  white-space: nowrap;
+}
+
+.deck-slide hr {
+  border: 0;
+  border-top: 1px solid var(--deck-rule);
+  margin: 1.4rem 0;
+}
+
+/* ---------- tags ---------- */
+
+.deck-slide .deck-tag {
+  display: inline-block;
+  font-family: var(--deck-font-mono);
+  font-size: .7rem;
+  padding: .2em .55em;
+  border: 1px solid var(--deck-rule-bright);
+  border-radius: 3px;
+  color: var(--deck-ink-dim);
+  margin: 0 .3em .35em 0;
+  line-height: 1.4;
+}
+
+.deck-slide .deck-tag[data-tone="ok"]   { border-color: var(--deck-leaf);  color: var(--deck-leaf); }
+.deck-slide .deck-tag[data-tone="warn"] { border-color: var(--deck-amber); color: var(--deck-amber); }
+.deck-slide .deck-tag[data-tone="stop"] { border-color: var(--deck-rose);  color: var(--deck-rose); }
+
+/* ---------- controls ---------- */
+
+.deck-bar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  padding: .6rem clamp(14px, 4vw, 28px) calc(.6rem + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--deck-ground) 62%, transparent);
+}
+
+.deck-bar button {
+  font-family: var(--deck-font-mono);
+  font-size: .82rem;
+  background: transparent;
+  color: var(--deck-ink);
+  border: 1px solid var(--deck-rule-bright);
+  border-radius: 4px;
+  padding: .5em .9em;
+  cursor: pointer;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: .35em;
+}
+
+.deck-bar button:hover { border-color: var(--deck-cyan); color: var(--deck-cyan); }
+.deck-bar button:focus-visible { outline: 2px solid var(--deck-cyan); outline-offset: 2px; }
+.deck-bar button[disabled] { opacity: .3; cursor: default; }
+.deck-bar button[disabled]:hover { border-color: var(--deck-rule-bright); color: var(--deck-ink); }
+
+.deck-count {
+  font-family: var(--deck-font-mono);
+  font-size: .78rem;
+  color: var(--deck-ink-dim);
+  margin-left: auto;
+}
+
+.deck-track {
+  position: fixed;
+  top: 0; left: 0;
+  height: 2px;
+  width: 0;
+  background: var(--deck-cyan);
+  z-index: 5;
+  transition: width .25s ease;
+}
+
+/* ---------- back to the docs ---------- */
+
+.deck-back {
+  position: fixed;
+  top: clamp(12px, 2.2vh, 22px);
+  right: clamp(14px, 4vw, 28px);
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: .4em;
+  font-family: var(--deck-font-mono);
+  font-size: .78rem;
+  line-height: 1;
+  padding: .55em .85em;
+  border: 1px solid var(--deck-rule-bright);
+  border-radius: 4px;
+  color: var(--deck-ink-dim);
+  background: color-mix(in srgb, var(--deck-ground) 78%, transparent);
+  backdrop-filter: blur(6px);
+  text-decoration: none;
+  transition: color .2s ease, border-color .2s ease;
+}
+
+.deck-back:hover { color: var(--deck-cyan); border-color: var(--deck-cyan); }
+.deck-back:focus-visible { outline: 2px solid var(--deck-cyan); outline-offset: 2px; }
+.deck-back i { font-size: .9rem; }
+
+/* Embedded in a `[!deck]` card the surrounding page already offers the way
+   out, so the deck drops its own back control and the chrome shrinks. */
+.neko-deck-body[data-deck-embedded="true"] .deck-back { display: none; }
+.neko-deck-body[data-deck-embedded="true"] .deck-slide {
+  padding: clamp(20px, 4vw, 54px) clamp(18px, 5vw, 72px) clamp(72px, 9vh, 96px);
+}
+
+/* ---------- password prompt ---------- */
+
+/* The unlock form is rendered with the documentation's utility classes; centre
+   it in the deck viewport so a protected deck doesn't open on a bare corner. */
+.deck-locked #content-container {
+  position: relative;
+  z-index: 1;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(24px, 5vw, 64px);
+}
+
+.deck-locked #password-form-container {
+  max-width: 30rem;
+  margin: 0 auto;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+/* Retint the shared unlock form (authored with the documentation's utility
+   classes) to the deck palette, so a locked deck opens on its own look rather
+   than a white card floating on navy. */
+.deck-locked #password-form-container > div {
+  background: var(--deck-panel);
+  border: 1px solid var(--deck-rule);
+  border-radius: 6px;
+  box-shadow: none;
+  width: 100%;
+}
+
+.deck-locked #password-form-container h2 {
+  font-family: var(--deck-font-display);
+  font-weight: 700;
+  letter-spacing: -.015em;
+  color: var(--deck-ink);
+}
+
+.deck-locked #password-form-container p { color: var(--deck-ink-dim); }
+
+.deck-locked #password-form-container > div > div:first-child {
+  background: color-mix(in srgb, var(--deck-cyan) 16%, transparent);
+  color: var(--deck-cyan);
+}
+
+.deck-locked #password-input {
+  background: var(--deck-ground);
+  border: 1px solid var(--deck-rule-bright);
+  color: var(--deck-ink);
+  font-family: var(--deck-font-mono);
+  font-size: .9rem;
+}
+
+.deck-locked #password-input::placeholder { color: var(--deck-ink-dim); opacity: .7; }
+
+.deck-locked #password-submit {
+  background: var(--deck-cyan);
+  color: var(--deck-ground);
+  font-family: var(--deck-font-mono);
+  font-size: .85rem;
+}
+
+.deck-locked #password-submit:hover { filter: brightness(1.08); }
+.deck-locked #password-error { color: var(--deck-rose); }
+
+@media print {
+  .deck-slide { display: flex !important; page-break-after: always; min-height: auto; }
+  .deck-bar, .deck-gauge, .deck-track, .deck-back, .deck-grid { display: none !important; }
+}

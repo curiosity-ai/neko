@@ -40,6 +40,7 @@ Please refer to the following list for future implementation. Suggested syntax f
 - [x] Tab: `+++ Title ... +++`
 - [x] **Table**: Enhanced markdown tables.
 - [x] **YouTube Embed**: `[!youtube id="xyz"]`
+- [x] **Presentation mode**: `presentation: true` front matter turns a file into a full-screen slide deck (slides split on `---`); `[!deck link="…"]` embeds one in a page.
 
 ## Assets
 - [x] Embed Tailwind CSS.

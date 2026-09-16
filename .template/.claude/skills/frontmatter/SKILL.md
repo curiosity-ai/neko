@@ -1,6 +1,6 @@
 ---
 name: frontmatter
-description: Author the YAML frontmatter block of a Neko Markdown page — label, icon, order, tags, visibility, permalink, redirect, redirectSlug, layout, meta, nav, toc, backlinks, password. Use when configuring an individual page.
+description: Author the YAML frontmatter block of a Neko Markdown page — label, icon, order, tags, visibility, permalink, redirect, redirectSlug, layout, presentation, meta, nav, toc, backlinks, password. Use when configuring an individual page.
 ---
 
 # Page frontmatter
@@ -35,6 +35,7 @@ visibility: public
 | `visibility`     | `public`, `hidden`, `protected`, `private`          | Navigation & search behaviour; password gating. |
 | `password`       | string                                              | Per-page encryption. Pair with `--password` at build. |
 | `searchExclude`  | boolean                                             | `true` to omit the page from `search.json`. Folder-level: set the same key in `index.yml`. |
+| `presentation`   | `true` / a mapping of deck options                  | Builds the page as a full-screen slide deck. See the `presentation` skill. Decks are kept out of the sidebar and the search index automatically. |
 | `permalink`      | string                                              | Custom URL. Wins over the file path. |
 | `redirect`       | string                                              | Redirect this slug to another page or URL. |
 | `redirectSlug`   | string                                              | Expose this page at the short URL `/redirect/<slug>`. Neko emits a tiny meta-refresh HTML file pointing back at the page. |

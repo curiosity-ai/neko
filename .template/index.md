@@ -19,6 +19,7 @@ This folder is a minimal Neko documentation project. It contains:
 - `neko.yml` — project configuration.
 - `index.md` — the homepage (this page).
 - `getting-started.md`, `about.md` — two sample pages.
+- `decks/sample-deck.md` — a sample presentation (see below).
 - `.claude/` — instructions and skills for Claude on how to author Neko docs.
 
 ## Run the site
@@ -48,5 +49,11 @@ This is an alert / callout.
 Open `index.md` and start writing.
 >>>
 +++
+
+## Presentations
+
+A page whose front matter says `presentation: true` builds as a full-screen slide deck — the whole deck in one file, slides separated by a `---` rule. Embed one in any page with `[!deck]`:
+
+[!deck link="/decks/sample-deck" title="A Neko deck in one file" description="Click to open the sample presentation full-screen."]
 
 Explore every component and option in the `.claude/skills` folder and in the main [Neko documentation](https://neko.curiosity.ai).

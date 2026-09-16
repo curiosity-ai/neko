@@ -5,6 +5,7 @@ using Markdig.Renderers;
 using Markdig.Renderers.Html;
 using Markdig.Syntax.Inlines;
 using System.Collections.Generic;
+using System.Net;
 
 namespace Neko.Extensions
 {
@@ -236,6 +237,12 @@ namespace Neko.Extensions
                     break;
                 case "youtube":
                     RenderYouTube(renderer, obj);
+                    break;
+                case "deck":
+                    RenderDeck(renderer, obj);
+                    break;
+                case "tag":
+                    RenderTag(renderer, obj);
                     break;
                 case "emoji-table":
                     RenderEmojiTable(renderer, obj);
@@ -1208,6 +1215,106 @@ namespace Neko.Extensions
             renderer.Write($"<i class=\"fi fi-rr-link-alt mr-1\"></i>");
             renderer.Write(text);
             renderer.Write("</a>");
+        }
+
+        // `[!deck link="/decks/foo"]` — the way into a presentation from a normal
+        // documentation page. Renders the deck live in an iframe, framed as a slide
+        // inside macOS-style window chrome and locked to a presentation aspect ratio
+        // (16:9 by default, 4:3 on request), so it reads as a deck rather than as an
+        // embedded web page. The preview is inert: a transparent overlay takes the
+        // click and opens the deck full-screen instead of letting the reader drive
+        // the slides inside a postage stamp.
+        private void RenderDeck(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var link = obj.GetAttribute("link");
+            if (string.IsNullOrEmpty(link)) link = obj.GetAttribute("url");
+            if (string.IsNullOrEmpty(link) && obj.Arguments.Count > 0) link = obj.Arguments[0];
+            if (string.IsNullOrEmpty(link)) return;
+
+            link = Neko.Builder.UrlHelper.StripMarkdownExtension(link);
+
+            var title = obj.GetAttribute("title");
+            var description = obj.GetAttribute("description");
+            var openText = obj.GetAttribute("open-text");
+            if (string.IsNullOrEmpty(openText)) openText = "Open presentation";
+
+            var ratio = obj.GetAttribute("ratio");
+            var aspectClass = ratio switch
+            {
+                "4:3" => "aspect-[4/3]",
+                "16:10" => "aspect-[16/10]",
+                "1:1" => "aspect-square",
+                _ => "aspect-video",
+            };
+
+            var chrome = obj.GetAttribute("chrome");
+            var showChrome = chrome != "none";
+
+            // The preview starts on a specific slide when asked (`slide="3"`); the
+            // full-screen link always opens at the same place. A bare number is the
+            // slide's position — the deck's own ids are `slide-3` — and anything else
+            // is used as the anchor as written, so a slide with a custom `id` works.
+            var slide = obj.GetAttribute("slide");
+            var anchor = string.IsNullOrEmpty(slide)
+                ? null
+                : (int.TryParse(slide, out var slideNumber) ? "slide-" + slideNumber : slide.TrimStart('#'));
+            var src = anchor == null ? link : link + "#" + anchor;
+
+            var srcAttr = WebUtility.HtmlEncode(src);
+            var titleAttr = WebUtility.HtmlEncode(string.IsNullOrEmpty(title) ? "Presentation" : title);
+
+            renderer.Write("<figure class=\"neko-deck-card not-prose my-8\">");
+            renderer.Write("<div class=\"rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-900 shadow-lg dark:shadow-black/40\">");
+
+            if (showChrome)
+            {
+                renderer.Write("<div class=\"flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700\">");
+                renderer.Write("<span class=\"w-3 h-3 rounded-full bg-red-400\"></span>");
+                renderer.Write("<span class=\"w-3 h-3 rounded-full bg-amber-400\"></span>");
+                renderer.Write("<span class=\"w-3 h-3 rounded-full bg-green-400\"></span>");
+                renderer.Write("<span class=\"flex-1 text-center text-xs font-medium text-gray-500 dark:text-gray-400 truncate px-2\">");
+                renderer.WriteEscape(string.IsNullOrEmpty(title) ? "Presentation" : title);
+                renderer.Write("</span>");
+                renderer.Write($"<a href=\"{srcAttr}\" class=\"text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline whitespace-nowrap\">");
+                renderer.WriteEscape(openText);
+                renderer.Write(" <i class=\"fi fi-rr-arrow-up-right-from-square text-[10px]\"></i></a>");
+                renderer.Write("</div>");
+            }
+
+            renderer.Write($"<div class=\"relative {aspectClass} w-full bg-[#0C1626] group\">");
+            renderer.Write($"<iframe src=\"{srcAttr}\" title=\"{titleAttr}\" loading=\"lazy\" tabindex=\"-1\" scrolling=\"no\" class=\"absolute inset-0 w-full h-full border-0\"></iframe>");
+            renderer.Write($"<a href=\"{srcAttr}\" aria-label=\"{titleAttr}\" class=\"absolute inset-0 flex items-end justify-center pb-6 bg-transparent hover:bg-black/25 transition-colors\">");
+            renderer.Write("<span class=\"opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/95 dark:bg-gray-900/95 text-sm font-medium text-gray-900 dark:text-gray-100 shadow-lg\">");
+            renderer.WriteEscape(openText);
+            renderer.Write(" <i class=\"fi fi-rr-arrow-small-right\"></i></span>");
+            renderer.Write("</a>");
+            renderer.Write("</div>");
+            renderer.Write("</div>");
+
+            if (!string.IsNullOrEmpty(description))
+            {
+                renderer.Write("<figcaption class=\"mt-3 text-sm text-gray-600 dark:text-gray-400\">");
+                renderer.WriteEscape(description);
+                renderer.Write("</figcaption>");
+            }
+
+            renderer.Write("</figure>");
+        }
+
+        // `[!tag text="flag" tone="warn"]` — the small mono chip used inline on a
+        // slide to mark a verdict or a state.
+        private void RenderTag(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var text = obj.GetAttribute("text");
+            if (string.IsNullOrEmpty(text) && obj.Arguments.Count > 0) text = obj.Arguments[0];
+            if (string.IsNullOrEmpty(text)) return;
+
+            var tone = obj.GetAttribute("tone");
+            if (string.IsNullOrEmpty(tone)) tone = "default";
+
+            renderer.Write($"<span class=\"deck-tag\" data-tone=\"{WebUtility.HtmlEncode(tone)}\">");
+            renderer.WriteEscape(text);
+            renderer.Write("</span>");
         }
 
         private void RenderYouTube(HtmlRenderer renderer, ComponentInline obj)
