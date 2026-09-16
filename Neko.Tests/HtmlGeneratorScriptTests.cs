@@ -1,3 +1,4 @@
+using System;
 using NUnit.Framework;
 using Neko.Builder;
 using Neko.Configuration;
@@ -32,18 +33,51 @@ namespace Neko.Tests
 
             var html = _generator.Generate(doc);
 
-            // Verify the presence of scroll preservation logic
+            // Verify the presence of scroll preservation logic. The position lives in
+            // sessionStorage (it only means anything for the tab that is navigating)
+            // and is tagged with a signature of the link set, so a position saved on a
+            // sibling project's sidebar is never applied to this one.
             Assert.That(html, Contains.Substring("const scrollKey = 'test-docs-sidebar-scroll';"));
-            Assert.That(html, Contains.Substring("const timeKey = 'test-docs-sidebar-scroll-time';"));
-            Assert.That(html, Contains.Substring("localStorage.getItem(scrollKey)"));
+            Assert.That(html, Contains.Substring("sessionStorage.getItem(scrollKey)"));
+            Assert.That(html, Contains.Substring("saved.sig === nekoSidebarSignature()"));
 
             // Check for debounce logic
             Assert.That(html, Contains.Substring("let timeout;"));
             Assert.That(html, Contains.Substring("clearTimeout(timeout);"));
-            Assert.That(html, Contains.Substring("setTimeout(() => {"));
-            Assert.That(html, Contains.Substring("localStorage.setItem(scrollKey, sidebar.scrollTop);"));
+            Assert.That(html, Contains.Substring("timeout = setTimeout(nekoSaveSidebarScroll, 100);"));
+            Assert.That(html, Contains.Substring("sessionStorage.setItem(scrollKey, JSON.stringify({ top: sidebar.scrollTop"));
 
-            Assert.That(html, Contains.Substring("if (now - parseInt(savedTime) < 60000)"));
+            // A click can navigate inside the debounce window, so the position is also
+            // flushed on the way out.
+            Assert.That(html, Contains.Substring("window.addEventListener('pagehide', nekoSaveSidebarScroll);"));
+
+            // The reader's place is guaranteed by the entry for the current page being
+            // on screen, not by a time-limited offset: an offset older than a minute
+            // used to be dropped, which reset the sidebar after any real reading.
+            Assert.That(html, Does.Not.Contain("60000"));
+            Assert.That(html, Contains.Substring("nekoScrollActiveSidebarLinkIntoView();"));
+        }
+
+        [Test]
+        public void TestSidebarScrollRestoreRunsAfterSectionState()
+        {
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Content</p>",
+                FrontMatter = new FrontMatter { Title = "Page Title" }
+            };
+
+            var html = _generator.Generate(doc);
+
+            // The scroll restore measures the sidebar to decide whether the current
+            // page's entry is on screen, so it has to run after the section-state
+            // script has settled which <details> are open. Otherwise it measures a
+            // fully expanded tree and lands on the wrong entry.
+            var sectionState = html.IndexOf("const sectionStateKey", StringComparison.Ordinal);
+            var scrollRestore = html.IndexOf("window.nekoRestoreSidebarScroll = function ()", StringComparison.Ordinal);
+            Assert.That(sectionState, Is.GreaterThan(0));
+            Assert.That(scrollRestore, Is.GreaterThan(sectionState),
+                "the scroll restore must be emitted after the section-state script");
         }
 
         [Test]

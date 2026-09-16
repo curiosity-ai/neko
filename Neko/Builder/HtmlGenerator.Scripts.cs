@@ -11,11 +11,14 @@ namespace Neko.Builder
             RenderBannerScript(sb);
             RenderMobileMenuScript(sb);
             RenderBlogMobileMenuScript(sb);
-            RenderSidebarScrollScript(sb);
             RenderSidebarFilterScript(sb);
             RenderSidebarMatchHelper(sb);
             RenderActiveSidebarLinkScript(sb);
             RenderSidebarSectionStateScript(sb);
+            // Last of the sidebar scripts on purpose: the section-state script above
+            // decides which <details> are open, and the scroll restore has to measure
+            // the sidebar in that final shape (see RenderSidebarScrollScript).
+            RenderSidebarScrollScript(sb);
             RenderTocHighlightScript(sb);
             RenderThemeSwitchScript(sb);
             RenderTabScript(sb);
@@ -106,36 +109,83 @@ namespace Neko.Builder
             sb.AppendLine("        }");
         }
 
+        // Keeps the sidebar looking the same from one page to the next: a navigation
+        // is a full page load, so without this every click would drop the reader at
+        // the top of a long tree and make them hunt for where they are.
+        //
+        // Two rules, in order:
+        //   1. Re-apply the scroll offset the sidebar had on the previous page, but
+        //      only when it was saved against the *same* sidebar (sub-projects inherit
+        //      their parent's branding title and would otherwise share the key).
+        //   2. Then make sure the entry for the page just opened is actually on
+        //      screen. An unchanged sidebar keeps its exact offset (rule 1 already put
+        //      the entry in view); a first visit, an entry that sits outside the
+        //      restored window, or a position from a sidebar that no longer matches
+        //      scrolls just far enough to show it.
+        //
+        // This runs after the section-state script so the <details> are already in
+        // their final open/collapsed state. Measuring before that ran would use
+        // offsets from a fully expanded tree and land on the wrong entry.
         private void RenderSidebarScrollScript(StringBuilder sb)
         {
             sb.AppendLine("        if (sidebar) {");
             var keyBase = System.Text.RegularExpressions.Regex.Replace(_config.Branding.Title ?? "neko", "[^a-zA-Z0-9]", "-").ToLower();
+            // sessionStorage, not localStorage: the offset only means anything for the
+            // tab that is navigating. Two tabs on two sub-projects would otherwise
+            // overwrite each other's position, and a position from last week would be
+            // re-applied to a sidebar that has since changed.
             sb.AppendLine($"            const scrollKey = '{keyBase}-sidebar-scroll';");
-            sb.AppendLine($"            const timeKey = '{keyBase}-sidebar-scroll-time';");
-            // Restore the saved scroll position (if still fresh). Exposed globally
-            // so password.js can re-apply it after it reveals the protected sidebar
-            // entries: on a protected page the inline call below runs while those
-            // entries are still hidden, so the sidebar is too short for scrollTop to
-            // take effect and the position is lost once the entries pop in.
+            // Cheap fingerprint of the link set. Enough to tell two sibling projects'
+            // sidebars apart without serialising the whole tree.
+            sb.AppendLine("            function nekoSidebarSignature() {");
+            sb.AppendLine("                const links = sidebar.querySelectorAll('#sidebar-list a');");
+            sb.AppendLine("                if (!links.length) return '0';");
+            sb.AppendLine("                return links.length + '|' + links[0].getAttribute('href') + '|' + links[links.length - 1].getAttribute('href');");
+            sb.AppendLine("            }");
+            sb.AppendLine("            function nekoSaveSidebarScroll() {");
+            sb.AppendLine("                try { sessionStorage.setItem(scrollKey, JSON.stringify({ top: sidebar.scrollTop, sig: nekoSidebarSignature() })); } catch (e) {}");
+            sb.AppendLine("            }");
+            // Rule 2. The entry counts as visible only if it clears the sticky filter
+            // box, which floats over the top of the list.
+            sb.AppendLine("            function nekoScrollActiveSidebarLinkIntoView() {");
+            sb.AppendLine("                const currentPath = window.location.pathname;");
+            // A parent page's entry also matches while you browse its children, so
+            // prefer the entry that *is* this page and fall back to the parent.
+            sb.AppendLine("                let active = null, exact = null;");
+            sb.AppendLine("                sidebar.querySelectorAll('#sidebar-list a').forEach(link => {");
+            sb.AppendLine("                    const href = link.getAttribute('href');");
+            sb.AppendLine("                    if (!nekoSidebarLinkMatches(href, currentPath)) return;");
+            sb.AppendLine("                    if (!active) active = link;");
+            sb.AppendLine("                    if (!exact && nekoCanonicalPath(href) === nekoCanonicalPath(currentPath)) exact = link;");
+            sb.AppendLine("                });");
+            sb.AppendLine("                active = exact || active;");
+            sb.AppendLine("                if (!active || active.offsetParent === null) return;");
+            sb.AppendLine("                const sidebarRect = sidebar.getBoundingClientRect();");
+            sb.AppendLine("                const filterBar = document.getElementById('sidebar-filter-bar');");
+            sb.AppendLine("                const topEdge = filterBar ? filterBar.getBoundingClientRect().bottom : sidebarRect.top;");
+            sb.AppendLine("                const rect = active.getBoundingClientRect();");
+            sb.AppendLine("                if (rect.top >= topEdge && rect.bottom <= sidebarRect.bottom) return;");
+            sb.AppendLine("                sidebar.scrollTop += (rect.top - sidebarRect.top) - (sidebar.clientHeight / 2);");
+            sb.AppendLine("            }");
+            // Exposed globally so password.js can re-apply it after it reveals the
+            // protected sidebar entries: on a protected page the inline call below runs
+            // while those entries are still hidden, so the sidebar is too short for
+            // scrollTop to take effect and the position is lost once they pop in.
             sb.AppendLine("            window.nekoRestoreSidebarScroll = function () {");
-            sb.AppendLine("                const savedScroll = localStorage.getItem(scrollKey);");
-            sb.AppendLine("                const savedTime = localStorage.getItem(timeKey);");
-            sb.AppendLine("                if (savedScroll && savedTime) {");
-            sb.AppendLine("                    const now = new Date().getTime();");
-            sb.AppendLine("                    if (now - parseInt(savedTime) < 60000) {");
-            sb.AppendLine("                        sidebar.scrollTop = parseInt(savedScroll);");
-            sb.AppendLine("                    }");
-            sb.AppendLine("                }");
+            sb.AppendLine("                let saved = null;");
+            sb.AppendLine("                try { saved = JSON.parse(sessionStorage.getItem(scrollKey) || 'null'); } catch (e) {}");
+            sb.AppendLine("                if (saved && saved.sig === nekoSidebarSignature()) sidebar.scrollTop = saved.top;");
+            sb.AppendLine("                nekoScrollActiveSidebarLinkIntoView();");
             sb.AppendLine("            };");
             sb.AppendLine("            window.nekoRestoreSidebarScroll();");
             sb.AppendLine("            let timeout;");
             sb.AppendLine("            sidebar.addEventListener('scroll', () => {");
             sb.AppendLine("                clearTimeout(timeout);");
-            sb.AppendLine("                timeout = setTimeout(() => {");
-            sb.AppendLine("                    localStorage.setItem(scrollKey, sidebar.scrollTop);");
-            sb.AppendLine("                    localStorage.setItem(timeKey, new Date().getTime());");
-            sb.AppendLine("                }, 100);");
+            sb.AppendLine("                timeout = setTimeout(nekoSaveSidebarScroll, 100);");
             sb.AppendLine("            });");
+            // A click can navigate inside the debounce window, which would leave the
+            // last scroll unsaved, so flush it on the way out.
+            sb.AppendLine("            window.addEventListener('pagehide', nekoSaveSidebarScroll);");
             sb.AppendLine("        }");
         }
 

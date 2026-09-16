@@ -11,7 +11,7 @@ namespace Neko.Builder
             sb.AppendLine("        <div id=\"sidebar-overlay\" class=\"fixed inset-0 bg-black/50 z-40 hidden md:hidden glassmorphism\"></div>");
             sb.AppendLine("        <aside id=\"sidebar\" class=\"neko-no-anim w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-y-auto flex flex-col shrink-0 fixed md:static inset-y-0 left-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out h-full\">");
             sb.AppendLine("            <nav class=\"flex-1\">");
-            sb.AppendLine("                <div class=\"p-4 sticky top-0 z-10 bg-white dark:bg-gray-900\">");
+            sb.AppendLine("                <div id=\"sidebar-filter-bar\" class=\"p-4 sticky top-0 z-10 bg-white dark:bg-gray-900\">");
             sb.AppendLine("                    <div class=\"relative\">");
             sb.AppendLine("                        <div class=\"absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none\">");
             sb.AppendLine("                            <i class=\"fi fi-rr-filter text-gray-400\"></i>");
