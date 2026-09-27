@@ -214,6 +214,9 @@ namespace Neko.Builder
                 // embeds it, not a documentation page — it never joins the sidebar.
                 if (doc.IsPresentation) continue;
 
+                // A page that redirects elsewhere is a moved page, not a destination.
+                if (doc.IsRedirect) continue;
+
                 string title = doc.FrontMatter.Label;
 
                 if (string.IsNullOrEmpty(title))

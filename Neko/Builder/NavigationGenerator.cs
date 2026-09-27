@@ -108,6 +108,9 @@ namespace Neko.Builder
                 // embeds them ([!deck]) — never a navbar destination of their own.
                 if (file.Doc.IsPresentation) continue;
 
+                // A page that redirects elsewhere is a moved page, not a destination.
+                if (file.Doc.IsRedirect) continue;
+
                 // Skip index/README if not in root, as they are handled by folder logic
                 if (directory != _inputDirectory && (fileName.Equals("index.md", StringComparison.OrdinalIgnoreCase) || fileName.Equals("README.md", StringComparison.OrdinalIgnoreCase)))
                 {

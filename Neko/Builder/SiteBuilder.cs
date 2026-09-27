@@ -371,6 +371,9 @@ namespace Neko.Builder
 
                 foreach (var item in parsedDocs)
                 {
+                    // A redirect page renders nothing, so its links are nobody's backlinks.
+                    if (item.Doc.IsRedirect) continue;
+
                     var sourceRelativePath = item.RelativePath;
                     var sourceTitle = item.Doc.FrontMatter.Title;
                     if (string.IsNullOrEmpty(sourceTitle)) sourceTitle = item.Doc.FrontMatter.Label;
@@ -712,6 +715,9 @@ namespace Neko.Builder
                             // aggregated folder URL is added separately below.
                             if (changelogManagedFiles.Contains(Path.GetFullPath(item.FilePath))) continue;
 
+                            // A redirect page is not content; its target is listed instead.
+                            if (item.Doc.IsRedirect) continue;
+
                             // Skip password-protected pages — their URLs render an unlock prompt,
                             // so there's no reason to advertise them to crawlers.
                             var pagePassword = item.Doc.FrontMatter.Password;
@@ -926,6 +932,23 @@ namespace Neko.Builder
                 if (lessonNext != null) navContext.LessonNext = new NavigationItem { Title = lessonNext.Title, Url = lessonNext.Url };
             }
 
+            // A redirect page is replaced by a redirect document at its own URL, and
+            // is not indexed.
+            if (item.Doc.IsRedirect)
+            {
+                var redirectFileName = Path.ChangeExtension(item.RelativePath, ".html");
+                var redirectOutputPath = Path.Combine(OutputDirectory, redirectFileName);
+                var redirectOutputDir = Path.GetDirectoryName(redirectOutputPath);
+                if (redirectOutputDir != null && !Directory.Exists(redirectOutputDir))
+                {
+                    Directory.CreateDirectory(redirectOutputDir);
+                }
+
+                var redirectTarget = ResolveRedirectTarget(item.Doc.FrontMatter.Redirect, item.RelativePath);
+                await File.WriteAllTextAsync(redirectOutputPath, BuildRedirectHtml(redirectTarget), ct);
+                return null;
+            }
+
             // A presentation is its own document: a full-viewport deck with no
             // documentation chrome around it (see HtmlGenerator.Presentation).
             var html = item.Doc.IsPresentation
@@ -1114,6 +1137,8 @@ namespace Neko.Builder
             if (!string.Equals(a.Visibility, b.Visibility, StringComparison.OrdinalIgnoreCase)) return true;
             if (!string.Equals(a.Layout, b.Layout, StringComparison.OrdinalIgnoreCase)) return true;
             if (!string.Equals(a.RedirectSlug, b.RedirectSlug, StringComparison.Ordinal)) return true;
+            // Adding or removing a redirect moves the page in or out of the sidebar and search.
+            if (!string.Equals(a.Redirect, b.Redirect, StringComparison.Ordinal)) return true;
             if (!string.Equals(a.Password, b.Password, StringComparison.Ordinal)) return true;
             if (a.SearchExclude != b.SearchExclude) return true;
             // Date drives blog/changelog ordering on other pages.
@@ -1222,6 +1247,55 @@ namespace Neko.Builder
             // Disallow path separators inside a slug — `/redirect/{slug}` is a flat namespace.
             if (trimmed.Contains('/') || trimmed.Contains('\\')) return string.Empty;
             return trimmed;
+        }
+
+        /// <summary>
+        /// Turns a page's <c>redirect</c> value into the URL its redirect document points
+        /// at. External URLs and root-relative paths are kept as written (a root-relative
+        /// path is relative to the site root, like any other link); a relative path is
+        /// resolved against the page's folder. A <c>.md</c> suffix and a trailing
+        /// <c>/index</c> are dropped, and any <c>#anchor</c> or <c>?query</c> is kept.
+        /// </summary>
+        internal string ResolveRedirectTarget(string redirect, string pageRelativePath)
+        {
+            var target = redirect.Trim();
+
+            if (target.Contains("://") || target.StartsWith("//") || target.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
+            {
+                return target;
+            }
+
+            var splitIdx = target.IndexOfAny(new[] { '#', '?' });
+            var path = splitIdx >= 0 ? target.Substring(0, splitIdx) : target;
+            var suffix = splitIdx >= 0 ? target.Substring(splitIdx) : "";
+
+            path = path.Replace("\\", "/");
+
+            if (!path.StartsWith("/"))
+            {
+                var pageDir = Path.GetDirectoryName(pageRelativePath.Replace("\\", "/"))?.Replace("\\", "/") ?? "";
+                var segments = new List<string>();
+
+                foreach (var segment in (pageDir + "/" + path).Split('/'))
+                {
+                    if (segment.Length == 0 || segment == ".") continue;
+                    if (segment == "..")
+                    {
+                        if (segments.Count > 0) segments.RemoveAt(segments.Count - 1);
+                        continue;
+                    }
+                    segments.Add(segment);
+                }
+
+                var trailingSlash = path.EndsWith("/") && segments.Count > 0;
+                path = (_routePrefix ?? "") + "/" + string.Join("/", segments) + (trailingSlash ? "/" : "");
+            }
+
+            if (path.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) path = path.Substring(0, path.Length - 3);
+            if (path.EndsWith("/index", StringComparison.OrdinalIgnoreCase)) path = path.Substring(0, path.Length - "index".Length);
+            if (path.EndsWith("/readme", StringComparison.OrdinalIgnoreCase)) path = path.Substring(0, path.Length - "readme".Length);
+
+            return path + suffix;
         }
 
         private static string BuildRedirectHtml(string targetUrl)

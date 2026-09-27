@@ -39,6 +39,13 @@ namespace Neko.Builder
         public List<PresentationSlide> Slides { get; set; }
 
         public bool IsPresentation => Presentation != null;
+
+        /// <summary>
+        /// True when the page's front matter sets <c>redirect</c>. Such a page is not
+        /// rendered: its URL serves a redirect to the target instead, and it is kept out
+        /// of the sidebar, the navbar, the search index and the sitemap.
+        /// </summary>
+        public bool IsRedirect => !string.IsNullOrWhiteSpace(FrontMatter?.Redirect);
     }
 
     public class FrontMatter
@@ -94,6 +101,12 @@ namespace Neko.Builder
         // separately via `password`; `public` (default) shows normally.
         [YamlMember(Alias = "visibility")]
         public string Visibility { get; set; }
+
+        // Moves this page: its URL redirects to another page of the project (a path
+        // relative to this file, or root-relative) or to an external URL. The page's
+        // own content is not rendered.
+        [YamlMember(Alias = "redirect")]
+        public string Redirect { get; set; }
 
         [YamlMember(Alias = "redirectSlug")]
         public string RedirectSlug { get; set; }
