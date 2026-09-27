@@ -816,9 +816,17 @@ redirect: getting-started.md
 # Setup
 ```
 
-Neko will automatically handle any incoming **example.com/setup** requests and redirect to the new **example.com/getting-started** location.
+Neko then writes a redirect document at the page's own URL instead of rendering it, so a request for **example.com/setup** lands on **example.com/getting-started**. The redirect document uses a `<meta http-equiv="refresh">`, a `location.replace()` call and a `canonical` link, and is marked `noindex`, so it works on any static host without server configuration.
 
-Neko is also smart enough to scan your project for any **setup.md** links and replace those with a link directly to **getting-started.md**.
+The target can be:
+
+| Value | Resolved as |
+| --- | --- |
+| `getting-started.md`, `../guides/intro.md` | Relative to the page's folder. In a nested project, the project's path prefix is added. |
+| `/guides/intro` | Relative to the site root, like any other root-relative link. |
+| `https://example.com/docs` | An external URL, used as written. |
+
+A `.md` suffix is dropped and an `#anchor` is kept. The page's own content is not rendered, and the page is left out of the sidebar, the navbar, the search index and the sitemap, so the file only needs the front matter. Links elsewhere in the project that still point at **setup.md** keep working through the redirect; they are not rewritten.
 
 ===
 

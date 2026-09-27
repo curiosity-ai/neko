@@ -37,7 +37,7 @@ visibility: public
 | `searchExclude`  | boolean                                             | `true` to omit the page from `search.json`. Folder-level: set the same key in `index.yml`. |
 | `presentation`   | `true` / a mapping of deck options                  | Builds the page as a full-screen slide deck. See the `presentation` skill. Decks are kept out of the sidebar and the search index automatically. |
 | `permalink`      | string                                              | Custom URL. Wins over the file path. |
-| `redirect`       | string                                              | Redirect this slug to another page or URL. |
+| `redirect`       | string                                              | Moves the page: its URL serves a redirect to another page (path relative to the file, or root-relative) or an external URL. The page's content is not rendered, and it is left out of the sidebar, navbar, search and sitemap. |
 | `redirectSlug`   | string                                              | Expose this page at the short URL `/redirect/<slug>`. Neko emits a tiny meta-refresh HTML file pointing back at the page. |
 | `target`         | `blank`, `self`, `parent`, `top`                    | How sidebar link opens. |
 | `templating`     | boolean                                             | `false` to disable `{{ … }}` for this page. |
