@@ -386,6 +386,82 @@ presentation:
         }
 
         [Test]
+        public async Task DownloadButton_ExportsTheDeckAsAnEditablePptx()
+        {
+            Assert.That(File.Exists(Path.Combine(_outDir, "assets", "pptxgen.bundle.js")), Is.True,
+                "PptxGenJS ships with the site");
+            Assert.That(File.Exists(Path.Combine(_outDir, "assets", "presentation-pptx.js")), Is.True);
+
+            using var server = new StaticServer(_outDir);
+            var baseUrl = server.Start();
+
+            var (pw, browser) = await LaunchAsync();
+            try
+            {
+                var context = await browser.NewContextAsync(new() { AcceptDownloads = true, ViewportSize = new() { Width = 1280, Height = 800 } });
+                var page = await context.NewPageAsync();
+                var scripts = new System.Collections.Generic.List<string>();
+                page.Request += (_, request) => { if (request.ResourceType == "script") scripts.Add(request.Url); };
+
+                await page.GotoAsync($"{baseUrl}/decks/talk", new() { WaitUntil = WaitUntilState.NetworkIdle });
+                Assert.That(scripts.Exists(u => u.Contains("pptxgen")), Is.False, "PptxGenJS is only fetched on demand");
+
+                // Export from the middle of the deck: every slide is exported, not
+                // just the one on screen, and the reader is left where they were.
+                await page.Keyboard.PressAsync("ArrowRight");
+                await page.WaitForTimeoutAsync(300);
+
+                var download = await page.RunAndWaitForDownloadAsync(() => page.ClickAsync("#deck-download"), new() { Timeout = 60000 });
+                Assert.That(download.SuggestedFilename, Is.EqualTo("the-talk.pptx"));
+                Assert.That(scripts.Exists(u => u.StartsWith(baseUrl) && u.EndsWith("/assets/pptxgen.bundle.js")), Is.True,
+                    "the bundle is served from the site's own assets, not a CDN");
+
+                var path = Path.Combine(Path.GetTempPath(), "neko-deck-" + Guid.NewGuid().ToString("N") + ".pptx");
+                await download.SaveAsAsync(path);
+
+                using (var zip = System.IO.Compression.ZipFile.OpenRead(path))
+                {
+                    string Read(string name)
+                    {
+                        var entry = zip.GetEntry(name);
+                        Assert.That(entry, Is.Not.Null, name + " is in the package");
+                        using var reader = new StreamReader(entry!.Open());
+                        return reader.ReadToEnd();
+                    }
+
+                    var presentation = Read("ppt/presentation.xml");
+                    Assert.That(presentation, Does.Contain("cx=\"12192000\" cy=\"6858000\""), "16:9 widescreen slides");
+
+                    Assert.That(zip.GetEntry("ppt/slides/slide3.xml"), Is.Not.Null);
+                    Assert.That(zip.GetEntry("ppt/slides/slide4.xml"), Is.Null, "one PowerPoint slide per deck slide");
+
+                    var first = Read("ppt/slides/slide1.xml");
+                    Assert.That(first, Does.Contain("Opening slide"), "headings are exported as editable text");
+                    Assert.That(first, Does.Contain("The claim this deck makes."));
+                    Assert.That(first, Does.Contain("Demo deck"), "the eyebrow comes along");
+                    Assert.That(first, Does.Contain("Built with Neko"), "the brand mark is on every slide");
+
+                    var second = Read("ppt/slides/slide2.xml");
+                    Assert.That(second, Does.Contain("Second slide"));
+                    Assert.That(second, Does.Contain("The value."));
+
+                    var third = Read("ppt/slides/slide3.xml");
+                    Assert.That(third, Does.Contain("Left"));
+                    Assert.That(third, Does.Contain("<a:buChar"), "list items keep their bullets");
+                }
+                File.Delete(path);
+
+                Assert.That(await page.Locator("#deck-count").TextContentAsync(), Is.EqualTo("2 / 3"));
+                Assert.That(await page.Locator("#deck-download").IsEnabledAsync(), Is.True, "the button is ready for another export");
+                Assert.That(await page.Locator("iframe").CountAsync(), Is.EqualTo(0), "the off-screen layout frame is cleaned up");
+            }
+            finally
+            {
+                await CloseAsync(pw, browser);
+            }
+        }
+
+        [Test]
         public async Task WithoutJavaScript_EverySlideIsStillReadable()
         {
             using var server = new StaticServer(_outDir);

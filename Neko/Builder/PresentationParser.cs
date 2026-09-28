@@ -46,6 +46,12 @@ namespace Neko.Builder
         /// </summary>
         public string Fonts { get; set; } = "google";
 
+        /// <summary>
+        /// Shows the "pptx" control in the deck bar, which exports the deck to a
+        /// PowerPoint file in the browser (via the vendored PptxGenJS bundle).
+        /// </summary>
+        public bool Download { get; set; } = true;
+
         /// <summary>Aspect ratio advertised to the <c>[!deck]</c> card. Informational.</summary>
         public string Ratio { get; set; } = "16:9";
 
@@ -126,6 +132,7 @@ namespace Neko.Builder
                         case "progress": options.Progress = !IsFalsey(value); break;
                         case "counter": options.Counter = !IsFalsey(value); break;
                         case "gauge": options.Gauge = !IsFalsey(value); break;
+                        case "download": case "pptx": options.Download = !IsFalsey(value); break;
                         case "fonts": if (!string.IsNullOrEmpty(value)) options.Fonts = value.ToLowerInvariant(); break;
                         case "ratio": if (!string.IsNullOrEmpty(value)) options.Ratio = value; break;
                         case "logo": options.Logo = value; break;

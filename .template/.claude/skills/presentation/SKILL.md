@@ -53,6 +53,7 @@ page — handy while a deck is still a draft.
 | `progress` | `true` | Progress rail across the top. |
 | `gauge` | `true` | Vertical slide gauge on the left edge. |
 | `counter` | `true` | The `3 / 14` counter. |
+| `download` | `true` | The **pptx** button that downloads the deck as PowerPoint. |
 | `fonts` | `google` | `none` drops the Google Fonts link (air-gapped sites). |
 | `ratio` | `16:9` | Aspect ratio the deck is designed for; read by `[!deck]`. |
 | `logo` | — | Image for the brand mark in the bottom-right corner of every slide. |
@@ -81,6 +82,16 @@ the wordmark drops and the logo carries the brand (unless there is no logo).
 The `logo` path is resolved like `cover:`, so a bare file name finds the nearest
 `assets/` folder. The mark is furniture rather than content, so a protected deck
 still shows it beside the unlock prompt.
+
+### PowerPoint download
+
+Every deck has a **pptx** button in its control bar that exports the whole deck
+to an editable `.pptx` in the browser (via PptxGenJS, which Neko ships in
+`assets/` — no CDN). Each slide is laid out at 16:9 and every heading, paragraph,
+bullet, box, rule, SVG and image becomes a native PowerPoint shape at the same
+position. Icon glyphs, gradients and other CSS-only decoration are dropped, so
+don't put meaning in them. `download: false` removes the button. On a protected
+deck the button only appears after unlocking.
 
 ## Slides
 

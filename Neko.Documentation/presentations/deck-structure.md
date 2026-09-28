@@ -53,6 +53,7 @@ page, which is handy while a deck is still a draft.
 | `progress` | `true` | The thin progress rail across the top of the viewport. |
 | `gauge` | `true` | The vertical slide gauge pinned to the left edge. |
 | `counter` | `true` | The `3 / 14` counter in the control bar. |
+| `download` | `true` | The **pptx** control in the control bar, which downloads the deck as a PowerPoint file. See below. |
 | `fonts` | `google` | `none` drops the Google Fonts link and falls back to local stacks — for air-gapped sites. |
 | `ratio` | `16:9` | The aspect ratio the deck is designed for; read by `[!deck]` previews. |
 | `logo` | — | Image for the brand mark in the bottom-right corner. See below. |
@@ -93,6 +94,37 @@ folder tree, so `logo: neko-logo.png` finds the nearest `assets/` folder.
 The mark is page furniture rather than content, so on a
 [password-protected deck](/presentations/protecting-a-deck.md) it renders
 alongside the unlock prompt instead of being encrypted with the slides.
+
+### Downloading as PowerPoint
+
+Every deck carries a **pptx** button in its control bar. Clicking it builds a
+`.pptx` of the whole deck right in the browser and downloads it, named after the
+deck title (`the-similarity-engine-end-to-end.pptx`).
+
+The file is made of native, editable PowerPoint shapes rather than screenshots:
+headings, paragraphs and bullets are text boxes, boxes and rules are shapes,
+diagrams and images are pictures (SVG stays vector, with a PNG fallback). Each
+slide is laid out at 16:9 by the deck's own stylesheet and every element is
+placed where it lands on screen, so the export matches the deck as presented.
+
+The exporter uses [PptxGenJS](https://github.com/gitbrent/PptxGenJS), which
+Neko ships in its own `assets/` folder — nothing is fetched from a CDN, and
+neither the library nor the exporter is downloaded until someone clicks the
+button. On a [password-protected deck](/presentations/protecting-a-deck.md) the
+button is part of the encrypted payload, so it only appears once the deck is
+unlocked.
+
+Text keeps the typefaces the browser actually used. With the default Google
+Fonts that means *Archivo*, *Source Serif 4* and *IBM Plex Mono*; PowerPoint
+substitutes a similar face on a machine that doesn't have them installed. Icon
+glyphs, gradients and other CSS-only decoration are not carried over.
+
+Set `download: false` to remove the button:
+
+```yaml
+presentation:
+  download: false
+```
 
 ## Slides
 
