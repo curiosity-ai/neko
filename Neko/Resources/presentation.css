@@ -592,6 +592,12 @@ html.dark.neko-deck-html body.neko-deck-body {
 .deck-bar button[disabled] { opacity: .3; cursor: default; }
 .deck-bar button[disabled]:hover { border-color: var(--deck-rule-bright); color: var(--deck-ink); }
 
+/* The PowerPoint export sits with the navigation but reads as a secondary
+   action; a `[!deck]` preview is not the place to download from. */
+.deck-bar #deck-download { color: var(--deck-ink-dim); }
+.deck-bar #deck-download[aria-busy="true"] { cursor: progress; opacity: .6; }
+.neko-deck-body[data-deck-embedded="true"] #deck-download { display: none; }
+
 .deck-count {
   font-family: var(--deck-font-mono);
   font-size: .78rem;

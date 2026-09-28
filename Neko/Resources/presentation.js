@@ -9,6 +9,14 @@
 
     var state = null;
 
+    // Where the deck's own assets live — the directory presentation.js was
+    // served from, so a route-prefixed (multi-repo) site finds its siblings.
+    var assetBase = (function () {
+        var script = document.currentScript;
+        var src = script && script.src ? script.src : '';
+        return src ? src.replace(/[^/]*$/, '') : '/assets/';
+    })();
+
     function slides() {
         return Array.prototype.slice.call(document.querySelectorAll('.deck-slide'));
     }
@@ -112,6 +120,68 @@
         if (document.fonts && document.fonts.ready) {
             document.fonts.ready.then(applyBrandInset).catch(function () {});
         }
+    }
+
+    // ---------- PowerPoint download ----------
+    // PptxGenJS is ~450 KB, so neither it nor the exporter is fetched until a
+    // reader actually asks for the .pptx.
+    var scriptLoads = {};
+
+    function loadScript(name) {
+        if (!scriptLoads[name]) {
+            scriptLoads[name] = new Promise(function (resolve, reject) {
+                var tag = document.createElement('script');
+                tag.src = assetBase + name;
+                tag.async = true;
+                tag.onload = resolve;
+                tag.onerror = function () {
+                    delete scriptLoads[name];
+                    reject(new Error('Could not load ' + name));
+                };
+                document.head.appendChild(tag);
+            });
+        }
+        return scriptLoads[name];
+    }
+
+    function wireDownload() {
+        var button = document.getElementById('deck-download');
+        if (!button || button.dataset.deckWired === 'true') return;
+        button.dataset.deckWired = 'true';
+
+        var label = button.querySelector('.deck-download-label');
+        var idleText = label ? label.textContent : '';
+
+        button.addEventListener('click', function () {
+            if (button.getAttribute('aria-busy') === 'true') return;
+            button.setAttribute('aria-busy', 'true');
+            button.disabled = true;
+            if (label) label.textContent = 'exporting…';
+
+            function reset() {
+                button.removeAttribute('aria-busy');
+                button.disabled = false;
+                if (label) label.textContent = idleText;
+            }
+
+            loadScript('pptxgen.bundle.js')
+                .then(function () { return loadScript('presentation-pptx.js'); })
+                .then(function () {
+                    return window.nekoDeckExportPptx({
+                        title: button.getAttribute('data-deck-title') || document.title,
+                        description: button.getAttribute('data-deck-description') || '',
+                        fileName: button.getAttribute('data-deck-file') || ''
+                    });
+                })
+                .then(reset, function (e) {
+                    console.error('[neko] PowerPoint export failed:', e);
+                    reset();
+                    if (label) {
+                        label.textContent = 'export failed';
+                        setTimeout(function () { label.textContent = idleText; }, 3000);
+                    }
+                });
+        });
     }
 
     function show(index, pushHash) {
@@ -244,6 +314,7 @@
         }
 
         wireBack();
+        wireDownload();
         wireGlobalListeners();
         applyEmbedScale();
         watchBrand();

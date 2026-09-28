@@ -64,7 +64,7 @@ namespace Neko.Builder
 
             var body = new StringBuilder();
             RenderSlides(body, slides, options);
-            RenderDeckBar(body, options);
+            RenderDeckBar(body, options, deckTitle, description);
             // Re-run the deck runtime over freshly injected slides. On a protected page
             // password.js re-creates the <script> tags it injects, so this fires once the
             // deck is decrypted; on a public page presentation.js has already wired
@@ -171,16 +171,44 @@ namespace Neko.Builder
             return html.Contains("<h1", System.StringComparison.OrdinalIgnoreCase) ? "title" : "default";
         }
 
-        private void RenderDeckBar(StringBuilder sb, PresentationOptions options)
+        private void RenderDeckBar(StringBuilder sb, PresentationOptions options, string deckTitle, string description)
         {
             sb.AppendLine("<div class=\"deck-bar\">");
             sb.AppendLine("  <button id=\"deck-prev\" type=\"button\" aria-label=\"Previous slide\"><i class=\"fi fi-rr-angle-small-left\" aria-hidden=\"true\"></i> prev</button>");
             sb.AppendLine("  <button id=\"deck-next\" type=\"button\" aria-label=\"Next slide\">next <i class=\"fi fi-rr-angle-small-right\" aria-hidden=\"true\"></i></button>");
+            if (options.Download)
+            {
+                // Exports the deck to PowerPoint in the browser: presentation.js
+                // lazy-loads the vendored PptxGenJS bundle and presentation-pptx.js
+                // on click. The title rides on the button — inside the encrypted
+                // payload on a protected deck — to name the file and fill its
+                // document properties.
+                var fileName = PptxFileName(deckTitle);
+                sb.AppendLine(
+                    $"  <button id=\"deck-download\" type=\"button\" aria-label=\"Download as PowerPoint\" title=\"Download as PowerPoint (.pptx)\" " +
+                    $"data-deck-title=\"{EscapeHtmlAttr(deckTitle)}\" data-deck-description=\"{EscapeHtmlAttr(description ?? string.Empty)}\" " +
+                    $"data-deck-file=\"{EscapeHtmlAttr(fileName)}\">" +
+                    "<i class=\"fi fi-rr-download\" aria-hidden=\"true\"></i> <span class=\"deck-download-label\">pptx</span></button>");
+            }
             if (options.Counter)
             {
                 sb.AppendLine("  <span class=\"deck-count\" id=\"deck-count\"></span>");
             }
             sb.AppendLine("</div>");
+        }
+
+        // The download is named after the deck title, slugged to something every
+        // file system accepts (`The similarity engine` → `the-similarity-engine.pptx`).
+        private static string PptxFileName(string deckTitle)
+        {
+            var slug = new StringBuilder();
+            foreach (var ch in (deckTitle ?? string.Empty).ToLowerInvariant())
+            {
+                if (char.IsLetterOrDigit(ch)) slug.Append(ch);
+                else if (slug.Length > 0 && slug[^1] != '-') slug.Append('-');
+            }
+            var result = slug.ToString().Trim('-');
+            return (string.IsNullOrEmpty(result) ? "presentation" : result) + ".pptx";
         }
 
         // The deck fills the window, so the only way back into the documentation is the

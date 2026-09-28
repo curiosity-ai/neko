@@ -38,6 +38,13 @@
 - **License**: MIT
 - **File**: `Neko/Resources/minisearch.min.js` (Downloaded from CDN)
 
+### PptxGenJS
+- **Source**: https://github.com/gitbrent/PptxGenJS
+- **License**: MIT (bundles JSZip, MIT/GPLv3 dual-licensed)
+- **Version**: 4.0.1
+- **File**: `Neko/Resources/pptxgen.bundle.js` (vendored copy of `dist/pptxgen.bundle.js`; never loaded from a CDN)
+- **Used by**: `Neko/Resources/presentation-pptx.js` — the "Download PPTX" control on presentation decks. Loaded lazily, only when the reader asks for the download.
+
 ### Highlight.js
 - **Source**: https://github.com/highlightjs/highlight.js
 - **License**: BSD-3-Clause

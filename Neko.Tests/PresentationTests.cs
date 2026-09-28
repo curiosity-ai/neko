@@ -199,6 +199,56 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void Download_IsOnByDefault_AndNamesTheFileAfterTheTitle()
+        {
+            var config = new NekoConfig();
+            var doc = NewParser().Parse("---\ntitle: The Similarity Engine, End to End\npresentation: true\n---\n\n# One\n");
+            var html = new HtmlGenerator(config).GeneratePresentation(doc);
+
+            Assert.That(doc.Presentation!.Download, Is.True);
+            Assert.That(html, Does.Contain("id=\"deck-download\""));
+            Assert.That(html, Does.Contain("data-deck-file=\"the-similarity-engine-end-to-end.pptx\""));
+            Assert.That(html, Does.Contain("data-deck-title=\"The Similarity Engine, End to End\""));
+            // The exporter and PptxGenJS are fetched on click, never up front.
+            Assert.That(html, Does.Not.Contain("pptxgen.bundle.js"));
+            Assert.That(html, Does.Not.Contain("presentation-pptx.js"));
+        }
+
+        [TestCase("download: false")]
+        [TestCase("pptx: no")]
+        public void Download_CanBeTurnedOff(string option)
+        {
+            var doc = NewParser().Parse($"---\ntitle: T\npresentation:\n  {option}\n---\n\n# One\n");
+            var html = new HtmlGenerator(new NekoConfig()).GeneratePresentation(doc);
+
+            Assert.That(doc.Presentation!.Download, Is.False);
+            Assert.That(html, Does.Not.Contain("deck-download"));
+        }
+
+        [Test]
+        public void Download_OnAProtectedDeck_IsInsideTheEncryptedPayload()
+        {
+            var doc = NewParser().Parse("---\ntitle: Secret deck\npassword: hunter2\npresentation: true\n---\n\n# Secret\n");
+            var html = new HtmlGenerator(new NekoConfig()).GeneratePresentation(doc);
+
+            Assert.That(html, Does.Not.Contain("deck-download"), "the button (and the title it carries) ships encrypted");
+            Assert.That(html, Does.Not.Contain("secret-deck.pptx"));
+        }
+
+        [Test]
+        public void PptxGenJs_IsVendoredAsAnEmbeddedAsset()
+        {
+            var names = typeof(HtmlGenerator).Assembly.GetManifestResourceNames();
+            Assert.That(names, Does.Contain("Neko.Resources.pptxgen.bundle.js"));
+            Assert.That(names, Does.Contain("Neko.Resources.presentation-pptx.js"));
+
+            using var stream = typeof(HtmlGenerator).Assembly.GetManifestResourceStream("Neko.Resources.pptxgen.bundle.js");
+            using var reader = new StreamReader(stream!);
+            var head = reader.ReadLine();
+            Assert.That(head, Does.StartWith("/* PptxGenJS"), "the bundle is a real PptxGenJS build, not a CDN stub");
+        }
+
+        [Test]
         public void BrandMark_RendersLogoAndTextInTheCorner()
         {
             var config = new NekoConfig();
