@@ -54,9 +54,27 @@ namespace Neko.Tests
             var html = Render("---\ntitle: T\npresentation:\n  theme: curiosity\n---\n\n# One\n");
             Assert.That(html, Does.Contain("data-deck-theme=\"curiosity\""));
             Assert.That(html, Does.Contain("/assets/presentation-curiosity.css"));
+            // The theme's typefaces ship with Neko: no font host by default.
+            Assert.That(html, Does.Contain("/assets/deckfonts/deck-fonts.css"));
+            Assert.That(html, Does.Not.Contain("fonts.googleapis.com"));
+            Assert.That(html, Does.Not.Contain("family=Archivo"));
+        }
+
+        [Test]
+        public void CuriosityTheme_FontsGoogle_PullsTheTypefacesFromGoogleFonts()
+        {
+            var html = Render("---\ntitle: T\npresentation:\n  theme: curiosity\n  fonts: google\n---\n\n# One\n");
             Assert.That(html, Does.Contain("family=Schibsted+Grotesk"));
             Assert.That(html, Does.Contain("family=Geist+Mono"));
-            Assert.That(html, Does.Not.Contain("family=Archivo"));
+            Assert.That(html, Does.Not.Contain("deckfonts/deck-fonts.css"));
+        }
+
+        [Test]
+        public void CuriosityTheme_FontsNone_LinksNoTypefaces()
+        {
+            var html = Render("---\ntitle: T\npresentation:\n  theme: curiosity\n  fonts: none\n---\n\n# One\n");
+            Assert.That(html, Does.Not.Contain("deckfonts/deck-fonts.css"));
+            Assert.That(html, Does.Not.Contain("fonts.googleapis.com"));
         }
 
         [Test]

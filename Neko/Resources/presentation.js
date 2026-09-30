@@ -176,7 +176,8 @@
                     return window.nekoDeckExportPptx({
                         title: button.getAttribute('data-deck-title') || document.title,
                         description: button.getAttribute('data-deck-description') || '',
-                        fileName: button.getAttribute('data-deck-file') || ''
+                        fileName: button.getAttribute('data-deck-file') || '',
+                        fontsBase: assetBase + 'deckfonts/'
                     });
                 })
                 .then(reset, function (e) {

@@ -54,7 +54,7 @@ page, which is handy while a deck is still a draft.
 | `gauge` | `true` | The vertical slide gauge pinned to the left edge. |
 | `counter` | `true` | The `3 / 14` counter in the control bar. |
 | `download` | `true` | The **pptx** control in the control bar, which downloads the deck as a PowerPoint file. See below. |
-| `fonts` | `google` | `none` drops the Google Fonts link and falls back to local stacks — for air-gapped sites. |
+| `fonts` | theme's | Where the typefaces come from. `bundled` loads the fonts Neko ships for the theme from the site's own `assets/deckfonts/` (the default for `curiosity`); `google` links Google Fonts (the default for `midnight` and `daylight`); `none` links nothing and falls back to local stacks. |
 | `ratio` | `16:9` | The aspect ratio the deck is designed for; read by `[!deck]` previews. |
 | `logo` | — | Image for the brand mark in the bottom-right corner. See below. |
 | `logoText` | — | Text beside the logo. Works on its own, with no image. |
@@ -114,10 +114,26 @@ button. On a [password-protected deck](/presentations/protecting-a-deck.md) the
 button is part of the encrypted payload, so it only appears once the deck is
 unlocked.
 
-Text keeps the typefaces the browser actually used. With the default Google
-Fonts that means *Archivo*, *Source Serif 4* and *IBM Plex Mono*; PowerPoint
-substitutes a similar face on a machine that doesn't have them installed. Icon
-glyphs, gradients and other CSS-only decoration are not carried over.
+Text keeps the typefaces the browser actually used. For a theme whose fonts
+Neko ships (`curiosity`: *Schibsted Grotesk* and *Geist Mono*) the fonts are
+**embedded in the file**, as Embedded OpenType in `ppt/fonts/`, so the deck
+looks the same on a machine that has never installed them. A weight PowerPoint
+has no flag for is written as its own family, the way the static font names
+itself: headlines at 500 are *Schibsted Grotesk Medium*. With the Google Fonts
+of `midnight` and `daylight` (*Archivo*, *Source Serif 4*, *IBM Plex Mono*)
+nothing is embedded and PowerPoint substitutes a similar face where they are
+not installed.
+
+What the stylesheet draws comes along too. Generated content (`::before` and
+`::after`, CSS counters included) is exported as text, solid colour layers
+and SVG masks become shapes (the curiosity theme's marks are native
+rectangles), and a theme's grid layouts keep their places. Each text box is
+placed by its first baseline, so lines sit where they do on screen whatever
+the line height. Gradients, shadows and icon-font glyphs are not carried over.
+
+A page that cannot start a download itself (a sandboxed frame) can take the
+file instead: define `window.nekoDeckSave = (fileName, blob) => …` and the
+exporter hands it the finished `.pptx` rather than downloading it.
 
 Set `download: false` to remove the button:
 

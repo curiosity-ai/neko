@@ -65,11 +65,19 @@ namespace Neko.Builder
         public bool Gauge { get; set; } = true;
 
         /// <summary>
-        /// Typeface source. <c>google</c> (default) pulls the deck's display/serif/mono
-        /// trio from Google Fonts; <c>none</c> emits no font link and falls back to the
-        /// local stacks, for air-gapped or self-hosted-font sites.
+        /// Typeface source. <c>bundled</c> loads the fonts Neko ships for the theme
+        /// (<c>assets/deckfonts/</c>) and is the default for a theme that has them
+        /// (curiosity); <c>google</c> pulls the typefaces from Google Fonts and is the
+        /// default for the others; <c>none</c> emits no font link and falls back to the
+        /// local stacks.
         /// </summary>
-        public string Fonts { get; set; } = "google";
+        public string Fonts { get; set; }
+
+        /// <summary>Whether Neko ships the theme's typefaces (<c>Resources/deckfonts/</c>).</summary>
+        public bool ThemeHasBundledFonts => string.Equals(Theme, "curiosity", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>The typeface source in effect: <see cref="Fonts"/>, or the theme's default.</summary>
+        public string FontSource => !string.IsNullOrEmpty(Fonts) ? Fonts : (ThemeHasBundledFonts ? "bundled" : "google");
 
         /// <summary>
         /// Shows the "pptx" control in the deck bar, which exports the deck to a
