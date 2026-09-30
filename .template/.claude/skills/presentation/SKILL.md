@@ -45,7 +45,7 @@ page — handy while a deck is still a draft.
 | Key | Default | Notes |
 | --- | --- | --- |
 | `eyebrow` | — | Kicker above the heading on every slide that doesn't set its own. |
-| `theme` | `midnight` | `midnight` (deep navy + blueprint grid) or `daylight` (warm paper). |
+| `theme` | `midnight` | `midnight` (deep navy + blueprint grid), `daylight` (warm paper) or `curiosity` (the Curiosity brand on a fixed 16:9 canvas — see **Themes** below). `neko build --theme <name>` overrides it for every deck in a build. |
 | `accent` | `cyan` | `cyan`, `amber`, `rose` or `leaf`. |
 | `back` | referrer, then `/` | Pins the back control to a page instead of the referrer. |
 | `backText` | `Back` | Label of the back control. |
@@ -122,7 +122,11 @@ code block is never a separator, so an embedded SVG can contain dashes freely.
 | --- | --- |
 | `eyebrow` | Kicker above the heading; overrides the deck-wide value. |
 | `accent` | `cyan`, `amber`, `rose`, `leaf`. |
-| `layout` | `default`, `title`, `center`, `wide`, `full`. |
+| `layout` | `default`, `title`, `center`, `wide`, `full`; with `theme: curiosity` also `cover`, `section`, `section-panel`, `statement`, `split`, `aside`, `number`, `closing`. |
+| `ground` | curiosity: the slide's surface — `paper`, `stone`, `ink`, `slate`, `deep`. |
+| `art` | Generated art placed by the layout: `field`, `bars`, `stair`, `squares`, `glyph`. |
+| `glyph` | With `art="glyph"`: a name (`graph`, `curious`, `permissions`, …) or 16 cells (`k` cell, `o` marked, `.` empty). |
+| `seed` | Varies the `bars` art. |
 | `id` | Element id and link anchor; defaults to `slide-<n>`. |
 | `class` | Extra classes for site CSS. |
 
@@ -191,13 +195,56 @@ The caveat that has to land.
 - `::: box` — `{title="…"}` and `{tone="warn" | "stop" | "ok"}`.
 - `::: note` — `{tone="limit"}` turns it rose.
 - `[!tag text="flag" tone="warn"]` — an inline chip; `tone` takes `warn`,
-  `stop`, `ok` or nothing.
+  `stop`, `ok`, `solid` (a filled pill) or nothing.
+- `::: box` also takes `label` (a mono kicker), `ground` and `art`.
+
+More components, in every theme:
+
+```markdown
+:::: steps {style="stairs"}          <!-- or flow, cards, art, glyphs -->
+::: step {label="Describe" art="glyph" glyph="graph"}
+### Step one
+One line
+:::
+::::
+
+:::: stats {style="cards"}           <!-- omit style for a ruled row -->
+::: stat {value="30TB+" label="Data connected" ground="deep"}
+A line of context.
+:::
+::::
+
+::: agenda
+1. **Where we are** One line
+:::
+
+:::: timeline
+::: milestone {when="Q3 2026" state="now"}   <!-- done, now, next -->
+**Milestone**
+One line
+:::
+::::
+
+::: quote {by="Company" context="Team" art="squares"}
+Their words, verbatim.
+:::
+
+::: compare {highlight="3"}
+| Criterion | Other | Ours |
+| --- | --- | --- |
+| Where it runs | Value | On premises |
+:::
+
+::: art {kind="bars"}
+:::
+```
 
 > **Nesting:** the outer container needs **more colons than the inner one** —
 > four outside, three inside. That is standard Markdown container nesting, not a
 > Neko rule.
 
-`cols`, `box`, `note`, `claim`, `lead` and `figure` are **scoped to decks**.
+`cols`, `box`, `note`, `claim`, `lead`, `figure`, `steps`, `step`, `stats`,
+`stat`, `agenda`, `timeline`, `milestone`, `quote`, `compare` and `art` are **scoped to decks**.
 On any other page `::: name` remains Neko's generic container (the name becomes
 the div's class), so these names are not reserved site-wide.
 
@@ -228,6 +275,44 @@ and pull it in: `{{ include "diagrams/pipeline.svg" }}`.
 Style diagrams against the deck palette: `--deck-cyan` `#5FD0D8`,
 `--deck-amber` `#E9A94A`, `--deck-rose` `#E0736B`, `--deck-leaf` `#7FC08A`,
 rules `#2F5478`, dim ink `#93AAC6`, ink `#DCE6F2`.
+
+## Themes
+
+`theme: curiosity` is a different kind of deck: every slide is a fixed
+1920 x 1080 composition scaled to the window, in the Curiosity brand (Schibsted
+Grotesk, Geist Mono, paper/ink/deep blue, one signal colour). It draws an
+eyebrow mark, the Escape mark and a page number on every slide, and reads the
+`layout`, `ground` and `art` slide attributes:
+
+```markdown
+--- {layout="cover" art="field" eyebrow="Event · Month 2026"}
+
+# Deck title, line one *line two*
+
+One sentence on what this deck is for.
+
+[!tag text="Presenter" tone="solid"] [!tag text="Team"]
+
+--- {layout="section" ground="ink" art="bars" eyebrow="Section / 01"}
+
+# Section title
+
+One line on what this section argues.
+
+--- {layout="statement" ground="deep" eyebrow="Label / Topic"}
+
+## One sentence that states the point.
+```
+
+- `cover`: title left (`*…*` is the signal colour), lead and chips right, art along the foot.
+- `section` / `section-panel` (`class="panel-left"`): dividers, art on top or on a deep panel.
+- `statement`: one sentence, large. `split`: headline left, lead right, stats under.
+- `aside`: headline left, steps / rows / table right. `number`: one huge `::: stat`.
+- `closing`: the call on the deep blue with a stats row.
+
+Keep a slide to its canvas: a slide that needs more room is two slides. The
+Neko docs deck `presentations/decks/curiosity-templates.md` has every layout.
+Build the same deck in another look with `neko build --theme midnight`.
 
 ## Linking to a deck
 

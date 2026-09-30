@@ -2,7 +2,7 @@
 title: Protecting a deck
 label: Protecting a deck
 description: Password-protected presentations, and what client-side encryption does and does not buy you.
-order: 5
+order: 6
 icon: lock
 ---
 

@@ -242,6 +242,7 @@ Options:
   --override <override>  JSON configuration overriding project config values
   --strict               Return a non-zero exit code if the build had errors or warnings
   --no-api-sync          Skip refreshing API-reference pages from source before building
+  --theme <theme>        Render every presentation deck in this theme (midnight, daylight, curiosity)
   -w, --watch            Watch for file changes
   -v, --verbose          Enable verbose logging
   -a, --api              Watch for API changes
@@ -252,6 +253,10 @@ Before building, `neko build` (and `neko watch`, on startup) refreshes any
 [`csharp-docs` API-reference pages](/components/csharp-docs#overloads) that carry
 `<!-- api:source … -->` markers — see [`neko sync-api-docs`](#neko-sync-api-docs).
 Pass `--no-api-sync` to skip that step.
+
+`--theme <name>` renders every [presentation deck](/presentations/deck-themes) in the
+build in that theme, whatever its front matter says. An unknown name fails the
+build.
 
 For details on the `--override` option, see the [`neko --override`](#neko-override) docs below.
 
@@ -335,6 +340,7 @@ Options:
   -p, --port <port>                    Port to use (default: 5000)
   -o, --output <output>                Output directory path
   --no-api-sync                        Skip refreshing API-reference pages from source on startup
+  --theme <theme>                      Render every presentation deck in this theme (midnight, daylight, curiosity)
   --live, --no-editor                  Live preview only: keep live-reload but hide the in-browser editor (edit buttons, drag-reorder)
   --disable-passwords, --no-password   Disable password protection while watching (ignores the site-wide password and any page-level password: frontmatter)
   --focus, --focus-path <focus>        Only rebuild pages under this path (relative to the input directory); every other page is served from the previous build's output

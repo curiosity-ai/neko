@@ -101,15 +101,17 @@ namespace Neko.Builder
             RenderHeadTailwindAndTheme(sb);
             RenderHeadNekoConfig(sb);
 
-            // The deck's own typeface trio — a geometric display face, a reading serif
-            // and a mono for labels. Pulled from Google Fonts by default; `fonts: none`
-            // in the deck options drops the link and falls back to the local stacks
-            // declared in presentation.css (for air-gapped or self-hosted-font sites).
+            // The theme's typefaces. midnight and daylight use a trio — a geometric
+            // display face, a reading serif and a mono for labels; curiosity uses the
+            // Curiosity brand's two (Schibsted Grotesk and Geist Mono). Pulled from
+            // Google Fonts by default; `fonts: none` in the deck options drops the
+            // link and falls back to the local stacks in the stylesheets (for
+            // air-gapped or self-hosted-font sites).
             if (!string.Equals(options.Fonts, "none", System.StringComparison.OrdinalIgnoreCase))
             {
                 sb.AppendLine("    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">");
                 sb.AppendLine("    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>");
-                sb.AppendLine("    <link href=\"https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap\" rel=\"stylesheet\">");
+                sb.AppendLine($"    <link href=\"https://fonts.googleapis.com/css2?{options.ThemeFontsQuery}&display=swap\" rel=\"stylesheet\">");
             }
 
             sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/uicons-regular-rounded.css\">");
@@ -123,6 +125,11 @@ namespace Neko.Builder
             // Loaded last so the deck palette wins over the documentation chrome's
             // background rules emitted above.
             sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/presentation.css\">");
+            // A theme with a look of its own layers its stylesheet on top.
+            if (!string.IsNullOrEmpty(options.ThemeStylesheet))
+            {
+                sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/{options.ThemeStylesheet}\">");
+            }
 
             if (!string.IsNullOrEmpty(_headIncludes))
             {
@@ -145,11 +152,25 @@ namespace Neko.Builder
                 var extraClass = slide.Get("class");
                 var id = slide.Get("id") ?? $"slide-{i + 1}";
 
+                // `ground` picks the slide's surface (paper, stone, ink, deep — what a
+                // theme makes of each is its own business) and `art` puts generated
+                // art on it (see DeckArt), placed by the slide's layout.
+                var ground = slide.Get("ground");
+                var art = slide.Get("art");
+
                 var classes = "deck-slide" + (string.IsNullOrEmpty(extraClass) ? "" : " " + extraClass);
                 sb.AppendLine(
                     $"<section class=\"{EscapeHtmlAttr(classes)}\" id=\"{EscapeHtmlAttr(id)}\" " +
                     $"data-accent=\"{EscapeHtmlAttr(accent)}\" data-layout=\"{EscapeHtmlAttr(layout)}\" " +
+                    (string.IsNullOrEmpty(ground) ? string.Empty : $"data-ground=\"{EscapeHtmlAttr(ground)}\" ") +
+                    (string.IsNullOrEmpty(art) ? string.Empty : $"data-art=\"{EscapeHtmlAttr(art)}\" ") +
                     $"aria-label=\"Slide {i + 1} of {slides.Count}\">");
+
+                if (!string.IsNullOrEmpty(art))
+                {
+                    var svg = RenderSlideArt(slide, art, i);
+                    if (svg != null) sb.AppendLine($"  <div class=\"deck-art\" data-art=\"{EscapeHtmlAttr(art)}\" aria-hidden=\"true\">{svg}</div>");
+                }
 
                 if (!string.IsNullOrEmpty(eyebrow))
                 {
@@ -157,10 +178,27 @@ namespace Neko.Builder
                 }
 
                 sb.AppendLine(slide.Html ?? string.Empty);
+
+                // The slide's own foot: a mark and the page number. Themes that draw
+                // slide furniture show it (curiosity); the others leave it hidden and
+                // keep the counter in the control bar.
+                sb.AppendLine($"  <div class=\"deck-slide-foot\" aria-hidden=\"true\"><span class=\"deck-slide-mark\"></span><span class=\"deck-slide-num\">{(i + 1).ToString("00")}</span></div>");
                 sb.AppendLine("</section>");
             }
 
             sb.AppendLine("</main>");
+        }
+
+        // The art a slide asks for with `art="field"`: the kind, and for a glyph
+        // which one (`glyph="graph"` or 16 cells). The art is sized for the band a
+        // layout gives it: a full-width strip on a cover, a tall panel elsewhere.
+        private static string RenderSlideArt(PresentationSlide slide, string art, int index)
+        {
+            var layout = slide.Get("layout") ?? string.Empty;
+            var wide = layout == "cover" || layout == "title";
+            int.TryParse(slide.Get("seed"), out var seed);
+            return DeckArt.Render(art, wide ? 1920 : 960, wide ? 360 : 1080, seed == 0 ? index + 1 : seed, slide.Get("glyph"),
+                wide ? 0.5 : 0.62, wide ? 0.5 : 0.45);
         }
 
         // A slide that opens on an <h1> is the deck's title (or a section divider) and

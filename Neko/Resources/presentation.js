@@ -60,8 +60,14 @@
     // same line breaks, the same proportions — instead of a cropped corner of it.
     var DESIGN_WIDTH = 1280;
 
+    // A theme that draws a fixed canvas scaled to the window (curiosity) sizes
+    // itself from the frame, so it needs no zoom.
+    function selfScaling() {
+        return document.documentElement.getAttribute('data-deck-theme') === 'curiosity';
+    }
+
     function applyEmbedScale() {
-        if (!state || !state.embedded) return;
+        if (!state || !state.embedded || selfScaling()) return;
         var root = document.documentElement;
         var width = window.innerWidth || DESIGN_WIDTH;
         var scale = Math.min(1, width / DESIGN_WIDTH);
@@ -268,6 +274,20 @@
             applyEmbedScale();
             applyBrandInset();
         });
+
+        // While presenting, the reader is still: after a few seconds without the
+        // pointer moving `data-deck-idle` goes on the body, and a theme may fade
+        // its controls out (curiosity does). Any movement or key brings them back.
+        var idleTimer = 0;
+        function awake() {
+            document.body.removeAttribute('data-deck-idle');
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(function () { document.body.setAttribute('data-deck-idle', 'true'); }, 2500);
+        }
+        ['mousemove', 'pointerdown', 'keydown', 'touchstart'].forEach(function (type) {
+            document.addEventListener(type, awake, { passive: true });
+        });
+        awake();
 
         window.addEventListener('hashchange', function () {
             if (!state) return;

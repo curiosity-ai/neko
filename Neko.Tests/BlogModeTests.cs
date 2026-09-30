@@ -238,6 +238,39 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void BlogMode_Card_PrefersCardImage_OverCover()
+        {
+            var config = BlogConfig();
+            var doc = new ParsedDocument
+            {
+                Html = "<p>Intro</p>",
+                FrontMatter = new FrontMatter { Title = "Blog", Layout = "blog" }
+            };
+            var posts = new List<(ParsedDocument, string)>
+            {
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "Both", Cover = "/assets/header.png", CardImage = "/assets/card.png" } }, "/blog/both"),
+                (new ParsedDocument { FrontMatter = new FrontMatter { Title = "CoverOnly", Cover = "/assets/only-cover.png" } }, "/blog/cover"),
+            };
+
+            var html = new HtmlGenerator(config).Generate(doc, blogPosts: posts, currentUrl: "/blog/index");
+
+            // A post with a cardImage shows it on its card, not its cover; a post
+            // without one falls back to the cover.
+            Assert.That(html, Contains.Substring("src=\"/assets/card.png\""));
+            Assert.That(html, Does.Not.Contain("src=\"/assets/header.png\""));
+            Assert.That(html, Contains.Substring("src=\"/assets/only-cover.png\""));
+        }
+
+        [Test]
+        public void MarkdownParser_Reads_CardImage_FrontMatter()
+        {
+            var parser = new MarkdownParser(new NekoConfig());
+            var parsed = parser.Parse("---\ncover: /assets/a.png\ncardImage: /assets/b.png\n---\n# Hi");
+            Assert.That(parsed.FrontMatter.Cover, Is.EqualTo("/assets/a.png"));
+            Assert.That(parsed.FrontMatter.CardImage, Is.EqualTo("/assets/b.png"));
+        }
+
+        [Test]
         public void BlogMode_WithoutTags_OmitsTagChipRow()
         {
             var config = BlogConfig();

@@ -45,7 +45,7 @@ page, which is handy while a deck is still a draft.
 | Key | Default | What it does |
 | --- | --- | --- |
 | `eyebrow` | — | The kicker shown above the heading on every slide that doesn't set its own. |
-| `theme` | `midnight` | `midnight` — deep navy ground with a blueprint grid. `daylight` — the same geometry on warm paper. |
+| `theme` | `midnight` | `midnight` — deep navy ground with a blueprint grid. `daylight` — the same geometry on warm paper. `curiosity` — the Curiosity brand on a fixed 16:9 canvas. See [Deck themes](/presentations/deck-themes); `--theme` on the command line overrides it for a whole build. |
 | `accent` | `cyan` | Default accent for eyebrows and rules. One of `cyan`, `amber`, `rose`, `leaf`. |
 | `back` | referrer, then `/` | Pins the back control to a specific page instead of the page the reader came from. |
 | `backText` | `Back` | Label of the back control. |

@@ -40,12 +40,13 @@ Leaked retrieval
 
 ## Try it
 
-Both decks below are built from the Markdown in this repository. Click either
-one to open it full-screen; the deck has its own back control to bring you home.
+The decks below are built from the Markdown in this repository. Click one to open it full-screen; the deck has its own back control to bring you home.
 
 [!deck link="/presentations/decks/defense-in-depth" title="Five layers between a question and your data" description="A 14-slide deck built from a single Markdown file — definition lists, two-up boxes, inline SVG diagrams and per-slide accents."]
 
 [!deck link="/presentations/decks/similarity-engine" title="The similarity engine, end to end" description="The same components again, with tables, claims and a wide pipeline diagram embedded as raw SVG."]
+
+[!deck link="/presentations/decks/curiosity-templates" title="Curiosity slide templates" description="The curiosity theme: covers, sections, steps, numbers, timelines, quotes and comparisons on a fixed 16:9 canvas. See Deck themes."]
 
 ## What a deck page is (and is not)
 
