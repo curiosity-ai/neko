@@ -102,12 +102,17 @@ namespace Neko.Builder
             RenderHeadNekoConfig(sb);
 
             // The theme's typefaces. midnight and daylight use a trio — a geometric
-            // display face, a reading serif and a mono for labels; curiosity uses the
-            // Curiosity brand's two (Schibsted Grotesk and Geist Mono). Pulled from
-            // Google Fonts by default; `fonts: none` in the deck options drops the
-            // link and falls back to the local stacks in the stylesheets (for
-            // air-gapped or self-hosted-font sites).
-            if (!string.Equals(options.Fonts, "none", System.StringComparison.OrdinalIgnoreCase))
+            // display face, a reading serif and a mono for labels, pulled from Google
+            // Fonts; curiosity uses the Curiosity brand's two (Schibsted Grotesk and
+            // Geist Mono), which Neko ships (assets/deckfonts/), so the deck needs no
+            // font host and the PowerPoint export can embed the same files. `fonts:
+            // google` or `fonts: none` in the deck options overrides the source.
+            var fontSource = options.FontSource;
+            if (fontSource == "bundled" && options.ThemeHasBundledFonts)
+            {
+                sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/deckfonts/deck-fonts.css\">");
+            }
+            else if (fontSource != "none")
             {
                 sb.AppendLine("    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">");
                 sb.AppendLine("    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>");

@@ -1634,7 +1634,7 @@ namespace Neko.Builder
             var assembly = System.Reflection.Assembly.GetExecutingAssembly();
             foreach (var resourceName in assembly.GetManifestResourceNames())
             {
-                if (resourceName.EndsWith(".js") || resourceName.EndsWith(".css") || resourceName.EndsWith(".woff2") || resourceName.EndsWith(".json"))
+                if (resourceName.EndsWith(".js") || resourceName.EndsWith(".css") || resourceName.EndsWith(".woff2") || resourceName.EndsWith(".json") || resourceName.EndsWith(".ttf"))
                 {
                     // The Tailwind base/components layers are inputs to the
                     // generator, not standalone assets — never copy them out.
@@ -1646,14 +1646,19 @@ namespace Neko.Builder
                     var relativeName = resourceName.Replace("Neko.Resources.", "");
                     string outputPath;
 
-                    // Handle 'highlight' folder specifically
-                    if (relativeName.StartsWith("highlight."))
+                    // Resources in a sub-folder keep it: 'highlight' (code themes)
+                    // and 'deckfonts' (the typefaces presentation themes ship, whose
+                    // stylesheet points at its fonts by relative path).
+                    var folder = relativeName.StartsWith("highlight.") ? "highlight"
+                               : relativeName.StartsWith("deckfonts.") ? "deckfonts"
+                               : null;
+                    if (folder != null)
                     {
-                        var highlightDir = Path.Combine(assetsDir, "highlight");
-                        if (!Directory.Exists(highlightDir)) Directory.CreateDirectory(highlightDir);
+                        var folderDir = Path.Combine(assetsDir, folder);
+                        if (!Directory.Exists(folderDir)) Directory.CreateDirectory(folderDir);
 
-                        var fileName = relativeName.Substring("highlight.".Length);
-                        outputPath = Path.Combine(highlightDir, fileName);
+                        var fileName = relativeName.Substring(folder.Length + 1);
+                        outputPath = Path.Combine(folderDir, fileName);
                     }
                     else
                     {

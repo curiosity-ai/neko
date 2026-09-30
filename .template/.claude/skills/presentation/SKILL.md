@@ -54,7 +54,7 @@ page — handy while a deck is still a draft.
 | `gauge` | `true` | Vertical slide gauge on the left edge. |
 | `counter` | `true` | The `3 / 14` counter. |
 | `download` | `true` | The **pptx** button that downloads the deck as PowerPoint. |
-| `fonts` | `google` | `none` drops the Google Fonts link (air-gapped sites). |
+| `fonts` | theme's | `bundled` (curiosity's default) loads the fonts Neko ships from `assets/deckfonts/`; `google` links Google Fonts (midnight/daylight default); `none` links nothing. |
 | `ratio` | `16:9` | Aspect ratio the deck is designed for; read by `[!deck]`. |
 | `logo` | — | Image for the brand mark in the bottom-right corner of every slide. |
 | `logoText` | — | Text beside the logo. Works on its own, with no image. |
@@ -89,8 +89,11 @@ Every deck has a **pptx** button in its control bar that exports the whole deck
 to an editable `.pptx` in the browser (via PptxGenJS, which Neko ships in
 `assets/` — no CDN). Each slide is laid out at 16:9 and every heading, paragraph,
 bullet, box, rule, SVG and image becomes a native PowerPoint shape at the same
-position. Icon glyphs, gradients and other CSS-only decoration are dropped, so
-don't put meaning in them. `download: false` removes the button. On a protected
+position. Generated content (`::before`/`::after`, counters) is exported as
+text; solid colour layers and SVG masks become shapes. In the curiosity theme
+the fonts (Schibsted Grotesk, Geist Mono) are embedded in the file, so it looks
+right where they are not installed. Gradients, shadows and icon glyphs are
+dropped, so don't put meaning in them. `download: false` removes the button. On a protected
 deck the button only appears after unlocking.
 
 ## Slides

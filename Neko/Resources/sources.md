@@ -50,3 +50,16 @@
 - **License**: BSD-3-Clause
 - **File**: `Neko/Resources/highlight/highlight.min.js` (Downloaded from CDN)
 - **Themes**: `github.min.css` (default light), `tokyo-night-dark.min.css` (default dark), `tokyo-night-light.min.css` (Downloaded from CDN)
+
+### Schibsted Grotesk
+- **Source**: https://github.com/schibsted/schibsted-grotesk (via Google Fonts)
+- **License**: SIL Open Font License 1.1 (`reference/deck-fonts/OFL-schibstedgrotesk.txt`)
+- **Files**: `Neko/Resources/deckfonts/SchibstedGrotesk-*.ttf`, static instances at 400, 500,
+  600 and 700, built by `reference/deck-fonts/build-deck-fonts.py`. Used by the curiosity
+  presentation theme and embedded in its PowerPoint exports.
+
+### Geist Mono
+- **Source**: https://github.com/vercel/geist-font (via Google Fonts)
+- **License**: SIL Open Font License 1.1 (`reference/deck-fonts/OFL-geistmono.txt`)
+- **Files**: `Neko/Resources/deckfonts/GeistMono-*.ttf`, static instances at 400, 500 and 700,
+  built by `reference/deck-fonts/build-deck-fonts.py`.
