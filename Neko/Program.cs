@@ -27,17 +27,24 @@ namespace Neko
 
             var buildNoApiSyncOption = new Option<bool>("--no-api-sync") { Description = "Skip refreshing API-reference pages from source before building", DefaultValueFactory = _ => false };
 
+            // `--theme <name>` re-themes every presentation deck in the build, whatever
+            // its front matter says: the same decks, rendered in another look.
+            var buildThemeOption = ThemeOption();
+
             buildCommand.Options.Add(inputOption);
             buildCommand.Options.Add(outputOption);
             buildCommand.Options.Add(buildNoApiSyncOption);
+            buildCommand.Options.Add(buildThemeOption);
 
-            buildCommand.SetAction(async parseResult =>
+            buildCommand.SetAction(async (parseResult, token) =>
             {
                 var input = parseResult.GetValue(inputOption)!;
                 var output = parseResult.GetValue(outputOption);
                 var noApiSync = parseResult.GetValue(buildNoApiSyncOption);
+                if (!ApplyTheme(parseResult.GetValue(buildThemeOption))) return 1;
                 if (!noApiSync) ApiDocsSync.Run(Path.GetFullPath(input));
                 await BuildRunner.RunAsync(input, output);
+                return 0;
             });
 
             // Snap Command
@@ -97,6 +104,8 @@ namespace Neko
             watchCommand.Options.Add(watchFocusOption);
             watchCommand.Options.Add(watchNoTesseraeOption);
             watchCommand.Options.Add(watchNoSnapframeOption);
+            var watchThemeOption = ThemeOption();
+            watchCommand.Options.Add(watchThemeOption);
 
             watchCommand.SetAction(async (parseResult, token) =>
             {
@@ -107,6 +116,7 @@ namespace Neko
                 var liveOnly = parseResult.GetValue(watchLiveOption);
                 var disablePasswords = parseResult.GetValue(watchNoPasswordOption);
                 var focusArg = parseResult.GetValue(watchFocusOption);
+                if (!ApplyTheme(parseResult.GetValue(watchThemeOption))) return 1;
 
                 Neko.Builder.TesseraeCompiler.Disabled = parseResult.GetValue(watchNoTesseraeOption);
                 Neko.Extensions.SnapFrameExtension.Disabled = parseResult.GetValue(watchNoSnapframeOption);
@@ -607,6 +617,29 @@ namespace Neko
         }
 
         // True when a changed file is the `--focus` target itself or lives under it.
+        // `--theme <name>`: the presentation theme every deck in this build uses.
+        private static Option<string?> ThemeOption() => new Option<string?>("--theme")
+        {
+            Description = $"Render every presentation deck in this theme, whatever its front matter says ({string.Join(", ", Neko.Builder.PresentationOptions.BuiltInThemes)})"
+        };
+
+        // Applies `--theme`. An unknown name is an error rather than a silent
+        // fallback: a typo would otherwise build every deck in the default look.
+        private static bool ApplyTheme(string? theme)
+        {
+            Neko.Builder.PresentationOptions.ThemeOverride = null;
+            if (string.IsNullOrWhiteSpace(theme)) return true;
+            if (!Neko.Builder.PresentationOptions.IsBuiltInTheme(theme))
+            {
+                Console.Error.WriteLine($"Unknown theme '{theme}'. Built-in themes: {string.Join(", ", Neko.Builder.PresentationOptions.BuiltInThemes)}.");
+                Environment.ExitCode = 1;
+                return false;
+            }
+            Neko.Builder.PresentationOptions.ThemeOverride = theme.Trim().ToLowerInvariant();
+            Console.WriteLine($"Presentation theme: {Neko.Builder.PresentationOptions.ThemeOverride}");
+            return true;
+        }
+
         private static bool IsUnderFocus(string changedFullPath, string focusFullPath)
         {
             if (string.Equals(changedFullPath, focusFullPath, StringComparison.OrdinalIgnoreCase)) return true;

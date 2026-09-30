@@ -12,8 +12,33 @@ namespace Neko.Builder
     /// </summary>
     public class PresentationOptions
     {
-        /// <summary>Visual theme of the deck. <c>midnight</c> (default) or <c>daylight</c>.</summary>
+        /// <summary>Visual theme of the deck: one of <see cref="BuiltInThemes"/>. <c>midnight</c> by default.</summary>
         public string Theme { get; set; } = "midnight";
+
+        /// <summary>
+        /// The deck themes Neko ships. <c>midnight</c> and <c>daylight</c> share one
+        /// geometry (a responsive column on a blueprint ground); <c>curiosity</c> is
+        /// the Curiosity brand system on a fixed 16:9 canvas, with its own
+        /// stylesheet (<c>presentation-curiosity.css</c>) and typefaces.
+        /// </summary>
+        public static readonly string[] BuiltInThemes = { "midnight", "daylight", "curiosity" };
+
+        /// <summary>
+        /// Set by <c>neko build --theme</c> / <c>neko watch --theme</c>: when present,
+        /// every deck in the build uses this theme, whatever its front matter says.
+        /// </summary>
+        public static string ThemeOverride { get; set; }
+
+        public static bool IsBuiltInTheme(string theme)
+            => !string.IsNullOrWhiteSpace(theme) && BuiltInThemes.Contains(theme.Trim().ToLowerInvariant());
+
+        /// <summary>The extra stylesheet a theme adds on top of presentation.css, if any.</summary>
+        public string ThemeStylesheet => string.Equals(Theme, "curiosity", StringComparison.OrdinalIgnoreCase) ? "presentation-curiosity.css" : null;
+
+        /// <summary>The Google Fonts query for the theme's typefaces.</summary>
+        public string ThemeFontsQuery => string.Equals(Theme, "curiosity", StringComparison.OrdinalIgnoreCase)
+            ? "family=Schibsted+Grotesk:wght@400..900&family=Geist+Mono:wght@400;500"
+            : "family=Archivo:wght@500;600;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500";
 
         /// <summary>Accent used by slides that don't set their own. One of cyan/amber/rose/leaf.</summary>
         public string Accent { get; set; } = "cyan";

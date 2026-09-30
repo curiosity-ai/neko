@@ -102,6 +102,36 @@ namespace Neko.Extensions
                     case "figure":
                         RenderDeckFigure(renderer, obj);
                         return;
+                    case "steps":
+                        RenderDeckWrapper(renderer, obj, "deck-steps", "style", "row");
+                        return;
+                    case "step":
+                        RenderDeckStep(renderer, obj);
+                        return;
+                    case "stats":
+                        RenderDeckWrapper(renderer, obj, "deck-stats", "style", "row");
+                        return;
+                    case "stat":
+                        RenderDeckStat(renderer, obj);
+                        return;
+                    case "agenda":
+                        RenderDeckWrapper(renderer, obj, "deck-agenda", null, null);
+                        return;
+                    case "timeline":
+                        RenderDeckWrapper(renderer, obj, "deck-timeline", null, null);
+                        return;
+                    case "milestone":
+                        RenderDeckMilestone(renderer, obj);
+                        return;
+                    case "quote":
+                        RenderDeckQuote(renderer, obj);
+                        return;
+                    case "compare":
+                        RenderDeckWrapper(renderer, obj, "deck-compare", "highlight", "2");
+                        return;
+                    case "art":
+                        RenderDeckArtBlock(renderer, obj);
+                        return;
                 }
             }
 
@@ -330,7 +360,18 @@ namespace Neko.Extensions
             var title = GetAttribute(attributes, "title");
             var tone = GetAttribute(attributes, "tone") ?? "default";
 
-            renderer.Write($"<div class=\"deck-box\" data-tone=\"{WebUtility.HtmlEncode(tone)}\">");
+            var ground = GetAttribute(attributes, "ground");
+            var art = GetAttribute(attributes, "art");
+            var label = GetAttribute(attributes, "label");
+
+            renderer.Write($"<div class=\"deck-box\" data-tone=\"{WebUtility.HtmlEncode(tone)}\"");
+            if (!string.IsNullOrEmpty(ground)) renderer.Write($" data-ground=\"{WebUtility.HtmlEncode(ground)}\"");
+            renderer.Write(">");
+            WriteArt(renderer, art, GetAttribute(attributes, "glyph"), 640, 200);
+            if (!string.IsNullOrEmpty(label))
+            {
+                renderer.Write($"<p class=\"deck-box-label\">{WebUtility.HtmlEncode(label)}</p>");
+            }
             if (!string.IsNullOrEmpty(title))
             {
                 renderer.Write($"<h3 class=\"deck-box-title\">{WebUtility.HtmlEncode(title)}</h3>");
@@ -389,6 +430,108 @@ namespace Neko.Extensions
                 renderer.Write($"<figcaption class=\"deck-figure-caption\">{WebUtility.HtmlEncode(caption)}</figcaption>");
             }
             renderer.Write("</figure>");
+        }
+
+        // A plain wrapper with one data attribute: `::: steps {style="stairs"}`,
+        // `::: stats`, `::: agenda`, `::: timeline`, `::: compare {highlight="3"}`.
+        // What each looks like is the stylesheet's; the Markdown inside is ordinary.
+        private void RenderDeckWrapper(HtmlRenderer renderer, CustomContainer obj, string cls, string dataKey, string fallback)
+        {
+            renderer.Write($"<div class=\"{cls}\"");
+            if (dataKey != null)
+            {
+                var value = GetAttribute(obj.GetAttributes(), dataKey) ?? fallback;
+                renderer.Write($" data-{dataKey}=\"{WebUtility.HtmlEncode(value)}\"");
+            }
+            renderer.Write(">");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
+        }
+
+        // Generated art (DeckArt) inside a block: a figure band on a step or a box.
+        private static void WriteArt(HtmlRenderer renderer, string? art, string? glyph, int width, int height)
+        {
+            if (string.IsNullOrEmpty(art)) return;
+            var svg = Neko.Builder.DeckArt.Render(art, width, height, 1, glyph, 0.62, 0.5);
+            if (svg == null) return;
+            renderer.Write($"<div class=\"deck-art-block\" data-art=\"{WebUtility.HtmlEncode(art)}\" aria-hidden=\"true\">{svg}</div>");
+        }
+
+        // `::: step {label="Describe" art="glyph" glyph="graph"}` — one stage of a
+        // `::: steps` process: a numbered mono label (the number is a CSS
+        // counter, so steps can be reordered freely), optional art, then the
+        // author's heading and line.
+        private void RenderDeckStep(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var attributes = obj.GetAttributes();
+            var label = GetAttribute(attributes, "label");
+            var ground = GetAttribute(attributes, "ground");
+            renderer.Write("<div class=\"deck-step\"");
+            if (!string.IsNullOrEmpty(ground)) renderer.Write($" data-ground=\"{WebUtility.HtmlEncode(ground)}\"");
+            renderer.Write(">");
+            WriteArt(renderer, GetAttribute(attributes, "art"), GetAttribute(attributes, "glyph"), 480, 280);
+            renderer.Write("<p class=\"deck-step-label\"><span class=\"deck-step-num\"></span>");
+            if (!string.IsNullOrEmpty(label)) renderer.Write($"<span class=\"deck-step-name\">{WebUtility.HtmlEncode(label)}</span>");
+            renderer.Write("</p><div class=\"deck-step-body\">");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div></div>");
+        }
+
+        // `::: stat {value="30TB+" label="Data connected"}` — one number of a
+        // `::: stats` row; anything written inside is its line of context.
+        private void RenderDeckStat(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var attributes = obj.GetAttributes();
+            var value = GetAttribute(attributes, "value") ?? string.Empty;
+            var label = GetAttribute(attributes, "label");
+            var ground = GetAttribute(attributes, "ground");
+            renderer.Write("<div class=\"deck-stat\"");
+            if (!string.IsNullOrEmpty(ground)) renderer.Write($" data-ground=\"{WebUtility.HtmlEncode(ground)}\"");
+            renderer.Write($"><p class=\"deck-stat-value\">{WebUtility.HtmlEncode(value)}</p>");
+            if (!string.IsNullOrEmpty(label)) renderer.Write($"<p class=\"deck-stat-label\">{WebUtility.HtmlEncode(label)}</p>");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
+        }
+
+        // `::: milestone {when="Q3 2026" state="now"}` — a point on a
+        // `::: timeline`. `state` is done, now or next; the marker follows it.
+        private void RenderDeckMilestone(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var attributes = obj.GetAttributes();
+            var when = GetAttribute(attributes, "when");
+            var state = GetAttribute(attributes, "state") ?? "done";
+            renderer.Write($"<div class=\"deck-milestone\" data-state=\"{WebUtility.HtmlEncode(state)}\"><span class=\"deck-milestone-mark\" aria-hidden=\"true\"></span>");
+            if (!string.IsNullOrEmpty(when)) renderer.Write($"<p class=\"deck-milestone-when\">{WebUtility.HtmlEncode(when)}</p>");
+            renderer.WriteChildren(obj);
+            renderer.Write("</div>");
+        }
+
+        // `::: quote {by="Airbus" context="Services Innovation" art="squares"}` —
+        // a customer's own words, set large, attributed in mono, with optional art.
+        private void RenderDeckQuote(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var attributes = obj.GetAttributes();
+            var by = GetAttribute(attributes, "by");
+            var context = GetAttribute(attributes, "context");
+            renderer.Write("<figure class=\"deck-quote\"><div class=\"deck-quote-body\"><blockquote>");
+            renderer.WriteChildren(obj);
+            renderer.Write("</blockquote>");
+            if (!string.IsNullOrEmpty(by) || !string.IsNullOrEmpty(context))
+            {
+                var caption = string.Join(" · ", new[] { by, context }.Where(x => !string.IsNullOrEmpty(x)));
+                renderer.Write($"<figcaption>{WebUtility.HtmlEncode(caption)}</figcaption>");
+            }
+            renderer.Write("</div>");
+            WriteArt(renderer, GetAttribute(attributes, "art"), GetAttribute(attributes, "glyph"), 480, 280);
+            renderer.Write("</figure>");
+        }
+
+        // `::: art {kind="bars" glyph="graph"}` — generated art on its own, for a
+        // slide that places it by hand.
+        private void RenderDeckArtBlock(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var attributes = obj.GetAttributes();
+            WriteArt(renderer, GetAttribute(attributes, "kind") ?? "field", GetAttribute(attributes, "glyph"), 960, 540);
         }
 
         private string? GetAttribute(HtmlAttributes attributes, string key)

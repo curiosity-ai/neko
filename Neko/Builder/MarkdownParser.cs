@@ -432,6 +432,12 @@ namespace Neko.Builder
             {
                 presentation = deckOptions;
 
+                // `--theme` on the command line re-themes every deck in the build.
+                if (!string.IsNullOrEmpty(PresentationOptions.ThemeOverride))
+                {
+                    presentation.Theme = PresentationOptions.ThemeOverride;
+                }
+
                 // The brand-mark logo is a page asset like `cover:` — resolve it the
                 // same way, so a bare file name finds the nearest `assets/` folder
                 // instead of resolving against the deck's own URL.

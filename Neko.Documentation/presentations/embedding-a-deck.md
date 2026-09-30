@@ -2,7 +2,7 @@
 title: Embedding a deck
 label: Embedding a deck
 description: The [!deck] component — a live presentation framed as a slide inside macOS window chrome, at a presentation aspect ratio.
-order: 4
+order: 5
 icon: browser
 ---
 

@@ -488,7 +488,12 @@ presentation:
             try
             {
                 var pw = await Playwright.CreateAsync();
-                var browser = await pw.Chromium.LaunchAsync(new() { Headless = true });
+                var launch = new BrowserTypeLaunchOptions { Headless = true };
+                // Environments that ship a preinstalled Chromium (a different build than
+                // the one this Playwright version downloads) point at it with this variable.
+                var exe = Environment.GetEnvironmentVariable("NEKO_TEST_CHROMIUM");
+                if (!string.IsNullOrEmpty(exe) && File.Exists(exe)) launch.ExecutablePath = exe;
+                var browser = await pw.Chromium.LaunchAsync(launch);
                 return (pw, browser);
             }
             catch (Exception ex)
