@@ -83,6 +83,12 @@ namespace Neko.Builder
         [YamlMember(Alias = "cover")]
         public string Cover { get; set; }
 
+        // The image a blog post shows on its card (the index grid, "Read next"
+        // and search results), when it should differ from the `cover` at the
+        // top of the post. Falls back to `cover` when unset.
+        [YamlMember(Alias = "cardImage")]
+        public string CardImage { get; set; }
+
         [YamlMember(Alias = "layout")]
         public string Layout { get; set; }
 
@@ -379,6 +385,7 @@ namespace Neko.Builder
                 var currentDir = Path.GetDirectoryName(Path.GetFullPath(filePath));
                 var rootDir = Path.GetFullPath(rootDirectory);
                 frontMatter.Cover = ResolveAssetUrl(frontMatter.Cover, currentDir, rootDir);
+                frontMatter.CardImage = ResolveAssetUrl(frontMatter.CardImage, currentDir, rootDir);
                 frontMatter.AuthorImage = ResolveAssetUrl(frontMatter.AuthorImage, currentDir, rootDir);
             }
 

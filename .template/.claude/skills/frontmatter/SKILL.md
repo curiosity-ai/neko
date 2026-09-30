@@ -53,6 +53,7 @@ visibility: public
 | `meta.description` | string                                            | Custom meta description. |
 | `image`          | path or URL                                         | Feature image (overrides auto-detected first image). |
 | `cover`          | path or URL                                         | Hero cover image. |
+| `cardImage`      | path or URL                                         | Blog posts: the image on the post's card (index grid, "Read next", search results) when it should differ from `cover`. Falls back to `cover`. |
 | `readNext`       | list of post links (file path / URL / slug)         | Blog mode: related posts for the post's **Read next** section. Auto-fills with recent posts when short. Configured site-wide via `blog.readNext`. |
 | `title`          | string                                              | Discouraged — write a real `# H1` instead. |
 

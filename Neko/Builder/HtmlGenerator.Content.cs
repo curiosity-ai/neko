@@ -708,7 +708,8 @@ namespace Neko.Builder
             var title = !string.IsNullOrEmpty(doc.FrontMatter.Title) ? doc.FrontMatter.Title : doc.FrontMatter.Label;
             var date = doc.FrontMatter.Date;
             var author = doc.FrontMatter.Author;
-            var cover = doc.FrontMatter.Cover;
+            // The card shows `cardImage` when a post sets one, else its `cover`.
+            var cover = !string.IsNullOrEmpty(doc.FrontMatter.CardImage) ? doc.FrontMatter.CardImage : doc.FrontMatter.Cover;
             var tags = (doc.FrontMatter.Tags ?? System.Array.Empty<string>())
                 .Select(t => t?.Trim())
                 .Where(t => !string.IsNullOrEmpty(t))

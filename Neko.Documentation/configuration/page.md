@@ -243,6 +243,29 @@ It is also possible to disable the breadcrumb navigation on all pages within a [
 
 ---
 
+## cardImage
+
+=== cardImage : `string`
+
+The image on a blog post's **card**: the tile in the blog index, in the
+**Read next** section and in search results (in [`blog` mode](/configuration/core/project#mode)).
+Set it when the card should show something other than the post's `cover`, the
+band at the top of the post. A path is resolved like `cover`: relative to the
+page, or root-relative.
+
+```yml
+---
+cover: /assets/headers/my-post.png      # the top of the post
+cardImage: /assets/cards/my-post.png    # the card that links to it
+---
+```
+
+Without `cardImage`, the card shows the `cover`.
+
+===
+
+---
+
 ## category
 
 !!!

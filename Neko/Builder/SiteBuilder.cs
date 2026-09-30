@@ -1026,7 +1026,8 @@ namespace Neko.Builder
                 item.Doc.FrontMatter.Description,
                 item.Doc.FrontMatter.Tags,
                 breadcrumbTitles.Length > 0 ? breadcrumbTitles : null,
-                item.Doc.FrontMatter.Cover);
+                // Search results show the post's card image, as its card does.
+                !string.IsNullOrEmpty(item.Doc.FrontMatter.CardImage) ? item.Doc.FrontMatter.CardImage : item.Doc.FrontMatter.Cover);
         }
 
         /// <summary>
