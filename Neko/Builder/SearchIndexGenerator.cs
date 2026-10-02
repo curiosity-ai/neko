@@ -77,11 +77,17 @@ namespace Neko.Builder
             return p;
         }
 
+        // Document ids are URL paths, so they always use forward slashes. The
+        // builder hands over the page's output path as the OS writes it, which on
+        // Windows is `blog\post.html`; left as is, the id would never match the
+        // `blog/` prefix the inline blog search (and the focus-mode carry-over)
+        // test against, so a site built on Windows had a search box that found
+        // nothing.
         private string ApplyPrefix(string path)
         {
-            if (string.IsNullOrEmpty(_routePrefix)) return path;
-            if (string.IsNullOrEmpty(path)) return _routePrefix;
-            var normalized = path.Replace('\\', '/').TrimStart('/');
+            var normalized = (path ?? string.Empty).Replace('\\', '/').TrimStart('/');
+            if (string.IsNullOrEmpty(_routePrefix)) return normalized;
+            if (normalized.Length == 0) return _routePrefix;
             return _routePrefix + "/" + normalized;
         }
 
@@ -245,7 +251,9 @@ namespace Neko.Builder
 
                 // Page entries are keyed by the output path; section entries add a
                 // `#anchor` suffix and carry the page path in `parentId`.
-                var pageId = document.ParentId ?? document.Id;
+                // Ids written by a build before ids were normalized may still carry
+                // the OS separator; read them the same way they are written now.
+                var pageId = (document.ParentId ?? document.Id).Replace('\\', '/');
                 var hashIndex = pageId.IndexOf('#');
                 if (hashIndex >= 0) pageId = pageId.Substring(0, hashIndex);
 

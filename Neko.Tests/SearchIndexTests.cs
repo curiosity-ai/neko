@@ -469,6 +469,39 @@ title: With Headings
         }
 
         [Test]
+        public async Task SearchIndex_IdsUseForwardSlashes_WhateverSeparatorTheBuilderPasses()
+        {
+            // A build on Windows hands the generator `blog\\post.html`. Ids are URL
+            // paths and the inline blog search tests them against `blog/`, so the
+            // separator must be normalized whether or not a route prefix is set.
+            foreach (var prefix in new[] { null, "/workspace" })
+            {
+                var generator = new SearchIndexGenerator(prefix);
+                generator.AddDocument("blog\\post-1.html", "First Post",
+                    "<h1>First Post</h1><p>Intro.</p><h2 id=\"details\">Details</h2><p>Body.</p>",
+                    tags: new[] { "guides" });
+
+                var outputDir = Path.Combine(_sampleDir, "separators-" + (prefix == null ? "root" : "sub"));
+                Directory.CreateDirectory(outputDir);
+                await generator.WriteIndexAsync(outputDir);
+
+                var json = await File.ReadAllTextAsync(Path.Combine(outputDir, "search.json"));
+                using var doc = JsonDocument.Parse(json);
+                var docs = doc.RootElement.EnumerateArray().ToList();
+                var expectedId = (prefix == null ? "" : "workspace/") + "blog/post-1.html";
+
+                var page = docs.First(d => d.GetProperty("type").GetString() == "page");
+                Assert.That(page.GetProperty("id").GetString(), Is.EqualTo(expectedId),
+                    $"Page id must use '/' (prefix: {prefix ?? "none"})");
+                Assert.That(page.GetProperty("slug").GetString(), Does.Not.Contain("\\"));
+
+                var section = docs.First(d => d.GetProperty("type").GetString() == "section");
+                Assert.That(section.GetProperty("id").GetString(), Is.EqualTo(expectedId + "#details"));
+                Assert.That(section.GetProperty("parentId").GetString(), Is.EqualTo(expectedId));
+            }
+        }
+
+        [Test]
         public async Task SearchIndex_PrefixesIdsAndSlugWithRoutePrefix_WhenSubProject()
         {
             var subProject = Path.Combine(_sampleDir, "isolated-sub");
