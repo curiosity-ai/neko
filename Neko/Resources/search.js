@@ -473,8 +473,12 @@
         const blogPrefix = (routePrefix ? routePrefix + '/' : '') + 'blog/';
 
         function isBlogResult(r) {
-            const key = r.type === 'section' ? (r.parentId || r.id) : r.id;
-            if (typeof key !== 'string' || !key.startsWith(blogPrefix)) return false;
+            let key = r.type === 'section' ? (r.parentId || r.id) : r.id;
+            if (typeof key !== 'string') return false;
+            // Ids are URL paths, but an index written by an older build on
+            // Windows carries the OS separator (`blog\post.html`): read either.
+            key = key.replace(/\\/g, '/');
+            if (!key.startsWith(blogPrefix)) return false;
             // The blog landing page is the index, not a post — keep it out.
             return key !== blogPrefix + 'index.html' && key !== blogPrefix + 'index';
         }
