@@ -344,6 +344,11 @@ namespace Neko.Builder
             sb.AppendLine("        const visibleSections = new Set();");
             sb.AppendLine("        const highlightLine = document.getElementById('toc-highlight');");
             sb.AppendLine("        const tocList = document.getElementById('toc-list');");
+            // The first placement happens while the page is still loading, so it is
+            // applied as it is: no slide-in of the highlight bar from the top of the
+            // list, no smooth scroll of the TOC. Later updates (the reader scrolling)
+            // animate as before.
+            sb.AppendLine("        let tocPlaced = false;");
             sb.AppendLine("");
             sb.AppendLine("        function updateTocHighlight() {");
             sb.AppendLine("            if (!highlightLine || !tocList) return;");
@@ -384,6 +389,9 @@ namespace Neko.Builder
             sb.AppendLine("                link.classList.add('text-primary-600', 'dark:text-primary-400', 'font-medium');");
             sb.AppendLine("            });");
             sb.AppendLine("");
+            // Scroll the TOC pane itself, not activeLink.scrollIntoView(): that also
+            // scrolls every scrollable ancestor, overflow-hidden layout rows and the
+            // document included, which moved the whole page shortly after a load.
             sb.AppendLine("            // Scroll TOC to active link");
             sb.AppendLine("            const activeLink = activeLinks[0];");
             sb.AppendLine("            const tocSidebar = document.getElementById('toc-sidebar');");
@@ -391,7 +399,9 @@ namespace Neko.Builder
             sb.AppendLine("                const linkRect = activeLink.getBoundingClientRect();");
             sb.AppendLine("                const sidebarRect = tocSidebar.getBoundingClientRect();");
             sb.AppendLine("                if (linkRect.top < sidebarRect.top || linkRect.bottom > sidebarRect.bottom) {");
-            sb.AppendLine("                     activeLink.scrollIntoView({ block: 'center', behavior: 'smooth' });");
+            sb.AppendLine("                    const tocTop = tocSidebar.scrollTop + (linkRect.top - sidebarRect.top) - (tocSidebar.clientHeight - linkRect.height) / 2;");
+            sb.AppendLine("                    if (tocPlaced) tocSidebar.scrollTo({ top: tocTop, behavior: 'smooth' });");
+            sb.AppendLine("                    else tocSidebar.scrollTop = tocTop;");
             sb.AppendLine("                }");
             sb.AppendLine("            }");
             sb.AppendLine("");
@@ -405,9 +415,15 @@ namespace Neko.Builder
             sb.AppendLine("            const top = firstRect.top - listRect.top;");
             sb.AppendLine("            const height = lastRect.bottom - firstRect.top;");
             sb.AppendLine("");
+            sb.AppendLine("            if (!tocPlaced) highlightLine.style.transition = 'none';");
             sb.AppendLine("            highlightLine.style.top = `${top}px`;");
             sb.AppendLine("            highlightLine.style.height = `${height}px`;");
             sb.AppendLine("            highlightLine.style.opacity = '1';");
+            sb.AppendLine("            if (!tocPlaced) {");
+            sb.AppendLine("                void highlightLine.offsetWidth;");
+            sb.AppendLine("                highlightLine.style.transition = '';");
+            sb.AppendLine("                tocPlaced = true;");
+            sb.AppendLine("            }");
             sb.AppendLine("        }");
             sb.AppendLine("");
             sb.AppendLine("        const observer = new IntersectionObserver((entries) => {");
@@ -653,10 +669,28 @@ namespace Neko.Builder
             sb.AppendLine("                }");
             sb.AppendLine("            }");
             sb.AppendLine("");
+            // The realignment after `load` corrects for content that changed height
+            // after the browser's own jump to the fragment; the reader has already
+            // arrived, so it must not glide there a second time. The pane's
+            // `scroll-smooth` is lifted for that one scroll (an inline style rather
+            // than `behavior: 'instant'`, which older browsers reject).
+            sb.AppendLine("            function snapToFragment() {");
+            sb.AppendLine("                if (!pane) { alignToFragment(); return; }");
+            sb.AppendLine("                pane.style.scrollBehavior = 'auto';");
+            sb.AppendLine("                alignToFragment();");
+            sb.AppendLine("                pane.style.scrollBehavior = '';");
+            sb.AppendLine("            }");
+            sb.AppendLine("");
+            // This script runs at the end of <body>, so the target is parsed: align
+            // now rather than leave the reader at the top until `load`, which waits
+            // for every image and iframe. Then once more after `load`, for whatever
+            // grew in between.
+            sb.AppendLine("            if (fragmentTarget()) snapToFragment();");
+            sb.AppendLine("");
             sb.AppendLine("            window.addEventListener('load', function() {");
             sb.AppendLine("                if (!fragmentTarget()) return;");
             sb.AppendLine("                requestAnimationFrame(function() {");
-            sb.AppendLine("                    requestAnimationFrame(alignToFragment);");
+            sb.AppendLine("                    requestAnimationFrame(snapToFragment);");
             sb.AppendLine("                });");
             sb.AppendLine("            });");
             sb.AppendLine("");
