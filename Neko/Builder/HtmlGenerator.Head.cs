@@ -201,6 +201,16 @@ namespace Neko.Builder
             // project's copy of these assets instead of its own, 404ing (and leaving
             // icons unrendered) whenever there's no root project sharing that path.
             var iconsPrefix = (SiteBuilder.CurrentRoutePrefix ?? string.Empty).TrimEnd('/');
+            // Every navigation is a full page load, and the icon fonts are only
+            // requested once layout first meets a glyph, so without this the page
+            // paints before them: icons pop in a frame later and every row that
+            // holds one grows, which moves the sidebar (and its scroll position).
+            // Preloading starts the fetch with the HTML, so a cached font is ready
+            // for the first layout. `crossorigin` because @font-face fetches are
+            // CORS requests; without it the preload is not reused. Only the
+            // regular set, which the sidebar and header use on every page: a page
+            // with no brand icon would log an unused-preload warning for brands.
+            sb.AppendLine($"    <link rel=\"preload\" href=\"{iconsPrefix}/assets/uicons-regular-rounded.woff2\" as=\"font\" type=\"font/woff2\" crossorigin>");
             sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{iconsPrefix}/assets/uicons-regular-rounded.css\">");
             sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{iconsPrefix}/assets/uicons-brands.css\">");
 
