@@ -26,7 +26,7 @@ visibility: public
 | ---              | ---                                                 | --- |
 | `label`          | string                                              | Override the sidebar + top-nav label. Also the `<title>` fallback when no `title` is set. |
 | `icon`           | UIcon name, `:emoji:`, `<svg>`, image path          | Sidebar / breadcrumb icon. |
-| `order`          | number / alpha string / `vSemver`                   | Reorders within parent folder. Higher number = higher position. |
+| `order`          | integer                                             | Reorders within parent folder. Lower number = higher position. |
 | `tags`           | list                                                | Auto-generates `/tags/<tag>/` index pages. |
 | `category`       | string or list                                      | Auto-generates `/categories/<cat>/` pages. |
 | `date`           | `yyyy-mm-dd` or `yyyy-mm-ddThh:mm`                  | Used by blog ordering. |
@@ -59,9 +59,11 @@ visibility: public
 
 ## Order rules in one paragraph
 
-`order: 100` beats `order: 10` beats no-order alpha beats `order: zulu` beats
-`order: v1.0` beats `order: -10`. Folders cluster at the top of each `order`
-group. Home page defaults to `order: 10000`.
+Sorting is ascending: `order: -10` beats `order: 10` beats `order: 100`.
+Pages and folders without an `order` sort below every ordered sibling,
+alphabetically by title. Folders and pages share the same ordering space within
+a parent. `order` must be an integer: a value such as `zulu`, `v1.0` or `1.5` in
+page frontmatter fails the build.
 
 ## Sibling .yml form
 

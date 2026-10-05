@@ -124,7 +124,7 @@ Place a `---`-fenced YAML block at the top of any `.md`:
 ---
 label: Friendly nav label
 icon: rocket             # UIcon, :emoji:, <svg>…</svg>, or /path/to/img
-order: 100               # higher = higher in sidebar; negative = bottom
+order: 100               # lower = higher in sidebar; omitted = bottom
 tags: [guide, install]
 category: news
 date: 2026-01-15

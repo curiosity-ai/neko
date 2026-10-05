@@ -23,7 +23,7 @@ expanded: true
 | ---             | ---                                                                  |
 | `label`         | Sidebar text for the folder node.                                    |
 | `icon`          | UIcon, `:emoji:`, `<svg>`, or image path.                            |
-| `order`         | Same rules as pages (higher number = higher position).               |
+| `order`         | Same rules as pages (lower number = higher position).                |
 | `expanded`      | `true` to expand the folder on initial load.                         |
 | `visibility`    | `public` (default), `hidden`, `protected`, `private`.                |
 | `searchExclude` | `true` to exclude every page in this folder (recursively) from the search index. |
@@ -44,8 +44,8 @@ expanded: true
 Reorder a folder:
 
 ```yml
-order: 1000   # near the top
-order: -1000  # near the bottom
+order: 10     # near the top
+order: 9000   # near the bottom
 ```
 
 Re-base every page under `guides/` to `/tutorials/`:
