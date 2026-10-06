@@ -628,29 +628,33 @@
         if (tag === 'SVG' || tag === 'svg') {
             if (r.width < 1 || r.height < 1) return null;
             var data = await svgPng(el, r.width, r.height);
-            return new D.ImageRun({ type: 'png', data: data, transformation: { width: r.width, height: r.height }, altText: altOf(el) });
+            return new D.ImageRun({ type: 'png', data: data, transformation: { width: r.width, height: r.height }, altText: alt(altOf(el)) });
         }
         if (tag === 'IMG') {
             if (r.width < 1 || r.height < 1) return null;
             var pic = await pictureFromUrl(el.currentSrc || el.src, r.width, r.height);
-            return new D.ImageRun({ type: pic.type, data: pic.data, transformation: { width: r.width, height: r.height }, altText: altOf(el) });
+            return new D.ImageRun({ type: pic.type, data: pic.data, transformation: { width: r.width, height: r.height }, altText: alt(altOf(el)) });
         }
         if (tag === 'INPUT' && el.type === 'checkbox') {
             var w = Math.max(6, r.width), h = Math.max(6, r.height);
             var color = (parseColor(st.borderTopColor) || parseColor(st.color) || { hex: '000000' }).hex;
             var png = await boxPng(w, h, el.checked ? color : null, color, Math.max(1, px(st.borderTopWidth)));
-            return new D.ImageRun({ type: 'png', data: png, transformation: { width: w, height: h }, altText: 'checkbox' });
+            return new D.ImageRun({ type: 'png', data: png, transformation: { width: w, height: h }, altText: alt('checkbox') });
         }
         // an inline-block with no text of its own that paints a ground or a border: a mark
         if (st.display === 'inline-block' && r.width >= 2 && r.height >= 2 && !el.textContent.trim() && !el.querySelector('*')) {
             var bg = parseColor(st.backgroundColor), bc = parseColor(st.borderTopColor), bw = px(st.borderTopWidth);
             if (bg || (bc && bw > 0)) {
                 var png2 = await boxPng(r.width, r.height, bg ? over(bg, groundOf(el.parentElement), opacityOf(el)) : null, bc && bw > 0 ? bc.hex : null, bw);
-                return new D.ImageRun({ type: 'png', data: png2, transformation: { width: r.width, height: r.height }, altText: el.getAttribute('aria-label') || '' });
+                return new D.ImageRun({ type: 'png', data: png2, transformation: { width: r.width, height: r.height }, altText: alt(el.getAttribute('aria-label') || '') });
             }
         }
         return null;
     }
+
+    // Word's schema requires a name on every picture (wp:docPr); an empty alt text writes none, and Word
+    // then calls the whole file unreadable.
+    function alt(text) { return { name: 'Picture', description: String(text || ''), title: '' }; }
 
     function altOf(el) { return el.getAttribute('aria-label') || el.getAttribute('alt') || (el.querySelector && el.querySelector('title') ? el.querySelector('title').textContent : '') || ''; }
 
@@ -913,10 +917,10 @@
         var run;
         if (tag === 'svg') {
             var data = await svgPng(el, r.width, r.height);
-            run = new D.ImageRun({ type: 'png', data: data, transformation: { width: r.width, height: r.height }, altText: altOf(el) });
+            run = new D.ImageRun({ type: 'png', data: data, transformation: { width: r.width, height: r.height }, altText: alt(altOf(el)) });
         } else if (tag === 'img') {
             var pic = await pictureFromUrl(el.currentSrc || el.src, r.width, r.height);
-            run = new D.ImageRun({ type: pic.type, data: pic.data, transformation: { width: r.width, height: r.height }, altText: altOf(el) });
+            run = new D.ImageRun({ type: pic.type, data: pic.data, transformation: { width: r.width, height: r.height }, altText: alt(altOf(el)) });
         } else {
             return;
         }
@@ -927,7 +931,7 @@
         var r = rectOf(el);
         if (r.width < 2 || r.height < 2) return;
         var data = await maskPng(el, st, r.width, r.height);
-        var run = new D.ImageRun({ type: 'png', data: data, transformation: { width: r.width, height: r.height }, altText: altOf(el) });
+        var run = new D.ImageRun({ type: 'png', data: data, transformation: { width: r.width, height: r.height }, altText: alt(altOf(el)) });
         pictureParagraph(run, r, ctx, out);
     }
 
@@ -1503,7 +1507,7 @@
                     behindDocument: true, allowOverlap: true, lockAnchor: true, layoutInCell: false,
                     wrap: { type: D.TextWrappingType.NONE }, zIndex: z++
                 },
-                altText: ''
+                altText: alt('Background')
             }));
         }
         if (ST.sheetGround.toLowerCase() !== 'ffffff') {

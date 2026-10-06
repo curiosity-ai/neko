@@ -102,6 +102,14 @@ namespace Neko.Tests
             }
 
             var document = Part(zip, "word/document.xml");
+
+            // Word's schema requires a name on every picture (wp:docPr); LibreOffice does not care, Word calls the file unreadable.
+            XNamespace wp = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+            foreach (var entry in zip.Entries.Where(e => Regex.IsMatch(e.FullName, @"^word/(document|header\d+|footer\d+)\.xml$")))
+            {
+                var pictures = Part(zip, entry.FullName).Descendants(wp + "docPr").ToList();
+                Assert.That(pictures.All(d => !string.IsNullOrEmpty(d.Attribute("name")?.Value)), Is.True, entry.FullName + ": every picture is named");
+            }
             var sections = document.Descendants(W + "sectPr").ToList();
             Assert.That(sections.Count, Is.EqualTo(21), "one Word section per sheet, like the 21 pages of the paper");
             Assert.That(sections.All(s => s.Element(W + "headerReference") != null && s.Element(W + "footerReference") != null), Is.True, "every sheet has its own header and footer");
