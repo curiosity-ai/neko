@@ -193,7 +193,8 @@ namespace Neko.Tests
                 var context = await browser.NewContextAsync(new() { AcceptDownloads = true, ViewportSize = new() { Width = 1100, Height = 1200 } });
                 var page = await context.NewPageAsync();
                 var errors = new List<string>();
-                page.PageError += (_, e) => errors.Add(e);
+                // the CDN libraries (Mermaid, KaTeX, panzoom) are unreachable here by design
+                page.PageError += (_, e) => { if (!Regex.IsMatch(e, "mermaid|renderMathInElement|panzoom|hljs|katex", RegexOptions.IgnoreCase)) errors.Add(e); };
                 var response = await page.GotoAsync($"{baseUrl}/{path}", new() { WaitUntil = WaitUntilState.NetworkIdle });
                 Assert.That(response!.Status, Is.EqualTo(200), $"{path} is served");
                 await page.WaitForSelectorAsync("#doc-download", new() { State = WaitForSelectorState.Attached, Timeout = 15000 });
@@ -216,7 +217,10 @@ namespace Neko.Tests
             try
             {
                 var pw = await Playwright.CreateAsync();
-                var launch = new BrowserTypeLaunchOptions { Headless = true };
+                // The pages link CDN scripts (Mermaid, KaTeX, panzoom). Resolve nothing but localhost, so a
+                // machine without internet access fails those requests at once instead of hanging the
+                // page's parse until the test reads an empty body.
+                var launch = new BrowserTypeLaunchOptions { Headless = true, Args = new[] { "--host-resolver-rules=MAP * ~NOTFOUND , EXCLUDE localhost" } };
                 var exe = Environment.GetEnvironmentVariable("NEKO_TEST_CHROMIUM");
                 if (!string.IsNullOrEmpty(exe) && File.Exists(exe)) launch.ExecutablePath = exe;
                 return (pw, await pw.Chromium.LaunchAsync(launch));
