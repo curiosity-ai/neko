@@ -953,6 +953,8 @@ namespace Neko.Builder
             // documentation chrome around it (see HtmlGenerator.Presentation).
             var html = item.Doc.IsPresentation
                 ? generator.GeneratePresentation(item.Doc)
+                : item.Doc.IsPagedDocument
+                ? generator.GenerateDocument(item.Doc)
                 : generator.Generate(item.Doc, backlinks, navContext, sidebarLinks, blogPosts, null, relativeUrl);
 
             var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html");
@@ -981,6 +983,9 @@ namespace Neko.Builder
                 // of a deck with no way to tell why. They are reached from the page
                 // that embeds them ([!deck]) instead.
                 || item.Doc.IsPresentation
+                // A paged document is its own standalone page, reached by a link or
+                // as a download — not part of the documentation's navigation.
+                || item.Doc.IsPagedDocument
                 || SidebarGenerator.IsHiddenVisibility(item.Doc.FrontMatter.Visibility)
                 || IsInSearchExcludedFolder(item.FilePath, searchExcludedFolders)
                 || IsInDotOrUnderscoreFolder(item.RelativePath);

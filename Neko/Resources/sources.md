@@ -45,6 +45,15 @@
 - **File**: `Neko/Resources/pptxgen.bundle.js` (vendored copy of `dist/pptxgen.bundle.js`; never loaded from a CDN)
 - **Used by**: `Neko/Resources/presentation-pptx.js` — the "Download PPTX" control on presentation decks. Loaded lazily, only when the reader asks for the download.
 
+### docx
+- **Source**: https://github.com/dolanmiu/docx
+- **License**: MIT
+- **Version**: 9.8.1
+- **File**: `Neko/Resources/docx.bundle.js` (vendored copy of `dist/index.umd.cjs`, minified; never loaded from a CDN)
+- **Local patch**: writes `<w:embedTrueTypeFonts/>` to `settings.xml` when a document embeds fonts, so Word keeps
+  them when a reader re-saves the file. Rebuild with `reference/docx/build-docx-bundle.py`.
+- **Used by**: `Neko/Resources/document-docx.js` — the "docx" control on paged documents (`document:` front matter). Loaded lazily, only when the reader asks for the download.
+
 ### Highlight.js
 - **Source**: https://github.com/highlightjs/highlight.js
 - **License**: BSD-3-Clause
@@ -63,3 +72,10 @@
 - **License**: SIL Open Font License 1.1 (`reference/deck-fonts/OFL-geistmono.txt`)
 - **Files**: `Neko/Resources/deckfonts/GeistMono-*.ttf`, static instances at 400, 500 and 700,
   built by `reference/deck-fonts/build-deck-fonts.py`.
+
+### Inter
+- **Source**: https://github.com/rsms/inter
+- **License**: SIL Open Font License 1.1 (`reference/inter/`)
+- **Files**: `Neko/Resources/deckfonts/Inter-Regular.ttf` and `Inter-SemiBold.ttf`, the site's woff2 files subset to
+  Latin and written as TrueType by `reference/deck-fonts/build-deck-fonts.py`. Used by the neko document theme and
+  embedded in its Word exports.

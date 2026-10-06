@@ -244,6 +244,9 @@ namespace Neko.Extensions
                 case "tag":
                     RenderTag(renderer, obj);
                     break;
+                case "mark":
+                    RenderMark(renderer, obj);
+                    break;
                 case "emoji-table":
                     RenderEmojiTable(renderer, obj);
                     break;
@@ -1315,6 +1318,16 @@ namespace Neko.Extensions
             renderer.Write($"<span class=\"deck-tag\" data-tone=\"{WebUtility.HtmlEncode(tone)}\">");
             renderer.WriteEscape(text);
             renderer.Write("</span>");
+        }
+
+        // `[!mark yes]` — a small square for a table cell: solid (yes), grey (part) or
+        // outlined (no). Paged documents use them as a colour-blind-safe legend.
+        private void RenderMark(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var kind = obj.GetAttribute("kind");
+            if (string.IsNullOrEmpty(kind) && obj.Arguments.Count > 0) kind = obj.Arguments[0];
+            if (string.IsNullOrEmpty(kind)) kind = "yes";
+            renderer.Write($"<i class=\"doc-mark\" data-kind=\"{WebUtility.HtmlEncode(kind)}\" role=\"img\" aria-label=\"{WebUtility.HtmlEncode(kind)}\"></i>");
         }
 
         private void RenderYouTube(HtmlRenderer renderer, ComponentInline obj)

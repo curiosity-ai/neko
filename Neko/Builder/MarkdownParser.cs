@@ -41,6 +41,18 @@ namespace Neko.Builder
         public bool IsPresentation => Presentation != null;
 
         /// <summary>
+        /// Options when the page's front matter marks it as a paged document
+        /// (<c>document: true</c>), otherwise null. A paged document is rendered as a
+        /// standalone page of A4 sheets with a Word download instead of an article.
+        /// </summary>
+        public DocumentOptions PagedDocument { get; set; }
+
+        /// <summary>The rendered pages of a paged document. Null for ordinary pages.</summary>
+        public List<DocumentPage> Pages { get; set; }
+
+        public bool IsPagedDocument => PagedDocument != null;
+
+        /// <summary>
         /// True when the page's front matter sets <c>redirect</c>. Such a page is not
         /// rendered: its URL serves a redirect to the target instead, and it is kept out
         /// of the sidebar, the navbar, the search index and the sitemap.
@@ -98,6 +110,12 @@ namespace Neko.Builder
         // and are kept out of the sidebar and the search index.
         [YamlMember(Alias = "presentation")]
         public object Presentation { get; set; }
+
+        // Marks the file as a paged document: A4 sheets with a Word (.docx)
+        // download. Accepts a bare `true` or a mapping of options (theme, size,
+        // running, numbers, …) — see DocumentOptions.
+        [YamlMember(Alias = "document")]
+        public object Document { get; set; }
 
         [YamlMember(Alias = "searchExclude")]
         public bool SearchExclude { get; set; }
@@ -460,7 +478,40 @@ namespace Neko.Builder
                 }
             }
 
-            var html = (renderHtml && slides == null) ? document.ToHtml(_pipeline) : null;
+            // A paged document is split the same way — `---` starts a page — and each
+            // page is rendered on its own inside the document scope.
+            DocumentOptions paged = null;
+            List<DocumentPage> pages = null;
+            if (presentation == null && DocumentOptions.TryParse(frontMatter.Document, out var documentOptions))
+            {
+                paged = documentOptions;
+
+                // `--theme` re-themes documents too when it names one of their themes.
+                if (DocumentOptions.IsBuiltInTheme(PresentationOptions.ThemeOverride))
+                {
+                    paged.Theme = PresentationOptions.ThemeOverride;
+                }
+
+                if (!string.IsNullOrEmpty(paged.Logo)
+                    && !string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(rootDirectory) && File.Exists(filePath))
+                {
+                    paged.Logo = ResolveAssetUrl(
+                        paged.Logo,
+                        Path.GetDirectoryName(Path.GetFullPath(filePath)),
+                        Path.GetFullPath(rootDirectory));
+                }
+
+                if (renderHtml)
+                {
+                    pages = DocumentParser.Split(PresentationParser.StripFrontMatter(markdown));
+                    foreach (var page in pages)
+                    {
+                        page.Html = RenderFragment(page.Markdown, filePath, rootDirectory, pagedDocument: true);
+                    }
+                }
+            }
+
+            var html = (renderHtml && slides == null && pages == null) ? document.ToHtml(_pipeline) : null;
 
             return new ParsedDocument
             {
@@ -469,19 +520,22 @@ namespace Neko.Builder
                 Toc = toc,
                 OutgoingLinks = outgoingLinks,
                 Presentation = presentation,
-                Slides = slides
+                Slides = slides,
+                PagedDocument = paged,
+                Pages = pages
             };
         }
 
         // Renders a standalone chunk of a document (a deck slide) through the same
         // pipeline as a full page, applying the asset resolution and `.md` link
         // rewriting that Parse does for the document as a whole.
-        private string RenderFragment(string markdown, string filePath, string rootDirectory)
+        private string RenderFragment(string markdown, string filePath, string rootDirectory, bool pagedDocument = false)
         {
             if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
 
-            // The presentation containers only claim their names inside a deck.
-            using var scope = Neko.Extensions.PresentationScope.Enter();
+            // The presentation containers only claim their names inside a deck, and the
+            // document containers only inside a paged document.
+            using var scope = pagedDocument ? Neko.Extensions.DocumentScope.Enter() : Neko.Extensions.PresentationScope.Enter();
 
             var document = Markdig.Markdown.Parse(markdown, _pipeline);
 
