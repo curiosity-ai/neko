@@ -41,6 +41,7 @@ Please refer to the following list for future implementation. Suggested syntax f
 - [x] **Table**: Enhanced markdown tables.
 - [x] **YouTube Embed**: `[!youtube id="xyz"]`
 - [x] **Presentation mode**: `presentation: true` front matter turns a file into a full-screen slide deck (slides split on `---`); `[!deck link="…"]` embeds one in a page.
+- [x] **Document mode**: `document: true` front matter turns a file into paged A4/Letter sheets (pages split on `---`) with a **docx** download (native Word, fonts embedded); `neko` and `curiosity` themes.
 
 ## Assets
 - [x] Embed Tailwind CSS.

@@ -145,9 +145,10 @@ namespace Neko.Builder
                     : $"'{family}'";
                 sb.AppendLine($"    <style>:root {{ font-family: {cssFamily}, sans-serif; }}</style>");
             }
-            else
+            else if (_isBlogMode)
             {
-                // Inter Font (default)
+                // Inter Font (default) — the blog's marketing chrome is built on it. Docs mode pins
+                // nothing: the typeface is the content repo's choice (see ThemeFontTests).
                 sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://rsms.me/inter/inter.css\">");
                 sb.AppendLine("    <style>:root { font-family: 'Inter', sans-serif; } @supports (font-variation-settings: normal) { :root { font-family: 'Inter var', sans-serif; } }</style>");
             }

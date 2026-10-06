@@ -80,6 +80,13 @@ namespace Neko.Extensions
             // generic container — the name becomes the div's class — and claiming
             // six ordinary words like `note` and `box` site-wide would quietly
             // change what existing pages render.
+            // The page components of a paged document (cols, box, note, keypoint, flow, …)
+            // follow the same rule: only inside a `document:` page.
+            if (DocumentScope.IsRenderingPage && DocumentContainers.TryRender(renderer, obj))
+            {
+                return;
+            }
+
             if (PresentationScope.IsRenderingSlide)
             {
                 switch (type)

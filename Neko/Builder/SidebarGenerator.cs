@@ -212,7 +212,7 @@ namespace Neko.Builder
 
                 // A presentation is a full-screen deck reached from the page that
                 // embeds it, not a documentation page — it never joins the sidebar.
-                if (doc.IsPresentation) continue;
+                if (doc.IsPresentation || doc.IsPagedDocument) continue;
 
                 // A page that redirects elsewhere is a moved page, not a destination.
                 if (doc.IsRedirect) continue;

@@ -16,6 +16,18 @@
    "typeface": "Geist Mono"
   }
  },
+ "Inter": {
+  "400": {
+   "file": "Inter-Regular.ttf",
+   "slot": "regular",
+   "typeface": "Inter"
+  },
+  "600": {
+   "file": "Inter-SemiBold.ttf",
+   "slot": "regular",
+   "typeface": "Inter SemiBold"
+  }
+ },
  "Schibsted Grotesk": {
   "400": {
    "file": "SchibstedGrotesk-Regular.ttf",

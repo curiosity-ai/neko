@@ -488,7 +488,10 @@ presentation:
             try
             {
                 var pw = await Playwright.CreateAsync();
-                var launch = new BrowserTypeLaunchOptions { Headless = true };
+                // The pages link CDN scripts (Mermaid, KaTeX, panzoom). Resolve nothing but localhost, so a
+                // machine without internet access fails those requests at once instead of hanging the
+                // page's parse until the test reads an empty body.
+                var launch = new BrowserTypeLaunchOptions { Headless = true, Args = new[] { "--host-resolver-rules=MAP * ~NOTFOUND , EXCLUDE localhost" } };
                 // Environments that ship a preinstalled Chromium (a different build than
                 // the one this Playwright version downloads) point at it with this variable.
                 var exe = Environment.GetEnvironmentVariable("NEKO_TEST_CHROMIUM");

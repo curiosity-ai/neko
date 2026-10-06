@@ -106,7 +106,7 @@ namespace Neko.Builder
 
                 // Presentations are full-screen decks reached from the page that
                 // embeds them ([!deck]) — never a navbar destination of their own.
-                if (file.Doc.IsPresentation) continue;
+                if (file.Doc.IsPresentation || file.Doc.IsPagedDocument) continue;
 
                 // A page that redirects elsewhere is a moved page, not a destination.
                 if (file.Doc.IsRedirect) continue;

@@ -70,5 +70,19 @@
   "neko-tag": "[!tag text=\"\" tone=\"warn\"]",
   "neko-deck": "[!deck link=\"\" title=\"\" description=\"\"]",
   "neko-deck-ratio": "[!deck link=\"\" title=\"\" ratio=\"4:3\" chrome=\"none\"]",
-  "neko-presentation-branded": "---\ntitle: \npresentation:\n  eyebrow: \n  logo: /assets/logo.png\n  logoText: \n  logoLink: \n---\n\n# First slide\n\nThe lead paragraph.\n"
+  "neko-presentation-branded": "---\ntitle: \npresentation:\n  eyebrow: \n  logo: /assets/logo.png\n  logoText: \n  logoLink: \n---\n\n# First slide\n\nThe lead paragraph.\n",
+  "neko-document": "---\ntitle: \ndocument: true\n---\n\n# Title\n\nOne paragraph on what this document is for.\n\n## First section\n\nText.\n",
+  "neko-document-page": "--- {layout=\"page\"}\n\n## Page heading\n\nText.\n",
+  "neko-document-curiosity": "---\ntitle: \ndocument:\n  theme: curiosity\n  running: \n---\n\n--- {layout=\"cover\" art=\"field\" running=\"Whitepaper\" foot=\"example.com\"}\n\n# Title, line one *line two*\n\nOne sentence on what this paper is for and who it is for.\n\n::: facts\nTopic\n:   \n\nFor\n:   \n\nDate\n:   \n:::\n",
+  "neko-document-opener": "--- {layout=\"opener\" art=\"squares\" number=\"01\"}\n\n# Section<br>title\n\n- First point the section answers\n- Second point\n- Third point\n",
+  "neko-document-cols": "::::: cols {count=\"2\"}\n:::: col\nFirst column.\n::::\n\n:::: col\nSecond column.\n::::\n:::::",
+  "neko-document-note": "::: note {label=\"Label\"}\nA line of detail.\n:::",
+  "neko-document-keypoint": "::: keypoint\nThe line to take away.\n:::",
+  "neko-document-flow": "::: flow {caption=\"Fig. 1 · Caption\"}\n- 01 · First | First | Detail || 02 · Second | Second | Detail || [solid] 03 · Third | Third | Detail\n:::",
+  "neko-document-facts": "::: facts\nTopic\n:   \n\nFor\n:   \n\nDate\n:   \n:::",
+  "neko-document-entry": ":::: entries\n::: entry {num=\"01\" title=\"Section title\" page=\"03\"}\nOne line on the section.\n:::\n::::",
+  "neko-document-stat": ":::: stats\n::: stat {value=\"30TB+\" label=\"Data connected\" ground=\"paper\"}\n:::\n::::",
+  "neko-document-step": ":::: steps\n::: step {num=\"01\" ground=\"ink\"}\nThe first step.\n:::\n::::",
+  "neko-document-quote": "::: quote {by=\"Name · Role\"}\n![Logo](logo.svg)\n\n“What the customer said.”\n:::",
+  "neko-document-mark": "[!mark yes] Yes [!mark part] In part [!mark no] No"
 }

@@ -620,7 +620,7 @@ namespace Neko
         // `--theme <name>`: the presentation theme every deck in this build uses.
         private static Option<string?> ThemeOption() => new Option<string?>("--theme")
         {
-            Description = $"Render every presentation deck in this theme, whatever its front matter says ({string.Join(", ", Neko.Builder.PresentationOptions.BuiltInThemes)})"
+            Description = $"Render every presentation deck in this theme, whatever its front matter says ({string.Join(", ", Neko.Builder.PresentationOptions.BuiltInThemes)}); a paged document takes it too when it has a theme of that name ({string.Join(", ", Neko.Builder.DocumentOptions.BuiltInThemes)})"
         };
 
         // Applies `--theme`. An unknown name is an error rather than a silent
