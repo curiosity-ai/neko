@@ -100,6 +100,61 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void TestEmbed_UrlInParentheses()
+        {
+            var doc = _parser.Parse("[!embed](https://example.com/widget)");
+
+            Assert.That(doc.Html, Contains.Substring("<iframe src=\"https://example.com/widget\""));
+            Assert.That(doc.Html, Contains.Substring("aspect-ratio: 16 / 9;"));
+            Assert.That(doc.Html, Contains.Substring("allowfullscreen"));
+        }
+
+        [Test]
+        public void TestEmbed_RelativeUrlWithHeightAndCaption()
+        {
+            var doc = _parser.Parse("[!embed height=\"1100\" text=\"A report, with a comma\"](/assets/report.html)");
+
+            Assert.That(doc.Html, Contains.Substring("<iframe src=\"/assets/report.html\""));
+            Assert.That(doc.Html, Contains.Substring("height: 1100px;"));
+            Assert.That(doc.Html, Does.Not.Contain("aspect-ratio"));
+            Assert.That(doc.Html, Contains.Substring("<figcaption"));
+            Assert.That(doc.Html, Contains.Substring("A report, with a comma</figcaption>"));
+            Assert.That(doc.Html, Contains.Substring("title=\"A report, with a comma\""));
+        }
+
+        [Test]
+        public void TestEmbed_Attributes()
+        {
+            var doc = _parser.Parse("[!embed aspect=\"4:3\" width=\"300\" allowFullScreen=\"false\"](https://example.com)");
+
+            Assert.That(doc.Html, Contains.Substring("aspect-ratio: 4 / 3;"));
+            Assert.That(doc.Html, Contains.Substring("width: 300px;"));
+            Assert.That(doc.Html, Does.Not.Contain("allowfullscreen"));
+        }
+
+        [Test]
+        public void TestEmbed_Element()
+        {
+            Assert.That(_parser.Parse("[!embed el=\"video\"](/media/clip.mp4)").Html, Contains.Substring("<video src=\"/media/clip.mp4\""));
+            Assert.That(_parser.Parse("[!embed el=\"object\"](/files/doc.pdf)").Html, Contains.Substring("<object data=\"/files/doc.pdf\""));
+            Assert.That(_parser.Parse("[!embed el=\"embed\"](/files/doc.pdf)").Html, Contains.Substring("<embed src=\"/files/doc.pdf\""));
+        }
+
+        [Test]
+        public void TestEmbed_SrcAttributeAndEncoding()
+        {
+            var doc = _parser.Parse("[!embed src=\"https://example.com/?a=1&b=2\"]");
+
+            Assert.That(doc.Html, Contains.Substring("src=\"https://example.com/?a=1&amp;b=2\""));
+        }
+
+        [Test]
+        public void TestEmbed_NoUrlRendersNothing()
+        {
+            Assert.That(_parser.Parse("[!embed]").Html, Does.Not.Contain("<iframe"));
+        }
+
+        [Test]
         public void TestMath()
         {
             var markdown = "$$ E = mc^2 $$";

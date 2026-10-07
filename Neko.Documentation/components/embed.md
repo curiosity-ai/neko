@@ -12,7 +12,7 @@ The embed component syntax is similar to many other Neko components. The `!embed
 [!embed](link)
 ```
 
-The link is the full URL to the embedded resource. For instance, embeding a YouTube or Vimeo video would require the following component syntax:
+The link is the URL of the embedded resource: a full URL, or a path to a file in your own site such as `/assets/report.html` (a self-contained HTML page, for example). `src="…"` is accepted in place of the parentheses. For instance, embedding a YouTube or Vimeo video would require the following component syntax:
 
 ```md
 [!embed](https://www.youtube.com/embed/C0DPdy98e4c)
@@ -94,7 +94,7 @@ The setting accepts a number of keyword values according to the list below, each
 
 ## Height
 
-Specifies a height for the embedded content's area.
+Specifies a height for the embedded content's area. A number is read as pixels; `%`, `em`, `rem`, `vh` and `vw` lengths work too. When a height is set, it is used instead of the aspect ratio.
 
 ```md
 [!embed height="120"](https://www.youtube.com/embed/C0DPdy98e4c)

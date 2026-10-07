@@ -13,7 +13,7 @@
   "neko-columns": "|||\nColumn 1 content\n===\nColumn 2 content\n|||",
   "neko-steps": ">>>\nStep 1 content\n===\nStep 2 content\n>>>",
   "neko-colorchip": "[!colorchip color=\"#ff0000\"]",
-  "neko-embed": "[!embed url=\"\"]",
+  "neko-embed": "[!embed](https://)",
   "neko-file": "[!file path=\"\"]",
   "neko-hero": "[!hero eyebrow=\"\" title=\"\" title-accent=\"\" subtitle=\"\" cta1-text=\"\" cta1-link=\"#\" cta2-text=\"\" cta2-link=\"#\" cta3-text=\"\" cta3-link=\"#\"]",
   "neko-lesson": "[!lesson title=\"\" description=\"\" badge=\"\" prerequisites=\"\" up-next-title=\"\" up-next-summary=\"\" up-next-link=\"#\"]",

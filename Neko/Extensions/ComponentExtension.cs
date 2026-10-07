@@ -1098,15 +1098,90 @@ namespace Neko.Extensions
 
         private void RenderEmbed(HtmlRenderer renderer, ComponentInline obj)
         {
-            var src = obj.GetAttribute("src");
-            var height = obj.GetAttribute("height", "400"); // Default height
+            // The documented form is [!embed](url): the parser stores the parenthesised URL as "link".
+            // src= / url= and a bare positional URL are accepted too.
+            var src = FirstNonEmpty(obj.GetAttribute("link"), obj.GetAttribute("src"), obj.GetAttribute("url"), obj.Arguments.Count > 0 ? obj.Arguments[0] : "");
 
-            if (!string.IsNullOrEmpty(src))
+            if (string.IsNullOrEmpty(src)) return;
+
+            var caption         = obj.GetAttribute("text");
+            var title           = FirstNonEmpty(obj.GetAttribute("title"), caption, "Embedded content");
+            var el              = obj.GetAttribute("el", "iframe").ToLowerInvariant();
+            var allowFullScreen = !string.Equals(obj.GetAttribute("allowfullscreen", "true"), "false", System.StringComparison.OrdinalIgnoreCase);
+            var height          = CssLength(obj.GetAttribute("height"));
+            var width           = CssLength(obj.GetAttribute("width"));
+
+            // An explicit height wins; otherwise the area keeps an aspect ratio (16:9 unless told otherwise).
+            var sizing = height is not null ? $"height: {height};" : $"aspect-ratio: {AspectRatio(obj.GetAttribute("aspect"))};";
+            var box    = width is not null ? $"width: {width}; max-width: 100%;" : "width: 100%;";
+
+            var encodedSrc   = WebUtility.HtmlEncode(src);
+            var encodedTitle = WebUtility.HtmlEncode(title);
+
+            renderer.Write($"<figure class=\"neko-embed my-4\" style=\"{box}\">");
+            renderer.Write($"<div class=\"rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm\" style=\"{sizing}\">");
+
+            switch (el)
             {
-                renderer.Write($"<div class=\"my-4 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm\">");
-                renderer.Write($"<iframe src=\"{src}\" style=\"width: 100%; height: {height}px;\" frameborder=\"0\" allowfullscreen></iframe>");
-                renderer.Write("</div>");
+                case "video":
+                    renderer.Write($"<video src=\"{encodedSrc}\" title=\"{encodedTitle}\" controls style=\"display: block; width: 100%; height: 100%;\"></video>");
+                    break;
+                case "embed":
+                    renderer.Write($"<embed src=\"{encodedSrc}\" title=\"{encodedTitle}\" style=\"display: block; width: 100%; height: 100%;\">");
+                    break;
+                case "object":
+                    renderer.Write($"<object data=\"{encodedSrc}\" title=\"{encodedTitle}\" style=\"display: block; width: 100%; height: 100%;\"></object>");
+                    break;
+                default:
+                    renderer.Write($"<iframe src=\"{encodedSrc}\" title=\"{encodedTitle}\" loading=\"lazy\" frameborder=\"0\"{(allowFullScreen ? " allowfullscreen" : "")} style=\"display: block; width: 100%; height: 100%;\"></iframe>");
+                    break;
             }
+
+            renderer.Write("</div>");
+
+            if (!string.IsNullOrEmpty(caption))
+            {
+                renderer.Write($"<figcaption class=\"mt-2 text-sm text-center text-gray-500 dark:text-gray-400\">{WebUtility.HtmlEncode(caption)}</figcaption>");
+            }
+
+            renderer.Write("</figure>");
+        }
+
+        private static string FirstNonEmpty(params string[] values)
+        {
+            foreach (var value in values)
+            {
+                if (!string.IsNullOrWhiteSpace(value)) return value.Trim();
+            }
+
+            return "";
+        }
+
+        // "600" means pixels; anything else ("50%", "30rem") is passed through as a CSS length.
+        private static string CssLength(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+
+            value = value.Trim();
+
+            if (double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _)) return value + "px";
+
+            return System.Text.RegularExpressions.Regex.IsMatch(value, @"^[0-9.]+(px|%|em|rem|vh|vw)$") ? value : null;
+        }
+
+        private static string AspectRatio(string aspect)
+        {
+            var parts = (aspect ?? "").Split(':');
+
+            if (parts.Length == 2
+             && double.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var w)
+             && double.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var h)
+             && w > 0 && h > 0)
+            {
+                return $"{parts[0].Trim()} / {parts[1].Trim()}";
+            }
+
+            return "16 / 9";
         }
 
         private void RenderFile(HtmlRenderer renderer, ComponentInline obj)
