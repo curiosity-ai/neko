@@ -25,14 +25,16 @@ fullscreen behaviour are all configurable.
 
 | Attribute         | Notes                                                            |
 | ---               | ---                                                              |
-| `aspect`          | `16:9`, `4:3`, `1:1`, …                                          |
-| `width`           | CSS width or px number.                                          |
-| `height`          | CSS height or px number.                                         |
+| `aspect`          | `16:9` (default), `4:3`, `1:1`, `21:9`, or any `w:h`.            |
+| `width`           | A number (px) or a CSS length (`%`, `em`, `rem`, `vh`, `vw`).    |
+| `height`          | Same units as `width`. When set, it replaces the aspect ratio.   |
 | `allowFullScreen` | `true` (default) or `false`.                                     |
-| `el`              | Element type — defaults to `iframe`.                             |
-| `text`            | Optional caption rendered below the frame.                       |
+| `el`              | `iframe` (default), `video`, `embed` or `object`.                |
+| `text`            | Caption rendered below the frame (also the frame's `title`).     |
 
-The URL goes in the parenthesised `()` part, just like a link.
+The URL goes in the parenthesised `()` part, just like a link. It can be a full
+URL or a path to a file in the site (`/assets/report.html`); `src="…"` works in
+place of the parentheses.
 
 ## Examples
 
@@ -40,6 +42,8 @@ The URL goes in the parenthesised `()` part, just like a link.
 [!embed aspect="16:9" text="Product walkthrough"](https://www.youtube.com/embed/dQw4w9WgXcQ)
 
 [!embed aspect="1:1"](https://example.com/widget)
+
+[!embed height="900" text="The report as published"](/assets/content/report.html)
 ```
 
 ## Tips
