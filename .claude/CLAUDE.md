@@ -113,6 +113,36 @@ Always point `--output` at a **temp folder**, never inside the repo. See
 - **Documentation pages must be validated with Playwright** when components
   change. See `AGENTS.md`.
 
+### Update NuGet packages in every session
+
+**Every session should also bring the NuGet packages up to date**, alongside
+whatever else it was asked to do:
+
+1. List what is outdated, per project (the solution-level command does not
+   resolve `Neko.sln` here):
+   ```bash
+   dotnet list Neko/Neko.csproj package --outdated
+   dotnet list Neko.Tests/Neko.Tests.csproj package --outdated
+   ```
+2. Bump the `Version=` attributes in `Neko/Neko.csproj` and
+   `Neko.Tests/Neko.Tests.csproj`.
+3. `dotnet build Neko.sln`, then `dotnet test Neko.Tests`. Watch for new
+   `NU1701` warnings or "doesn't support net10.0" warnings: they mean the new
+   version dropped our target framework. Keep that package on the last
+   version that supports it, and say why in the commit message.
+4. Respect the version-pinning comments in the csproj files (e.g.
+   `Microsoft.CodeAnalysis.CSharp` tracks what `Transpose.Compiler.Library`
+   binds against).
+5. If Playwright is bumped and the matching Chromium build isn't installed,
+   the browser tests skip themselves with "Playwright browser unavailable".
+   Don't count that as a pass. Install the matching browser, or point
+   `PLAYWRIGHT_BROWSERS_PATH` at a folder that has it, and run them again.
+6. Add an "Updated dependencies" `::: change` entry to the current month's
+   changelog (see [Changelog policy](#changelog-policy)), or extend the one
+   that's already there.
+7. Commit the package updates on their own, separate from the session's
+   other changes, so they can be reverted independently.
+
 ### Adding a new component — checklist
 
 - [ ] Markdig extension under `Neko/Extensions/<Name>Extension.cs`
