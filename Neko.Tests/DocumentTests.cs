@@ -187,8 +187,8 @@ namespace Neko.Tests
             Assert.That(html, Does.Contain("data-doc-part=\"foot\""));
             Assert.That(html, Does.Contain("hi@x.io<br>Street 1"));
             Assert.That(html, Does.Contain("data-doc-field=\"page\" data-doc-format=\"zero\">01<"));
-            Assert.That(html, Does.Contain("assets/document-curiosity.css"));
-            Assert.That(html, Does.Not.Contain("fonts.googleapis.com"));
+            Assert.That(html, Does.Contain("[data-doc-theme=\"curiosity\"]"), "the theme stylesheet is inlined");
+            StandaloneMarkup.AssertSelfContained(html);
         }
 
         [Test]

@@ -17,7 +17,7 @@ namespace Neko.Builder
         /// pages. The same sheets are what the Word export reads, so the file matches
         /// what the page shows.
         /// </summary>
-        public string GenerateDocument(ParsedDocument document)
+        public string GenerateDocument(ParsedDocument document, string sourcePath = null)
         {
             var options = document.PagedDocument ?? new DocumentOptions();
             var pages = document.Pages ?? new List<DocumentPage>();
@@ -40,69 +40,76 @@ namespace Neko.Builder
 
             var prefix = (SiteBuilder.CurrentRoutePrefix ?? string.Empty).TrimEnd('/');
 
-            var sb = new StringBuilder();
-            sb.AppendLine("<!DOCTYPE html>");
-            sb.AppendLine($"<html lang=\"en\" class=\"neko-doc-html\" data-doc-theme=\"{EscapeHtmlAttr(options.Theme)}\" data-doc-size=\"{EscapeHtmlAttr(options.IsLetter ? "letter" : "a4")}\">");
-            GenerateDocumentHead(sb, headTitle, headDescription, options, prefix);
-
-            sb.AppendLine("<body class=\"neko-doc-body\">");
-            RenderDocumentBar(sb, options, docTitle, description, document.FrontMatter, prefix);
+            // The body is built first: the head inlines only what the page uses, so it
+            // needs to see the markup (see HtmlGenerator.Standalone).
+            var page = new StringBuilder();
+            page.AppendLine("<body class=\"neko-doc-body\">");
+            RenderDocumentBar(page, options, docTitle, description, document.FrontMatter, prefix);
+            var chrome = InlineLocalMedia(page.ToString(), sourcePath);
+            page.Clear().Append(chrome);
 
             var body = new StringBuilder();
             RenderDocumentPages(body, pages, options);
             body.AppendLine("<script>(function r(n){ if (window.nekoDocInit) { window.nekoDocInit(); } else if (n > 0) { setTimeout(function(){ r(n - 1); }, 50); } })(60);</script>");
+            var bodyHtml = InlineLocalMedia(InlineContentCdnScripts(body.ToString()), sourcePath);
 
             if (isProtected)
             {
-                sb.AppendLine("<div class=\"doc-locked\">");
-                RenderProtectedColumn(sb, body.ToString(), effectivePassword);
-                sb.AppendLine("</div>");
+                page.AppendLine("<div class=\"doc-locked\">");
+                RenderProtectedColumn(page, bodyHtml, effectivePassword, inlineScript: true);
+                page.AppendLine("</div>");
             }
             else
             {
-                sb.Append(body);
+                page.Append(bodyHtml);
             }
 
-            sb.AppendLine($"<script src=\"{prefix}/assets/document.js\"></script>");
+            // What the head inlines depends on the page's own markup, not on the
+            // libraries appended below.
+            var scanHtml = page.ToString();
+
+            // The exporter and the docx library ride along inert, run only when a
+            // reader asks for the .docx.
+            RenderStandaloneRuntime(page, "document.js",
+                options.Download ? new[] { "docx.bundle.js", "document-docx.js" } : new string[0]);
 
             if (_isWatchMode)
             {
-                RenderLiveReloadScript(sb);
+                RenderLiveReloadScript(page);
             }
 
-            sb.AppendLine("</body>");
+            page.AppendLine("</body>");
+
+            var pageHtml = page.ToString();
+            var standalone = AnalyzeStandalonePage(scanHtml, isProtected ? bodyHtml : string.Empty,
+                "document.css", options.ThemeStylesheet);
+
+            var sb = new StringBuilder();
+            sb.AppendLine("<!DOCTYPE html>");
+            sb.AppendLine($"<html lang=\"en\" class=\"neko-doc-html\" data-doc-theme=\"{EscapeHtmlAttr(options.Theme)}\" data-doc-size=\"{EscapeHtmlAttr(options.IsLetter ? "letter" : "a4")}\">");
+            GenerateDocumentHead(sb, headTitle, headDescription, options, standalone, sourcePath);
+            sb.Append(pageHtml);
             sb.AppendLine("</html>");
             return sb.ToString();
         }
 
-        private void GenerateDocumentHead(StringBuilder sb, string title, string description, DocumentOptions options, string prefix)
+        private void GenerateDocumentHead(StringBuilder sb, string title, string description, DocumentOptions options, StandalonePage page, string sourcePath)
         {
             sb.AppendLine("<head>");
-            RenderHeadMeta(sb, title, description);
-            RenderHeadTailwindAndTheme(sb);
+            RenderStandaloneHeadMeta(sb, title, description, sourcePath);
+            RenderHeadTailwindAndTheme(sb, StandaloneTailwindCss(page, "document.js", "password.js"));
             RenderHeadNekoConfig(sb);
 
-            // The typefaces both themes use are bundled with Neko (assets/deckfonts/), so a
-            // document needs no font host and the Word export embeds the very same files.
-            if (options.FontSource != "none")
-            {
-                sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/deckfonts/deck-fonts.css\">");
-            }
+            // The typefaces both themes use are bundled with Neko (Resources/deckfonts/)
+            // and inlined, so a document needs no font host and the Word export embeds
+            // the very same files.
+            RenderStandaloneFonts(sb, page, options.FontSource == "none" ? null : "deckfonts/deck-fonts.css", catalog: true);
 
-            sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/uicons-regular-rounded.css\">");
-            sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/uicons-brands.css\">");
-            sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/emoji.css\">");
-
-            RenderHeadKatex(sb);
-            RenderHeadMermaid(sb);
-            RenderHeadHighlightJs(sb);
+            RenderStandaloneIconsAndEmoji(sb, page);
+            RenderStandaloneContentLibraries(sb, page);
 
             // Loaded last so the sheet palette wins over the documentation chrome's rules above.
-            sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/document.css\">");
-            if (!string.IsNullOrEmpty(options.ThemeStylesheet))
-            {
-                sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/{options.ThemeStylesheet}\">");
-            }
+            RenderStandaloneStylesheets(sb, "document.css", options.ThemeStylesheet);
 
             if (!string.IsNullOrEmpty(_headIncludes))
             {

@@ -79,3 +79,22 @@
 - **Files**: `Neko/Resources/deckfonts/Inter-Regular.ttf` and `Inter-SemiBold.ttf`, the site's woff2 files subset to
   Latin and written as TrueType by `reference/deck-fonts/build-deck-fonts.py`. Used by the neko document theme and
   embedded in its Word exports.
+
+### Standalone deck and document libraries
+Presentation decks and paged documents embed every dependency in their own HTML
+(`Neko/Builder/HtmlGenerator.Standalone.cs`). The files below are vendored for that in
+`Neko/Resources/standalone/`, never copied to a site's `assets/` and never loaded from a
+CDN. Rebuild them with `reference/standalone/build-standalone.py`.
+
+- **KaTeX** 0.16.8 — https://github.com/KaTeX/KaTeX — MIT. `katex.min.js`,
+  `auto-render.min.js`, `katex.min.css` (rewritten to reference only the woff2 faces)
+  and the `KaTeX_*.woff2` fonts.
+- **Mermaid** 10.9.8 — https://github.com/mermaid-js/mermaid — MIT. `mermaid.min.js`.
+- **panzoom** 9.4.0 — https://github.com/anvaka/panzoom — MIT. `panzoom.min.js`.
+- **highlightjs-line-numbers.js** 2.8.0 — https://github.com/wcoder/highlightjs-line-numbers.js — MIT.
+- **leader-line-new** 1.1.9 — https://github.com/anseki/leader-line — MIT. `leader-line.min.js`.
+- **Archivo, Source Serif 4, IBM Plex Mono** — Google Fonts, SIL Open Font License 1.1.
+  Latin and Latin Extended subsets as woff2, with `deck-google-fonts.css`; the
+  `midnight` and `daylight` deck themes' typefaces.
+- **Twemoji** 14.0.2 — https://github.com/twitter/twemoji — graphics CC-BY 4.0.
+  `twemoji.zip` holds the SVGs `emoji.css` references; a page inlines the ones it shows.

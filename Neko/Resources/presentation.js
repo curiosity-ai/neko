@@ -137,6 +137,15 @@
         if (!scriptLoads[name]) {
             scriptLoads[name] = new Promise(function (resolve, reject) {
                 var tag = document.createElement('script');
+                // The page carries the script inline, as an inert block (Neko pages
+                // are self-contained): run it now instead of fetching it.
+                var inline = document.querySelector('script[type="text/x-neko-asset"][data-neko-asset="' + name + '"]');
+                if (inline) {
+                    tag.text = inline.textContent;
+                    document.head.appendChild(tag);
+                    resolve();
+                    return;
+                }
                 tag.src = assetBase + name;
                 tag.async = true;
                 tag.onload = resolve;

@@ -76,8 +76,8 @@ namespace Neko.Tests
             }
 
             var html = File.ReadAllText(Path.Combine(_out, "decks", "templates.html"));
-            Assert.That(html, Does.Contain("assets/deckfonts/deck-fonts.css"));
-            Assert.That(html, Does.Not.Contain("fonts.googleapis.com"), "a curiosity deck needs no font host");
+            Assert.That(html, Does.Contain("/*neko-font:SchibstedGrotesk-Regular.ttf*/"), "the fonts are inlined");
+            StandaloneMarkup.AssertSelfContained(html);
         }
 
         [Test]

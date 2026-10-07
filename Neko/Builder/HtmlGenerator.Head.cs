@@ -65,7 +65,7 @@ namespace Neko.Builder
             if (!string.IsNullOrEmpty(_config.Meta.TwitterCreator)) sb.AppendLine($"    <meta name=\"twitter:creator\" content=\"{_config.Meta.TwitterCreator}\">");
         }
 
-        private void RenderHeadTailwindAndTheme(StringBuilder sb)
+        private void RenderHeadTailwindAndTheme(StringBuilder sb, string inlineTailwindCss = null)
         {
             // Tailwind CSS — a real, cacheable stylesheet generated at build time
             // by the pure-C# TailwindGenerator (no Play CDN, no Node, no binary).
@@ -73,8 +73,17 @@ namespace Neko.Builder
             // dark: utilities don't exist until the CDN script runs in the
             // browser). Each (sub-)site links its OWN tailwind.css under its route
             // prefix so multi-repo projects each get their used-class set + palette.
+            // A standalone page (deck, paged document) carries its own stylesheet,
+            // generated from just its markup — see HtmlGenerator.Standalone.
             var prefix = (SiteBuilder.CurrentRoutePrefix ?? string.Empty).TrimEnd('/');
-            sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/tailwind.css\">");
+            if (inlineTailwindCss != null)
+            {
+                sb.AppendLine("    " + StandaloneAssets.Style(inlineTailwindCss));
+            }
+            else
+            {
+                sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/tailwind.css\">");
+            }
 
             var (primaryTheme, accentTheme) = ThemeDefinitions.ResolvePalettes(_config);
             var themeJson = System.Text.Json.JsonSerializer.Serialize(primaryTheme);
@@ -220,18 +229,37 @@ namespace Neko.Builder
 
         }
 
-        private void RenderHeadKatex(StringBuilder sb)
+        private void RenderHeadKatex(StringBuilder sb, bool inline = false)
         {
-            sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css\">");
-            sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js\"></script>");
-            sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js\"></script>");
+            if (inline)
+            {
+                // The vendored copies (Resources/standalone/), with the fonts as data URIs.
+                // Inline scripts can't be deferred, so render once the DOM is parsed.
+                sb.AppendLine("    " + StandaloneAssets.Style(StandaloneAssets.InlinedCss("standalone/katex.min.css")));
+                sb.AppendLine("    " + StandaloneAssets.Script(StandaloneAssets.Text("standalone/katex.min.js")));
+                sb.AppendLine("    " + StandaloneAssets.Script(StandaloneAssets.Text("standalone/auto-render.min.js")));
+            }
+            else
+            {
+                sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css\">");
+                sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js\"></script>");
+                sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js\"></script>");
+            }
             sb.AppendLine("    <script>document.addEventListener(\"DOMContentLoaded\", function() { renderMathInElement(document.body); });</script>");
         }
 
-        private void RenderHeadMermaid(StringBuilder sb)
+        private void RenderHeadMermaid(StringBuilder sb, bool inline = false)
         {
-            sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>");
-            sb.AppendLine("    <script src=\"https://unpkg.com/panzoom@9.4.0/dist/panzoom.min.js\"></script>");
+            if (inline)
+            {
+                sb.AppendLine("    " + StandaloneAssets.Script(StandaloneAssets.Text("standalone/mermaid.min.js")));
+                sb.AppendLine("    " + StandaloneAssets.Script(StandaloneAssets.Text("standalone/panzoom.min.js")));
+            }
+            else
+            {
+                sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>");
+                sb.AppendLine("    <script src=\"https://unpkg.com/panzoom@9.4.0/dist/panzoom.min.js\"></script>");
+            }
             sb.AppendLine("    <script>");
             sb.AppendLine("        mermaid.initialize({ startOnLoad: false });");
             sb.AppendLine("        ");
@@ -444,13 +472,33 @@ namespace Neko.Builder
             sb.AppendLine($"    <script defer src=\"{prefix}/assets/icons.js\"></script>");
         }
 
-        private void RenderHeadHighlightJs(StringBuilder sb)
+        /// <param name="inline">
+        /// Inline the theme and, when <paramref name="includeScripts"/> is set, the
+        /// highlighter itself — for a standalone page (deck, paged document).
+        /// </param>
+        private void RenderHeadHighlightJs(StringBuilder sb, bool inline = false, bool includeScripts = true)
         {
             var prefix = (SiteBuilder.CurrentRoutePrefix ?? string.Empty).TrimEnd('/');
             var darkTheme = _config.Theme.Highlight.Dark;
-            sb.AppendLine($"    <link id=\"highlight-theme\" rel=\"stylesheet\" href=\"{prefix}/assets/highlight/{darkTheme}.min.css\">");
-            sb.AppendLine($"    <script src=\"{prefix}/assets/highlight/highlight.min.js\"></script>");
-            sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js\"></script>");
+            if (inline)
+            {
+                var themePath = $"highlight/{darkTheme}.min.css";
+                if (StandaloneAssets.Exists(themePath))
+                {
+                    sb.AppendLine("    " + StandaloneAssets.Style(StandaloneAssets.Text(themePath), "highlight-theme"));
+                }
+                if (includeScripts)
+                {
+                    sb.AppendLine("    " + StandaloneAssets.Script(StandaloneAssets.Text("highlight/highlight.min.js")));
+                    sb.AppendLine("    " + StandaloneAssets.Script(StandaloneAssets.Text("standalone/highlightjs-line-numbers.min.js")));
+                }
+            }
+            else
+            {
+                sb.AppendLine($"    <link id=\"highlight-theme\" rel=\"stylesheet\" href=\"{prefix}/assets/highlight/{darkTheme}.min.css\">");
+                sb.AppendLine($"    <script src=\"{prefix}/assets/highlight/highlight.min.js\"></script>");
+                sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js\"></script>");
+            }
             sb.AppendLine("    <style>");
             sb.AppendLine("        /* Inline code (Tailwind Typography overrides) */");
             sb.AppendLine("        /* Remove the backtick quotes that prose adds via ::before/::after */");

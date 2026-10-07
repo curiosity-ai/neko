@@ -115,6 +115,36 @@ presentation:
 # Hidden until unlocked
 ");
 
+            File.WriteAllText(Path.Combine(inputDir, "decks", "offline.md"), @"---
+title: Everything inline
+presentation:
+  logo: /assets/logo.png
+---
+
+# Everything inline :rocket:
+
+---
+
+## A diagram
+
+```mermaid
+graph LR
+  A --> B
+```
+
+---
+
+## Math and code
+
+$$
+\int_0^1 x^2 \, dx = \frac{1}{3}
+$$
+
+```csharp
+var x = 1;
+```
+");
+
             _outDir = Path.Combine(Path.GetTempPath(), "neko-deck-pw-out-" + Guid.NewGuid().ToString("N"));
             new SiteBuilder(inputDir, _outDir).BuildAsync().GetAwaiter().GetResult();
         }
@@ -386,6 +416,53 @@ presentation:
         }
 
         [Test]
+        public async Task Deck_OpensAsASingleFile_WithTheNetworkOff()
+        {
+            // The deck alone, away from the site: no assets folder, no CDN, no font host.
+            var lone = Path.Combine(Path.GetTempPath(), "neko-deck-lone-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(lone);
+            var file = Path.Combine(lone, "offline.html");
+            File.Copy(Path.Combine(_outDir, "decks", "offline.html"), file);
+
+            var (pw, browser) = await LaunchAsync();
+            try
+            {
+                var context = await browser.NewContextAsync(new() { ViewportSize = new() { Width = 1280, Height = 800 } });
+                var requested = new System.Collections.Generic.List<string>();
+                await context.RouteAsync("**/*", route =>
+                {
+                    var url = route.Request.Url;
+                    if (url.StartsWith("file:") || url.StartsWith("data:") || url.StartsWith("blob:")) return route.ContinueAsync();
+                    requested.Add(url);
+                    return route.AbortAsync();
+                });
+                var page = await context.NewPageAsync();
+                var errors = new System.Collections.Generic.List<string>();
+                page.PageError += (_, e) => errors.Add(e);
+
+                await page.GotoAsync(new Uri(file).AbsoluteUri);
+                await page.WaitForSelectorAsync(".mermaid svg", new() { State = WaitForSelectorState.Attached, Timeout = 15000 });
+
+                Assert.That(requested, Is.Empty, "the deck requests nothing");
+                Assert.That(errors, Is.Empty);
+                Assert.That(await page.Locator(".katex").CountAsync(), Is.GreaterThan(0), "KaTeX is inlined");
+                var state = await page.EvaluateAsync<string>(@"async () => {
+                    await document.fonts.ready;
+                    const loaded = f => [...document.fonts].some(x => x.family.replace(/""/g, '') === f && x.status === 'loaded');
+                    const emoji = getComputedStyle(document.querySelector('.em')).backgroundImage;
+                    const logo = document.querySelector('.deck-brand img');
+                    return [loaded('Archivo'), loaded('uicons-regular-rounded'), emoji.startsWith('url(""data:image/svg+xml'), logo.naturalWidth > 0].join(',');
+                }");
+                Assert.That(state, Is.EqualTo("true,true,true,true"), "theme font, icon font, emoji and logo all load from the file");
+            }
+            finally
+            {
+                await CloseAsync(pw, browser);
+                try { Directory.Delete(lone, true); } catch { }
+            }
+        }
+
+        [Test]
         public async Task DownloadButton_ExportsTheDeckAsAnEditablePptx()
         {
             Assert.That(File.Exists(Path.Combine(_outDir, "assets", "pptxgen.bundle.js")), Is.True,
@@ -404,7 +481,9 @@ presentation:
                 page.Request += (_, request) => { if (request.ResourceType == "script") scripts.Add(request.Url); };
 
                 await page.GotoAsync($"{baseUrl}/decks/talk", new() { WaitUntil = WaitUntilState.NetworkIdle });
-                Assert.That(scripts.Exists(u => u.Contains("pptxgen")), Is.False, "PptxGenJS is only fetched on demand");
+                Assert.That(scripts, Is.Empty, "the deck is self-contained: every script is inline");
+                Assert.That(await page.EvaluateAsync<bool>("() => typeof window.nekoDeckExportPptx === 'undefined'"), Is.True,
+                    "the exporter only runs on demand");
 
                 // Export from the middle of the deck: every slide is exported, not
                 // just the one on screen, and the reader is left where they were.
@@ -413,8 +492,7 @@ presentation:
 
                 var download = await page.RunAndWaitForDownloadAsync(() => page.ClickAsync("#deck-download"), new() { Timeout = 60000 });
                 Assert.That(download.SuggestedFilename, Is.EqualTo("the-talk.pptx"));
-                Assert.That(scripts.Exists(u => u.StartsWith(baseUrl) && u.EndsWith("/assets/pptxgen.bundle.js")), Is.True,
-                    "the bundle is served from the site's own assets, not a CDN");
+                Assert.That(scripts, Is.Empty, "the bundle and exporter are inlined in the deck, not fetched");
 
                 var path = Path.Combine(Path.GetTempPath(), "neko-deck-" + Guid.NewGuid().ToString("N") + ".pptx");
                 await download.SaveAsAsync(path);

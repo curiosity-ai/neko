@@ -35,11 +35,6 @@ namespace Neko.Builder
         /// <summary>The extra stylesheet a theme adds on top of presentation.css, if any.</summary>
         public string ThemeStylesheet => string.Equals(Theme, "curiosity", StringComparison.OrdinalIgnoreCase) ? "presentation-curiosity.css" : null;
 
-        /// <summary>The Google Fonts query for the theme's typefaces.</summary>
-        public string ThemeFontsQuery => string.Equals(Theme, "curiosity", StringComparison.OrdinalIgnoreCase)
-            ? "family=Schibsted+Grotesk:wght@400..900&family=Geist+Mono:wght@400;500"
-            : "family=Archivo:wght@500;600;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500";
-
         /// <summary>Accent used by slides that don't set their own. One of cyan/amber/rose/leaf.</summary>
         public string Accent { get; set; } = "cyan";
 
@@ -65,11 +60,12 @@ namespace Neko.Builder
         public bool Gauge { get; set; } = true;
 
         /// <summary>
-        /// Typeface source. <c>bundled</c> loads the fonts Neko ships for the theme
-        /// (<c>assets/deckfonts/</c>) and is the default for a theme that has them
-        /// (curiosity); <c>google</c> pulls the typefaces from Google Fonts and is the
-        /// default for the others; <c>none</c> emits no font link and falls back to the
-        /// local stacks.
+        /// Typeface source. Every theme's fonts ship with Neko and are inlined into the
+        /// deck: <c>bundled</c> (the default for curiosity, whose TrueType files the
+        /// PowerPoint export embeds) and <c>google</c> (the default for the others, whose
+        /// Google Fonts files are vendored in <c>Resources/standalone/</c>) both mean
+        /// that — a deck never calls a font host. <c>none</c> inlines no fonts and falls
+        /// back to the local stacks.
         /// </summary>
         public string Fonts { get; set; }
 
