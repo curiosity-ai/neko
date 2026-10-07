@@ -1,0 +1,53 @@
+{
+ "Geist Mono": {
+  "400": {
+   "file": "GeistMono-Regular.ttf",
+   "slot": "regular",
+   "typeface": "Geist Mono"
+  },
+  "500": {
+   "file": "GeistMono-Medium.ttf",
+   "slot": "regular",
+   "typeface": "Geist Mono Medium"
+  },
+  "700": {
+   "file": "GeistMono-Bold.ttf",
+   "slot": "bold",
+   "typeface": "Geist Mono"
+  }
+ },
+ "Inter": {
+  "400": {
+   "file": "Inter-Regular.ttf",
+   "slot": "regular",
+   "typeface": "Inter"
+  },
+  "600": {
+   "file": "Inter-SemiBold.ttf",
+   "slot": "regular",
+   "typeface": "Inter SemiBold"
+  }
+ },
+ "Schibsted Grotesk": {
+  "400": {
+   "file": "SchibstedGrotesk-Regular.ttf",
+   "slot": "regular",
+   "typeface": "Schibsted Grotesk"
+  },
+  "500": {
+   "file": "SchibstedGrotesk-Medium.ttf",
+   "slot": "regular",
+   "typeface": "Schibsted Grotesk Medium"
+  },
+  "600": {
+   "file": "SchibstedGrotesk-SemiBold.ttf",
+   "slot": "regular",
+   "typeface": "Schibsted Grotesk SemiBold"
+  },
+  "700": {
+   "file": "SchibstedGrotesk-Bold.ttf",
+   "slot": "bold",
+   "typeface": "Schibsted Grotesk"
+  }
+ }
+}
