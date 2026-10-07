@@ -54,7 +54,7 @@ page, which is handy while a deck is still a draft.
 | `gauge` | `true` | The vertical slide gauge pinned to the left edge. |
 | `counter` | `true` | The `3 / 14` counter in the control bar. |
 | `download` | `true` | The **pptx** control in the control bar, which downloads the deck as a PowerPoint file. See below. |
-| `fonts` | theme's | Where the typefaces come from. `bundled` loads the fonts Neko ships for the theme from the site's own `assets/deckfonts/` (the default for `curiosity`); `google` links Google Fonts (the default for `midnight` and `daylight`); `none` links nothing and falls back to local stacks. |
+| `fonts` | theme's | Whether the deck carries its typefaces. Every theme's fonts ship with Neko and are embedded in the deck's own HTML (`curiosity`: *Schibsted Grotesk* and *Geist Mono*; `midnight` and `daylight`: *Archivo*, *Source Serif 4* and *IBM Plex Mono*, vendored from Google Fonts), so no font host is called; `bundled` and `google` both mean that. `none` embeds nothing and falls back to local stacks. |
 | `ratio` | `16:9` | The aspect ratio the deck is designed for; read by `[!deck]` previews. |
 | `logo` | — | Image for the brand mark in the bottom-right corner. See below. |
 | `logoText` | — | Text beside the logo. Works on its own, with no image. |
@@ -95,6 +95,22 @@ The mark is page furniture rather than content, so on a
 [password-protected deck](/presentations/protecting-a-deck.md) it renders
 alongside the unlock prompt instead of being encrypted with the slides.
 
+### One self-contained file
+
+A deck is a **single HTML file with no external dependencies**. Everything it
+needs is embedded in the page itself: its stylesheet and Tailwind utilities, the
+theme's fonts, the icons and emoji it shows, KaTeX and Mermaid when a slide has
+math or a diagram, highlight.js, the deck runtime, and the PowerPoint exporter
+with PptxGenJS. Local images (the logo, the favicon, pictures on a slide) are
+inlined as data URIs too. Nothing is loaded from a CDN, a font host, or the
+site's `assets/` folder, so the file can be saved, mailed, or opened offline and
+still present — and export — exactly as it does on the site.
+
+Only what the deck uses is included: icons and emoji are cut down to the ones on
+its slides, and KaTeX (≈ 0.7 MB) and Mermaid (≈ 3.3 MB) only come along when
+the deck has math or a diagram. A typical deck is about 3 MB before its images. Links to other pages
+(the back control, a link on a slide) and remote images (`https://…`) stay links.
+
 ### Downloading as PowerPoint
 
 Every deck carries a **pptx** button in its control bar. Clicking it builds a
@@ -108,9 +124,9 @@ slide is laid out at 16:9 by the deck's own stylesheet and every element is
 placed where it lands on screen, so the export matches the deck as presented.
 
 The exporter uses [PptxGenJS](https://github.com/gitbrent/PptxGenJS), which
-Neko ships in its own `assets/` folder — nothing is fetched from a CDN, and
-neither the library nor the exporter is downloaded until someone clicks the
-button. On a [password-protected deck](/presentations/protecting-a-deck.md) the
+ships with Neko and is embedded in the deck — nothing is fetched from a CDN.
+The library and the exporter ride along as inert script blocks and only run
+when someone clicks the button. On a [password-protected deck](/presentations/protecting-a-deck.md) the
 button is part of the encrypted payload, so it only appears once the deck is
 unlocked.
 
@@ -119,9 +135,9 @@ Neko ships (`curiosity`: *Schibsted Grotesk* and *Geist Mono*) the fonts are
 **embedded in the file**, as Embedded OpenType in `ppt/fonts/`, so the deck
 looks the same on a machine that has never installed them. A weight PowerPoint
 has no flag for is written as its own family, the way the static font names
-itself: headlines at 500 are *Schibsted Grotesk Medium*. With the Google Fonts
+itself: headlines at 500 are *Schibsted Grotesk Medium*. With the web fonts
 of `midnight` and `daylight` (*Archivo*, *Source Serif 4*, *IBM Plex Mono*)
-nothing is embedded and PowerPoint substitutes a similar face where they are
+nothing is embedded in the `.pptx` and PowerPoint substitutes a similar face where they are
 not installed.
 
 What the stylesheet draws comes along too. Generated content (`::before` and

@@ -83,7 +83,8 @@ namespace Neko.Builder
             return string.IsNullOrEmpty(_config.Password) ? null : _config.Password;
         }
 
-        private void RenderProtectedColumn(StringBuilder sb, string innerHtml, string effectivePassword)
+        /// <param name="inlineScript">Inline password.js instead of linking it — for a standalone page.</param>
+        private void RenderProtectedColumn(StringBuilder sb, string innerHtml, string effectivePassword, bool inlineScript = false)
         {
             // Harvest the utility classes from the plaintext before it is
             // encrypted. Only the encrypted blob is written to disk, so the
@@ -153,6 +154,11 @@ namespace Neko.Builder
                 data = encryptionResult.Data
             });
             sb.AppendLine($"<script type=\"application/json\" id=\"encrypted-data\">{payload}</script>");
+            if (inlineScript)
+            {
+                sb.AppendLine(StandaloneAssets.Script(StandaloneAssets.Text("password.js")));
+                return;
+            }
             var passwordJsPrefix = (SiteBuilder.CurrentRoutePrefix ?? string.Empty).TrimEnd('/');
             sb.AppendLine($"<script src=\"{passwordJsPrefix}/assets/password.js\"></script>");
         }

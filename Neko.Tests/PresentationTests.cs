@@ -167,8 +167,10 @@ namespace Neko.Tests
             var html = new HtmlGenerator(config).GeneratePresentation(doc);
 
             Assert.That(html, Does.Contain("neko-deck-html"));
-            Assert.That(html, Does.Contain("/assets/presentation.css"));
-            Assert.That(html, Does.Contain("/assets/presentation.js"));
+            // One self-contained file: the deck's stylesheet and runtime are inlined.
+            StandaloneMarkup.AssertSelfContained(html);
+            Assert.That(html, Does.Contain("window.nekoDeckInit = init"));
+            Assert.That(html, Does.Contain(".neko-deck-body"));
             Assert.That(html, Does.Contain("<title>My deck</title>"));
 
             Assert.That(html, Does.Contain("id=\"slide-1\""));
@@ -209,9 +211,10 @@ namespace Neko.Tests
             Assert.That(html, Does.Contain("id=\"deck-download\""));
             Assert.That(html, Does.Contain("data-deck-file=\"the-similarity-engine-end-to-end.pptx\""));
             Assert.That(html, Does.Contain("data-deck-title=\"The Similarity Engine, End to End\""));
-            // The exporter and PptxGenJS are fetched on click, never up front.
-            Assert.That(html, Does.Not.Contain("pptxgen.bundle.js"));
-            Assert.That(html, Does.Not.Contain("presentation-pptx.js"));
+            // The exporter and PptxGenJS ride along inert and only run on click.
+            Assert.That(html, Does.Contain("<script type=\"text/x-neko-asset\" data-neko-asset=\"pptxgen.bundle.js\">"));
+            Assert.That(html, Does.Contain("<script type=\"text/x-neko-asset\" data-neko-asset=\"presentation-pptx.js\">"));
+            StandaloneMarkup.AssertSelfContained(html);
         }
 
         [TestCase("download: false")]
@@ -222,7 +225,8 @@ namespace Neko.Tests
             var html = new HtmlGenerator(new NekoConfig()).GeneratePresentation(doc);
 
             Assert.That(doc.Presentation!.Download, Is.False);
-            Assert.That(html, Does.Not.Contain("deck-download"));
+            Assert.That(StandaloneMarkup.Of(html), Does.Not.Contain("deck-download"));
+            Assert.That(html, Does.Not.Contain("data-neko-asset=\"pptxgen.bundle.js\""), "no download, no exporter");
         }
 
         [Test]
@@ -231,7 +235,7 @@ namespace Neko.Tests
             var doc = NewParser().Parse("---\ntitle: Secret deck\npassword: hunter2\npresentation: true\n---\n\n# Secret\n");
             var html = new HtmlGenerator(new NekoConfig()).GeneratePresentation(doc);
 
-            Assert.That(html, Does.Not.Contain("deck-download"), "the button (and the title it carries) ships encrypted");
+            Assert.That(StandaloneMarkup.Of(html), Does.Not.Contain("deck-download"), "the button (and the title it carries) ships encrypted");
             Assert.That(html, Does.Not.Contain("secret-deck.pptx"));
         }
 
@@ -283,7 +287,7 @@ namespace Neko.Tests
                 NewParser().Parse("---\npresentation:\n  logo: /assets/logo.png\n---\n\n# One\n"));
             Assert.That(logoOnly, Does.Contain("src=\"/assets/logo.png\""));
             Assert.That(logoOnly, Does.Contain("alt=\"Demo\""), "with no wordmark the logo carries the alt text");
-            Assert.That(logoOnly, Does.Not.Contain("deck-brand-text"));
+            Assert.That(StandaloneMarkup.Of(logoOnly), Does.Not.Contain("deck-brand-text"));
         }
 
         [Test]
@@ -292,8 +296,8 @@ namespace Neko.Tests
             var html = new HtmlGenerator(new NekoConfig()).GeneratePresentation(
                 NewParser().Parse("---\npresentation: true\n---\n\n# One\n"));
 
-            Assert.That(html, Does.Not.Contain("deck-brand"));
-            Assert.That(html, Does.Not.Contain("data-deck-brand"));
+            Assert.That(StandaloneMarkup.Of(html), Does.Not.Contain("deck-brand"));
+            Assert.That(StandaloneMarkup.Of(html), Does.Not.Contain("data-deck-brand"));
         }
 
         [Test]

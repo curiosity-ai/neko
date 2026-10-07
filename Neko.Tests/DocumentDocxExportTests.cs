@@ -86,7 +86,8 @@ namespace Neko.Tests
                 Assert.That(File.ReadAllBytes(Path.Combine(fonts, file)).Take(4), Is.EqualTo(new byte[] { 0, 1, 0, 0 }), file + " is TrueType");
             }
             var html = File.ReadAllText(Path.Combine(_out, "docs", "paper.html"));
-            Assert.That(html, Does.Contain("assets/deckfonts/deck-fonts.css"));
+            Assert.That(html, Does.Contain("/*neko-font:Inter-Regular.ttf*/"), "the fonts are inlined");
+            StandaloneMarkup.AssertSelfContained(html);
         }
 
         [Test]

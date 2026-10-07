@@ -14,7 +14,7 @@ namespace Neko.Builder
         /// Password protection works exactly as on an ordinary page: the slides are
         /// encrypted into <c>#content-container</c> and password.js unlocks them.
         /// </summary>
-        public string GeneratePresentation(ParsedDocument document)
+        public string GeneratePresentation(ParsedDocument document, string sourcePath = null)
         {
             var options = document.Presentation ?? new PresentationOptions();
             var slides = document.Slides ?? new List<PresentationSlide>();
@@ -38,29 +38,29 @@ namespace Neko.Builder
 
             var prefix = (SiteBuilder.CurrentRoutePrefix ?? string.Empty).TrimEnd('/');
 
-            var sb = new StringBuilder();
-            sb.AppendLine("<!DOCTYPE html>");
-            sb.AppendLine($"<html lang=\"en\" class=\"neko-deck-html\" data-deck-theme=\"{EscapeHtmlAttr(options.Theme)}\">");
-            GeneratePresentationHead(sb, headTitle, headDescription, options, prefix);
-
+            // The body is built first: the head inlines only what the page uses, so it
+            // needs to see the markup (see HtmlGenerator.Standalone).
+            var page = new StringBuilder();
             var brandAttr = options.HasBrand ? " data-deck-brand=\"true\"" : string.Empty;
-            sb.AppendLine($"<body class=\"neko-deck-body\" data-deck-accent=\"{EscapeHtmlAttr(options.Accent)}\"{brandAttr}>");
+            page.AppendLine($"<body class=\"neko-deck-body\" data-deck-accent=\"{EscapeHtmlAttr(options.Accent)}\"{brandAttr}>");
 
             if (options.Grid)
             {
-                sb.AppendLine("<div class=\"deck-grid\" aria-hidden=\"true\"></div>");
+                page.AppendLine("<div class=\"deck-grid\" aria-hidden=\"true\"></div>");
             }
             if (options.Progress)
             {
-                sb.AppendLine("<div class=\"deck-track\" id=\"deck-track\"></div>");
+                page.AppendLine("<div class=\"deck-track\" id=\"deck-track\"></div>");
             }
             if (options.Gauge)
             {
-                sb.AppendLine("<nav class=\"deck-gauge\" id=\"deck-gauge\" aria-hidden=\"true\"></nav>");
+                page.AppendLine("<nav class=\"deck-gauge\" id=\"deck-gauge\" aria-hidden=\"true\"></nav>");
             }
 
-            RenderDeckBackButton(sb, options, prefix);
-            RenderDeckBrand(sb, options);
+            RenderDeckBackButton(page, options, prefix);
+            RenderDeckBrand(page, options);
+            var chrome = InlineLocalMedia(page.ToString(), sourcePath);
+            page.Clear().Append(chrome);
 
             var body = new StringBuilder();
             RenderSlides(body, slides, options);
@@ -70,71 +70,83 @@ namespace Neko.Builder
             // deck is decrypted; on a public page presentation.js has already wired
             // itself up and the call is a cheap no-op re-init.
             body.AppendLine("<script>(function r(n){ if (window.nekoDeckInit) { window.nekoDeckInit(); } else if (n > 0) { setTimeout(function(){ r(n - 1); }, 50); } })(60);</script>");
+            var bodyHtml = InlineLocalMedia(InlineContentCdnScripts(body.ToString()), sourcePath);
 
             if (isProtected)
             {
-                sb.AppendLine("<div class=\"deck-locked\">");
-                RenderProtectedColumn(sb, body.ToString(), effectivePassword);
-                sb.AppendLine("</div>");
+                page.AppendLine("<div class=\"deck-locked\">");
+                RenderProtectedColumn(page, bodyHtml, effectivePassword, inlineScript: true);
+                page.AppendLine("</div>");
             }
             else
             {
-                sb.Append(body);
+                page.Append(bodyHtml);
             }
 
-            sb.AppendLine($"<script src=\"{prefix}/assets/presentation.js\"></script>");
+            // What the head inlines depends on the page's own markup, not on the
+            // libraries appended below.
+            var scanHtml = page.ToString();
+
+            // The exporter and PptxGenJS ride along inert, run only when a reader asks
+            // for the .pptx.
+            RenderStandaloneRuntime(page, "presentation.js",
+                options.Download ? new[] { "pptxgen.bundle.js", "presentation-pptx.js" } : new string[0]);
 
             if (_isWatchMode)
             {
-                RenderLiveReloadScript(sb);
+                RenderLiveReloadScript(page);
             }
 
-            sb.AppendLine("</body>");
+            page.AppendLine("</body>");
+
+            var pageHtml = page.ToString();
+            var standalone = AnalyzeStandalonePage(scanHtml, isProtected ? bodyHtml : string.Empty,
+                "presentation.css", options.ThemeStylesheet);
+
+            var sb = new StringBuilder();
+            sb.AppendLine("<!DOCTYPE html>");
+            sb.AppendLine($"<html lang=\"en\" class=\"neko-deck-html\" data-deck-theme=\"{EscapeHtmlAttr(options.Theme)}\">");
+            GeneratePresentationHead(sb, headTitle, headDescription, options, standalone, sourcePath);
+            sb.Append(pageHtml);
             sb.AppendLine("</html>");
             return sb.ToString();
         }
 
-        private void GeneratePresentationHead(StringBuilder sb, string title, string description, PresentationOptions options, string prefix)
+        private void GeneratePresentationHead(StringBuilder sb, string title, string description, PresentationOptions options, StandalonePage page, string sourcePath)
         {
             sb.AppendLine("<head>");
-            RenderHeadMeta(sb, title, description);
-            RenderHeadTailwindAndTheme(sb);
+            RenderStandaloneHeadMeta(sb, title, description, sourcePath);
+            RenderHeadTailwindAndTheme(sb, StandaloneTailwindCss(page, "presentation.js", "password.js"));
             RenderHeadNekoConfig(sb);
 
-            // The theme's typefaces. midnight and daylight use a trio — a geometric
-            // display face, a reading serif and a mono for labels, pulled from Google
-            // Fonts; curiosity uses the Curiosity brand's two (Schibsted Grotesk and
-            // Geist Mono), which Neko ships (assets/deckfonts/), so the deck needs no
-            // font host and the PowerPoint export can embed the same files. `fonts:
-            // google` or `fonts: none` in the deck options overrides the source.
+            // The theme's typefaces, inlined. midnight and daylight use a trio — a
+            // geometric display face, a reading serif and a mono for labels, vendored
+            // from Google Fonts (Resources/standalone/); curiosity uses the Curiosity
+            // brand's two (Schibsted Grotesk and Geist Mono), which Neko ships
+            // (Resources/deckfonts/) as TrueType so the PowerPoint export can embed the
+            // same files. `fonts: none` in the deck options falls back to the local
+            // stacks; `fonts: google` is the vendored copy, as no font host is used.
             var fontSource = options.FontSource;
-            if (fontSource == "bundled" && options.ThemeHasBundledFonts)
+            if (fontSource == "none")
             {
-                sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/deckfonts/deck-fonts.css\">");
+                RenderStandaloneFonts(sb, page, null, catalog: false);
             }
-            else if (fontSource != "none")
+            else if (options.ThemeHasBundledFonts)
             {
-                sb.AppendLine("    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">");
-                sb.AppendLine("    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>");
-                sb.AppendLine($"    <link href=\"https://fonts.googleapis.com/css2?{options.ThemeFontsQuery}&display=swap\" rel=\"stylesheet\">");
+                RenderStandaloneFonts(sb, page, "deckfonts/deck-fonts.css", catalog: true);
+            }
+            else
+            {
+                RenderStandaloneFonts(sb, page, "standalone/deck-google-fonts.css", catalog: false);
             }
 
-            sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/uicons-regular-rounded.css\">");
-            sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/uicons-brands.css\">");
-            sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/emoji.css\">");
-
-            RenderHeadKatex(sb);
-            RenderHeadMermaid(sb);
-            RenderHeadHighlightJs(sb);
+            RenderStandaloneIconsAndEmoji(sb, page);
+            RenderStandaloneContentLibraries(sb, page);
 
             // Loaded last so the deck palette wins over the documentation chrome's
-            // background rules emitted above.
-            sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/presentation.css\">");
-            // A theme with a look of its own layers its stylesheet on top.
-            if (!string.IsNullOrEmpty(options.ThemeStylesheet))
-            {
-                sb.AppendLine($"    <link rel=\"stylesheet\" href=\"{prefix}/assets/{options.ThemeStylesheet}\">");
-            }
+            // background rules emitted above; a theme with a look of its own layers its
+            // stylesheet on top.
+            RenderStandaloneStylesheets(sb, "presentation.css", options.ThemeStylesheet);
 
             if (!string.IsNullOrEmpty(_headIncludes))
             {

@@ -1288,6 +1288,18 @@
         }).then(function (catalog) { fontCatalog = catalog || {}; }, function () { fontCatalog = {}; });
     }
 
+    // A Neko deck or document carries its fonts inline: each @font-face in
+    // <style id="neko-deck-fonts"> is a data URI, tagged with the file it came from.
+    function inlineFontUrl(file) {
+        var style = document.getElementById('neko-deck-fonts');
+        if (!style) return null;
+        var re = /\/\*neko-font:([^*]+)\*\/@font-face\{[^}]*?url\("?(data:[^")]+)"?\)/g, m;
+        while ((m = re.exec(style.textContent))) {
+            if (m[1] === file) return m[2];
+        }
+        return null;
+    }
+
     function fontBytes(base, file) {
         var inline = window.nekoDeckFonts && window.nekoDeckFonts.files && window.nekoDeckFonts.files[file];
         if (inline) {
@@ -1295,7 +1307,7 @@
             for (var i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
             return Promise.resolve(out);
         }
-        return fetch(base + file).then(function (res) {
+        return fetch(inlineFontUrl(file) || base + file).then(function (res) {
             if (!res.ok) throw new Error('HTTP ' + res.status);
             return res.arrayBuffer();
         }).then(function (buffer) { return new Uint8Array(buffer); });

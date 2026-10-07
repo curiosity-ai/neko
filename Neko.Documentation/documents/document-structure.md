@@ -45,7 +45,7 @@ A file that also says `presentation:` is a deck.
 | `running` | — | The running head printed at the top of every page that doesn't set its own. |
 | `numbers` | `true` | Print the page number in the foot. |
 | `download` | `true` | The **docx** control in the bar. `docx` is an alias. |
-| `fonts` | bundled | `none` links no fonts and falls back to local stacks. The fonts Neko ships are loaded from the site's own `assets/deckfonts/`. |
+| `fonts` | bundled | The fonts Neko ships are embedded in the document's own HTML. `none` embeds no fonts and falls back to local stacks. |
 | `back`, `backText` | referrer | Where the back control goes and what it says. |
 | `logo`, `logoText` | site title | The brand mark in the foot of the `neko` theme. |
 | `author`, `company` | — | Written to the Word file's properties. |
@@ -82,6 +82,17 @@ breaks it onto more pages and repeats the header and footer.
 | `number` | The big numeral of a section opener. |
 | `id`, `class` | The sheet's element id, and extra classes for site CSS. |
 
+## One self-contained file
+
+A document is a **single HTML file with no external dependencies**: its
+stylesheets, fonts, icons, emoji, KaTeX and Mermaid (only when a page has math or
+a diagram), highlight.js, the document runtime and the Word exporter are all
+embedded in the page, and local images (the logo, figures, a customer logo drawn
+through a mask) are inlined as data URIs. Nothing is loaded from a CDN, a font
+host or the site's `assets/` folder, so the file can be saved, mailed or opened
+offline and still renders — and downloads as `.docx` — the same. Links to other
+pages and remote images (`https://…`) stay links.
+
 ## Downloading as Word
 
 Every document carries a **docx** button in its bar. Clicking it builds the file
@@ -110,9 +121,10 @@ page:
   family, as in the pptx export: a heading at 500 is *Schibsted Grotesk Medium*,
   at 600 *Inter SemiBold*. Bold is set in the heaviest embedded instance.
 
-The exporter uses [docx](https://github.com/dolanmiu/docx), which Neko ships in
-its own `assets/` folder — nothing is fetched from a CDN, and neither the library
-nor the exporter is downloaded until someone clicks the button. On a
+The exporter uses [docx](https://github.com/dolanmiu/docx), which ships with
+Neko and is embedded in the document — nothing is fetched from a CDN. The library
+and the exporter ride along as inert script blocks and only run when someone
+clicks the button. On a
 [password-protected](/presentations/protecting-a-deck) document the button is
 part of the encrypted payload.
 

@@ -49,31 +49,33 @@ namespace Neko.Tests
         }
 
         [Test]
-        public void CuriosityTheme_LinksItsStylesheetAndTypefaces()
+        public void CuriosityTheme_InlinesItsStylesheetAndTypefaces()
         {
             var html = Render("---\ntitle: T\npresentation:\n  theme: curiosity\n---\n\n# One\n");
             Assert.That(html, Does.Contain("data-deck-theme=\"curiosity\""));
-            Assert.That(html, Does.Contain("/assets/presentation-curiosity.css"));
-            // The theme's typefaces ship with Neko: no font host by default.
-            Assert.That(html, Does.Contain("/assets/deckfonts/deck-fonts.css"));
-            Assert.That(html, Does.Not.Contain("fonts.googleapis.com"));
-            Assert.That(html, Does.Not.Contain("family=Archivo"));
+            Assert.That(html, Does.Contain(".neko-deck-html[data-deck-theme=\"curiosity\"] .neko-deck-body"), "the theme stylesheet is inlined");
+            // The theme's typefaces ship with Neko and are inlined: no font host.
+            Assert.That(html, Does.Contain("/*neko-font:SchibstedGrotesk-Regular.ttf*/@font-face{font-family:\"Schibsted Grotesk\""));
+            Assert.That(html, Does.Contain("src:url(\"data:font/ttf;base64,"));
+            Assert.That(html, Does.Not.Contain("neko-font:Archivo"));
+            StandaloneMarkup.AssertSelfContained(html);
         }
 
         [Test]
-        public void CuriosityTheme_FontsGoogle_PullsTheTypefacesFromGoogleFonts()
+        public void CuriosityTheme_FontsGoogle_StillUsesTheBundledTypefaces()
         {
+            // A deck never calls a font host; the bundled files are the same faces.
             var html = Render("---\ntitle: T\npresentation:\n  theme: curiosity\n  fonts: google\n---\n\n# One\n");
-            Assert.That(html, Does.Contain("family=Schibsted+Grotesk"));
-            Assert.That(html, Does.Contain("family=Geist+Mono"));
-            Assert.That(html, Does.Not.Contain("deckfonts/deck-fonts.css"));
+            Assert.That(html, Does.Contain("neko-font:SchibstedGrotesk-Regular.ttf"));
+            Assert.That(html, Does.Contain("neko-font:GeistMono-Regular.ttf"));
+            StandaloneMarkup.AssertSelfContained(html);
         }
 
         [Test]
         public void CuriosityTheme_FontsNone_LinksNoTypefaces()
         {
             var html = Render("---\ntitle: T\npresentation:\n  theme: curiosity\n  fonts: none\n---\n\n# One\n");
-            Assert.That(html, Does.Not.Contain("deckfonts/deck-fonts.css"));
+            Assert.That(html, Does.Not.Contain("/*neko-font:"));
             Assert.That(html, Does.Not.Contain("fonts.googleapis.com"));
         }
 
@@ -81,8 +83,12 @@ namespace Neko.Tests
         public void MidnightTheme_KeepsItsOwnTypefaces_AndNoThemeStylesheet()
         {
             var html = Render("---\ntitle: T\npresentation: true\n---\n\n# One\n");
-            Assert.That(html, Does.Not.Contain("presentation-curiosity.css"));
-            Assert.That(html, Does.Contain("family=Archivo"));
+            Assert.That(html, Does.Not.Contain(".neko-deck-html[data-deck-theme=\"curiosity\"] .neko-deck-body"), "no curiosity stylesheet");
+            // Vendored from Google Fonts and inlined; the deck itself calls no font host.
+            Assert.That(html, Does.Contain("@font-face{font-family:\"Archivo\""));
+            Assert.That(html, Does.Contain("@font-face{font-family:\"Source Serif 4\""));
+            Assert.That(html, Does.Contain("@font-face{font-family:\"IBM Plex Mono\""));
+            StandaloneMarkup.AssertSelfContained(html);
         }
 
         [Test]

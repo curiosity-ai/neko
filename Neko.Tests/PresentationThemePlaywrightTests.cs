@@ -124,7 +124,9 @@ namespace Neko.Tests
                 page.PageError += (_, e) => { if (!IsOfflineLibrary(e)) errors.Add(e); };
                 await page.GotoAsync($"{baseUrl}/decks/templates", new() { WaitUntil = WaitUntilState.NetworkIdle });
                 Assert.That(await page.GetAttributeAsync("html", "data-deck-theme"), Is.EqualTo(theme));
-                Assert.That(await page.Locator("link[href$='presentation-curiosity.css']").CountAsync(), Is.EqualTo(theme == "curiosity" ? 1 : 0));
+                var hasThemeStylesheet = await page.EvaluateAsync<bool>(@"() => [...document.styleSheets].some(s =>
+                    [...s.cssRules].some(r => (r.selectorText || '').includes('.neko-deck-html[data-deck-theme=""curiosity""] .neko-deck-body')))");
+                Assert.That(hasThemeStylesheet, Is.EqualTo(theme == "curiosity"), "the curiosity stylesheet is inlined only for its theme");
 
                 // Each component shows on its slide, with a real size.
                 var selectors = new[] { ".deck-art svg", ".deck-agenda li", ".deck-stat-value", ".deck-steps .deck-step",

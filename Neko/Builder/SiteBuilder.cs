@@ -238,7 +238,10 @@ namespace Neko.Builder
                     }
                 }
 
-                var generator = new HtmlGenerator(_config, _isWatchMode, headIncludes, editorEnabled: _editorEnabled);
+                var generator = new HtmlGenerator(_config, _isWatchMode, headIncludes, editorEnabled: _editorEnabled)
+                {
+                    InputDirectory = _inputDirectory,
+                };
                 var searchIndexer = new SearchIndexGenerator(_routePrefix);
 
                 // Collect folders whose root yml opts the folder out of search indexing.
@@ -952,9 +955,9 @@ namespace Neko.Builder
             // A presentation is its own document: a full-viewport deck with no
             // documentation chrome around it (see HtmlGenerator.Presentation).
             var html = item.Doc.IsPresentation
-                ? generator.GeneratePresentation(item.Doc)
+                ? generator.GeneratePresentation(item.Doc, item.FilePath)
                 : item.Doc.IsPagedDocument
-                ? generator.GenerateDocument(item.Doc)
+                ? generator.GenerateDocument(item.Doc, item.FilePath)
                 : generator.Generate(item.Doc, backlinks, navContext, sidebarLinks, blogPosts, null, relativeUrl);
 
             var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html");
@@ -1644,6 +1647,9 @@ namespace Neko.Builder
                     // The Tailwind base/components layers are inputs to the
                     // generator, not standalone assets — never copy them out.
                     if (resourceName.StartsWith("Neko.Resources.tailwind.")) continue;
+                    // The vendored libraries decks and documents inline into their own
+                    // HTML (HtmlGenerator.Standalone) — no page links them.
+                    if (resourceName.StartsWith("Neko.Resources.standalone.")) continue;
 
                     // Resource name format: Neko.Resources.filename.ext
                     // We need to map it to assets/filename.ext

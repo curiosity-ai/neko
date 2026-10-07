@@ -54,7 +54,7 @@ page — handy while a deck is still a draft.
 | `gauge` | `true` | Vertical slide gauge on the left edge. |
 | `counter` | `true` | The `3 / 14` counter. |
 | `download` | `true` | The **pptx** button that downloads the deck as PowerPoint. |
-| `fonts` | theme's | `bundled` (curiosity's default) loads the fonts Neko ships from `assets/deckfonts/`; `google` links Google Fonts (midnight/daylight default); `none` links nothing. |
+| `fonts` | theme's | Every theme's fonts ship with Neko and are embedded in the deck (`bundled` and `google` both mean that — no font host is called); `none` embeds nothing and uses local stacks. |
 | `ratio` | `16:9` | Aspect ratio the deck is designed for; read by `[!deck]`. |
 | `logo` | — | Image for the brand mark in the bottom-right corner of every slide. |
 | `logoText` | — | Text beside the logo. Works on its own, with no image. |
@@ -83,11 +83,21 @@ The `logo` path is resolved like `cover:`, so a bare file name finds the nearest
 `assets/` folder. The mark is furniture rather than content, so a protected deck
 still shows it beside the unlock prompt.
 
+### One self-contained file
+
+A built deck is a single HTML file with no external dependencies: CSS, fonts,
+icons, emoji, KaTeX/Mermaid (only when used), highlight.js, the runtime and the
+PowerPoint exporter are all embedded, and local images (logo, favicon, slide
+pictures) are inlined as data URIs. It can be mailed or opened offline. Mermaid
+adds ≈ 3.3 MB, so only use a diagram where it earns its place; remote images
+(`https://…`) stay links, so keep images in the docs folder if the deck must
+work offline.
+
 ### PowerPoint download
 
 Every deck has a **pptx** button in its control bar that exports the whole deck
-to an editable `.pptx` in the browser (via PptxGenJS, which Neko ships in
-`assets/` — no CDN). Each slide is laid out at 16:9 and every heading, paragraph,
+to an editable `.pptx` in the browser (via PptxGenJS, which ships with Neko and
+is embedded in the deck — no CDN). Each slide is laid out at 16:9 and every heading, paragraph,
 bullet, box, rule, SVG and image becomes a native PowerPoint shape at the same
 position. Generated content (`::before`/`::after`, counters) is exported as
 text; solid colour layers and SVG masks become shapes. In the curiosity theme
