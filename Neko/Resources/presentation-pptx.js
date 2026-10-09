@@ -1189,9 +1189,193 @@
     // comes partly from the page (CSS variables, currentColor, the deck's
     // stylesheet), none of which exists once it is a separate file — so the
     // computed presentation properties are baked into every element first.
+    // An SVG drawn only with straight edges (rects, lines, polylines,
+    // polygons, paths of M/L/H/V/Z) in flat colours becomes native vector
+    // shapes instead of a picture: one PowerPoint freeform per paint (fill
+    // colour, or stroke colour and width), each holding every sub-path drawn
+    // in that paint. Generated slide art of thousands of ticks stays a few
+    // shapes, sharp at any size: a picture is drawn from its PNG fallback
+    // by some PowerPoint versions and viewers, and looks soft on a big screen.
+    // Each element is placed through its own screen matrix, so viewBox,
+    // preserveAspectRatio and any transform on it or an ancestor (a figure
+    // scaled with CSS) land where the browser draws them. Anything else (text,
+    // curves, markers, dashes, gradients, references) keeps the picture.
+    var SVG_SHAPE_POINT_BUDGET = 80000;
+    var SVG_SHAPE_CONTAINERS = { g: 1, title: 1, desc: 1, style: 1, metadata: 1 };
+
+    function svgPathRings(d) {
+        var tokens = (d || '').match(/[MmLlHhVvZz]|[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?/g);
+        if (!tokens || (d || '').replace(/[MmLlHhVvZz\d.eE+\-,\s]/g, '').length) return null;
+        var rings = [], ring = null, x = 0, y = 0, cmd = null, i = 0;
+        function num() { var v = parseFloat(tokens[i++]); if (isNaN(v)) throw 0; return v; }
+        try {
+            while (i < tokens.length) {
+                if (/[A-Za-z]/.test(tokens[i])) cmd = tokens[i++];
+                else if (!cmd) return null;
+                var rel = cmd === cmd.toLowerCase();
+                switch (cmd.toUpperCase()) {
+                    case 'M':
+                        x = (rel ? x : 0) + num(); y = (rel ? y : 0) + num();
+                        ring = { points: [[x, y]], closed: false }; rings.push(ring);
+                        cmd = rel ? 'l' : 'L';
+                        break;
+                    case 'L': x = (rel ? x : 0) + num(); y = (rel ? y : 0) + num(); if (!ring) return null; ring.points.push([x, y]); break;
+                    case 'H': x = (rel ? x : 0) + num(); if (!ring) return null; ring.points.push([x, y]); break;
+                    case 'V': y = (rel ? y : 0) + num(); if (!ring) return null; ring.points.push([x, y]); break;
+                    case 'Z':
+                        if (!ring) return null;
+                        ring.closed = true; x = ring.points[0][0]; y = ring.points[0][1];
+                        ring = { points: [[x, y]], closed: false }; rings.push(ring);
+                        cmd = null;
+                        break;
+                    default: return null;
+                }
+            }
+        } catch (e) { return null; }
+        return rings.filter(function (r) { return r.points.length > 1; });
+    }
+
+    // Liang-Barsky: the part of a segment inside a box, or null.
+    function clipSegment(a, b, box) {
+        var t0 = 0, t1 = 1, dx = b[0] - a[0], dy = b[1] - a[1];
+        var p = [-dx, dx, -dy, dy], q = [a[0] - box.left, box.right - a[0], a[1] - box.top, box.bottom - a[1]];
+        for (var i = 0; i < 4; i++) {
+            if (p[i] === 0) { if (q[i] < 0) return null; continue; }
+            var t = q[i] / p[i];
+            if (p[i] < 0) { if (t > t1) return null; if (t > t0) t0 = t; }
+            else { if (t < t0) return null; if (t < t1) t1 = t; }
+        }
+        return [[a[0] + t0 * dx, a[1] + t0 * dy], [a[0] + t1 * dx, a[1] + t1 * dy]];
+    }
+
+    SlideWriter.prototype.svgShapes = function (svg) {
+        var win = this.win;
+        var box = svg.getBoundingClientRect();
+        if (box.width < 1 || box.height < 1) return false;
+        // The SVG's viewport clips what it draws, unless it lets it overflow.
+        var clip = win.getComputedStyle(svg).overflow === 'visible'
+            ? { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity }
+            : { left: box.left, top: box.top, right: box.right, bottom: box.bottom };
+        var groups = [], byKey = {}, points = 0;
+        var nodes = svg.querySelectorAll('*');
+        for (var n = 0; n < nodes.length; n++) {
+            var el = nodes[n], tag = el.localName;
+            if (el.namespaceURI !== 'http://www.w3.org/2000/svg') return false;
+            if (SVG_SHAPE_CONTAINERS[tag]) continue;
+            if (['rect', 'line', 'polyline', 'polygon', 'path'].indexOf(tag) < 0) return false;
+            var cs = win.getComputedStyle(el);
+            if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+            if (/url\(/.test(cs.fill + cs.stroke + (cs.clipPath || '') + (cs.mask || '') + (cs.filter || '') + (cs.markerStart || '') + (cs.markerMid || '') + (cs.markerEnd || ''))) return false;
+            if (cs.strokeDasharray && cs.strokeDasharray !== 'none') return false;
+            var opacity = 1;
+            for (var up = el; up && up !== svg.parentNode; up = up.parentNode) opacity *= parseFloat(win.getComputedStyle(up).opacity);
+            var fill = cs.fill === 'none' ? null : parseColor(cs.fill);
+            var stroke = cs.stroke === 'none' ? null : parseColor(cs.stroke);
+            var strokeWidth = parseFloat(cs.strokeWidth) || 0;
+            if (fill) fill = { hex: fill.hex, alpha: fill.alpha * parseFloat(cs.fillOpacity) * opacity };
+            if (stroke) stroke = { hex: stroke.hex, alpha: stroke.alpha * parseFloat(cs.strokeOpacity) * opacity };
+            if (fill && fill.alpha <= 0) fill = null;
+            if (stroke && (stroke.alpha <= 0 || strokeWidth <= 0)) stroke = null;
+            if (!fill && !stroke) continue;
+
+            var m = el.getScreenCTM();
+            if (!m) return false;
+            var map = function (pt) { return [m.a * pt[0] + m.c * pt[1] + m.e, m.b * pt[0] + m.d * pt[1] + m.f]; };
+            var strokeScale = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
+            var rings;
+            if (tag === 'rect') {
+                if ((parseFloat(cs.rx) || 0) > 0 || (parseFloat(cs.ry) || 0) > 0) return false;
+                var x = parseFloat(el.getAttribute('x')) || 0, y = parseFloat(el.getAttribute('y')) || 0;
+                var w = parseFloat(el.getAttribute('width')) || 0, h = parseFloat(el.getAttribute('height')) || 0;
+                if (w <= 0 || h <= 0) continue;
+                if (m.b === 0 && m.c === 0) {
+                    // Axis-aligned: clip it as a rectangle.
+                    var a = map([x, y]), b = map([x + w, y + h]);
+                    var l = Math.max(Math.min(a[0], b[0]), clip.left), t = Math.max(Math.min(a[1], b[1]), clip.top);
+                    var r = Math.min(Math.max(a[0], b[0]), clip.right), btm = Math.min(Math.max(a[1], b[1]), clip.bottom);
+                    if (r <= l || btm <= t) continue;
+                    rings = [{ points: [[l, t], [r, t], [r, btm], [l, btm]], closed: true, mapped: true }];
+                } else {
+                    rings = [{ points: [[x, y], [x + w, y], [x + w, y + h], [x, y + h]], closed: true }];
+                }
+            } else if (tag === 'line') {
+                rings = [{ points: [[parseFloat(el.getAttribute('x1')) || 0, parseFloat(el.getAttribute('y1')) || 0], [parseFloat(el.getAttribute('x2')) || 0, parseFloat(el.getAttribute('y2')) || 0]], closed: false }];
+            } else if (tag === 'polyline' || tag === 'polygon') {
+                var nums = (el.getAttribute('points') || '').trim().split(/[\s,]+/).map(parseFloat);
+                var pts = [];
+                for (var k = 0; k + 1 < nums.length; k += 2) pts.push([nums[k], nums[k + 1]]);
+                rings = [{ points: pts, closed: tag === 'polygon' }];
+            } else {
+                rings = svgPathRings(el.getAttribute('d'));
+                if (!rings) return false;
+            }
+
+            var pieces = [];
+            for (var ri = 0; ri < rings.length; ri++) {
+                var ring = rings[ri];
+                if (ring.mapped) { pieces.push(ring); continue; }
+                var mapped = ring.points.map(map);
+                var inside = mapped.every(function (p) { return p[0] >= clip.left && p[0] <= clip.right && p[1] >= clip.top && p[1] <= clip.bottom; });
+                if (inside) { pieces.push({ points: mapped, closed: ring.closed }); continue; }
+                // A filled shape cut by the viewport would need polygon
+                // clipping; leave that to the picture.
+                if (fill && ring.closed) return false;
+                if (ring.closed) mapped.push(mapped[0]);
+                for (var si = 0; si + 1 < mapped.length; si++) {
+                    var seg = clipSegment(mapped[si], mapped[si + 1], clip);
+                    if (seg) pieces.push({ points: seg, closed: false });
+                }
+            }
+            if (!pieces.length) continue;
+
+            var drawnWidth = stroke ? Math.round(strokeWidth * strokeScale * 100) / 100 : 0;
+            var key = (fill ? fill.hex + '/' + fill.alpha.toFixed(3) : '-') + '|' + (stroke ? stroke.hex + '/' + stroke.alpha.toFixed(3) + '/' + drawnWidth : '-');
+            var group = byKey[key];
+            if (!group) { group = byKey[key] = { fill: fill, stroke: stroke, strokeWidth: drawnWidth, pieces: [] }; groups.push(group); }
+            for (var pi = 0; pi < pieces.length; pi++) {
+                group.pieces.push(pieces[pi]);
+                points += pieces[pi].points.length + 1;
+            }
+            if (points > SVG_SHAPE_POINT_BUDGET) return false;
+        }
+        if (!groups.length) return true;
+
+        for (var g = 0; g < groups.length; g++) {
+            var grp = groups[g];
+            var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            grp.pieces.forEach(function (pc) {
+                pc.points.forEach(function (p) {
+                    if (p[0] < minX) minX = p[0]; if (p[0] > maxX) maxX = p[0];
+                    if (p[1] < minY) minY = p[1]; if (p[1] > maxY) maxY = p[1];
+                });
+            });
+            var self = this;
+            var pathPoints = [];
+            grp.pieces.forEach(function (pc) {
+                pc.points.forEach(function (p, i) {
+                    var pt = { x: self.len(p[0] - minX), y: self.len(p[1] - minY) };
+                    if (i === 0) pt.moveTo = true;
+                    pathPoints.push(pt);
+                });
+                if (pc.closed) pathPoints.push({ close: true });
+            });
+            this.slide.addShape(this.pptx.ShapeType.custGeom, {
+                x: this.x(minX), y: this.y(minY),
+                w: this.len(Math.max(maxX - minX, 0.5)), h: this.len(Math.max(maxY - minY, 0.5)),
+                points: pathPoints,
+                fill: grp.fill ? { color: grp.fill.hex, transparency: transparency(grp.fill) } : { type: 'none' },
+                line: grp.stroke
+                    ? { color: grp.stroke.hex, width: Math.max(0.25, this.pt(grp.strokeWidth)), transparency: transparency(grp.stroke) }
+                    : { type: 'none' }
+            });
+        }
+        return true;
+    };
+
     SlideWriter.prototype.addSvg = function (svg) {
         var place = this.placement(svg);
         if (!place) return;
+        if (this.svgShapes(svg)) return;
 
         var clone = svg.cloneNode(true);
         var source = [svg].concat(Array.prototype.slice.call(svg.querySelectorAll('*')));

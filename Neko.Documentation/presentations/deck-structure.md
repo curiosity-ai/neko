@@ -119,7 +119,12 @@ deck title (`the-similarity-engine-end-to-end.pptx`).
 
 The file is made of native, editable PowerPoint shapes rather than screenshots:
 headings, paragraphs and bullets are text boxes, boxes and rules are shapes,
-diagrams and images are pictures (SVG stays vector, with a PNG fallback). Each
+and images are pictures. An SVG drawn only with straight edges in flat colours
+(rects, lines, polylines, polygons, paths of `M`/`L`/`H`/`V`/`Z`, no text,
+transforms, markers, dashes or gradients) becomes native vector shapes: one
+PowerPoint freeform per fill or stroke, so generated slide art of thousands of
+ticks stays a few shapes and stays sharp on any screen. Any other SVG is a
+picture (vector, with a PNG fallback for viewers that do not read SVG). Each
 slide is laid out at 16:9 by the deck's own stylesheet and every element is
 placed where it lands on screen, so the export matches the deck as presented.
 
