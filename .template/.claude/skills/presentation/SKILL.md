@@ -99,9 +99,11 @@ Every deck has a **pptx** button in its control bar that exports the whole deck
 to an editable `.pptx` in the browser (via PptxGenJS, which ships with Neko and
 is embedded in the deck — no CDN). Each slide is laid out at 16:9 and every heading, paragraph,
 bullet, box, rule, SVG and image becomes a native PowerPoint shape at the same
-position. An SVG of straight edges and flat colours (rects, lines, polygons,
-`M`/`L`/`H`/`V`/`Z` paths) becomes vector freeforms, one per paint; an SVG with
-text, curves, markers, dashes or gradients is a picture. PowerPoint sets fonts a hair
+position. An inline SVG in flat colours becomes native too: its shapes
+(curves and arcs included) as freeforms, its `text` as editable text boxes in
+the deck's fonts, dashes as PowerPoint dash styles. An SVG with a gradient,
+marker, clip path, mask, filter, rotated text or `<use>` is a picture, so draw
+diagrams without them when the slide must be editable in PowerPoint. PowerPoint sets fonts a hair
 wider than the browser, so text sized exactly to its words (a big number, a
 short label) can wrap its last character in PowerPoint while the slide
 thumbnail still looks right: give text that must stay on one line

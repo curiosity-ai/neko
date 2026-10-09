@@ -119,12 +119,21 @@ deck title (`the-similarity-engine-end-to-end.pptx`).
 
 The file is made of native, editable PowerPoint shapes rather than screenshots:
 headings, paragraphs and bullets are text boxes, boxes and rules are shapes,
-and images are pictures. An SVG drawn only with straight edges in flat colours
-(rects, lines, polylines, polygons, paths of `M`/`L`/`H`/`V`/`Z`, no text,
-markers, dashes or gradients; transforms are fine) becomes native vector shapes: one
-PowerPoint freeform per fill or stroke, so generated slide art of thousands of
-ticks stays a few shapes and stays sharp on any screen. Any other SVG is a
-picture (vector, with a PNG fallback for viewers that do not read SVG). Each
+and images are pictures. An inline SVG in flat colours becomes native
+PowerPoint elements too:
+
+| In the SVG | In the `.pptx` |
+| --- | --- |
+| `rect` (rounded too), `circle`, `ellipse`, `line`, `polyline`, `polygon`, `path` (lines, Béziers, arcs) | Freeforms, one per fill or stroke: generated slide art of thousands of ticks stays a few shapes, sharp on any screen |
+| `text` and `tspan` | Editable text boxes in the deck's fonts, one per line, placed by their baseline, `text-anchor` kept |
+| `stroke-dasharray` | The nearest PowerPoint dash style |
+| A path with holes | Holes kept where the sub-paths wind in opposite directions (letter outlines) |
+| Transforms, `viewBox`, `preserveAspectRatio` | Applied: each element lands where the browser draws it |
+
+The SVG keeps its paint order. An SVG with anything PowerPoint cannot match
+(a gradient, pattern, marker, clip path, mask or filter, rotated text or text on
+a path, `<use>`, an embedded image, a fill cut by the SVG's edge) is a picture,
+vector with a PNG fallback for viewers that do not read SVG. Each
 slide is laid out at 16:9 by the deck's own stylesheet and every element is
 placed where it lands on screen, so the export matches the deck as presented.
 
