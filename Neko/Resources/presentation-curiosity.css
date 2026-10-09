@@ -382,7 +382,7 @@
 [data-deck-theme="curiosity"] .deck-slide .deck-stats { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); border-top: 1px solid var(--rule); margin-top: auto; }
 [data-deck-theme="curiosity"] .deck-slide .deck-stat { padding: calc(40 * var(--u)) calc(40 * var(--u)) 0 0; }
 [data-deck-theme="curiosity"] .deck-slide .deck-stats > .deck-stat + .deck-stat { border-left: 1px solid var(--rule); padding-left: calc(40 * var(--u)); }
-[data-deck-theme="curiosity"] .deck-slide .deck-stat-value { font-family: var(--deck-font-display); font-weight: 400; font-size: calc(76 * var(--u)); line-height: 1; letter-spacing: -.045em; color: var(--t); margin: 0 0 calc(18 * var(--u)); max-width: none; }
+[data-deck-theme="curiosity"] .deck-slide .deck-stat-value { font-family: var(--deck-font-display); font-weight: 400; font-size: calc(76 * var(--u)); line-height: 1; letter-spacing: -.045em; color: var(--t); margin: 0 0 calc(18 * var(--u)); max-width: none; white-space: nowrap; }
 [data-deck-theme="curiosity"] .deck-slide .deck-stat-label { font-family: var(--deck-font-mono); font-size: calc(22 * var(--u)); letter-spacing: .08em; text-transform: uppercase; color: var(--t3); margin: 0; }
 [data-deck-theme="curiosity"] .deck-slide .deck-stats[data-style="cards"] { border: 0; align-items: start; gap: 0; margin-top: calc(56 * var(--u)); grid-auto-columns: calc(540 * var(--u)); }
 [data-deck-theme="curiosity"] .deck-slide .deck-stats[data-style="cards"] > .deck-stat { border: 0; padding: calc(36 * var(--u)) calc(36 * var(--u)) calc(48 * var(--u)); background: var(--sg, var(--c-paper)); color: var(--st, var(--c-ink)); }
@@ -444,10 +444,12 @@
 [data-deck-theme="curiosity"] .deck-slide .deck-steps[data-style="flow"] > .deck-step:last-child { background: var(--c-ink); --st1: var(--c-paper); --st2: var(--c-ink-2); --st3: var(--c-ash); border-color: var(--c-ink); }
 [data-deck-theme="curiosity"] .deck-slide .deck-steps[data-style="flow"] > .deck-step + .deck-step::before {
   content: ""; position: absolute; left: calc(-88 * var(--u)); top: 50%; width: calc(72 * var(--u)); height: 1.5px; background: var(--t2);
+  --pptx-line: arrow; /* exported as a PowerPoint line with an arrowhead */
 }
 [data-deck-theme="curiosity"] .deck-slide .deck-steps[data-style="flow"] > .deck-step + .deck-step::after {
   content: ""; position: absolute; left: calc(-24 * var(--u)); top: calc(50% - 5 * var(--u)); width: calc(10 * var(--u)); height: calc(10 * var(--u));
   border-top: 1.5px solid var(--t2); border-right: 1.5px solid var(--t2); transform: rotate(45deg);
+  --pptx: none; /* the export cannot rotate it; the line's arrowhead stands in */
 }
 
 /* art: a drawing on its ground above each stage. */

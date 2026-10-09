@@ -44,6 +44,7 @@
 - **Version**: 4.0.1
 - **File**: `Neko/Resources/pptxgen.bundle.js` (vendored copy of `dist/pptxgen.bundle.js`; never loaded from a CDN)
 - **Used by**: `Neko/Resources/presentation-pptx.js` — the "Download PPTX" control on presentation decks. Loaded lazily, only when the reader asks for the download.
+- **Local patch**: in the text-body writer, paragraph properties (`<a:pPr>`) are written for a paragraph's first run only (`i+=0===e?n.replace(...):""`). Upstream writes them for every run, so a paragraph with mixed formatting carried several `<a:pPr>` (invalid DrawingML), each later one with `<a:buNone/>`, and renderers dropped the bullet of any list item that starts with a bold lead-in. Second patch: `line.beginArrowSize` / `line.endArrowSize` (`sm`, `med`, `lg`) survive the line-option normalisation and are written as the `w` and `len` of `<a:headEnd>` / `<a:tailEnd>`; upstream only writes the end type, so every arrowhead was the medium default. Re-apply both when updating the file.
 
 ### docx
 - **Source**: https://github.com/dolanmiu/docx

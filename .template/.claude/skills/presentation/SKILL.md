@@ -99,8 +99,23 @@ Every deck has a **pptx** button in its control bar that exports the whole deck
 to an editable `.pptx` in the browser (via PptxGenJS, which ships with Neko and
 is embedded in the deck — no CDN). Each slide is laid out at 16:9 and every heading, paragraph,
 bullet, box, rule, SVG and image becomes a native PowerPoint shape at the same
-position. Generated content (`::before`/`::after`, counters) is exported as
-text; solid colour layers and SVG masks become shapes. In the curiosity theme
+position. An inline SVG in flat colours becomes native too: its shapes
+(curves and arcs included) as freeforms, its `text` as editable text boxes in
+the deck's fonts (rotated text included), dashes as PowerPoint dash styles,
+arrowhead markers as the line's own arrowheads, `<use>` as the shapes it
+references, rectangular clip paths as cut geometry. An SVG with a gradient,
+pattern, mask, filter, a non-rectangular clip path or text on a path is a
+picture, so draw diagrams without those when the slide must be editable in
+PowerPoint. PowerPoint sets fonts a hair
+wider than the browser, so text sized exactly to its words (a big number, a
+short label) can wrap its last character in PowerPoint while the slide
+thumbnail still looks right: give text that must stay on one line
+`white-space: nowrap` (a `<span style="white-space:nowrap">` in Markdown), and
+the export writes an unwrapped text box. Generated content (`::before`/`::after`, counters) is exported as
+text; solid colour layers and SVG masks become shapes. A theme can mark a thin
+bar `--pptx-line: arrow` to export it as a PowerPoint line with an arrowhead,
+and a screen-only decoration `--pptx: none` to leave it out (the curiosity
+`flow` connectors use both). In the curiosity theme
 the fonts (Schibsted Grotesk, Geist Mono) are embedded in the file, so it looks
 right where they are not installed. Gradients, shadows and icon glyphs are
 dropped, so don't put meaning in them. `download: false` removes the button. On a protected
