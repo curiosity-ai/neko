@@ -1201,11 +1201,13 @@
     // ticks stays a few shapes. Each element is placed through its own screen
     // matrix, so viewBox, preserveAspectRatio and transforms on it or an
     // ancestor land where the browser draws them. A dash pattern becomes the
-    // nearest PowerPoint dash style. A path with holes keeps them where its
-    // sub-paths wind in opposite directions (PowerPoint fills a path's
-    // sub-paths alternately). What PowerPoint cannot match (gradients,
-    // patterns, markers, clip paths, masks, filters, text on a path or rotated
-    // text, <use>, embedded images) keeps the picture, for the whole SVG.
+    // nearest PowerPoint dash style, an arrowhead marker the line's own end,
+    // a <use> the shapes it references, a rectangular clip path a cut of the
+    // geometry, rotated text a rotated text box. A path with holes keeps them
+    // where its sub-paths wind in opposite directions (PowerPoint fills a
+    // path's sub-paths alternately). What PowerPoint cannot match (gradients,
+    // patterns, masks, filters, clip paths of other shapes, text on a path,
+    // embedded images) keeps the picture, for the whole SVG.
     var SVG_SHAPE_POINT_BUDGET = 80000;
     var SVG_SHAPE_CONTAINERS = { g: 1, a: 1, title: 1, desc: 1, style: 1, metadata: 1, defs: 1 };
     var SVG_SHAPE_SKIP = 'defs, symbol, marker, clipPath, mask, pattern, linearGradient, radialGradient, title, desc, metadata, style';
@@ -1431,29 +1433,345 @@
         return lines;
     }
 
+    // Straight segments standing in for a ring's curves, for clipping: a
+    // cubic or quadratic becomes 16 chords, close enough at slide scale.
+    function flattenRing(ring) {
+        var pts = [ring.start], from = ring.start;
+        ring.segs.forEach(function (sg) {
+            if (sg.c1 || sg.q) {
+                for (var k = 1; k <= 16; k++) {
+                    var t = k / 16, u = 1 - t, x, y;
+                    if (sg.c1) {
+                        x = u * u * u * from[0] + 3 * u * u * t * sg.c1[0] + 3 * u * t * t * sg.c2[0] + t * t * t * sg.p[0];
+                        y = u * u * u * from[1] + 3 * u * u * t * sg.c1[1] + 3 * u * t * t * sg.c2[1] + t * t * t * sg.p[1];
+                    } else {
+                        x = u * u * from[0] + 2 * u * t * sg.q[0] + t * t * sg.p[0];
+                        y = u * u * from[1] + 2 * u * t * sg.q[1] + t * t * sg.p[1];
+                    }
+                    pts.push([x, y]);
+                }
+            } else {
+                pts.push(sg.p);
+            }
+            from = sg.p;
+        });
+        return pts;
+    }
+
+    // Sutherland-Hodgman: a polygon cut to a box. The box is convex, so the
+    // area is exact; a concave polygon may gain zero-width seams, which fill
+    // nothing.
+    function clipPolygon(pts, box) {
+        var edges = [
+            function (p) { return p[0] >= box.left; }, function (a, b) { var t = (box.left - a[0]) / (b[0] - a[0]); return [box.left, a[1] + t * (b[1] - a[1])]; },
+            function (p) { return p[0] <= box.right; }, function (a, b) { var t = (box.right - a[0]) / (b[0] - a[0]); return [box.right, a[1] + t * (b[1] - a[1])]; },
+            function (p) { return p[1] >= box.top; }, function (a, b) { var t = (box.top - a[1]) / (b[1] - a[1]); return [a[0] + t * (b[0] - a[0]), box.top]; },
+            function (p) { return p[1] <= box.bottom; }, function (a, b) { var t = (box.bottom - a[1]) / (b[1] - a[1]); return [a[0] + t * (b[0] - a[0]), box.bottom]; }
+        ];
+        var out = pts;
+        for (var e = 0; e < edges.length && out.length; e += 2) {
+            var inside = edges[e], cut = edges[e + 1], input = out;
+            out = [];
+            for (var i = 0; i < input.length; i++) {
+                var cur = input[i], prev = input[(i + input.length - 1) % input.length];
+                if (inside(cur)) {
+                    if (!inside(prev)) out.push(cut(prev, cur));
+                    out.push(cur);
+                } else if (inside(prev)) {
+                    out.push(cut(prev, cur));
+                }
+            }
+        }
+        return out;
+    }
+
+    function intersectBoxes(a, b) {
+        return { left: Math.max(a.left, b.left), top: Math.max(a.top, b.top), right: Math.min(a.right, b.right), bottom: Math.min(a.bottom, b.bottom) };
+    }
+
+    function svgRef(doc, value) {
+        var m = /url\(\s*["']?#([^"')\s]+)["']?\s*\)/.exec(value || '');
+        return m ? doc.getElementById(m[1]) : null;
+    }
+
+    // The screen box a rectangular clip path leaves of an element, or false
+    // when its clip path (or an ancestor's) is any other shape.
+    function svgClipBox(el, svg, win) {
+        var box = { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity };
+        for (var up = el; up && up !== svg.parentNode && up.nodeType === 1; up = up.parentNode) {
+            var value = win.getComputedStyle(up).clipPath;
+            if (!value || value === 'none') continue;
+            var cp = svgRef(up.ownerDocument, value);
+            if (!cp || cp.localName !== 'clipPath' || (cp.getAttribute('transform') || '').trim()) return false;
+            var kids = Array.prototype.filter.call(cp.children, function (c) { return c.localName !== 'title' && c.localName !== 'desc'; });
+            if (kids.length !== 1 || kids[0].localName !== 'rect' || (kids[0].getAttribute('transform') || '').trim()) return false;
+            var r = kids[0], x = r.x.baseVal.value, y = r.y.baseVal.value, w = r.width.baseVal.value, h = r.height.baseVal.value;
+            if (cp.getAttribute('clipPathUnits') === 'objectBoundingBox') {
+                var bb = up.getBBox();
+                x = bb.x + x * bb.width; y = bb.y + y * bb.height; w *= bb.width; h *= bb.height;
+            }
+            var m = up.getScreenCTM();
+            if (!m || Math.abs(m.b) > 1e-9 || Math.abs(m.c) > 1e-9) return false;
+            var x1 = m.a * x + m.e, x2 = m.a * (x + w) + m.e, y1 = m.d * y + m.f, y2 = m.d * (y + h) + m.f;
+            box = intersectBoxes(box, { left: Math.min(x1, x2), right: Math.max(x1, x2), top: Math.min(y1, y2), bottom: Math.max(y1, y2) });
+        }
+        return box;
+    }
+
+    // An SVG marker as a PowerPoint line end: { type, size }, the type
+    // 'triangle' (a filled head), 'arrow' (an open chevron), 'stealth' (a
+    // notched head) or 'oval' (a dot), in the line's colour, and the size the
+    // nearest of PowerPoint's three (about 2, 3 and 5 line widths across).
+    // null without a marker; false for one PowerPoint cannot draw (a fixed
+    // angle, another shape, another colour).
+    function svgLineEnd(doc, win, value, atStart, lineHex, lineWidth) {
+        if (!value || value === 'none') return null;
+        var mk = svgRef(doc, value);
+        if (!mk || mk.localName !== 'marker') return false;
+        var orient = (mk.getAttribute('orient') || '0').trim();
+        if (atStart ? orient !== 'auto-start-reverse' : (orient !== 'auto' && orient !== 'auto-start-reverse')) return false;
+        var kids = Array.prototype.filter.call(mk.querySelectorAll('*'), function (c) { return ['path', 'polygon', 'polyline', 'line', 'circle', 'ellipse'].indexOf(c.localName) >= 0; });
+        if (kids.length !== 1) return false;
+        var k = kids[0], kcs = win.getComputedStyle(k);
+        var filled = kcs.fill !== 'none', stroked = kcs.stroke !== 'none';
+        var paint = parseColor(filled ? kcs.fill : kcs.stroke);
+        if (paint && paint.hex !== lineHex) return false;
+
+        // How wide the head is drawn across the line, in line widths.
+        function sized(type, extent) {
+            var vb = mk.viewBox && mk.viewBox.baseVal && mk.viewBox.baseVal.width ? mk.viewBox.baseVal : null;
+            var mw = mk.markerWidth.baseVal.value, mh = mk.markerHeight.baseVal.value;
+            var scale = vb ? Math.min(mw / vb.width, mh / vb.height) : 1;
+            var across = extent * scale;
+            if (mk.getAttribute('markerUnits') === 'userSpaceOnUse') across /= (lineWidth || 1);
+            return { type: type, size: across < 2.5 ? 'sm' : across < 4 ? 'med' : 'lg' };
+        }
+        if (k.localName === 'circle') return sized('oval', 2 * k.r.baseVal.value);
+        if (k.localName === 'ellipse') return sized('oval', 2 * k.ry.baseVal.value);
+        var pts;
+        if (k.localName === 'path') {
+            var rings = svgPathRings(k.getAttribute('d'));
+            if (!rings || rings.length !== 1 || rings[0].segs.some(function (sg) { return sg.c1 || sg.q; })) return false;
+            pts = [rings[0].start].concat(rings[0].segs.map(function (sg) { return sg.p; }));
+        } else if (k.localName === 'line') {
+            return false;
+        } else {
+            pts = [];
+            for (var i = 0; i < k.points.numberOfItems; i++) pts.push([k.points.getItem(i).x, k.points.getItem(i).y]);
+        }
+        if (pts.length > 2 && Math.abs(pts[0][0] - pts[pts.length - 1][0]) < 1e-6 && Math.abs(pts[0][1] - pts[pts.length - 1][1]) < 1e-6) pts.pop();
+        // The head points along +x in marker space: its tip is the one point
+        // furthest right.
+        var tip = 0;
+        for (var t = 1; t < pts.length; t++) if (pts[t][0] > pts[tip][0]) tip = t;
+        for (var o = 0; o < pts.length; o++) if (o !== tip && pts[o][0] > pts[tip][0] - 1e-6) return false;
+        var ys = pts.map(function (p) { return p[1]; });
+        var extent = Math.max.apply(null, ys) - Math.min.apply(null, ys);
+        if (pts.length === 3) return filled ? sized('triangle', extent) : (stroked ? sized('arrow', extent) : false);
+        if (pts.length === 4 && filled) return sized('stealth', extent);
+        return false;
+    }
+
+    // The inherited presentation properties a <use> instance takes from the
+    // <use> element where its own element and ancestors up to the referenced
+    // one say nothing.
+    var USE_INHERITED = ['fill', 'stroke', 'strokeWidth', 'fillOpacity', 'strokeOpacity', 'strokeDasharray', 'fillRule', 'visibility'];
+    function cssName(prop) { return prop.replace(/[A-Z]/g, function (c) { return '-' + c.toLowerCase(); }); }
+    function instanceStyle(el, root, useCs, win) {
+        var cs = win.getComputedStyle(el), st = {};
+        ['display', 'visibility', 'fill', 'stroke', 'strokeWidth', 'fillOpacity', 'strokeOpacity', 'strokeDasharray', 'fillRule',
+            'clipPath', 'mask', 'filter', 'markerStart', 'markerMid', 'markerEnd', 'rx', 'ry', 'opacity'].forEach(function (p) { st[p] = cs[p]; });
+        USE_INHERITED.forEach(function (p) {
+            var name = cssName(p), said = false;
+            for (var up = el; up && !said; up = up === root ? null : up.parentNode) {
+                if (up.hasAttribute && (up.hasAttribute(name) || (up.style && up.style.getPropertyValue(name)))) said = true;
+            }
+            if (!said) st[p] = useCs[p];
+        });
+        return st;
+    }
+
+    function localMatrix(node, root) {
+        var m = node.ownerSVGElement.createSVGMatrix(), chain = [];
+        for (var up = node; up; up = up === root ? null : up.parentNode) chain.unshift(up);
+        chain.forEach(function (n) {
+            if (n.transform && n.transform.baseVal && n.transform.baseVal.numberOfItems) {
+                var c = n.transform.baseVal.consolidate();
+                if (c) m = m.multiply(c.matrix);
+            }
+        });
+        return m;
+    }
+
     SlideWriter.prototype.svgShapes = function (svg) {
-        var win = this.win, self = this;
+        var win = this.win, self = this, doc = svg.ownerDocument;
         var box = svg.getBoundingClientRect();
         if (box.width < 1 || box.height < 1) return false;
         // The SVG's viewport clips what it draws, unless it lets it overflow.
-        var clip = win.getComputedStyle(svg).overflow === 'visible'
+        var viewport = win.getComputedStyle(svg).overflow === 'visible'
             ? { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity }
             : { left: box.left, top: box.top, right: box.right, bottom: box.bottom };
-        var ops = [], lastByKey = {}, points = 0;
+        var ops = [], lastByKey = {}, points = 0, serial = 0;
 
-        function paintOf(el, cs) {
+        function opacityChain(el, stop) {
             var opacity = 1;
-            for (var up = el; up && up !== svg.parentNode; up = up.parentNode) opacity *= parseFloat(win.getComputedStyle(up).opacity);
-            var fill = cs.fill === 'none' ? null : parseColor(cs.fill);
-            var stroke = cs.stroke === 'none' ? null : parseColor(cs.stroke);
-            var width = parseFloat(cs.strokeWidth) || 0;
-            if (fill) fill = { hex: fill.hex, alpha: fill.alpha * parseFloat(cs.fillOpacity) * opacity };
-            if (stroke) stroke = { hex: stroke.hex, alpha: stroke.alpha * parseFloat(cs.strokeOpacity) * opacity };
+            for (var up = el; up && up !== stop && up.nodeType === 1; up = up.parentNode) opacity *= parseFloat(win.getComputedStyle(up).opacity);
+            return opacity;
+        }
+
+        function paintOf(st, opacity) {
+            var fill = st.fill === 'none' ? null : parseColor(st.fill);
+            var stroke = st.stroke === 'none' ? null : parseColor(st.stroke);
+            var width = parseFloat(st.strokeWidth) || 0;
+            if (fill) fill = { hex: fill.hex, alpha: fill.alpha * parseFloat(st.fillOpacity) * opacity };
+            if (stroke) stroke = { hex: stroke.hex, alpha: stroke.alpha * parseFloat(st.strokeOpacity) * opacity };
             if (fill && fill.alpha <= 0) fill = null;
             if (stroke && (stroke.alpha <= 0 || width <= 0)) stroke = null;
             return { fill: fill, stroke: stroke, width: width };
         }
 
+        // One shape element, in screen space through m, clipped to clip.
+        function drawShape(el, tag, st, m, opacity, clip) {
+            if (st.display === 'none' || st.visibility === 'hidden') return true;
+            if (/url\(/.test(st.fill + st.stroke + (st.mask || '') + (st.filter || '') + (st.markerMid || ''))) return false;
+            var paint = paintOf(st, opacity);
+            if (!paint.fill && !paint.stroke) return true;
+            var dash = paint.stroke ? dashPreset(st.strokeDasharray, paint.width) : 'solid';
+            if (!dash) return false;
+            var map = function (pt) { return [m.a * pt[0] + m.c * pt[1] + m.e, m.b * pt[0] + m.d * pt[1] + m.f]; };
+            var scale = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
+            var axisAligned = Math.abs(m.b) < 1e-9 && Math.abs(m.c) < 1e-9;
+
+            var rings = null, pieces = [];
+            if (tag === 'rect') {
+                var x = el.x.baseVal.value, y = el.y.baseVal.value, w = el.width.baseVal.value, h = el.height.baseVal.value;
+                if (w <= 0 || h <= 0) return true;
+                var rx = parseFloat(st.rx), ry = parseFloat(st.ry);
+                if (isNaN(rx)) rx = isNaN(ry) ? 0 : ry;
+                if (isNaN(ry)) ry = rx;
+                rx = Math.min(Math.max(rx, 0), w / 2); ry = Math.min(Math.max(ry, 0), h / 2);
+                var a = map([x, y]), b = map([x + w, y + h]);
+                var inside = Math.min(a[0], b[0]) >= clip.left && Math.max(a[0], b[0]) <= clip.right && Math.min(a[1], b[1]) >= clip.top && Math.max(a[1], b[1]) <= clip.bottom;
+                if (rx > 0 && ry > 0) rings = [roundedRectRing(x, y, w, h, rx, ry)];
+                else if (axisAligned && (inside || !paint.stroke)) {
+                    // An axis-aligned fill is clipped as a rectangle. An
+                    // outline cut by the viewport is not (that would draw an
+                    // edge where it is cut): it goes segment by segment.
+                    var l = Math.max(Math.min(a[0], b[0]), clip.left), t = Math.max(Math.min(a[1], b[1]), clip.top);
+                    var r = Math.min(Math.max(a[0], b[0]), clip.right), btm = Math.min(Math.max(a[1], b[1]), clip.bottom);
+                    if (r <= l || btm <= t) return true;
+                    pieces.push({ start: [l, t], segs: [{ p: [r, t] }, { p: [r, btm] }, { p: [l, btm] }], closed: true });
+                } else {
+                    rings = [{ start: [x, y], segs: [{ p: [x + w, y] }, { p: [x + w, y + h] }, { p: [x, y + h] }], closed: true }];
+                }
+            } else if (tag === 'circle' || tag === 'ellipse') {
+                var ecx = el.cx.baseVal.value, ecy = el.cy.baseVal.value;
+                var erx = tag === 'circle' ? el.r.baseVal.value : parseFloat(st.rx);
+                var ery = tag === 'circle' ? erx : parseFloat(st.ry);
+                if (isNaN(erx)) erx = ery; if (isNaN(ery)) ery = erx;
+                if (!(erx > 0) || !(ery > 0)) return true;
+                rings = [ellipseRing(ecx, ecy, erx, ery)];
+            } else if (tag === 'line') {
+                rings = [{ start: [el.x1.baseVal.value, el.y1.baseVal.value], segs: [{ p: [el.x2.baseVal.value, el.y2.baseVal.value] }], closed: false }];
+            } else if (tag === 'polyline' || tag === 'polygon') {
+                var pl = el.points, pts = [];
+                for (var k = 0; k < pl.numberOfItems; k++) pts.push([pl.getItem(k).x, pl.getItem(k).y]);
+                if (pts.length < 2) return true;
+                rings = [{ start: pts[0], segs: pts.slice(1).map(function (p) { return { p: p }; }), closed: tag === 'polygon' }];
+            } else {
+                rings = svgPathRings(el.getAttribute('d'));
+                if (!rings) return false;
+                // PowerPoint fills overlapping sub-paths alternately. That is
+                // the SVG result under evenodd, and under nonzero when they
+                // wind in opposite directions (the hole in an 'o'); two that
+                // overlap winding the same way keep the picture.
+                if (paint.fill && rings.length > 1 && st.fillRule !== 'evenodd') {
+                    var rb = rings.map(function (rg) { return boxOf(ringPoints(rg)); });
+                    var ra = rings.map(ringArea);
+                    for (var i1 = 0; i1 < rb.length; i1++) for (var i2 = i1 + 1; i2 < rb.length; i2++) {
+                        if (boxesMeet(rb[i1], rb[i2]) && (ra[i1] > 0) === (ra[i2] > 0)) return false;
+                    }
+                }
+            }
+
+            // Markers become the line's own ends, so a marked line is a shape
+            // of its own: one open path, drawn whole.
+            var head = null, tail = null;
+            if (paint.stroke && ((st.markerStart && st.markerStart !== 'none') || (st.markerEnd && st.markerEnd !== 'none'))) {
+                if (['line', 'polyline', 'path'].indexOf(tag) < 0 || !rings || rings.length !== 1 || rings[0].closed) return false;
+                head = svgLineEnd(doc, win, st.markerStart, true, paint.stroke.hex, paint.width);
+                tail = svgLineEnd(doc, win, st.markerEnd, false, paint.stroke.hex, paint.width);
+                if (head === false || tail === false) return false;
+            } else if (/url\(/.test((st.markerStart || '') + (st.markerEnd || ''))) {
+                return false;
+            }
+
+            var cut = false;
+            (rings || []).forEach(function (ring) {
+                if (cut) return;
+                var mapped = {
+                    start: map(ring.start), closed: ring.closed,
+                    segs: ring.segs.map(function (sg) {
+                        var o = { p: map(sg.p) };
+                        if (sg.c1) { o.c1 = map(sg.c1); o.c2 = map(sg.c2); }
+                        if (sg.q) o.q = map(sg.q);
+                        return o;
+                    })
+                };
+                var rbox = boxOf(ringPoints(mapped));
+                if (rbox.left >= clip.left && rbox.right <= clip.right && rbox.top >= clip.top && rbox.bottom <= clip.bottom) { pieces.push(mapped); return; }
+                if (rbox.right <= clip.left || rbox.left >= clip.right || rbox.bottom <= clip.top || rbox.top >= clip.bottom) return;
+                // Cut by the viewport or a clip path. A marked line, or a
+                // shape both filled and outlined, would draw wrong cut (an
+                // end on the cut, an outline along it): those keep the picture.
+                if (head || tail || (paint.fill && paint.stroke)) { cut = true; return; }
+                var flat = flattenRing(mapped);
+                if (paint.fill) {
+                    var poly = clipPolygon(flat, clip);
+                    if (poly.length >= 3) pieces.push({ start: poly[0], segs: poly.slice(1).map(function (p) { return { p: p }; }), closed: true });
+                    return;
+                }
+                if (mapped.closed) flat.push(flat[0]);
+                for (var si = 0; si + 1 < flat.length; si++) {
+                    var seg = clipSegment(flat[si], flat[si + 1], clip);
+                    if (seg) pieces.push({ start: seg[0], segs: [{ p: seg[1] }], closed: false });
+                }
+            });
+            if (cut) return false;
+            if (!pieces.length) return true;
+
+            var drawnWidth = paint.stroke ? Math.round(paint.width * scale * 100) / 100 : 0;
+            var key = (paint.fill ? paint.fill.hex + '/' + paint.fill.alpha.toFixed(3) : '-') + '|' +
+                (paint.stroke ? paint.stroke.hex + '/' + paint.stroke.alpha.toFixed(3) + '/' + drawnWidth + '/' + dash : '-') +
+                (head || tail ? '|ends' + (serial++) : '');
+            var ebox = boxOf([].concat.apply([], pieces.map(ringPoints)));
+            // Join the last shape in this paint unless something drawn after
+            // it overlaps this element (that would change the order), or, for
+            // a fill, a part of it does (the alternate fill would cut a hole
+            // where the two overlap).
+            var target = lastByKey[key], into = null;
+            if (target !== undefined) {
+                into = ops[target];
+                for (var oi = target + 1; oi < ops.length && into; oi++) if (boxesMeet(ops[oi].box, ebox)) into = null;
+                if (into && paint.fill) {
+                    for (var bi = 0; bi < into.fillBoxes.length; bi++) if (boxesMeet(into.fillBoxes[bi], ebox)) { into = null; break; }
+                }
+            }
+            if (!into) {
+                into = { kind: 'shape', fill: paint.fill, stroke: paint.stroke, width: drawnWidth, dash: dash, head: head, tail: tail, pieces: [], fillBoxes: [], box: { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity } };
+                ops.push(into);
+                lastByKey[key] = ops.length - 1;
+            }
+            if (paint.fill) into.fillBoxes.push(ebox);
+            for (var pi = 0; pi < pieces.length; pi++) {
+                into.pieces.push(pieces[pi]);
+                points += pieces[pi].segs.length * 2 + 2;
+            }
+            growBox(into.box, ebox);
+            return points <= SVG_SHAPE_POINT_BUDGET;
+        }
+
+        var SHAPES = ['rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'path'];
         var nodes = svg.querySelectorAll('*');
         try {
             for (var n = 0; n < nodes.length; n++) {
@@ -1462,142 +1780,50 @@
                 if (el.closest(SVG_SHAPE_SKIP)) continue;
                 if (SVG_SHAPE_CONTAINERS[tag]) continue;
                 if (el.parentNode && el.parentNode.closest && el.parentNode.closest('text')) continue;
-                if (['rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'path', 'text'].indexOf(tag) < 0) return false;
                 var cs = win.getComputedStyle(el);
                 if (cs.display === 'none' || cs.visibility === 'hidden') continue;
-                if (/url\(/.test(cs.fill + cs.stroke + (cs.clipPath || '') + (cs.mask || '') + (cs.filter || '') + (cs.markerStart || '') + (cs.markerMid || '') + (cs.markerEnd || ''))) return false;
+                var clipBox = svgClipBox(el, svg, win);
+                if (clipBox === false) return false;
+                var clip = intersectBoxes(viewport, clipBox);
                 var m = el.getScreenCTM();
                 if (!m) return false;
 
                 if (tag === 'text') {
-                    // Upright text only: PowerPoint text boxes do not skew,
-                    // and a rotated label is better as part of the picture.
-                    if (Math.abs(m.b) > 1e-6 || Math.abs(m.c) > 1e-6 || m.a <= 0 || m.d <= 0) return false;
+                    if (/url\(/.test(cs.mask + cs.filter)) return false;
                     var lines = svgTextLines(el);
                     if (lines === null) return false;
                     for (var li = 0; li < lines.length; li++) {
-                        var op = this.svgTextOp(el, lines[li], m);
+                        var op = self.svgTextOp(el, lines[li], m, lines.length);
                         if (op === false) return false;
                         if (op) ops.push(op);
                     }
                     continue;
                 }
 
-                var paint = paintOf(el, cs);
-                if (!paint.fill && !paint.stroke) continue;
-                var dash = paint.stroke ? dashPreset(cs.strokeDasharray, paint.width) : 'solid';
-                if (!dash) return false;
-                var map = function (pt) { return [m.a * pt[0] + m.c * pt[1] + m.e, m.b * pt[0] + m.d * pt[1] + m.f]; };
-                var scale = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
-                var axisAligned = Math.abs(m.b) < 1e-9 && Math.abs(m.c) < 1e-9;
-
-                var rings = null, pieces = [];
-                if (tag === 'rect') {
-                    var x = el.x.baseVal.value, y = el.y.baseVal.value, w = el.width.baseVal.value, h = el.height.baseVal.value;
-                    if (w <= 0 || h <= 0) continue;
-                    var rx = parseFloat(cs.rx), ry = parseFloat(cs.ry);
-                    if (isNaN(rx)) rx = isNaN(ry) ? 0 : ry;
-                    if (isNaN(ry)) ry = rx;
-                    rx = Math.min(Math.max(rx, 0), w / 2); ry = Math.min(Math.max(ry, 0), h / 2);
-                    var a = map([x, y]), b = map([x + w, y + h]);
-                    var inside = Math.min(a[0], b[0]) >= clip.left && Math.max(a[0], b[0]) <= clip.right && Math.min(a[1], b[1]) >= clip.top && Math.max(a[1], b[1]) <= clip.bottom;
-                    if (rx > 0 && ry > 0) rings = [roundedRectRing(x, y, w, h, rx, ry)];
-                    else if (axisAligned && (inside || !paint.stroke)) {
-                        // An axis-aligned fill is clipped as a rectangle. An
-                        // outline cut by the viewport is not (that would draw an
-                        // edge where it is cut): it goes segment by segment.
-                        var l = Math.max(Math.min(a[0], b[0]), clip.left), t = Math.max(Math.min(a[1], b[1]), clip.top);
-                        var r = Math.min(Math.max(a[0], b[0]), clip.right), btm = Math.min(Math.max(a[1], b[1]), clip.bottom);
-                        if (r <= l || btm <= t) continue;
-                        pieces.push({ start: [l, t], segs: [{ p: [r, t] }, { p: [r, btm] }, { p: [l, btm] }], closed: true });
-                    } else {
-                        rings = [{ start: [x, y], segs: [{ p: [x + w, y] }, { p: [x + w, y + h] }, { p: [x, y + h] }], closed: true }];
+                if (tag === 'use') {
+                    // A <use> draws a copy of what it references, moved by its
+                    // x and y, in the styles it passes down.
+                    var ref = doc.getElementById((el.href && el.href.baseVal || el.getAttribute('href') || '').replace(/^#/, ''));
+                    if (!ref || ref.namespaceURI !== 'http://www.w3.org/2000/svg') return false;
+                    if (ref.localName === 'symbol' && ref.hasAttribute('viewBox')) return false;
+                    if (/url\(/.test(cs.mask + cs.filter)) return false;
+                    var base = m.translate(el.x.baseVal.value, el.y.baseVal.value);
+                    var useOpacity = opacityChain(el, svg.parentNode);
+                    var members = [ref].concat(Array.prototype.slice.call(ref.querySelectorAll('*')));
+                    for (var u = 0; u < members.length; u++) {
+                        var node = members[u], ntag = node.localName;
+                        if (ntag === 'g' || ntag === 'symbol' || ntag === 'title' || ntag === 'desc') continue;
+                        if (SHAPES.indexOf(ntag) < 0) return false;
+                        var mm = base.multiply(localMatrix(node, ref));
+                        var st = instanceStyle(node, ref, cs, win);
+                        if (st.clipPath && st.clipPath !== 'none') return false;
+                        if (!drawShape(node, ntag, st, mm, useOpacity * opacityChain(node, ref.parentNode), clip)) return false;
                     }
-                } else if (tag === 'circle' || tag === 'ellipse') {
-                    var ecx = el.cx.baseVal.value, ecy = el.cy.baseVal.value;
-                    var erx = tag === 'circle' ? el.r.baseVal.value : parseFloat(cs.rx);
-                    var ery = tag === 'circle' ? erx : parseFloat(cs.ry);
-                    if (isNaN(erx)) erx = ery; if (isNaN(ery)) ery = erx;
-                    if (!(erx > 0) || !(ery > 0)) continue;
-                    rings = [ellipseRing(ecx, ecy, erx, ery)];
-                } else if (tag === 'line') {
-                    rings = [{ start: [el.x1.baseVal.value, el.y1.baseVal.value], segs: [{ p: [el.x2.baseVal.value, el.y2.baseVal.value] }], closed: false }];
-                } else if (tag === 'polyline' || tag === 'polygon') {
-                    var pl = el.points, pts = [];
-                    for (var k = 0; k < pl.numberOfItems; k++) pts.push([pl.getItem(k).x, pl.getItem(k).y]);
-                    if (pts.length < 2) continue;
-                    rings = [{ start: pts[0], segs: pts.slice(1).map(function (p) { return { p: p }; }), closed: tag === 'polygon' }];
-                } else {
-                    rings = svgPathRings(el.getAttribute('d'));
-                    if (!rings) return false;
-                    // PowerPoint fills overlapping sub-paths alternately. That is
-                    // the SVG result under evenodd, and under nonzero when they
-                    // wind in opposite directions (the hole in an 'o'); two that
-                    // overlap winding the same way keep the picture.
-                    if (paint.fill && rings.length > 1 && cs.fillRule !== 'evenodd') {
-                        var rb = rings.map(function (rg) { return boxOf(ringPoints(rg)); });
-                        var ra = rings.map(ringArea);
-                        for (var i1 = 0; i1 < rb.length; i1++) for (var i2 = i1 + 1; i2 < rb.length; i2++) {
-                            if (boxesMeet(rb[i1], rb[i2]) && (ra[i1] > 0) === (ra[i2] > 0)) return false;
-                        }
-                    }
+                    continue;
                 }
 
-                (rings || []).forEach(function (ring) {
-                    var mapped = {
-                        start: map(ring.start), closed: ring.closed,
-                        segs: ring.segs.map(function (sg) {
-                            var o = { p: map(sg.p) };
-                            if (sg.c1) { o.c1 = map(sg.c1); o.c2 = map(sg.c2); }
-                            if (sg.q) o.q = map(sg.q);
-                            return o;
-                        })
-                    };
-                    var rbox = boxOf(ringPoints(mapped));
-                    if (rbox.left >= clip.left && rbox.right <= clip.right && rbox.top >= clip.top && rbox.bottom <= clip.bottom) { pieces.push(mapped); return; }
-                    if (rbox.right <= clip.left || rbox.left >= clip.right || rbox.bottom <= clip.top || rbox.top >= clip.bottom) return;
-                    // Cut by the viewport: a stroke of straight segments is
-                    // clipped segment by segment; a fill or a curve would need
-                    // real clipping, so that SVG stays a picture.
-                    var straight = mapped.segs.every(function (sg) { return !sg.c1 && !sg.q; });
-                    if (paint.fill || !straight) throw 'clip';
-                    var chain = [mapped.start].concat(mapped.segs.map(function (sg) { return sg.p; }));
-                    if (mapped.closed) chain.push(mapped.start);
-                    for (var si = 0; si + 1 < chain.length; si++) {
-                        var seg = clipSegment(chain[si], chain[si + 1], clip);
-                        if (seg) pieces.push({ start: seg[0], segs: [{ p: seg[1] }], closed: false });
-                    }
-                });
-                if (!pieces.length) continue;
-
-                var drawnWidth = paint.stroke ? Math.round(paint.width * scale * 100) / 100 : 0;
-                var key = (paint.fill ? paint.fill.hex + '/' + paint.fill.alpha.toFixed(3) : '-') + '|' +
-                    (paint.stroke ? paint.stroke.hex + '/' + paint.stroke.alpha.toFixed(3) + '/' + drawnWidth + '/' + dash : '-');
-                var ebox = boxOf([].concat.apply([], pieces.map(ringPoints)));
-                // Join the last shape in this paint unless something drawn
-                // after it overlaps this element (that would change the
-                // order), or, for a fill, a part of it does (the alternate
-                // fill would cut a hole where the two overlap).
-                var target = lastByKey[key], into = null;
-                if (target !== undefined) {
-                    into = ops[target];
-                    for (var oi = target + 1; oi < ops.length && into; oi++) if (boxesMeet(ops[oi].box, ebox)) into = null;
-                    if (into && paint.fill) {
-                        for (var bi = 0; bi < into.fillBoxes.length; bi++) if (boxesMeet(into.fillBoxes[bi], ebox)) { into = null; break; }
-                    }
-                }
-                if (!into) {
-                    into = { kind: 'shape', fill: paint.fill, stroke: paint.stroke, width: drawnWidth, dash: dash, pieces: [], fillBoxes: [], box: { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity } };
-                    ops.push(into);
-                    lastByKey[key] = ops.length - 1;
-                }
-                if (paint.fill) into.fillBoxes.push(ebox);
-                for (var pi = 0; pi < pieces.length; pi++) {
-                    into.pieces.push(pieces[pi]);
-                    points += pieces[pi].segs.length * 2 + 2;
-                }
-                growBox(into.box, ebox);
-                if (points > SVG_SHAPE_POINT_BUDGET) return false;
+                if (SHAPES.indexOf(tag) < 0) return false;
+                if (!drawShape(el, tag, cs, m, opacityChain(el, svg.parentNode), clip)) return false;
             }
         } catch (e) {
             if (e === 'clip' || e === 0) return false;
@@ -1632,22 +1858,37 @@
             points: pts,
             fill: op.fill ? { color: op.fill.hex, transparency: transparency(op.fill) } : { type: 'none' },
             line: op.stroke
-                ? { color: op.stroke.hex, width: Math.max(0.25, this.pt(op.width)), transparency: transparency(op.stroke), dashType: op.dash || 'solid' }
+                ? { color: op.stroke.hex, width: Math.max(0.25, this.pt(op.width)), transparency: transparency(op.stroke), dashType: op.dash || 'solid',
+                    beginArrowType: op.head ? op.head.type : undefined, beginArrowSize: op.head ? op.head.size : undefined,
+                    endArrowType: op.tail ? op.tail.type : undefined, endArrowSize: op.tail ? op.tail.size : undefined }
                 : { type: 'none' }
         });
     };
 
-    // One line of SVG text as a text box: measured where the browser drew
-    // it, set in the run's own font, placed by its baseline the way flush()
-    // places HTML text. null when there is nothing to draw; false when it
-    // cannot be matched (a stroked outline, a fill PowerPoint cannot use).
-    SlideWriter.prototype.svgTextOp = function (text, nodes, m) {
+    // One line of SVG text as a text box: set in the run's own font, placed
+    // by its baseline the way flush() places HTML text. Upright text is
+    // measured where the browser drew it; rotated text (a rotation and a
+    // uniform scale, no skew or mirror) is measured in its own coordinates
+    // and becomes a rotated text box. null when there is nothing to draw;
+    // false when it cannot be matched (a stroked outline, a skew, a fill
+    // PowerPoint cannot use).
+    SlideWriter.prototype.svgTextOp = function (text, nodes, m, lineCount) {
         var win = this.win, doc = text.ownerDocument, self = this;
-        var range = doc.createRange();
-        range.setStartBefore(nodes[0]);
-        range.setEndAfter(nodes[nodes.length - 1]);
-        var rect = unionRects(range.getClientRects());
-        if (!rect || rect.right - rect.left < 0.5) return null;
+        var upright = Math.abs(m.b) < 1e-6 && Math.abs(m.c) < 1e-6 && m.a > 0 && m.d > 0;
+        var rect = null, lineEl = null;
+        if (upright) {
+            var range = doc.createRange();
+            range.setStartBefore(nodes[0]);
+            range.setEndAfter(nodes[nodes.length - 1]);
+            rect = unionRects(range.getClientRects());
+            if (!rect || rect.right - rect.left < 0.5) return null;
+        } else {
+            if (Math.abs(Math.abs(m.a) - Math.abs(m.d)) > 1e-3 * Math.abs(m.a || m.b) + 1e-9 || Math.abs(m.b + m.c) > 1e-3 * Math.abs(m.a || m.b) + 1e-9 || m.a * m.d - m.b * m.c <= 0) return false;
+            // Each line has to be one element to measure: the <text>, or the
+            // <tspan> that positions it.
+            lineEl = lineCount === 1 ? text : nodes[0].parentNode && nodes[0].parentNode.closest && nodes[0].parentNode.closest('tspan[x], tspan[y]');
+            if (!lineEl || nodes.some(function (nd) { return !lineEl.contains(nd); })) return false;
+        }
 
         var scale = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
         var runs = [], first = null, anyEmbedded = true;
@@ -1693,32 +1934,53 @@
         if (!runs.some(function (r) { return r.text.length; })) return null;
 
         // The baseline: the top of the glyph box plus the ascent the browser
-        // used for that font, as for HTML text.
+        // used for that font, as for HTML text. Upright text is measured in
+        // screen pixels; rotated text in its own units, then turned.
+        var unit = upright ? 1 : scale;
+        var size = first.sizePx / unit;
+        var glyphTop, left, width;
+        if (upright) {
+            glyphTop = rect.top; left = rect.left; width = rect.right - rect.left;
+        } else {
+            var bb = lineEl.getBBox();
+            if (!(bb.width > 0)) return null;
+            glyphTop = bb.y; left = bb.x; width = bb.width;
+        }
         metricsCanvas = metricsCanvas || doc.createElement('canvas');
         var ctx = metricsCanvas.getContext('2d');
-        ctx.font = first.cs.fontStyle + ' ' + first.cs.fontWeight + ' ' + first.sizePx + 'px ' + first.cs.fontFamily;
+        ctx.font = first.cs.fontStyle + ' ' + first.cs.fontWeight + ' ' + size + 'px ' + first.cs.fontFamily;
         var mt = ctx.measureText('H');
-        var lineHeight = first.sizePx * 1.2;
-        var baseline = rect.top + (mt && typeof mt.fontBoundingBoxAscent === 'number' ? mt.fontBoundingBoxAscent : first.sizePx * 0.8);
-        var top = baseline - (lineHeight - BASELINE_DESCENT * first.sizePx);
+        var lineHeight = size * 1.2;
+        var baseline = glyphTop + (mt && typeof mt.fontBoundingBoxAscent === 'number' ? mt.fontBoundingBoxAscent : size * 0.8);
+        var top = baseline - (lineHeight - BASELINE_DESCENT * size);
 
         var anchor = first.cs.textAnchor || 'start';
         var align = anchor === 'middle' ? 'center' : anchor === 'end' ? 'right' : 'left';
-        var left = rect.left, width = rect.right - rect.left;
-        var slack = anyEmbedded ? 0.3 * first.sizePx : Math.min(16, Math.max(4, width * 0.05));
+        var slack = anyEmbedded ? 0.3 * size : Math.min(16 / unit, Math.max(4 / unit, width * 0.05));
         if (align === 'center') left -= slack / 2;
         else if (align === 'right') left -= slack;
         width += slack;
 
-        var box = { left: left, top: top, right: left + width, bottom: top + lineHeight };
+        var items = runs.map(function (r) { return { text: r.text, options: r.options }; });
+        var common = { margin: 0, valign: 'top', align: align, wrap: false, fit: 'none', lineSpacing: this.pt(lineHeight * unit), paraSpaceBefore: 0, paraSpaceAfter: 0 };
+        if (upright) {
+            return {
+                kind: 'text', box: { left: left, top: top, right: left + width, bottom: top + lineHeight }, items: items,
+                options: Object.assign({ x: this.x(left), y: this.y(top), w: this.len(width), h: this.len(lineHeight) }, common)
+            };
+        }
+        // PowerPoint turns a text box about its centre: place the unturned
+        // box so its centre lands where the text's centre does on screen.
+        var cx = left + width / 2, cy = top + lineHeight / 2;
+        var sx = m.a * cx + m.c * cy + m.e, sy = m.b * cx + m.d * cy + m.f;
+        var w = width * unit, h = lineHeight * unit;
+        var angle = Math.atan2(m.b, m.a) * 180 / Math.PI;
+        angle = Math.round(((angle % 360) + 360) % 360 * 100) / 100;
+        var corners = [[left, top], [left + width, top], [left + width, top + lineHeight], [left, top + lineHeight]]
+            .map(function (p) { return [m.a * p[0] + m.c * p[1] + m.e, m.b * p[0] + m.d * p[1] + m.f]; });
         return {
-            kind: 'text', box: box,
-            items: runs.map(function (r) { return { text: r.text, options: r.options }; }),
-            options: {
-                x: this.x(left), y: this.y(top), w: this.len(width), h: this.len(lineHeight),
-                margin: 0, valign: 'top', align: align, wrap: false, fit: 'none',
-                lineSpacing: this.pt(lineHeight), paraSpaceBefore: 0, paraSpaceAfter: 0
-            }
+            kind: 'text', box: boxOf(corners), items: items,
+            options: Object.assign({ x: this.x(sx - w / 2), y: this.y(sy - h / 2), w: this.len(w), h: this.len(h), rotate: angle }, common)
         };
     };
 

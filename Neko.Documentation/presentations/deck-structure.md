@@ -127,13 +127,18 @@ PowerPoint elements too:
 | `rect` (rounded too), `circle`, `ellipse`, `line`, `polyline`, `polygon`, `path` (lines, Béziers, arcs) | Freeforms, one per fill or stroke: generated slide art of thousands of ticks stays a few shapes, sharp on any screen |
 | `text` and `tspan` | Editable text boxes in the deck's fonts, one per line, placed by their baseline, `text-anchor` kept |
 | `stroke-dasharray` | The nearest PowerPoint dash style |
+| `marker-start` / `marker-end` (a triangle, chevron, notched head or dot that turns with the line) | The line's own PowerPoint arrowhead, sized small, medium or large to match |
+| `<use>` | The shapes it references, moved and styled as the browser draws them |
+| Rotated `text` | A rotated text box |
+| A rectangular `clip-path`, or the SVG's edge | The geometry cut to it (curves are flattened where they are cut) |
 | A path with holes | Holes kept where the sub-paths wind in opposite directions (letter outlines) |
 | Transforms, `viewBox`, `preserveAspectRatio` | Applied: each element lands where the browser draws it |
 
-The SVG keeps its paint order. An SVG with anything PowerPoint cannot match
-(a gradient, pattern, marker, clip path, mask or filter, rotated text or text on
-a path, `<use>`, an embedded image, a fill cut by the SVG's edge) is a picture,
-vector with a PNG fallback for viewers that do not read SVG. Each
+The SVG keeps its paint order. An SVG with anything PowerPoint cannot match is a
+picture, vector with a PNG fallback for viewers that do not read SVG: a gradient,
+pattern, mask or filter, a clip path of another shape, text on a path or skewed
+text, a marker PowerPoint has no end for, an embedded image, or a shape both
+filled and outlined that its clip cuts. Each
 slide is laid out at 16:9 by the deck's own stylesheet and every element is
 placed where it lands on screen, so the export matches the deck as presented.
 
