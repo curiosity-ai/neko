@@ -101,7 +101,7 @@ is embedded in the deck — no CDN). Each slide is laid out at 16:9 and every he
 bullet, box, rule, SVG and image becomes a native PowerPoint shape at the same
 position. An SVG of straight edges and flat colours (rects, lines, polygons,
 `M`/`L`/`H`/`V`/`Z` paths) becomes vector freeforms, one per paint; an SVG with
-text, curves, transforms or gradients is a picture. PowerPoint sets fonts a hair
+text, curves, markers, dashes or gradients is a picture. PowerPoint sets fonts a hair
 wider than the browser, so text sized exactly to its words (a big number, a
 short label) can wrap its last character in PowerPoint while the slide
 thumbnail still looks right: give text that must stay on one line
