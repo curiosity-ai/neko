@@ -238,7 +238,10 @@
         document.body.appendChild(frame);
 
         var head = '<base href="' + escapeAttr(location.href) + '">';
-        Array.prototype.forEach.call(document.head.querySelectorAll('link[rel~="stylesheet"], style'), function (node) {
+        // Every stylesheet in the document, not only the head's: a host that
+        // wraps the page in its own skeleton (a sandboxed preview) moves the
+        // page's <head> into its <body>.
+        Array.prototype.forEach.call(document.querySelectorAll('link[rel~="stylesheet"], style'), function (node) {
             head += node.outerHTML;
         });
         // Freeze the entrance animation and keep a scrollbar from eating width.
@@ -388,6 +391,12 @@
             if (prop === 'content' || prop.indexOf('counter-') === 0) continue;
             span.style.setProperty(prop, pcs.getPropertyValue(prop));
         }
+        // Custom properties are not always enumerated in a computed style;
+        // the export markers must reach the span (see exportHint).
+        ['--pptx', '--pptx-line'].forEach(function (name) {
+            var value = pcs.getPropertyValue(name).trim();
+            if (value) span.style.setProperty(name, value);
+        });
         span.textContent = text;
         if (which === '::before') host.insertBefore(span, host.firstChild);
         else host.appendChild(span);
@@ -449,6 +458,9 @@
         if (SKIP_TAGS[el.tagName]) return;
         var cs = this.win.getComputedStyle(el);
         if (isVisuallyHidden(el, cs)) return;
+        // `--pptx: none` keeps a screen-only decoration out of the file.
+        if (exportHint(el, cs, '--pptx') === 'none') return;
+        if (this.line(el, cs)) return;
 
         this.decorate(el, cs);
 
@@ -475,6 +487,36 @@
             child = child.nextSibling;
         }
         this.flush(group, el, cs);
+    };
+
+    // A stylesheet can ask for a native PowerPoint element where a box would
+    // not carry over. The value is read where it is set, not where it is
+    // inherited, except `--pptx: none`, which takes the content with it.
+    function exportHint(el, cs, name) {
+        var value = cs.getPropertyValue(name).trim();
+        if (!value || name === '--pptx') return value;
+        var parent = el.parentElement;
+        var inherited = parent ? el.ownerDocument.defaultView.getComputedStyle(parent).getPropertyValue(name).trim() : '';
+        return value === inherited ? '' : value;
+    }
+
+    // `--pptx-line: arrow` (or `line`): the element is a connector drawn as a
+    // thin bar, so it becomes a PowerPoint line from its left edge to its
+    // right edge through its middle, as thick as the bar, in its background
+    // colour, with an open arrowhead at the end for `arrow`. A theme draws an
+    // arrowhead with a rotated, bordered box, which the export cannot carry;
+    // that box takes `--pptx: none` and PowerPoint draws the head.
+    SlideWriter.prototype.line = function (el, cs) {
+        var kind = exportHint(el, cs, '--pptx-line');
+        if (kind !== 'arrow' && kind !== 'line') return false;
+        var r = el.getBoundingClientRect();
+        var color = parseColor(cs.backgroundColor) || parseColor(cs.borderTopColor) || parseColor(cs.color);
+        if (!color || r.width < 0.5) return true;
+        var y = r.top + r.height / 2;
+        var line = { color: color.hex, width: Math.max(0.25, this.pt(Math.max(r.height, 1))), transparency: transparency(color) };
+        if (kind === 'arrow') line.endArrowType = 'arrow';
+        this.slide.addShape(this.pptx.ShapeType.line, { x: this.x(r.left), y: this.y(y), w: this.len(r.width), h: 0, line: line });
+        return true;
     };
 
     // An inline-block with a surface of its own (a tag, a pill, a key cap)

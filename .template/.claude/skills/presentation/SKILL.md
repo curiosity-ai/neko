@@ -100,7 +100,10 @@ to an editable `.pptx` in the browser (via PptxGenJS, which ships with Neko and
 is embedded in the deck — no CDN). Each slide is laid out at 16:9 and every heading, paragraph,
 bullet, box, rule, SVG and image becomes a native PowerPoint shape at the same
 position. Generated content (`::before`/`::after`, counters) is exported as
-text; solid colour layers and SVG masks become shapes. In the curiosity theme
+text; solid colour layers and SVG masks become shapes. A theme can mark a thin
+bar `--pptx-line: arrow` to export it as a PowerPoint line with an arrowhead,
+and a screen-only decoration `--pptx: none` to leave it out (the curiosity
+`flow` connectors use both). In the curiosity theme
 the fonts (Schibsted Grotesk, Geist Mono) are embedded in the file, so it looks
 right where they are not installed. Gradients, shadows and icon glyphs are
 dropped, so don't put meaning in them. `download: false` removes the button. On a protected

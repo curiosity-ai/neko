@@ -147,6 +147,17 @@ rectangles), and a theme's grid layouts keep their places. Each text box is
 placed by its first baseline, so lines sit where they do on screen whatever
 the line height. Gradients, shadows and icon-font glyphs are not carried over.
 
+A theme can ask for a native PowerPoint element where a box would not carry
+over, with two custom properties:
+
+| Property | Effect in the `.pptx` |
+| --- | --- |
+| `--pptx-line: arrow` | The element (a thin bar) becomes a PowerPoint line from its left to its right edge, as thick as the bar, in its background colour, with an arrowhead at the end. `line` draws it without the head. |
+| `--pptx: none` | The element and its content are left out of the file: a screen-only decoration, such as an arrowhead drawn as a rotated, bordered box, which the export cannot rotate. |
+
+The curiosity theme's `flow` steps use both: the connector between two steps is
+exported as a line with an arrowhead.
+
 A page that cannot start a download itself (a sandboxed frame) can take the
 file instead: define `window.nekoDeckSave = (fileName, blob) => …` and the
 exporter hands it the finished `.pptx` rather than downloading it.
