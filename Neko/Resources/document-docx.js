@@ -407,7 +407,10 @@
         document.body.appendChild(frame);
 
         var head = '<base href="' + escapeAttr(location.href) + '">';
-        Array.prototype.forEach.call(document.head.querySelectorAll('link[rel~="stylesheet"], style'), function (node) { head += node.outerHTML; });
+        // Every stylesheet in the document, not only the head's: a host that
+        // wraps the page in its own skeleton (a sandboxed preview) moves the
+        // page's <head> into its <body>.
+        Array.prototype.forEach.call(document.querySelectorAll('link[rel~="stylesheet"], style'), function (node) { head += node.outerHTML; });
         head += '<style>html,body{margin:0!important;padding:0!important;overflow:hidden!important;background:#fff!important}' +
             '.docs{display:block!important;padding:0!important;gap:0!important}' +
             '.doc-page{width:' + ST.page.w + 'px!important;max-width:none!important;margin:0 0 0 0!important;box-shadow:none!important;outline:0!important}' +

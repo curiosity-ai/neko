@@ -119,7 +119,26 @@ deck title (`the-similarity-engine-end-to-end.pptx`).
 
 The file is made of native, editable PowerPoint shapes rather than screenshots:
 headings, paragraphs and bullets are text boxes, boxes and rules are shapes,
-diagrams and images are pictures (SVG stays vector, with a PNG fallback). Each
+and images are pictures. An inline SVG in flat colours becomes native
+PowerPoint elements too:
+
+| In the SVG | In the `.pptx` |
+| --- | --- |
+| `rect` (rounded too), `circle`, `ellipse`, `line`, `polyline`, `polygon`, `path` (lines, Béziers, arcs) | Freeforms, one per fill or stroke: generated slide art of thousands of ticks stays a few shapes, sharp on any screen |
+| `text` and `tspan` | Editable text boxes in the deck's fonts, one per line, placed by their baseline, `text-anchor` kept |
+| `stroke-dasharray` | The nearest PowerPoint dash style |
+| `marker-start` / `marker-end` (a triangle, chevron, notched head or dot that turns with the line) | The line's own PowerPoint arrowhead, sized small, medium or large to match |
+| `<use>` | The shapes it references, moved and styled as the browser draws them |
+| Rotated `text` | A rotated text box |
+| A rectangular `clip-path`, or the SVG's edge | The geometry cut to it (curves are flattened where they are cut) |
+| A path with holes | Holes kept where the sub-paths wind in opposite directions (letter outlines) |
+| Transforms, `viewBox`, `preserveAspectRatio` | Applied: each element lands where the browser draws it |
+
+The SVG keeps its paint order. An SVG with anything PowerPoint cannot match is a
+picture, vector with a PNG fallback for viewers that do not read SVG: a gradient,
+pattern, mask or filter, a clip path of another shape, text on a path or skewed
+text, a marker PowerPoint has no end for, an embedded image, or a shape both
+filled and outlined that its clip cuts. Each
 slide is laid out at 16:9 by the deck's own stylesheet and every element is
 placed where it lands on screen, so the export matches the deck as presented.
 
@@ -146,6 +165,17 @@ and SVG masks become shapes (the curiosity theme's marks are native
 rectangles), and a theme's grid layouts keep their places. Each text box is
 placed by its first baseline, so lines sit where they do on screen whatever
 the line height. Gradients, shadows and icon-font glyphs are not carried over.
+
+A theme can ask for a native PowerPoint element where a box would not carry
+over, with two custom properties:
+
+| Property | Effect in the `.pptx` |
+| --- | --- |
+| `--pptx-line: arrow` | The element (a thin bar) becomes a PowerPoint line from its left to its right edge, as thick as the bar, in its background colour, with an arrowhead at the end. `line` draws it without the head. |
+| `--pptx: none` | The element and its content are left out of the file: a screen-only decoration, such as an arrowhead drawn as a rotated, bordered box, which the export cannot rotate. |
+
+The curiosity theme's `flow` steps use both: the connector between two steps is
+exported as a line with an arrowhead.
 
 A page that cannot start a download itself (a sandboxed frame) can take the
 file instead: define `window.nekoDeckSave = (fileName, blob) => …` and the
