@@ -32,7 +32,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="NUnit3TestAdapter" Version="6.3.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="6.3.1" />
     <!-- Screenshot decoding for the visual-parity tests. SkiaSharp is MIT; ImageSharp 4.0
          switched to the Six Labors Split License and enforces a paid key at build time. -->
     <PackageReference Include="SkiaSharp" Version="4.153.1" />
