@@ -470,13 +470,20 @@
         if (tag === 'canvas') { this.addCanvas(el); return; }
 
         var group = [];
+        var mixed = null;
         var child = el.firstChild;
         while (child) {
             if (child.nodeType === 3) {
                 group.push(child);
             } else if (child.nodeType === 1 && !SKIP_TAGS[child.tagName]) {
                 var ccs = this.win.getComputedStyle(child);
-                if (isInlineLevel(ccs) && !isMedia(child) && !isChip(child, ccs)) {
+                var chip = isInlineLevel(ccs) && !isMedia(child) && isChip(child, ccs);
+                // A chip among words is one of the words: its text stays in
+                // the line, and its surface is drawn where the browser put it.
+                if (chip && (mixed === null ? (mixed = hasInlineText(el, this.win)) : mixed)) {
+                    inlineChips.add(child);
+                    group.push(child);
+                } else if (isInlineLevel(ccs) && !isMedia(child) && !chip) {
                     group.push(child);
                 } else {
                     this.flush(group, el, cs);
@@ -526,6 +533,20 @@
         var bg = parseColor(cs.backgroundColor);
         var border = (parseFloat(cs.borderTopWidth) || 0) > 0 && cs.borderTopStyle !== 'none';
         return !!bg || border;
+    }
+
+    // Chips that sit in a line of text and are exported as part of it.
+    var inlineChips = new WeakSet();
+
+    // Whether an element's own inline content holds words outside any chip.
+    function hasInlineText(el, win) {
+        for (var c = el.firstChild; c; c = c.nextSibling) {
+            if (c.nodeType === 3) { if (c.textContent.trim()) return true; continue; }
+            if (c.nodeType !== 1 || SKIP_TAGS[c.tagName] || isMedia(c)) continue;
+            var cs = win.getComputedStyle(c);
+            if (isInlineLevel(cs) && !isChip(c, cs) && c.textContent.trim()) return true;
+        }
+        return false;
     }
 
     function isMedia(el) {
@@ -748,8 +769,14 @@
         // Balanced and pretty wrapping choose their breaks by a rule PowerPoint
         // does not have, so for those the browser's own line breaks are
         // written into the text as line breaks.
-        this.lineStarts = /balance|pretty/.test((containerCs.textWrap || '') + ' ' + (containerCs.textWrapStyle || ''))
-            ? browserLineStarts(group, this.win) : null;
+        // A chip in the line is drawn where the browser put it, so its words
+        // must land on the same line and baseline: the browser's breaks are
+        // written in, and each line keeps the browser's distance from the
+        // one above (a line holding a chip is taller than the others).
+        var chips = group.some(function (n) { return inlineChips.has(n); });
+        var baselines = chips ? [] : null;
+        this.lineStarts = chips || /balance|pretty/.test((containerCs.textWrap || '') + ' ' + (containerCs.textWrapStyle || ''))
+            ? browserLineStarts(group, this.win, baselines) : null;
         var runs = [];
         this.collectRuns(group, runs, containerCs.whiteSpace);
         this.lineStarts = null;
@@ -814,8 +841,19 @@
         // Text that sat on one line on screen stays on one line: a substitute
         // font a hair wider must not push its last word onto a line of its own.
         if (box.bottom - box.top < lineHeight * 1.5 && !runs.some(function (r) { return r.options.breakLine; })) wraps = false;
+        // The breaks around chips are the browser's; PowerPoint adds none.
+        if (chips) wraps = false;
 
         var items = runs.map(function (run) { return { text: run.text, options: run.options }; });
+        // A paragraph takes its spacing from its first run.
+        if (baselines && baselines.length === 1 + runs.filter(function (r) { return r.options.breakLine; }).length) {
+            var line = 0, self = this;
+            items.forEach(function (item, i) {
+                if (i === 0 || !items[i - 1].options.breakLine) return;
+                line++;
+                item.options = Object.assign({}, item.options, { lineSpacing: self.pt(baselines[line] - baselines[line - 1]) });
+            });
+        }
         if (bullet) items[0].options = Object.assign({}, items[0].options, { bullet: bullet.options });
 
         // Place the box by its first baseline. With exact line spacing a
@@ -846,7 +884,8 @@
 
     // Where the browser started each new line inside a run of inline content:
     // a Map of text node -> offsets of the words that begin a line.
-    function browserLineStarts(group, win) {
+    // With `baselines`, also the browser's baseline of each line, in order.
+    function browserLineStarts(group, win, baselines) {
         var starts = new Map(), lastTop = null, doc = null;
         (function visit(list) {
             for (var i = 0; i < list.length; i++) {
@@ -864,9 +903,14 @@
                     range.setEnd(n, m.index + 1);
                     var rect = range.getClientRects()[0];
                     if (!rect) continue;
-                    if (lastTop !== null && rect.top > lastTop + rect.height * 0.5) {
+                    var newLine = lastTop !== null && rect.top > lastTop + rect.height * 0.5;
+                    if (newLine) {
                         if (!starts.has(n)) starts.set(n, []);
                         starts.get(n).push(m.index);
+                    }
+                    if (baselines && (newLine || lastTop === null)) {
+                        var ascent = glyphAscent(n, text.charAt(m.index), win);
+                        baselines.push(ascent === null ? NaN : rect.top + ascent);
                     }
                     lastTop = rect.top;
                 }
@@ -901,13 +945,22 @@
         range.setEnd(node, start + 1);
         var rect = range.getClientRects()[0];
         if (!rect) return null;
-        var cs = win.getComputedStyle(node.parentElement);
-        metricsCanvas = metricsCanvas || node.ownerDocument.createElement('canvas');
+        var ascent = glyphAscent(node, text.charAt(start), win);
+        return ascent === null ? null : rect.top + ascent;
+    }
+
+    // The ascent the browser used for a character of a text node's font.
+    function glyphAscent(node, ch, win) {
+        var m = measure(node.parentElement, ch, win);
+        return m && typeof m.fontBoundingBoxAscent === 'number' ? m.fontBoundingBoxAscent : null;
+    }
+
+    function measure(el, text, win) {
+        var cs = win.getComputedStyle(el);
+        metricsCanvas = metricsCanvas || el.ownerDocument.createElement('canvas');
         var ctx = metricsCanvas.getContext('2d');
         ctx.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
-        var m = ctx.measureText(text.charAt(start));
-        if (!m || typeof m.fontBoundingBoxAscent !== 'number') return null;
-        return rect.top + m.fontBoundingBoxAscent;
+        return ctx.measureText(text);
     }
 
     // The first line of a list item carries its marker. On screen the marker
@@ -974,9 +1027,37 @@
                 if (SKIP_TAGS[node.tagName] || isMedia(node)) continue;
                 var cs = this.win.getComputedStyle(node);
                 if (isVisuallyHidden(node, cs)) continue;
+                if (inlineChips.has(node)) { this.chipRuns(node, cs, runs); continue; }
                 this.collectRuns(Array.prototype.slice.call(node.childNodes), runs, cs.whiteSpace);
             }
         }
+    };
+
+    // A chip's words with its padding, border and margin on each side as a
+    // no-break space stretched by character spacing to that width, so the
+    // words sit inside the surface drawn behind them.
+    SlideWriter.prototype.chipRuns = function (chip, cs, runs) {
+        var inner = [];
+        this.collectRuns(Array.prototype.slice.call(chip.childNodes), inner, cs.whiteSpace);
+        if (!inner.some(function (r) { return r.text.trim(); })) return;
+        var space = measure(chip, '\u00A0', this.win).width || 0;
+        var self = this;
+        function pad(px, like) {
+            var options = Object.assign({}, like.options);
+            delete options.breakLine;
+            delete options.hyperlink;
+            options.charSpacing = Math.round((px - space) * self.map.s * PT_PER_PX * 10) / 10;
+            return { text: '\u00A0', options: options, preserve: true, embedded: like.embedded };
+        }
+        var before = (parseFloat(cs.marginLeft) || 0) + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0);
+        var after = (parseFloat(cs.marginRight) || 0) + (parseFloat(cs.borderRightWidth) || 0) + (parseFloat(cs.paddingRight) || 0);
+        // A chip that starts a line opens with that line's break.
+        var lead = 0;
+        while (lead < inner.length - 1 && !inner[lead].text && inner[lead].options.breakLine) lead++;
+        Array.prototype.push.apply(runs, inner.slice(0, lead));
+        if (before > 0.5) runs.push(pad(before, inner[lead]));
+        Array.prototype.push.apply(runs, inner.slice(lead));
+        if (after > 0.5) runs.push(pad(after, inner[inner.length - 1]));
     };
 
     SlideWriter.prototype.textRun = function (node, runs) {

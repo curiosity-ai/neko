@@ -35,7 +35,26 @@ namespace Neko.Tests
     public class PresentationPptxExportTests
     {
         private string _out;
-        private string _pptx;
+        private readonly Dictionary<string, string> _pptx = new();
+
+        // A tag in the middle of a sentence, the case that once overlapped.
+        private const string TagsDeck = @"---
+title: Tags in text
+presentation:
+  theme: curiosity
+---
+
+--- {layout=""cover""}
+
+# Tags in text
+
+---
+
+## A policy has two outcomes
+
+What a match does
+:   [!tag text=""flag""] The conversation continues, the verdict is recorded, a reviewer is notified. [!tag text=""reject"" tone=""solid""] The turn is refused as the assistant's own answer, with the reason you wrote.
+";
 
         [OneTimeSetUp]
         public void Build()
@@ -45,6 +64,7 @@ namespace Neko.Tests
             File.WriteAllText(Path.Combine(input, "neko.yml"), "url: https://example.com\nbranding:\n  title: Demo\n");
             File.WriteAllText(Path.Combine(input, "index.md"), "# Home\n");
             File.Copy(FindDeck(), Path.Combine(input, "decks", "templates.md"));
+            File.WriteAllText(Path.Combine(input, "decks", "tags.md"), TagsDeck);
             _out = Path.Combine(Path.GetTempPath(), "neko-pptx-out-" + Guid.NewGuid().ToString("N"));
             new SiteBuilder(input, _out).BuildAsync().GetAwaiter().GetResult();
         }
@@ -52,7 +72,7 @@ namespace Neko.Tests
         [OneTimeTearDown]
         public void Cleanup()
         {
-            if (_pptx != null && File.Exists(_pptx)) File.Delete(_pptx);
+            foreach (var file in _pptx.Values) if (File.Exists(file)) File.Delete(file);
         }
 
         private static string FindDeck()
@@ -83,7 +103,7 @@ namespace Neko.Tests
         [Test]
         public async Task Export_EmbedsTheFonts_AndKeepsWhatTheSlidesShow()
         {
-            var pptx = await ExportAsync();
+            var pptx = await ExportAsync("templates");
             using var zip = ZipFile.OpenRead(pptx);
 
             string Read(string name)
@@ -147,9 +167,35 @@ namespace Neko.Tests
             Assert.That(Regex.Matches(slideXml[4], "prstGeom prst=\"rect\"").Count, Is.GreaterThan(8));
         }
 
-        private async Task<string> ExportAsync()
+        [Test]
+        public async Task Export_KeepsATagInItsSentence()
         {
-            if (_pptx != null) return _pptx;
+            var pptx = await ExportAsync("tags");
+            using var zip = ZipFile.OpenRead(pptx);
+            using var reader = new StreamReader(zip.GetEntry("ppt/slides/slide2.xml")!.Open());
+            var slide = reader.ReadToEnd();
+            var shapes = Regex.Matches(slide, "<p:sp>.*?</p:sp>", RegexOptions.Singleline).Select(m => m.Value).ToList();
+            string Text(string sp) => string.Concat(Regex.Matches(sp, "<a:t>([^<]*)</a:t>").Select(m => m.Groups[1].Value));
+
+            // One text box holds both tags' words and the sentences around them,
+            // so PowerPoint sets them on one line instead of over each other.
+            var box = shapes.Where(sp => Text(sp).Contains("The conversation continues")).ToList();
+            Assert.That(box, Has.Count.EqualTo(1));
+            var words = Text(box[0]);
+            Assert.That(words, Does.Match("flag.*The conversation.*reject.*refused as"));
+
+            // The pill's padding is a no-break space stretched to its width.
+            Assert.That(box[0], Does.Contain("<a:t>\u00A0</a:t>"));
+            Assert.That(box[0], Does.Match("spc=\"\\d+\""));
+
+            // Each pill's outline is still drawn, as a shape of its own with no text.
+            var pills = shapes.Where(sp => sp.Contains("prst=\"roundRect\"") && Text(sp).Length == 0).ToList();
+            Assert.That(pills, Has.Count.EqualTo(2));
+        }
+
+        private async Task<string> ExportAsync(string deck)
+        {
+            if (_pptx.TryGetValue(deck, out var done)) return done;
             using var server = new StaticServer(_out);
             var baseUrl = server.Start();
             var (pw, browser) = await LaunchAsync();
@@ -157,12 +203,13 @@ namespace Neko.Tests
             {
                 var context = await browser.NewContextAsync(new() { AcceptDownloads = true, ViewportSize = new() { Width = 1280, Height = 720 } });
                 var page = await context.NewPageAsync();
-                await page.GotoAsync($"{baseUrl}/decks/templates", new() { WaitUntil = WaitUntilState.NetworkIdle });
+                await page.GotoAsync($"{baseUrl}/decks/{deck}", new() { WaitUntil = WaitUntilState.NetworkIdle });
                 var download = await page.RunAndWaitForDownloadAsync(
                     () => page.EvaluateAsync("document.getElementById('deck-download').click()"), new() { Timeout = 120000 });
-                _pptx = Path.Combine(Path.GetTempPath(), "neko-curiosity-" + Guid.NewGuid().ToString("N") + ".pptx");
-                await download.SaveAsAsync(_pptx);
-                return _pptx;
+                var file = Path.Combine(Path.GetTempPath(), "neko-curiosity-" + Guid.NewGuid().ToString("N") + ".pptx");
+                await download.SaveAsAsync(file);
+                _pptx[deck] = file;
+                return file;
             }
             finally
             {
