@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="LlmTornado" Version="3.8.73" />
+    <PackageReference Include="LlmTornado" Version="3.8.74" />
     <PackageReference Include="Markdig" Version="1.4.0" />
     <!-- Kept at the version Transpose.Compiler.Library binds against; a lower
          direct reference would be a downgrade of its transitive dependency. -->
