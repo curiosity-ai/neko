@@ -241,6 +241,9 @@ namespace Neko.Extensions
                 case "deck":
                     RenderDeck(renderer, obj);
                     break;
+                case "video":
+                    RenderVideo(renderer, obj);
+                    break;
                 case "tag":
                     RenderTag(renderer, obj);
                     break;
@@ -1376,6 +1379,57 @@ namespace Neko.Extensions
                 renderer.Write("</figcaption>");
             }
 
+            renderer.Write("</figure>");
+        }
+
+        // `[!video src="…mp4" link="/videos/…" title="…" poster="…"]` — a rendered video
+        // (the MP4 `neko render` wrote) in a framed player, with a link to the live
+        // composition it was rendered from. The source is the file; the composition
+        // page is how to scrub it frame by frame in the browser.
+        private void RenderVideo(HtmlRenderer renderer, ComponentInline obj)
+        {
+            var src = FirstNonEmpty(obj.GetAttribute("src"), obj.GetAttribute("file"), obj.Arguments.Count > 0 ? obj.Arguments[0] : string.Empty);
+            if (string.IsNullOrEmpty(src)) return;
+
+            var link = obj.GetAttribute("link");
+            if (!string.IsNullOrEmpty(link)) link = Neko.Builder.UrlHelper.StripMarkdownExtension(link);
+            var title = obj.GetAttribute("title");
+            var description = obj.GetAttribute("description");
+            var poster = obj.GetAttribute("poster");
+            var openText = FirstNonEmpty(obj.GetAttribute("open-text"), "Open the composition");
+            var autoplay = string.Equals(obj.GetAttribute("autoplay"), "true", System.StringComparison.OrdinalIgnoreCase);
+            var loop = string.Equals(obj.GetAttribute("loop"), "true", System.StringComparison.OrdinalIgnoreCase) || autoplay;
+            var aspect = AspectRatio(FirstNonEmpty(obj.GetAttribute("ratio"), obj.GetAttribute("aspect"), "16:9"));
+
+            renderer.Write("<figure class=\"neko-video-card not-prose my-8\">");
+            renderer.Write("<div class=\"rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-900 shadow-lg dark:shadow-black/40\">");
+            if (!string.IsNullOrEmpty(title) || !string.IsNullOrEmpty(link))
+            {
+                renderer.Write("<div class=\"flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700\">");
+                renderer.Write("<i class=\"fi fi-rr-play-circle text-primary-600 dark:text-primary-400\" aria-hidden=\"true\"></i>");
+                renderer.Write("<span class=\"flex-1 text-xs font-medium text-gray-600 dark:text-gray-300 truncate\">");
+                renderer.WriteEscape(string.IsNullOrEmpty(title) ? "Video" : title);
+                renderer.Write("</span>");
+                if (!string.IsNullOrEmpty(link))
+                {
+                    renderer.Write($"<a href=\"{WebUtility.HtmlEncode(link)}\" class=\"text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline whitespace-nowrap\">");
+                    renderer.WriteEscape(openText);
+                    renderer.Write(" <i class=\"fi fi-rr-arrow-up-right-from-square text-[10px]\"></i></a>");
+                }
+                renderer.Write("</div>");
+            }
+            renderer.Write($"<video class=\"block w-full bg-black\" style=\"aspect-ratio: {aspect};\" src=\"{WebUtility.HtmlEncode(src)}\" controls playsinline preload=\"metadata\"");
+            if (!string.IsNullOrEmpty(poster)) renderer.Write($" poster=\"{WebUtility.HtmlEncode(poster)}\"");
+            if (autoplay) renderer.Write(" autoplay muted");
+            if (loop) renderer.Write(" loop");
+            renderer.Write($" title=\"{WebUtility.HtmlEncode(string.IsNullOrEmpty(title) ? "Video" : title)}\"></video>");
+            renderer.Write("</div>");
+            if (!string.IsNullOrEmpty(description))
+            {
+                renderer.Write("<figcaption class=\"mt-3 text-sm text-gray-600 dark:text-gray-400\">");
+                renderer.WriteEscape(description);
+                renderer.Write("</figcaption>");
+            }
             renderer.Write("</figure>");
         }
 

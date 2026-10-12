@@ -185,6 +185,7 @@ the full per-component reference** — this section is just a map.
 | Front-matter only  | n/a                    | banner (project-level), backlinks |
 | Presentation       | `presentation: true` + `---` slide separators | presentation (full-screen slide decks) |
 | Document           | `document: true` + `---` page separators | document (paged documents with a Word download) |
+| Video              | `video: true` + `---` scene separators | video (animated scenes, rendered to MP4 by `neko render`) |
 
 Components you should know first:
 
@@ -206,6 +207,12 @@ Components you should know first:
 - **Document** (`document: true` in front matter) — turns the file into paged
   A4/Letter sheets with a **docx** button that downloads a native Word file with
   the fonts embedded; `theme: neko` or `curiosity`. See the `document` skill.
+- **Video** (`video: true` in front matter) — turns the file into a timed video:
+  scenes split on `---`, every block animating in on its own, components such as
+  `::: counter`, `::: chart`, `::: code`, `::: cursor`, `::: lower-third` and
+  `::: cta`, and scene transitions. Previewed in the browser; `neko render
+  file.md` writes an MP4 (Playwright + ffmpeg). Embed the result with
+  `[!video src="…mp4" link="…"]`. See the `video` skill.
 
 For every component, look up its skill:
 `.claude/skills/<component>/SKILL.md`. Each skill includes syntax, every
@@ -261,7 +268,7 @@ changelog · code-block · code-inline · code-snippet · color-chip · column �
 command-example · comments · container · csharp-docs · embed · emoji · endpoint ·
 example · file · file-download · force-graph · icon · image · img-gen · lesson ·
 links · list · math · math-formulas · mermaid · panel · pdf · quiz ·
-presentation · document · reference-link · snapframe · steps · tab · table · tesserae ·
+presentation · document · video · reference-link · snapframe · steps · tab · table · tesserae ·
 workflow · youtube · frontmatter · neko-yml · folder-index.
 
 There is also one **workflow** skill that is not tied to a single component:

@@ -54,3 +54,12 @@ Please refer to the following list for future implementation. Suggested syntax f
 - [x] Add unit tests for Markdown parsing.
 - [x] Add end-to-end tests (Text verification).
 - [ ] Verify output against sample docs.
+
+## Video mode
+- [x] `video:` front matter, scenes split on `---`, timeline compiler (C#), `video.js` seek runtime.
+- [x] Scene components (lockup, swap, typewriter, scramble, counter, stats, chart, code, terminal, devices, cursor, lower-third, captions, quote, steps, checklist, grid/card, cta, logo, media).
+- [x] `neko render` (Playwright frames + ffmpeg via Xabe.FFmpeg, audio mix), `[!video]` embed, `neko` and `curiosity` themes.
+- [ ] Size a scene from its `voice` file's length (ffprobe) when `duration` is left out.
+- [ ] Captions from a word-level transcript file instead of hand-timed lines.
+- [ ] Shader (WebGL) transitions, composited per frame like HyperFrames' engine mode.
+- [ ] Stream frames to ffmpeg's stdin instead of writing them to a temp folder.

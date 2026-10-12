@@ -82,6 +82,13 @@ namespace Neko.Extensions
             // change what existing pages render.
             // The page components of a paged document (cols, box, note, keypoint, flow, …)
             // follow the same rule: only inside a `document:` page.
+            // And the components of a video scene (counter, chart, lower-third, cta, …)
+            // only inside a `video:` page.
+            if (VideoScope.IsRenderingScene && VideoContainers.TryRender(renderer, obj))
+            {
+                return;
+            }
+
             if (DocumentScope.IsRenderingPage && DocumentContainers.TryRender(renderer, obj))
             {
                 return;
