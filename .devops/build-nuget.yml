@@ -10,7 +10,13 @@ pool:
   vmImage: 'windows-latest'
 
 steps:
-- task: NuGetToolInstaller@0
+# NuGet 7.6+ is required to push with an API-key service connection.
+# The hosted image's cached NuGet is older, so install a newer one.
+- task: NuGetToolInstaller@1
+  displayName: 'Install NuGet >= 7.6'
+  inputs:
+    versionSpec: '>=7.6.0'
+    checkLatest: true
 
 
 - task: PowerShell@2
