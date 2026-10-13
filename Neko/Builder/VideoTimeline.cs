@@ -174,11 +174,18 @@ namespace Neko.Builder
         }
 
         // `- item {enter=fade}` puts the attributes on the item's paragraph, which a
-        // tight list never renders as an element: move them to the item itself.
+        // tight list never renders as an element: move them (and an `{#id}`, which a
+        // voice-over line may anchor to) to the item itself.
         private static void LiftItemAttributes(ListItemBlock item)
         {
             if (item.FirstOrDefault() is not ParagraphBlock paragraph) return;
-            var props = paragraph.TryGetAttributes()?.Properties;
+            var source = paragraph.TryGetAttributes();
+            if (source != null && !string.IsNullOrEmpty(source.Id) && string.IsNullOrEmpty(item.TryGetAttributes()?.Id))
+            {
+                item.GetAttributes().Id = source.Id;
+                source.Id = null;
+            }
+            var props = source?.Properties;
             if (props == null || !props.Any(p => AuthoringAttributes.ContainsKey(p.Key))) return;
             var target = item.GetAttributes();
             foreach (var prop in props.Where(p => AuthoringAttributes.ContainsKey(p.Key)).ToList())
@@ -525,6 +532,91 @@ namespace Neko.Builder
         }
 
         internal static string Num(double value) => Math.Round(value, 3).ToString("0.###", CultureInfo.InvariantCulture);
+
+        // -----------------------------------------------------------------
+        // Reading a compiled scene back: its animation events
+        // -----------------------------------------------------------------
+
+        /// <summary>One element's entrance on a scene's clock, as the compiler scheduled it.</summary>
+        public sealed record AnimationEvent(double At, double Duration, string Motion, string Tag, string Id, string Text);
+
+        // Parts of an element that move with it (words, letters, captions) and ambient motion are not events of their own.
+        private static readonly HashSet<string> NonEventMotions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "word", "letter", "cap", "karaoke", "art", "kenburns", "paint", "none",
+        };
+
+        /// <summary>
+        /// Every element that enters in a compiled scene, in document order, with its
+        /// scene-local time and a snippet of its text — what the voice-over preview lines
+        /// the narration up against, and what <c>at="#id"</c> anchors resolve to.
+        /// </summary>
+        public static List<AnimationEvent> Events(string compiledHtml)
+        {
+            var events = new List<AnimationEvent>();
+            if (string.IsNullOrEmpty(compiledHtml)) return events;
+
+            // Every open element, and the event (if any) whose text it collects.
+            var open = new List<(string Tag, int Event)>();
+            var texts = new List<StringBuilder>();
+            var skipDepth = 0; // inside <svg>, <script>, <style>: no text worth showing
+
+            foreach (Match token in TokenRegex.Matches(compiledHtml))
+            {
+                var text = token.Value;
+                if (text.StartsWith("<!--")) continue;
+                if (text.StartsWith("<"))
+                {
+                    var name = TagNameRegex.Match(text) is { Success: true } nm ? nm.Groups[1].Value.ToLowerInvariant() : string.Empty;
+                    if (text.StartsWith("</"))
+                    {
+                        for (int i = open.Count - 1; i >= 0; i--)
+                        {
+                            if (open[i].Tag != name) continue;
+                            if (name is "svg" or "script" or "style") skipDepth = Math.Max(0, skipDepth - 1);
+                            open.RemoveRange(i, open.Count - i);
+                            break;
+                        }
+                        continue;
+                    }
+
+                    var selfClosing = text.EndsWith("/>") || VoidElements.Contains(name);
+                    var attributes = ParseAttributes(text);
+                    var index = -1;
+                    if (attributes.TryGetValue("data-v", out var motion) && !NonEventMotions.Contains(motion ?? string.Empty)
+                        && attributes.TryGetValue("data-at", out var atRaw) && VideoOptions.TryDouble(atRaw, out var at))
+                    {
+                        var dur = attributes.TryGetValue("data-dur", out var d) && VideoOptions.TryDouble(d, out var dv) ? dv : 0;
+                        attributes.TryGetValue("id", out var id);
+                        index = events.Count;
+                        events.Add(new AnimationEvent(at, dur, motion, name, id, null));
+                        texts.Add(new StringBuilder());
+                        if (name == "img" && attributes.TryGetValue("alt", out var alt)) texts[index].Append(alt);
+                    }
+                    if (!selfClosing)
+                    {
+                        open.Add((name, index));
+                        if (name is "svg" or "script" or "style") skipDepth++;
+                    }
+                    continue;
+                }
+
+                if (skipDepth > 0) continue;
+                var decoded = string.IsNullOrWhiteSpace(text) ? " " : System.Net.WebUtility.HtmlDecode(text);
+                foreach (var (_, e) in open)
+                {
+                    if (e >= 0 && texts[e].Length < 160) texts[e].Append(decoded);
+                }
+            }
+
+            for (int i = 0; i < events.Count; i++)
+            {
+                var snippet = Regex.Replace(texts[i].ToString(), @"\s+", " ").Trim();
+                if (snippet.Length > 72) snippet = snippet[..71].TrimEnd() + "…";
+                events[i] = events[i] with { Text = snippet };
+            }
+            return events;
+        }
 
         // -----------------------------------------------------------------
         // Pass 3: the scenes, end to end

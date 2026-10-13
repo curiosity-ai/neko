@@ -19,6 +19,10 @@
      window.nekoVideo.fps / width / height
      window.nekoVideo.seek(t)    paints time t; returns a Promise (clips seeking)
      window.nekoVideo.renderMode() strips the player chrome and sets the canvas at 1:1
+
+   The preview also carries the voice-over (VideoNarration.cs): its sentences play from
+   their synthesized takes, show as a subtitle under the canvas, and sit in the timing
+   panel (T, or #timing) beside every scene and animation on the video's clock.
    ========================================================================== */
 (function () {
   'use strict';
@@ -207,6 +211,7 @@
       width: timeline.width || stage.offsetWidth,
       height: timeline.height || stage.offsetHeight,
       timeline: timeline,
+      narration: timeline.narration || [],
       audio: Array.prototype.slice.call(document.querySelectorAll('audio.nv-audio'))
     };
   }
@@ -688,6 +693,8 @@
     var viewport = document.getElementById('nv-viewport');
     var bar = document.getElementById('nv-bar');
     var barH = bar ? bar.offsetHeight : 0;
+    var timing = document.getElementById('nv-timing');
+    if (timing && !timing.hidden) barH += timing.offsetHeight;
     var availW = window.innerWidth, availH = window.innerHeight - barH;
     var scale = Math.min(availW / model.width, availH / model.height);
     model.stage.style.transform = 'scale(' + scale + ')';
@@ -711,6 +718,58 @@
     if (time) time.textContent = clock(current);
     if (fill) fill.style.width = (f * 100).toFixed(3) + '%';
     if (range && document.activeElement !== range) range.value = Math.round(f * 1000);
+    updateNarration(f);
+  }
+
+  // ---------------------------------------------------------------- the voice-over in the preview
+
+  var subtitles = true, lastSentence = -2;
+
+  // The sentence being spoken at the playhead (the subtitle), and the playhead and the
+  // items under it in the timing panel.
+  function updateNarration(f) {
+    var head = document.getElementById('nv-playhead');
+    if (head) head.style.setProperty('--f', f.toFixed(5));
+    var active = -1;
+    for (var i = 0; i < model.narration.length; i++) {
+      var n = model.narration[i];
+      if (current >= n.start && current < n.end) { active = i; break; }
+    }
+    if (active === lastSentence) return;
+    lastSentence = active;
+    var sub = document.getElementById('nv-subtitle');
+    if (sub) {
+      var sentence = active >= 0 ? model.narration[active] : null;
+      sub.textContent = sentence && subtitles ? sentence.text : '';
+      sub.classList.toggle('is-on', !!(sentence && subtitles));
+      sub.classList.toggle('is-estimated', !!(sentence && sentence.estimated));
+    }
+    var lane = document.querySelectorAll('#nv-timing .nv-sent');
+    for (var j = 0; j < lane.length; j++) lane[j].classList.toggle('is-active', j === active);
+  }
+
+  function setTiming(open) {
+    var panel = document.getElementById('nv-timing');
+    var toggle = document.getElementById('nv-timing-toggle');
+    if (!panel) return;
+    panel.hidden = !open;
+    if (toggle) toggle.setAttribute('aria-pressed', open ? 'true' : 'false');
+    fit();
+  }
+
+  function wireTiming() {
+    var panel = document.getElementById('nv-timing');
+    var toggle = document.getElementById('nv-timing-toggle');
+    if (toggle) toggle.addEventListener('click', function () { setTiming(panel && panel.hidden); });
+    if (panel) panel.addEventListener('click', function (e) {
+      var target = e.target.closest ? e.target.closest('[data-t]') : null;
+      if (!target) return;
+      setPlaying(false);
+      seek(parseFloat(target.getAttribute('data-t')) || 0);
+    });
+    var warns = document.getElementById('nv-timing-warns');
+    if (warns) warns.addEventListener('toggle', fit);
+    if (/(^|[#&])timing\b/.test(location.hash)) setTiming(true);
   }
 
   function syncAudio() {
@@ -718,7 +777,9 @@
       var start = num(a, 'data-start', 0);
       a.volume = Math.max(0, Math.min(1, num(a, 'data-volume', 1)));
       var local = current - start;
-      var inside = playing && local >= 0 && (!a.duration || local < a.duration);
+      // A take's length is known at build time; an Ogg stream may report Infinity.
+      var length = num(a, 'data-duration', isFinite(a.duration) ? a.duration : 0);
+      var inside = playing && local >= 0 && (!length || local < length);
       if (!inside) { if (!a.paused) a.pause(); return; }
       if (Math.abs(a.currentTime - local) > 0.25) a.currentTime = local;
       if (a.paused) { var pr = a.play(); if (pr && pr.catch) pr.catch(function () { }); }
@@ -774,6 +835,8 @@
         case 'ArrowLeft': e.preventDefault(); setPlaying(false); seek(current - step); break;
         case 'Home': e.preventDefault(); setPlaying(false); seek(0); break;
         case 'End': e.preventDefault(); setPlaying(false); seek(model.duration); break;
+        case 't': case 'T': var panel = document.getElementById('nv-timing'); if (panel) { e.preventDefault(); setTiming(panel.hidden); } break;
+        case 'c': case 'C': subtitles = !subtitles; lastSentence = -2; updateBar(); break;
         case 'Escape': var back = document.getElementById('nv-back'); if (back) back.click(); break;
       }
     });
@@ -835,6 +898,7 @@
     document.body.setAttribute('data-video-ready', 'true');
     if (/(^|[#&])render\b/.test(location.hash)) renderMode();
     wirePlayer();
+    wireTiming();
     fit();
     var start = /(?:^|[#&])t=([\d.]+)/.exec(location.hash);
     seek(start ? parseFloat(start[1]) : 0);

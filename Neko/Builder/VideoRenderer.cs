@@ -43,6 +43,15 @@ namespace Neko.Builder
 
         public bool NoAudio { get; set; }
 
+        /// <summary>Do not synthesize the voice-over: sentences without a take stay silent.</summary>
+        public bool NoVoiceOver { get; set; }
+
+        /// <summary>Only compute and print the timing sheet (scenes, animation, voice-over); render nothing.</summary>
+        public bool Preview { get; set; }
+
+        /// <summary>Worker threads for voice-over synthesis; 0 = all cores.</summary>
+        public int VoiceThreads { get; set; }
+
         /// <summary>A Chromium executable to use instead of Playwright's own.</summary>
         public string Browser { get; set; }
 
@@ -94,11 +103,37 @@ namespace Neko.Builder
             }
 
             var jobs = new List<Job>();
+            if (settings.Preview) VideoNarration.PrintWarnings = false;
             foreach (var source in sources.OrderBy(s => s, StringComparer.Ordinal))
             {
-                var job = Prepare(source, settings, isBatch: sources.Count > 1 || Directory.Exists(input));
-                if (job != null) jobs.Add(job);
+                var isBatch = sources.Count > 1 || Directory.Exists(input);
+                var job = Prepare(source, settings, isBatch);
+                if (job == null) continue;
+
+                if (settings.Preview)
+                {
+                    Console.WriteLine(VideoAlignment.Format(job.Doc, Path.GetRelativePath(job.Root, source).Replace('\\', '/')));
+                    continue;
+                }
+
+                // The voice-over is spoken before the page is built: a take's length is the
+                // sentence's place on the clock, and the clock is baked into the page.
+                var narration = job.Doc.Narration;
+                if (narration != null && narration.EstimatedCount > 0 && settings.Still == null && !settings.NoAudio)
+                {
+                    if (settings.NoVoiceOver)
+                    {
+                        Console.WriteLine($"[render] {narration.EstimatedCount} voice-over sentence(s) have no take and stay silent (--no-voiceover).");
+                    }
+                    else if (await VoiceOverCommand.SynthesizeAsync(narration, new VoiceOverSettings { Threads = settings.VoiceThreads }) > 0)
+                    {
+                        job = Prepare(source, settings, isBatch);
+                        if (job == null) continue;
+                    }
+                }
+                jobs.Add(job);
             }
+            if (settings.Preview) return 0;
 
             if (jobs.Count == 0)
             {
@@ -400,7 +435,7 @@ namespace Neko.Builder
                 Console.WriteLine($"[render] Captured {frames} frames in {clock.Elapsed.TotalSeconds:0.0} s; encoding…");
 
                 Directory.CreateDirectory(Path.GetDirectoryName(job.Output)!);
-                var audio = settings.NoAudio ? new List<AudioClip>() : CollectAudio(job, from, to);
+                var audio = settings.NoAudio ? new List<AudioClip>() : CollectAudio(job, from, to, work);
                 var arguments = BuildFfmpegArguments(Path.Combine(framesDir, "f_%06d." + extension), fps, to - from, audio, settings, job.Output);
                 await Xabe.FFmpeg.FFmpeg.Conversions.New().Start(arguments);
 
@@ -427,7 +462,7 @@ namespace Neko.Builder
         /// <summary>One audio file on the timeline: where it starts, how loud, and whether it is the music bed.</summary>
         public sealed record AudioClip(string Path, double Start, double Volume, bool IsMusic);
 
-        private static List<AudioClip> CollectAudio(Job job, double from, double to)
+        private static List<AudioClip> CollectAudio(Job job, double from, double to, string work)
         {
             var clips = new List<AudioClip>();
             var video = job.Doc.Video;
@@ -446,6 +481,18 @@ namespace Neko.Builder
                 var volume = VideoOptions.TryDouble(scene.Get("voice-volume"), out var v) ? v : 1;
                 var start = scene.Start + offset - from;
                 if (start < to - from) clips.Add(new AudioClip(file, start, volume, false));
+            }
+
+            // The voice-over: every take mixed into one track on the video's clock (it is
+            // laid out so its lines never overlap), added as a single input.
+            var narration = job.Doc.Narration;
+            if (narration != null)
+            {
+                var track = Path.Combine(work, "voiceover.wav");
+                var placed = VoiceOverCommand.MixTrack(narration, from, to, track);
+                if (placed > 0) clips.Add(new AudioClip(track, 0, 1, false));
+                var silent = narration.EstimatedCount;
+                if (silent > 0) Console.WriteLine($"[render] {silent} voice-over sentence(s) have no take and are silent: run `neko voiceover` to speak them.");
             }
             return clips;
         }

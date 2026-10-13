@@ -100,6 +100,18 @@ CDN. Rebuild them with `reference/standalone/build-standalone.py`.
 - **Twemoji** 14.0.2 — https://github.com/twitter/twemoji — graphics CC-BY 4.0.
   `twemoji.zip` holds the SVGs `emoji.css` references; a page inlines the ones it shows.
 
+### Voxwerk (video voice-over)
+- **Source**: https://github.com/theolivenbaum/voxwerk — NuGet `Voxwerk` and
+  `Voxwerk.Voices.English`, referenced (not vendored) by `Neko/Neko.csproj`.
+- **Use**: `neko voiceover` / `neko render` synthesize a video's narration with it:
+  Qwen3-TTS inference in pure C#, plus the English voice catalog. It brings
+  Concentus (Ogg Opus, BSD-3-Clause) and NAudio.Core (WAV I/O, MIT).
+- **Model**: the Qwen3-TTS VoiceDesign weights are downloaded on first use from
+  Hugging Face (`Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign`), Apache-2.0 by the Qwen team;
+  they are never bundled with Neko.
+- **Generated audio**: the voice-over takes a project keeps under
+  `assets/voiceover/` are produced by that model from the project's own text.
+
 ## Curiosity brand material (video mode)
 
 The curiosity video theme's drawings, glyphs and mascot are Curiosity GmbH's own brand

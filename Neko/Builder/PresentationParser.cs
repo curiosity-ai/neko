@@ -328,10 +328,11 @@ namespace Neko.Builder
             return slides;
         }
 
-        // `{key="value" key2=value2 .class #id}` — the same shape Neko's generic
-        // attributes and `::: container {…}` blocks already use.
+        // `{key="value" key2=value2 .class #id flag}` — the same shape Neko's generic
+        // attributes and `::: container {…}` blocks already use. A bare word is a flag
+        // (`--- {narration}` marks a video's voice-over track) and reads as "true".
         private static readonly Regex AttributeRegex = new Regex(
-            @"(?<key>[A-Za-z_][\w-]*)\s*=\s*(""(?<q>[^""]*)""|'(?<q>[^']*)'|(?<v>[^\s}]+))|\.(?<class>[\w-]+)|#(?<id>[\w-]+)",
+            @"(?<key>[A-Za-z_][\w-]*)\s*=\s*(""(?<q>[^""]*)""|'(?<q>[^']*)'|(?<v>[^\s}]+))|\.(?<class>[\w-]+)|#(?<id>[\w-]+)|(?<flag>(?<![\w.#-])[A-Za-z_][\w-]*(?![\w-]))",
             RegexOptions.Compiled);
 
         internal static Dictionary<string, string> ParseAttributes(string raw)
@@ -348,6 +349,7 @@ namespace Neko.Builder
             {
                 if (m.Groups["class"].Success) { classes.Add(m.Groups["class"].Value); continue; }
                 if (m.Groups["id"].Success) { result["id"] = m.Groups["id"].Value; continue; }
+                if (m.Groups["flag"].Success) { result.TryAdd(m.Groups["flag"].Value, "true"); continue; }
 
                 var key = m.Groups["key"].Value;
                 var value = m.Groups["q"].Success ? m.Groups["q"].Value : m.Groups["v"].Value;

@@ -68,6 +68,12 @@ namespace Neko.Builder
         public bool IsVideo => Video != null;
 
         /// <summary>
+        /// The voice-over of a video page — its <c>--- {narration}</c> parts, sentence by
+        /// sentence, on the video's clock — or null when it has none.
+        /// </summary>
+        public VideoNarration Narration { get; set; }
+
+        /// <summary>
         /// True when the page's front matter sets <c>redirect</c>. Such a page is not
         /// rendered: its URL serves a redirect to the target instead, and it is kept out
         /// of the sidebar, the navbar, the search index and the sitemap.
@@ -537,6 +543,7 @@ namespace Neko.Builder
             // rendered inside the video scope, then put on the timeline (VideoTimeline).
             VideoOptions video = null;
             List<VideoScene> scenes = null;
+            VideoNarration narration = null;
             double videoDuration = 0;
             if (presentation == null && paged == null && VideoOptions.TryParse(frontMatter.Video, out var videoOptions))
             {
@@ -558,16 +565,48 @@ namespace Neko.Builder
                 if (renderHtml)
                 {
                     scenes = new List<VideoScene>();
+                    // `--- {narration}` parts are the voice-over track, not scenes: they are
+                    // laid on the video's clock after the scenes are, and never move them.
+                    var narrationParts = new List<(Dictionary<string, string> Attributes, string Markdown)>();
                     var parts = PresentationParser.Split(PresentationParser.StripFrontMatter(markdown));
-                    for (int i = 0; i < parts.Count; i++)
+                    foreach (var part in parts)
                     {
-                        var scene = new VideoScene { Attributes = parts[i].Attributes, Markdown = parts[i].Markdown };
+                        if (VideoNarration.IsNarrationPart(part.Attributes))
+                        {
+                            narrationParts.Add((part.Attributes, part.Markdown));
+                            continue;
+                        }
+                        var i = scenes.Count;
+                        var scene = new VideoScene { Attributes = part.Attributes, Markdown = part.Markdown };
                         scene.Voice = ResolveVideoAsset(scene.Get("voice") ?? scene.Get("audio"));
                         var raw = RenderFragment(scene.Markdown, filePath, rootDirectory, FragmentKind.VideoScene);
                         VideoComposer.Compose(scene, raw, video, i);
                         scenes.Add(scene);
                     }
                     videoDuration = VideoTimeline.Sequence(scenes);
+
+                    if (narrationParts.Count > 0 || video.Narration != null)
+                    {
+                        var (folder, folderUrl) = hasFile ? NarrationFolder(video.Narration, filePath, rootDirectory) : (null, null);
+                        narration = VideoNarration.Build(narrationParts, video.Narration, scenes, folder, folderUrl);
+                        if (narration.IsEmpty)
+                        {
+                            narration = null;
+                        }
+                        else if (scenes.Count > 0 && narration.End + 0.6 > videoDuration)
+                        {
+                            // The voice-over is never cut off: the last scene holds until it is done.
+                            var last = scenes[^1];
+                            var extra = Math.Round(narration.End + 0.6 - videoDuration, 2);
+                            last.Duration = Math.Round(last.Duration + extra, 2);
+                            videoDuration = VideoTimeline.Sequence(scenes);
+                            narration.Warnings.Add($"The voice-over runs until {VideoNarration.Clock(narration.End)}, past the last scene; scene {scenes.Count} holds {extra:0.##}s longer.");
+                        }
+                        foreach (var warning in VideoNarration.PrintWarnings ? narration?.Warnings ?? new List<string>() : new List<string>())
+                        {
+                            Console.WriteLine($"Warning: {Path.GetFileName(filePath ?? "video")}: {warning}");
+                        }
+                    }
                 }
             }
 
@@ -585,8 +624,26 @@ namespace Neko.Builder
                 Pages = pages,
                 Video = video,
                 Scenes = scenes,
+                Narration = narration,
                 VideoDuration = videoDuration
             };
+        }
+
+        /// <summary>
+        /// Where a video's synthesized voice-over is kept: <c>assets/voiceover/&lt;page&gt;</c>
+        /// beside the page (an <c>assets</c> folder, so the build copies it and the preview
+        /// can play it), or the <c>folder</c> the narration options name.
+        /// </summary>
+        internal static (string Folder, string Url) NarrationFolder(VideoNarrationOptions options, string filePath, string rootDirectory)
+        {
+            var pageDir = Path.GetDirectoryName(Path.GetFullPath(filePath));
+            var root = Path.GetFullPath(rootDirectory);
+            var folder = !string.IsNullOrEmpty(options?.Folder)
+                ? Path.GetFullPath(Path.Combine(options.Folder.StartsWith("/") ? root : pageDir, options.Folder.TrimStart('/')))
+                : Path.Combine(pageDir, "assets", "voiceover", Path.GetFileNameWithoutExtension(filePath));
+            var relative = Path.GetRelativePath(root, folder).Replace('\\', '/');
+            var url = relative.StartsWith("..") ? null : "/" + relative.TrimStart('/');
+            return (folder, url);
         }
 
         // Renders a standalone chunk of a document (a deck slide) through the same

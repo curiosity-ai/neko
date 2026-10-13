@@ -87,6 +87,7 @@
   "neko-document-mark": "[!mark yes] Yes [!mark part] In part [!mark no] No",
   "neko-video": "---\ntitle: \nvideo:\n  theme: neko\n  transition: fade\n---\n\n--- {layout=\"title\" background=\"aurora\"}\n\n# The headline, *second tone*\n\nOne line under it.\n\n--- {transition=\"push\"}\n\n## The next scene\n\n- Every block\n- animates in\n- on its own\n",
   "neko-video-curiosity": "---\ntitle: \nvideo:\n  theme: curiosity\n  transition: push\n---\n\n--- {layout=\"cover\" art=\"field\" eyebrow=\"Topic · Month 2026\"}\n\n# Line one *line two*\n\nOne sentence on what this video is for.\n\n--- {layout=\"number\" ground=\"deep\" transition=\"zoom\"}\n\n::: counter {value=\"98%\" label=\"The number that matters\"}\n:::\n",
+  "neko-video-narration": "--- {narration}\n\n{at=\"scene-1+0.5\"}\nThe first line of the voice-over.\n\n{at=\"scene-2\"}\nThe line for the second scene.\n",
   "neko-video-scene": "--- {layout=\"split\" transition=\"push\" eyebrow=\"\"}\n\n## Scene headline\n\nThe lead line.\n",
   "neko-video-lockup": "::: lockup {kicker=\"\" label=\"\"}\n# Title\n:::",
   "neko-video-swap": "::: swap {prefix=\"\" words=\"one|two|three\" suffix=\".\"}\n:::",

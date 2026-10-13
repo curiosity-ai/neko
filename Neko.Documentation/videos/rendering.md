@@ -2,7 +2,7 @@
 title: Rendering to MP4
 label: Rendering to MP4
 description: neko render films a video page with headless Chromium (Playwright) and encodes it with ffmpeg — options, the soundtrack, quality, parallel capture, stills and CI.
-order: 6
+order: 7
 icon: film
 ---
 
@@ -29,8 +29,13 @@ neko render videos/launch.md --still 4.5     # one PNG of that moment
    takes a screenshot. Several browser pages capture at once, each a slice of
    the timeline (`--workers`).
 4. **Encode.** ffmpeg turns the frames into H.264 in BT.709 (`yuv420p`,
-   `+faststart`), and mixes the soundtrack: the music bed and each scene's voice
-   line, each delayed to its time, the music faded in and out.
+   `+faststart`), and mixes the soundtrack: the music bed, each scene's voice
+   line and the [voice-over](voice-over.md) track, each delayed to its time, the
+   music faded in and out.
+
+A video with a voice-over has one more step before the build: every sentence
+without a take is synthesized first (see [Voice-over](voice-over.md)), because a
+take's length is its sentence's place on the clock.
 
 The page protocol is small and public, so anything that can load a page and call
 a function can drive it:
@@ -56,6 +61,8 @@ await window.nekoVideo.seek(12.5);     // paint 12.5 s (resolves once clips have
 | `--jpeg` | Capture JPEG frames: faster, slightly softer before encoding. |
 | `--keep-frames` | Keep the captured frames and print their folder. |
 | `--no-audio` | Leave the soundtrack out. |
+| `--no-voiceover` | Do not synthesize the voice-over; sentences without a take stay silent. |
+| `--preview` | Print the timing sheet — scenes, animation and voice-over on one clock — and render nothing. |
 | `--theme` | Re-theme the video: `neko` or `curiosity`. |
 | `--browser` | A Chromium or Chrome executable to use instead of Playwright's. |
 | `--ffmpeg` | ffmpeg (or its folder) to use. |

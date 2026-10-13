@@ -45,6 +45,11 @@
     <!-- `neko render` encodes the captured frames to MP4. The same wrapper and on-demand
          downloader Mosaik uses; the binary is resolved at run time (PATH, the
          Curiosity.FFmpeg.Runtimes layout, or a one-time download), not bundled. -->
+    <!-- Video voice-over: Qwen3-TTS in pure C# (VoiceDesign model, downloaded on first
+         use by `neko voiceover` / `neko render`) and the English voice catalog whose ids
+         the `narration:` front matter can name. -->
+    <PackageReference Include="Voxwerk" Version="26.10.6674" />
+    <PackageReference Include="Voxwerk.Voices.English" Version="26.10.6674" />
     <PackageReference Include="Xabe.FFmpeg" Version="6.1.1" />
     <PackageReference Include="Xabe.FFmpeg.Downloader" Version="6.1.1" />
     <PackageReference Include="YamlDotNet" Version="18.1.0" />
