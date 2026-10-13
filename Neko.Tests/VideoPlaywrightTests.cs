@@ -220,6 +220,42 @@ video:
         }
 
         [Test]
+        public async Task Cube_LandsOnTheEscapeMark()
+        {
+            var (pw, browser) = await LaunchAsync();
+            try
+            {
+                var page = await OpenReadyAsync(browser, PageUrl("#render"), 640, 360);
+
+                // Paint the cube's last frame and read each cell of the mark back: eight ink squares, the top right
+                // cell empty, the Signal square one cell out on the diagonal (assets/logo-mark.svg).
+                var cells = await page.EvaluateAsync<string[]>(@"() => {
+                    const c = document.createElement('canvas'); c.width = c.height = 264;
+                    const ctx = c.getContext('2d'), paint = window.nekoVideoPaint.cube;
+                    paint(ctx, 264, 264, paint.DURATION + 1, { color: '#111418', inner: '#C5C9CE', escaped: '#2F6BFF' });
+                    const u = 2, cx = 132 - 12 * u, cy = 132 + 12 * u, out = [];
+                    const at = (x, y) => { const d = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data; return d[3] === 0 ? 'empty' : '#' + [d[0], d[1], d[2]].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase(); };
+                    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) out.push(at(cx + i * 24 * u, cy + j * 24 * u));
+                    out.push(at(cx + 48 * u, cy - 48 * u));
+                    return out;
+                }");
+
+                Assert.That(cells, Is.EqualTo(new[]
+                {
+                    "#111418", "#111418", "empty",
+                    "#111418", "#111418", "#111418",
+                    "#111418", "#111418", "#111418",
+                    "#2F6BFF",
+                }));
+            }
+            finally
+            {
+                await browser.CloseAsync();
+                pw.Dispose();
+            }
+        }
+
+        [Test]
         public async Task RenderMode_StripsTheChrome_AndSetsTheCanvasAtOneToOne()
         {
             var (pw, browser) = await LaunchAsync();
