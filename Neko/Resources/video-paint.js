@@ -322,7 +322,11 @@
     var hz = half * Math.max(dz, 0.001);
     function view(v) { return rot('x', pitch, rot('y', yaw, v)); }
     function place(cb, v) { var w = cb.R ? rot(cb.R[0], cb.R[1], v) : v; return view([cb.c[0] + w[0], cb.c[1] + w[1], cb.c[2] + w[2]]); }
-    cubies.forEach(function (cb) { cb.z = view(cb.c)[2] + (cb.esc ? 0.01 : 0) + cb.k * 1e-4; });
+    // Order by the layer a cubie is in now, not the one it started in: the twists bring two back cubies to
+    // the front, and keyed by their old layer they were painted over it as the cube flattened. A flat block
+    // is the front layer alone, so the cell the escaped square leaves stays empty, as in the mark.
+    if (dz < 1e-3) cubies = cubies.filter(function (cb) { return Math.round(cb.pos[2]) === 1; });
+    cubies.forEach(function (cb) { cb.z = view(cb.c)[2] + (cb.esc ? 0.01 : 0) + cb.pos[2] * 1e-4; });
     cubies.sort(function (a, b) { return a.z - b.z; });
     var FACES = [[0, 0, 1], [0, 0, -1], [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0]];
     cubies.forEach(function (cb) {
