@@ -1,11 +1,12 @@
 ---
 title: Write Markdown. Get video.
-description: The Neko video mode sample — nine scenes in one Markdown file, in the curiosity theme, rendered to MP4 with neko render.
+description: The Neko video mode sample, in the curiosity theme — the Curiosity brand's live field, pixel glyphs, drawn tiles, staircase, pixel window, the mark's cube and Sudo, from one Markdown file, rendered to MP4 with neko render.
 video:
   theme: curiosity
   size: 1920x1080
   fps: 30
   transition: push
+  intro: squares
   back: /videos/videos
 ---
 
@@ -26,9 +27,9 @@ The same Markdown, the same components, the same `neko watch` loop.
 
 ## A scene is *Markdown*
 
-Every block moves on its own. Headings rise word by word, lists stagger in.
+Every block moves on its own. Headlines rise word by word, lists stagger in.
 
-::::: code {file="launch.md" speed="0.022"}
+::::: code {file="launch.md" speed="0.02"}
 ```markdown
 --- {layout="number" ground="deep"}
 
@@ -41,11 +42,31 @@ Every block moves on its own. Headings rise word by word, lists stagger in.
 ```
 :::::
 
---- {layout="number" ground="deep" transition="zoom" eyebrow="Frames"}
+--- {layout="number" ground="deep" transition="zoom" eyebrow="Frames" art="squares"}
 
-::: counter {value="900" label="Frames in this film" count-dur="1.8"}
-Thirty seconds at thirty frames a second, each one a screenshot.
+::: counter {value="1,500" label="Frames in this film" count-dur="1.4"}
+Fifty seconds at thirty frames a second, each one a screenshot.
 :::
+
+--- {eyebrow="The pixel vocabulary" duration="5.6"}
+
+## Glyphs that *build themselves*
+
+::: glyphs {names="value-connected|value-resolved|value-traceable|value-sovereign" labels="Connected|Resolved|Traceable|Sovereign"}
+:::
+
+--- {ground="stone" eyebrow="Drawn live" layout="full"}
+
+## Every tile is a *function of time*
+
+::::: grid {count="3"}
+::: tile {art="mountain" label="Mountain" height="300px"}
+:::
+::: tile {art="wave" label="Wave" height="300px"}
+:::
+::: tile {art="join-grid" label="Join" height="300px"}
+:::
+:::::
 
 --- {layout="full" eyebrow="Render time" transition="push"}
 
@@ -63,11 +84,11 @@ Thirty seconds at thirty frames a second, each one a screenshot.
 ::: terminal {title="neko render"}
 ```bash
 $ neko render videos/samples/neko-video.md -o neko-video.mp4
-Building the page… 9 scenes, 31.4 s
-Capturing 942 frames with Chromium (4 workers)
+Building the page… 13 scenes, 50.1 s
+Capturing 1,503 frames with Chromium (4 workers)
 ✓ Frames captured
 Encoding with ffmpeg · libx264 · crf 18 · yuv420p
-✓ Wrote neko-video.mp4 (6.2 MB)
+✓ Wrote neko-video.mp4
 ```
 :::
 
@@ -80,19 +101,40 @@ Encoding with ffmpeg · libx264 · crf 18 · yuv420p
 ::: cursor {from="105%,95%" to="52%,58%" label="Scrub any frame" at="1.6"}
 :::
 
---- {layout="split" ground="ink" transition="fade-through" eyebrow="Components"}
+--- {layout="split" eyebrow="Describe · Ground · Ship" transition="push"}
 
-## Built from *what you know*
+## From a sentence to a *film*
 
-::: checklist
-- Titles, swaps and typewriters
-- Counters, stats and charts
-- Code, terminals and devices
-- Cursors, captions and lower thirds
+::: steps {class="stair"}
+1. **Write** the scenes in one Markdown file.
+2. **Preview** them frame by frame with neko watch.
+3. **Render** the MP4 with neko render.
 :::
 
---- {layout="closing" art="squares" transition="zoom-out"}
+--- {ground="ink" eyebrow="Security" art="mountain" scheme="ink"}
 
-::: cta {button="neko render video.md" url="neko.curiosity.ai/videos"}
-# Your docs *can move.*
+## Built for *your infrastructure*
+
+Neko renders on your machine, with your fonts, your browser and your ffmpeg. Nothing leaves the build.
+
+--- {ground="ink" layout="full" eyebrow="In production" transition="zoom"}
+
+::::: stats {count="3" class="cards"}
+::: stat {value="30TB+" label="Data connected"}
+:::
+::: stat {value="20,000+" label="Active users"}
+:::
+::: stat {value="15%" label="Efficiency gain"}
+:::
+:::::
+
+--- {layout="center" transition="zoom-out" duration="7"}
+
+::: mark {cube="true" size="300px"}
+:::
+
+::: wordmark {text="curiosity" tagline="Docs, decks, documents and video, from Markdown."}
+:::
+
+::: sudo {clip="workIdle" size="96px" class="corner"}
 :::

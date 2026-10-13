@@ -33,7 +33,19 @@ namespace Neko.Builder
             if (!string.IsNullOrEmpty(art))
             {
                 var kind = art.Trim().ToLowerInvariant();
-                if (Array.IndexOf(CssBackgrounds, kind) >= 0)
+                if (VideoArt.IsPainted(kind))
+                {
+                    // Drawn live on a canvas: the dash field circling its pixel, the square field,
+                    // the dash tiles and the story tiles (VideoArt, video-paint.js).
+                    var (_, _, dotX, dotY) = ArtBox(layout, kind, options);
+                    // In a side panel the pixel sits near the middle, where a crop never hides it.
+                    if (layout is not ("cover" or "closing" or "full" or "bleed")) (dotX, dotY) = (0.52, 0.45);
+                    var ownGround = layout == "cover" && kind is "field" or "squares";
+                    var canvas = VideoArt.Canvas(kind, scene.Attributes, options.Theme, scene.Get("ground"), scene.Get("accent", options.Accent),
+                        ownGround, dotX, dotY, seed: index + 1);
+                    sb.Append($"<div class=\"nv-art\" data-art=\"{Enc(kind)}\" data-painted=\"true\" aria-hidden=\"true\">{canvas}</div>");
+                }
+                else if (Array.IndexOf(CssBackgrounds, kind) >= 0)
                 {
                     sb.Append($"<div class=\"nv-bg\" data-bg=\"{Enc(kind)}\" data-v=\"art\" aria-hidden=\"true\"></div>");
                 }
@@ -47,6 +59,17 @@ namespace Neko.Builder
                         sb.Append($"<div class=\"nv-art\" data-art=\"{Enc(kind)}\" data-v=\"art\" data-ox=\"{VideoTimeline.Num(dotX * 100)}\" data-oy=\"{VideoTimeline.Num(dotY * 100)}\" aria-hidden=\"true\">{svg}</div>");
                     }
                 }
+            }
+
+            // The website's first-load intro, over the opening scene: the square field sweeping in on ink
+            // and clearing (or the tile sweep), the content arriving as it lifts.
+            var intro = index == 0 ? (scene.Get("intro") ?? options.Intro) : scene.Get("intro");
+            var introLength = 0.0;
+            if (!string.IsNullOrEmpty(intro) && !VideoOptions.IsFalsey(intro))
+            {
+                var style = intro.Trim().ToLowerInvariant() == "tiles" ? "tiles" : "squares";
+                sb.Append($"<div class=\"nv-intro\" aria-hidden=\"true\"><canvas class=\"nv-paint\" data-v=\"paint\" data-paint=\"intro\" data-at=\"0\" data-o='{{\"style\":\"{style}\"}}'></canvas></div>");
+                introLength = style == "tiles" ? 1.4 : 1.68;
             }
 
             var camera = scene.Get("camera");
@@ -69,12 +92,13 @@ namespace Neko.Builder
             }
 
             // The content starts as the transition in is half done: the cut lands mid-motion.
-            var leadIn = index == 0 ? 0.3 : 0.15 + transitionDuration * 0.5;
-            var compiled = VideoTimeline.Compile(sb.ToString(), leadIn, pace);
+            var leadIn = (index == 0 ? 0.3 : 0.15 + transitionDuration * 0.5) + introLength * 0.7;
+            var brand = string.Equals(options.Theme, "curiosity", StringComparison.OrdinalIgnoreCase);
+            var compiled = VideoTimeline.Compile(sb.ToString(), leadIn, pace, brand);
             scene.Html = compiled.Html;
 
             var hold = VideoOptions.TryDouble(scene.Get("hold"), out var h2) ? Math.Max(0, h2) : options.Hold;
-            var auto = Math.Max(2.5, compiled.ContentEnd + hold);
+            var auto = Math.Max(2.5 + introLength, compiled.ContentEnd + hold);
             scene.Duration = VideoOptions.TryDouble(scene.Get("duration"), out var d) && d > 0 ? d : Math.Round(auto, 2);
 
             if (compiled.ContentEnd > scene.Duration + 0.01)
@@ -99,6 +123,8 @@ namespace Neko.Builder
             {
                 "cover" => (w, (int)(h / 3.0), 0.72, 0.5),
                 "closing" => (w, (int)(h * 0.42), 0.8, 0.55),
+                "section" => (w, h, 0.72, 0.36),
+                "number" => (w, h, 0.84, 0.24),
                 "panel" or "section-panel" => ((int)(w * 0.4), h, 0.5, 0.42),
                 _ => (w, h, 0.78, 0.3),
             };

@@ -119,7 +119,8 @@ body:not([data-video-ready="true"]) .nv-scene { display: block; position: relati
 }
 
 /* split text: words and letters move on their own */
-.nv-w, .nv-l { display: inline-block; white-space: pre; will-change: transform, opacity; }
+.nv-w, .nv-wi, .nv-l { display: inline-block; white-space: pre; }
+.nv-wi, .nv-l { will-change: transform, opacity; }
 .nv-c { white-space: pre; }
 .nv-caret-at::after, .nv-typing::before {
   content: ""; display: inline-block; width: .09em; height: 1.02em; margin-left: .05em; vertical-align: -0.14em; background: var(--acc);
@@ -409,3 +410,63 @@ html.nv-render .nv-caret-at::after, html.nv-render .nv-typing::before { animatio
 
 /* Captions own the foot of the frame: a lower third in the same scene steps up above them. */
 .nv-cam:has(.nv-captions) .nv-lt { bottom: 230px; }
+
+/* ---------------------------------------------------------------- painted art (video-paint.js) */
+
+.nv-paint { display: block; width: 100%; height: 100%; }
+.nv-art[data-painted="true"] { -webkit-mask-image: none; mask-image: none; }
+.nv-intro { position: absolute; inset: 0; z-index: 800; pointer-events: none; }
+
+/* a tile: a drawn panel with its caption under it */
+.nv-tile { margin: 0; display: flex; flex-direction: column; min-width: 0; }
+.nv-tile-art { position: relative; height: 340px; overflow: hidden; }
+.nv-tile-caption { padding: 22px 0 0; display: flex; flex-direction: column; gap: 8px; }
+.nv-tile-caption p { font-size: 28px; margin: 0; }
+.nv-tile-label { font-family: var(--nv-font-display); font-size: 36px; font-weight: 500; letter-spacing: -.015em; color: var(--t); }
+
+/* the pixel window: the mark scaled up, its block a window, the escaped square solid */
+.nv-window { --nv-win: 420px; position: relative; width: var(--nv-win); margin-top: calc(var(--nv-win) / 3); }
+.nv-window-pane { position: relative; width: var(--nv-win); aspect-ratio: 1; overflow: hidden; border: 1px solid var(--rule); }
+.nv-window-px { position: absolute; left: 100%; bottom: 100%; width: calc(var(--nv-win) / 3); aspect-ratio: 1; background: var(--acc); }
+
+/* pixel glyphs: 4 by 4, 20 unit squares on a 24 unit grid */
+.nv-glyph-fig { margin: 0; display: inline-flex; flex-direction: column; align-items: flex-start; gap: 20px; }
+.nv-glyph { --nv-glyph: 120px; display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--nv-glyph) / 24); width: var(--nv-glyph); height: var(--nv-glyph); }
+.nv-gc { display: block; aspect-ratio: 1; }
+.nv-glyph.is-grid .nv-gc { box-shadow: inset 0 0 0 1px var(--rule); }
+.nv-gc.g-k { background: var(--t); box-shadow: none; }
+.nv-gc.g-s { background: #2A2F38; box-shadow: none; }
+.nv-gc.g-a { background: #8A9099; box-shadow: none; }
+.nv-gc.g-sig { background: #2F6BFF; box-shadow: none; }
+.nv-gc.g-o { box-shadow: inset 0 0 0 calc(var(--nv-glyph) / 32) var(--t); }
+.nv-gc.g-d { background: #0029E7; box-shadow: none; }
+.nv-gc.g-t { background: #E6E8E8; box-shadow: none; }
+.nv-scene:is([data-ground="ink"], [data-ground="slate"], [data-ground="deep"]) .nv-gc.g-s { background: #4A5462; }
+.nv-glyph-label { font-family: var(--nv-font-mono); font-size: 22px; letter-spacing: .08em; text-transform: uppercase; color: var(--t3); }
+/* A row of glyphs as hairline cells: the rules are the cells' own, so nothing shows before they arrive. */
+.nv-glyphs { display: grid; grid-template-columns: repeat(var(--nv-cols, 4), minmax(0, 1fr)); width: 100%; border-top: 1px solid var(--t); }
+.nv-glyph-cell { margin: 0; padding: 56px 40px 40px 0; display: flex; flex-direction: column; gap: 32px; }
+.nv-glyph-cell + .nv-glyph-cell { padding-left: 40px; border-left: 1px solid var(--rule); }
+.nv-glyphs .nv-glyph { --nv-glyph: 132px; }
+
+/* Sudo */
+.nv-sudo { --nv-sudo: 72px; display: inline-block; position: relative; width: var(--nv-sudo); height: calc(var(--nv-sudo) * .8); line-height: 0; }
+.nv-sudo-f { position: absolute; inset: 0; width: 100%; height: 100%; }
+.nv-sudo.is-walking { position: absolute; bottom: 64px; left: 0; z-index: 30; }
+.nv-sudo.is-left .nv-sudo-f { transform: scaleX(-1); }
+
+/* the Escape mark and the wordmark */
+.nv-brandmark { --nv-mark: 240px; width: var(--nv-mark); height: var(--nv-mark); }
+.nv-brandmark .nv-cube { width: 100%; height: 100%; }
+.nv-mark-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.nv-mark-cell { fill: var(--t); transform-box: fill-box; transform-origin: center; }
+.nv-mark-escape { fill: #2F6BFF; }
+.nv-scene[data-ground="deep"] .nv-mark-escape { fill: #F4F4F2; }
+.nv-lockup-brand { display: flex; flex-direction: column; align-items: inherit; }
+.nv-lockup-row { display: flex; align-items: flex-end; gap: .22em; font-size: 200px; }
+.nv-lockup-mark { width: .86em; height: .86em; display: block; margin-bottom: .02em; }
+.nv-wordmark-brand { font-family: var(--nv-font-display); font-weight: 600; letter-spacing: -.03em; line-height: 1; color: var(--t); display: inline-block; }
+.nv-wm-i { position: relative; display: inline-block; }
+.nv-wm-dot { position: absolute; left: .073em; top: .126em; width: .122em; height: .122em; background: currentColor; }
+.nv-wm-dot.is-signal { background: #2F6BFF; }
+.nv-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

@@ -162,7 +162,8 @@
 [data-video-theme="curiosity"] .nv-rule line { stroke: var(--t); stroke-width: 2; }
 [data-video-theme="curiosity"] .nv-rule { width: 760px; }
 
-[data-video-theme="curiosity"] .nv-counter-value, [data-video-theme="curiosity"] .nv-stat-value { font-weight: 500; letter-spacing: -.05em; }
+/* Proportional figures: Schibsted's tabular comma is a full figure wide. */
+[data-video-theme="curiosity"] .nv-counter-value, [data-video-theme="curiosity"] .nv-stat-value { font-weight: 500; letter-spacing: -.05em; font-variant-numeric: proportional-nums; }
 [data-video-theme="curiosity"] .nv-affix { color: var(--t); font-size: .38em; }
 [data-video-theme="curiosity"] .nv-stats { gap: 0; border-top: 1px solid var(--t); }
 [data-video-theme="curiosity"] .nv-stat { background: none; border: 0; border-right: 1px solid var(--rule); padding: 40px 40px 0 0; margin-right: 40px; }
@@ -241,3 +242,59 @@
 
 [data-video-theme="curiosity"] .nv-brand { color: var(--c-ash); }
 [data-video-theme="curiosity"] .nv-scrub-fill { background: var(--c-signal); }
+
+/* ---------- the brand's motion (the website's js/motion.js, CLAUDE.md §8) ---------- */
+
+/* Headlines rise word by word out of a mask: the outer span clips, the inner one slides up from 112%. */
+[data-video-theme="curiosity"] .nv-w { overflow: hidden; vertical-align: top; padding-bottom: .12em; margin-bottom: -.12em; }
+
+/* ---------- painted art, placed the way the website places its fields and tiles ---------- */
+
+/* On an ordinary scene the drawing takes the right five twelfths, as the Rows hero's field does; the
+   field fades toward the copy (fade: left in its options is the author's; the panel edge is a hairline). */
+[data-video-theme="curiosity"] .nv-scene:not([data-layout="cover"]):not([data-layout="closing"]):not([data-layout="full"]):not([data-layout="bleed"]):not([data-layout="number"]) .nv-art[data-painted="true"] {
+  left: auto; width: 42%; border-left: 1px solid var(--rule);
+}
+[data-video-theme="curiosity"] .nv-scene:not([data-layout="cover"]):not([data-layout="closing"]):not([data-layout="full"]):not([data-layout="bleed"]):not([data-layout="number"]):has(.nv-art[data-painted="true"]) .nv-cam { padding-right: calc(42% + 96px); }
+[data-video-theme="curiosity"] .nv-scene:is([data-layout="full"], [data-layout="bleed"]) .nv-art[data-painted="true"] { inset: 0; }
+[data-video-theme="curiosity"] .nv-scene[data-layout="cover"] .nv-art[data-painted="true"] { background: var(--c-ink); }
+[data-video-theme="curiosity"] .nv-scene[data-layout="number"] .nv-art[data-painted="true"] { left: auto; width: 26%; border-left: 0; }
+[data-video-theme="curiosity"] .nv-scene[data-layout="number"]:has(.nv-art[data-painted="true"]) .nv-cam { padding-right: calc(26% + 96px); }
+
+/* ---------- Blend Rows parts ---------- */
+
+/* The staircase (Studio steps): each step a solid cell, wider than the last: ink, deep blue, stone. */
+[data-video-theme="curiosity"] .nv-steps.stair ol, [data-video-theme="curiosity"] .nv-steps.stair ul { display: flex; flex-direction: column; gap: 0; width: 100%; }
+[data-video-theme="curiosity"] .nv-steps.stair li { margin: 0; padding: 34px 40px 36px 136px; min-height: 0; background: var(--c-ink); color: var(--c-ink-2); }
+[data-video-theme="curiosity"] .nv-steps.stair li strong { color: var(--c-paper); }
+[data-video-theme="curiosity"] .nv-steps.stair li::before { left: 40px; top: 34px; width: 64px; height: 64px; border-color: var(--c-paper); color: var(--c-paper); background: none; }
+[data-video-theme="curiosity"] .nv-steps.stair li:nth-child(1) { width: 62%; }
+[data-video-theme="curiosity"] .nv-steps.stair li:nth-child(2) { width: 81%; background: var(--c-deep); color: #D5DCFF; }
+[data-video-theme="curiosity"] .nv-steps.stair li:nth-child(3) { width: 100%; background: var(--c-stone); color: var(--c-slate); }
+[data-video-theme="curiosity"] .nv-steps.stair li:nth-child(3) strong { color: var(--c-ink); }
+[data-video-theme="curiosity"] .nv-steps.stair li:nth-child(3)::before { border-color: var(--c-ink); color: var(--c-paper); background: var(--c-signal); border: 0; }
+
+/* In production: the numbers as staggered cards on the dark canvas: paper, deep blue, slate. */
+[data-video-theme="curiosity"] .nv-stats.cards { border-top: 0; gap: 0; align-items: start; }
+[data-video-theme="curiosity"] .nv-stats.cards .nv-stat { border: 0; margin: 0; padding: 48px 44px 44px; }
+[data-video-theme="curiosity"] .nv-stats.cards .nv-stat:nth-child(1) { background: var(--c-paper); --t: var(--c-ink); --t3: var(--c-mute); }
+[data-video-theme="curiosity"] .nv-stats.cards .nv-stat:nth-child(2) { background: var(--c-deep); --t: var(--c-paper); --t3: #AEBBFF; margin-top: 90px; }
+[data-video-theme="curiosity"] .nv-stats.cards .nv-stat:nth-child(3) { background: var(--c-slate); --t: var(--c-paper); --t3: var(--c-ash); margin-top: 180px; }
+[data-video-theme="curiosity"] .nv-stats.cards .nv-stat-value { color: var(--t); }
+
+/* Tiles and the window keep square, hairline frames. */
+[data-video-theme="curiosity"] .nv-tile-label { font-weight: 500; }
+[data-video-theme="curiosity"] .nv-window-pane { border-color: var(--c-slate); }
+[data-video-theme="curiosity"] .nv-window-px { background: var(--c-signal); }
+
+/* Glyph tones follow the ground: ink cells are the type colour, slate one step lighter on ink. */
+[data-video-theme="curiosity"] .nv-glyph-cell { background: var(--g); }
+[data-video-theme="curiosity"] .nv-scene[data-ground="deep"] .nv-gc.g-sig { background: var(--c-paper); }
+
+/* Sudo sits in a corner: a detail, never the subject (BRAND.md s8). */
+[data-video-theme="curiosity"] .nv-sudo.corner { position: absolute; right: 128px; bottom: 116px; }
+[data-video-theme="curiosity"] .nv-scene[data-layout="number"]:has(.nv-art[data-painted="true"]) .nv-counter-value { font-size: 300px; }
+[data-video-theme="curiosity"] .nv-scene[data-layout="number"]:has(.nv-art[data-painted="true"]) .nv-counter { column-gap: 96px; grid-template-columns: auto minmax(380px, 1fr); }
+/* The foot stays on the copy's side of a painted panel. */
+[data-video-theme="curiosity"] .nv-scene:not([data-layout="cover"]):not([data-layout="closing"]):not([data-layout="full"]):not([data-layout="bleed"]):not([data-layout="number"]):has(.nv-art[data-painted="true"]) .nv-foot { right: calc(42% + 64px); }
+[data-video-theme="curiosity"] .nv-scene[data-layout="number"]:has(.nv-art[data-painted="true"]) .nv-foot { right: calc(26% + 64px); }

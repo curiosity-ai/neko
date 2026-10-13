@@ -185,6 +185,41 @@ video:
         }
 
         [Test]
+        public async Task BrandArt_IsPainted_AndNothingBlurs()
+        {
+            var (pw, browser) = await LaunchAsync();
+            try
+            {
+                var page = await OpenReadyAsync(browser, PageUrl("#render"), 640, 360);
+                await page.EvaluateAsync("() => window.nekoVideo.seek(1.2)");
+
+                Assert.That(await page.EvaluateAsync<string>("() => document.body.dataset.motion"), Is.EqualTo("brand"));
+
+                // The cover's field canvas has drawn something other than one flat colour.
+                var tones = await page.EvaluateAsync<int>(@"() => {
+                    const c = document.querySelector('#scene-1 canvas.nv-paint');
+                    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+                    const seen = new Set();
+                    for (let i = 0; i < d.length; i += 4 * 37) seen.add(d[i] + ',' + d[i + 1] + ',' + d[i + 2] + ',' + d[i + 3]);
+                    return seen.size;
+                }");
+                Assert.That(tones, Is.GreaterThan(1));
+
+                for (var t = 0.2; t < 2; t += 0.3)
+                {
+                    await page.EvaluateAsync($"() => window.nekoVideo.seek({t.ToString(System.Globalization.CultureInfo.InvariantCulture)})");
+                    var blurred = await page.EvaluateAsync<int>("() => [...document.querySelectorAll('#scene-1 [data-v]')].filter(e => (e.style.filter || '').includes('blur')).length");
+                    Assert.That(blurred, Is.Zero, $"nothing blurs at {t:0.0}s");
+                }
+            }
+            finally
+            {
+                await browser.CloseAsync();
+                pw.Dispose();
+            }
+        }
+
+        [Test]
         public async Task RenderMode_StripsTheChrome_AndSetsTheCanvasAtOneToOne()
         {
             var (pw, browser) = await LaunchAsync();

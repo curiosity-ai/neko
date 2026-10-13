@@ -51,6 +51,7 @@ video:
 | `music` | — | Background track. `musicVolume` (0–1, default `0.35`) sets its level. |
 | `logo` / `logoText` | — | A brand mark pinned to the corner of every frame. |
 | `grain` / `vignette` | `false` | Film grain or a vignette over the whole canvas. |
+| `intro` | — | curiosity: `squares` or `tiles` plays the website's first-load animation over the first scene. |
 | `foot` | `true` | The scene mark and number the curiosity theme draws at the foot. |
 | `autoplay` / `loop` | `false` | Preview behaviour only. |
 | `back` / `backText` | referrer | Where the preview's back link goes. |
@@ -80,7 +81,8 @@ fenced code are ignored, and a setext heading (`Title` over `---`) still works.
 | `transition-duration` | Seconds of overlap with the scene before. |
 | `layout` | `title`, `center`, `split`, `full`, `bottom`, `top`, `bleed`, and the curiosity layouts `cover`, `section`, `panel`, `statement`, `number`, `closing`. A scene that opens on `# Heading` is a `title`. |
 | `ground` | The scene's surface: `paper`, `stone`, `ink`, `slate`, `deep` (and `accent` in neko). |
-| `art` / `background` | Generated art — `field`, `bars`, `squares`, `stair`, `glyph` — drawn in from its signal point, or a CSS ground: `grid`, `dots`, `glow`, `aurora`. |
+| `art` / `background` | Generated art — `field`, `bars`, `squares`, `stair`, `glyph`, and in the curiosity theme the painted mosaics and story tiles (`wave`, `mountain`, `join-grid`, … see [Art](video-themes.md#art)) — drawn in from its signal point, or a CSS ground: `grid`, `dots`, `glow`, `aurora`. |
+| `intro` | curiosity: `squares` or `tiles` — the first-load animation over this scene. |
 | `camera` | A slow move across the whole scene: `push`, `pull`, `pan-left`, `pan-right`, `rise`. |
 | `eyebrow` | The small label at the top of the scene. |
 | `align` | `center` centres the content. |

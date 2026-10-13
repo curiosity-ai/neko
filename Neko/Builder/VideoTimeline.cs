@@ -68,6 +68,10 @@ namespace Neko.Builder
             ["cap"] = new(0.18, 0),
             ["karaoke"] = new(0.3, 0),
             ["art"] = new(1.6, 0),
+            ["paint"] = new(0, 0),
+            ["glyph"] = new(1.4, 0.25),
+            ["sudo"] = new(2, 0.3),
+            ["escape"] = new(0.34, 0.2),
             ["kenburns"] = new(0, 0),
             ["none"] = new(0, 0),
         };
@@ -111,6 +115,7 @@ namespace Neko.Builder
         private static readonly HashSet<string> OpaqueContainers = new(StringComparer.OrdinalIgnoreCase)
         {
             "chart", "captions", "code", "terminal", "swap", "counter", "media", "cursor", "lower-third", "logo", "logos", "stat",
+            "pixel-window", "glyph", "glyphs", "sudo", "mark",
         };
 
         private static void Annotate(ContainerBlock parent, string component)
@@ -231,8 +236,16 @@ namespace Neko.Builder
         /// An explicit <c>at</c> is a time in seconds (<c>at=2.4</c>), relative to the
         /// cursor (<c>at=+0.5</c>), or <c>with</c> — together with the previous element.
         /// </summary>
-        public static CompiledScene Compile(string html, double leadIn, double pace)
+        public static CompiledScene Compile(string html, double leadIn, double pace) => Compile(html, leadIn, pace, brand: false);
+
+        /// <summary>
+        /// With <paramref name="brand"/>, words take the Curiosity website's headline timing (js/motion.js):
+        /// 0.9 s each, 55 ms apart.
+        /// </summary>
+        public static CompiledScene Compile(string html, double leadIn, double pace, bool brand)
         {
+            var wordDuration = brand ? 0.9 : Motions["word"].Duration;
+            var wordStagger = brand ? 0.055 : Motions["word"].Gap;
             if (string.IsNullOrEmpty(html)) return new CompiledScene(html ?? string.Empty, 0, 0);
 
             var output = new List<string>();
@@ -322,7 +335,7 @@ namespace Neko.Builder
                     {
                         // The element itself stays put; its words (or letters, or characters) move.
                         var stagger = attributes.TryGetValue("data-stagger", out var st) && VideoOptions.TryDouble(st, out var s) ? s
-                            : motion == "letters" ? Motions["letter"].Gap : Motions["word"].Gap;
+                            : motion == "letters" ? Motions["letter"].Gap : wordStagger;
                         var state = new SplitState
                         {
                             Tag = name,
@@ -331,6 +344,7 @@ namespace Neko.Builder
                             Stagger = motion == "type" ? TypePerCharacter : stagger * pace,
                             Duration = attributes.TryGetValue("data-dur", out var d) && VideoOptions.TryDouble(d, out var dv) ? dv : -1,
                             Gap = attributes.TryGetValue("data-gap", out var g) && VideoOptions.TryDouble(g, out var gv) ? gv : -1,
+                            WordDuration = wordDuration,
                             OpenTagIndex = output.Count,
                         };
                         output.Add(tag);
@@ -344,7 +358,7 @@ namespace Neko.Builder
                     var gap = attributes.TryGetValue("data-gap", out var gapRaw) && VideoOptions.TryDouble(gapRaw, out var gapValue) ? gapValue : known.Gap * pace;
 
                     // Backgrounds and camera moves span the scene; they never hold up the content.
-                    var isAmbient = motion is "art" or "kenburns";
+                    var isAmbient = motion is "art" or "kenburns" or "paint";
 
                     tag = SetAttribute(tag, "data-at", Num(at));
                     tag = SetAttribute(tag, "data-dur", Num(duration));
@@ -395,6 +409,7 @@ namespace Neko.Builder
             public int Depth;
             public int OpenTagIndex;
             public int Count;
+            public double WordDuration = 0.55;
         }
 
         // `at` as written: seconds, `+0.5` from the cursor, `with` alongside the previous element.
@@ -424,7 +439,8 @@ namespace Neko.Builder
                         continue;
                     }
                     var at = split.Start + split.Count * split.Stagger;
-                    sb.Append($"<span class=\"nv-w\" data-v=\"word\" data-at=\"{Num(at)}\" data-dur=\"{Num(Motions["word"].Duration)}\">{part.Value}</span>");
+                    // The outer span is the mask a brand rise slides out of; the inner one moves.
+                    sb.Append($"<span class=\"nv-w\"><span class=\"nv-wi\" data-v=\"word\" data-at=\"{Num(at)}\" data-dur=\"{Num(split.WordDuration)}\">{part.Value}</span></span>");
                     split.Count++;
                 }
                 return sb.ToString();
@@ -465,7 +481,7 @@ namespace Neko.Builder
             else
             {
                 var last = split.Start + Math.Max(0, split.Count - 1) * split.Stagger;
-                var unit = split.Mode == "letters" ? Motions["letter"].Duration : Motions["word"].Duration;
+                var unit = split.Mode == "letters" ? Motions["letter"].Duration : split.WordDuration;
                 open = SetAttribute(open, "data-at", Num(split.Start));
                 open = SetAttribute(open, "data-dur", Num(last - split.Start + unit));
                 end = last + unit;

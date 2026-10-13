@@ -77,6 +77,12 @@ namespace Neko.Builder
 
         public string BackText { get; set; } = "Back";
 
+        /// <summary>
+        /// The Curiosity website's first-load intro over the opening scene: <c>squares</c> (the square field
+        /// sweeping in on ink, turning toward the Signal and clearing) or <c>tiles</c>. None by default.
+        /// </summary>
+        public string Intro { get; set; }
+
         /// <summary>Starts playing as soon as the preview is ready.</summary>
         public bool Autoplay { get; set; }
 
@@ -183,6 +189,7 @@ namespace Neko.Builder
                     case "back": options.Back = value; break;
                     case "backtext": case "back-text": options.BackText = value; break;
                     case "autoplay": options.Autoplay = !IsFalsey(value); break;
+                    case "intro": options.Intro = IsFalsey(value) ? null : value; break;
                     case "loop": options.Loop = !IsFalsey(value); break;
                 }
             }

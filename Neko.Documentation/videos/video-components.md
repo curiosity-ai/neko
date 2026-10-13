@@ -354,3 +354,82 @@ put their sound in the scene's `voice`.
 
 Headless Chromium decodes WebM (VP8/VP9/AV1) everywhere; H.264 MP4 clips need a
 Chrome build with proprietary codecs (`neko render --browser`).
+
+## Curiosity components
+
+These draw the Curiosity brand's own elements — the website's live drawings and
+Tesserae's Curiosity components — and are meant for the
+[curiosity theme](video-themes.md#curiosity). Their data (glyph frames, Sudo's
+sprite sheet, the Escape mark) lives in C#; the page only paints it.
+
+### `tile`
+
+A painted tile with a label: any [painted art kind](video-themes.md#art) on a
+`scheme`, drawn in from its signal pixel.
+
+```markdown
+::::: grid {count="3"}
+::: tile {art="mountain" label="Mountain" height="300px"}
+:::
+::: tile {art="wave" scheme="signal" label="Wave" height="300px"}
+:::
+::: tile {art="join-grid" label="Join" height="300px"}
+:::
+:::::
+```
+
+### `pixel-window`
+
+A window pane with a painted mosaic inside (`art`, default `mountain` on ink)
+and the Signal square escaping its corner.
+
+### `glyph` and `glyphs`
+
+The website's 4 by 4 pixel glyphs, by name — `value-*`, `use-case-*`,
+`capability-*`, `category-*`, the problem plays and the developer loops — or as
+16 cells (`.` empty, `k` ink, `s` slate, `a` ash, `*` Signal, `o` hollow,
+`d` deep, `t` stone). A still glyph builds itself on the diagonal with its Signal
+landing last, then holds; a glyph with frames of its own plays them, and loops
+when the website loops it. `loop="true"` / `"false"` overrides.
+
+```markdown
+::: glyph {name="loop-search-permission-aware" size="160px" label="Permission aware"}
+:::
+
+::: glyphs {names="value-connected|value-resolved|value-traceable" labels="Connected|Resolved|Traceable"}
+:::
+```
+
+`glyphs` sets them as a row of hairline cells, each on its own beat.
+
+### `sudo`
+
+Sudo, the cat, drawn from the website's sprite sheet. `clip` picks the
+animation (`workIdle`, `walk`, `sit`, `sleep`, …), `size` his height, `tone`
+`ink` or `paper`; `from` / `to` walk him across the frame. `class="corner"`
+parks him bottom right, a detail rather than the subject.
+
+```markdown
+::: sudo {clip="workIdle" class="corner"}
+:::
+```
+
+### `mark` and `wordmark`
+
+`mark` is the Escape mark, its cells popping in and its Signal square stepping
+out; `cube="true"` turns it into the website's rotating cube. `wordmark` sets
+the curiosity wordmark (its second dot in Signal) with an optional `tagline`.
+
+```markdown
+::: mark {cube="true" size="300px"}
+:::
+
+::: wordmark {tagline="Docs, decks, documents and video, from Markdown."}
+:::
+```
+
+### `steps {class="stair"}` and `stats {class="cards"}`
+
+Two layouts of existing components from the website's Blend rows: `stair`
+draws each step as a solid cell wider than the last (ink, deep blue, stone);
+`cards` sets the stats as staggered cards (paper, deep blue, slate).

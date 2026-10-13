@@ -52,7 +52,15 @@ The Curiosity brand system, the same one the
 - the **generated art** — the dash field, bars, squares, the stair and the 4 by 4
   glyphs — **drawn in from its signal point**, the Signal square popping last;
 - `push` (cut on the curve) as the default transition, so the film keeps one
-  direction of travel.
+  direction of travel;
+- the website's **motion rules**: headlines rise word by word out of a mask
+  (0.9 s, expo out, 55 ms apart), numbers count up on an ease-out cubic with no
+  pulse, and **nothing blurs** — a `blur` transition becomes a fade;
+- the website's and Tesserae's **live drawings**, painted on canvas as pure
+  functions of time: the dash field, the square field, the dash mosaics, the
+  customer-story tiles, the first-load intro and the turning cube;
+- the brand's **pixel vocabulary**: every 4 by 4 glyph the website draws, the
+  Escape mark, the wordmark, and **Sudo**, the cat, from his own sprite sheet.
 
 [!video src="/videos/assets/neko-video.mp4" poster="/videos/assets/neko-video-poster.png" link="/videos/samples/neko-video" title="The curiosity theme"]
 
@@ -77,12 +85,36 @@ not read, so the marks, highlights and the call to action take paper.
 
 ### Art
 
+`art=` on a scene draws behind it. The painted kinds are the website's live
+drawings: on an ordinary layout they take the right five twelfths of the frame
+(a quarter on `number`), on `cover` a band of their own, on `full` the whole
+frame.
+
 | `art` | Drawing |
 | --- | --- |
-| `field` | A grid of short dashes bending round the signal square. |
+| `field` | The live dash field, bending round its signal pixel, which circles its place. |
+| `squares` | The square field, turning toward the Signal. |
+| `wave`, `rows`, `chart`, `chart-grid`, `mountain`, `band`, `dither` | The dash mosaics, on a `scheme`: `signal`, `ink`, `deep`, `stone`, `paper` (each shape has the website's default). |
+| `step-grid`, `join-grid`, `lattice`, `dot-chart` | The customer-story tiles. |
 | `bars` | Rows of short bars with a rising lit band. |
-| `squares` | Squares turning toward the signal point. |
 | `stair` | A diagonal band of bars — the section staircase. |
 | `glyph` | A 4 by 4 pixel glyph (`glyph="graph"`, `retrieval`, `permissions`, … or 16 cells). |
 
-`seed` varies the bars between scenes.
+`seed` varies the bars between scenes; `dot-x` / `dot-y` move a field's signal
+pixel; `drift="false"` stills it; `reveal` sets how long the drawing takes to
+spread from its signal pixel.
+
+### The intro
+
+`intro: squares` (or `tiles`) in the `video:` block plays the website's
+first-load animation over the first scene: paper squares growing in on a
+diagonal and turning toward the Signal on ink, or ink and slate tiles laid from
+the corner and lifted in the same order. The first scene's text waits for it.
+A scene can carry its own `intro` instead.
+
+### Brand components
+
+The theme adds components that only make sense in it — `tile`, `pixel-window`,
+`glyph`, `glyphs`, `sudo`, `mark` and `wordmark`, plus `steps {class="stair"}`
+and `stats {class="cards"}`. See
+[Video components](video-components.md#curiosity-components).

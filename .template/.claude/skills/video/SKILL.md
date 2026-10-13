@@ -28,7 +28,8 @@ video:
 Other keys: `transitionDuration` (0.6), `hold` (1.6 s still after the last element),
 `pace` (`brisk`/`normal`/`calm` or a number), `accent` (neko: cyan, violet, amber,
 rose, leaf), `eyebrow`, `logo`/`logoText`, `grain`, `vignette`, `foot`, `autoplay`,
-`loop`, `back`/`backText`.
+`loop`, `back`/`backText`, and (curiosity) `intro: squares|tiles` — the website's
+first-load animation over the first scene.
 
 ## Scenes
 
@@ -207,6 +208,41 @@ Text.
 Also: `window {title}`, `cols`/`col`, `box`, `stack`, `reveal {enter at}`, `logos`
 (a row of images). Captions styles: `rail`, `pill`, `highlight`. `media` clips
 are muted and seeked frame by frame; prefer WebM.
+
+## Curiosity brand components
+
+In `theme: curiosity` headlines rise word by word out of a mask, counters ease
+out with no pulse and nothing blurs. Scene `art=` also takes the website's live
+drawings: `field`, `squares`, the dash mosaics `wave|rows|chart|chart-grid|mountain|band|dither`
+(with `scheme="signal|ink|deep|stone|paper"`) and the story tiles
+`step-grid|join-grid|lattice|dot-chart`. Brand components:
+
+````markdown
+::: tile {art="mountain" label="Mountain" height="300px"}
+:::
+
+::: pixel-window {art="mountain"}
+:::
+
+::: glyphs {names="value-connected|value-resolved|value-traceable" labels="Connected|Resolved|Traceable"}
+:::
+
+::: glyph {name="k..*k...kkk....." size="160px" label="Custom"}
+:::
+
+::: sudo {clip="workIdle" class="corner"}
+:::
+
+::: mark {cube="true" size="300px"}
+:::
+
+::: wordmark {tagline="One line under the name."}
+:::
+````
+
+`steps {class="stair"}` draws steps as a widening staircase; `stats {class="cards"}`
+staggers the stats as paper, deep-blue and slate cards. Still glyphs build once and
+hold (`loop="true"` repeats them). Keep Sudo in a corner: a detail, never the subject.
 
 ## Rendering
 

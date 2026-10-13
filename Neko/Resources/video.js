@@ -63,6 +63,12 @@
   // raw progress r (linear), and the record is written as opacity / transform /
   // filter / clip-path. The other motions (type, count, swap, …) paint themselves.
 
+  // The curiosity theme moves the way the brand's website does (body[data-motion="brand"]):
+  // no blur anywhere (BRAND.md §12), headlines rising word by word out of a mask
+  // (js/motion.js: translateY 112% → 0, 0.9 s, cubic-bezier(.19,1,.22,1)), numbers
+  // counting up on an ease-out cubic with no pulse.
+  var brand = false;
+
   var STATE = {
     fade: { ease: 'power2.out', fn: function (s, p) { s.o = p; } },
     rise: { ease: 'power3.out', fn: function (s, p) { s.o = p; s.y = (1 - p) * 40; s.b = (1 - p) * 6; } },
@@ -79,7 +85,11 @@
     'wipe-up': { ease: 'power3.inOut', fn: function (s, p) { s.clip = 'inset(' + ((1 - p) * 100).toFixed(3) + '% 0 0 0)'; } },
     grow: { ease: 'power3.out', fn: function (s, p) { s.sy = p; } },
     'grow-x': { ease: 'power3.out', fn: function (s, p) { s.sx = p; } },
-    word: { ease: 'power3.out', fn: function (s, p) { s.o = p; s.yem = (1 - p) * 0.45; s.b = (1 - p) * 6; } },
+    word: { ease: 'power3.out', fn: function (s, p, r) {
+      if (brand) { s.ypct = (1 - p) * 112; s.o = r > 0 ? 1 : 0; return; }
+      s.o = p; s.yem = (1 - p) * 0.45; s.b = (1 - p) * 6;
+    } },
+    escape: { ease: 'back.out(1.7)', fn: function (s, p, r) { s.o = r > 0 ? 1 : 0; s.x = -24 * (1 - p); s.y = 24 * (1 - p); } },
     letter: { ease: 'power3.out', fn: function (s, p) { s.o = p; s.yem = (1 - p) * 0.6; s.b = (1 - p) * 4; } },
     cap: { ease: 'power3.out', fn: function (s, p) { s.o = p; s.y = (1 - p) * 16; } },
     check: { ease: 'power2.out', fn: function (s, p) { s.o = p; } },
@@ -96,18 +106,19 @@
     shrink: function (s, q) { s.o *= 1 - q; s.s *= 1 - 0.1 * q; }
   };
 
-  function freshState() { return { o: 1, x: 0, y: 0, yem: 0, s: 1, sx: 1, sy: 1, b: 0, clip: null }; }
+  function freshState() { return { o: 1, x: 0, y: 0, yem: 0, ypct: 0, s: 1, sx: 1, sy: 1, b: 0, clip: null }; }
 
   function writeState(el, s) {
     var st = el.style;
     st.opacity = s.o >= 0.999 ? '' : s.o.toFixed(4);
     var t = '';
     if (s.x || s.y || s.yem) t += 'translate(' + s.x.toFixed(2) + 'px,' + (s.yem ? 'calc(' + s.y.toFixed(2) + 'px + ' + s.yem.toFixed(4) + 'em)' : s.y.toFixed(2) + 'px') + ') ';
+    if (s.ypct) t += 'translateY(' + s.ypct.toFixed(3) + '%) ';
     if (s.s !== 1) t += 'scale(' + s.s.toFixed(4) + ') ';
     if (s.sx !== 1) t += 'scaleX(' + Math.max(0.0001, s.sx).toFixed(4) + ') ';
     if (s.sy !== 1) t += 'scaleY(' + Math.max(0.0001, s.sy).toFixed(4) + ') ';
     st.transform = t;
-    st.filter = s.b > 0.05 ? 'blur(' + s.b.toFixed(2) + 'px)' : '';
+    st.filter = s.b > 0.05 && !brand ? 'blur(' + s.b.toFixed(2) + 'px)' : '';
     st.clipPath = s.clip || '';
   }
 
@@ -231,6 +242,28 @@
       item.click = el.getAttribute('data-click') !== 'false';
       item.ripple = el.querySelector('.nv-ripple');
     }
+    if (v === 'paint') {
+      try { item.opts = JSON.parse(el.getAttribute('data-o') || '{}'); } catch (e) { item.opts = {}; }
+      item.painter = el.getAttribute('data-paint');
+    }
+    if (v === 'glyph') {
+      item.cells = Array.prototype.slice.call(el.querySelectorAll('.nv-gc'));
+      item.label = el.parentElement ? el.parentElement.querySelector('.nv-glyph-label') : null;
+      item.loop = el.getAttribute('data-loop') === 'true';
+      item.rest = num(el, 'data-rest', 1.7);
+      item.frames = (el.getAttribute('data-frames') || '').split(' ').filter(Boolean).map(function (f) {
+        var parts = f.split(':');
+        return { cells: parts[0], ms: parseFloat(parts[1]) || 190, label: parts[2] ? parts[2].replace(/_/g, ' ') : null };
+      });
+      item.total = item.frames.reduce(function (a, f) { return a + f.ms; }, 0) / 1000;
+    }
+    if (v === 'sudo') {
+      item.frames = Array.prototype.slice.call(el.querySelectorAll('.nv-sudo-f'));
+      item.ms = num(el, 'data-ms', 130) / 1000;
+      item.loop = el.getAttribute('data-loop') !== 'false';
+      item.from = num(el, 'data-from', NaN);
+      item.to = num(el, 'data-to', NaN);
+    }
     if (v === 'art') {
       item.sig = el.querySelector('.art-sig');
       item.ox = el.getAttribute('data-ox') || '50';
@@ -258,7 +291,7 @@
     var spec = STATE[item.v];
 
     if (spec) {
-      var p = ease(item.ease, spec.ease)(raw);
+      var p = ease(item.ease, brand && item.v === 'word' ? 'expo.out' : spec.ease)(raw);
       var s = freshState();
       spec.fn(s, p, raw);
       if (item.v === 'slam' && r > 1) {
@@ -297,11 +330,11 @@
         break;
       }
       case 'count': {
-        var cp = ease(item.ease, 'sine.inOut')(raw);
+        var cp = ease(item.ease, brand ? 'power2.out' : 'sine.inOut')(raw);
         el.textContent = formatNumber(item.from + (item.to - item.from) * cp, item.decimals, item.group);
         // Lands exactly, then one pulse.
         var k2 = (lt - item.at - item.dur) / 0.33;
-        el.style.transform = k2 > 0 && k2 < 1 ? 'scale(' + (1 + 0.07 * Math.sin(Math.PI * k2)).toFixed(4) + ')' : '';
+        el.style.transform = !brand && k2 > 0 && k2 < 1 ? 'scale(' + (1 + 0.07 * Math.sin(Math.PI * k2)).toFixed(4) + ')' : '';
         break;
       }
       case 'sweep': {
@@ -323,6 +356,9 @@
         break;
       }
       case 'swap': paintSwap(item, lt); break;
+      case 'paint': paintCanvas(item, lt); break;
+      case 'glyph': paintGlyph(item, lt); break;
+      case 'sudo': paintSudo(item, lt, r); break;
       case 'cursor': paintCursor(item, lt, r); break;
       case 'karaoke': {
         el.style.setProperty('--p', clamp01(r).toFixed(4));
@@ -351,6 +387,72 @@
         el.style.transform = 'scale(' + (1 + 0.08 * kp).toFixed(4) + ') translate(' + (-1.2 * kp).toFixed(3) + '%,' + (-0.8 * kp).toFixed(3) + '%)';
         break;
       }
+    }
+  }
+
+  // A canvas painter (video-paint.js) paints its frame at the element's local time.
+  // The canvas is sized to its layout box (unscaled by the preview's fit), so a
+  // render draws it at exactly the pixels it will be filmed at.
+  function paintCanvas(item, lt) {
+    var painters = window.nekoVideoPaint, paint = painters && painters[item.painter];
+    if (!paint) return;
+    var c = item.el, W = c.offsetWidth, H = c.offsetHeight;
+    if (W < 2 || H < 2) return;
+    var ratio = rendering ? 1 : Math.min(2, window.devicePixelRatio || 1);
+    var cw = Math.round(W * ratio), ch = Math.round(H * ratio);
+    if (c.width !== cw || c.height !== ch) { c.width = cw; c.height = ch; }
+    var ctx = c.getContext('2d');
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+    paint(ctx, W, H, Math.max(0, lt - item.at), item.opts);
+    c.style.opacity = lt < item.at && !item.opts.before ? '0' : '';
+  }
+
+  var GLYPH_CLASS = ['', 'g-k', 'g-s', 'g-a', 'g-sig', 'g-o', 'g-d', 'g-t', 'g-k', 'g-k'];
+
+  // A pixel glyph plays its frames from its start; a loop holds the rest frame for
+  // `rest` seconds between runs, a play stands on its last frame. Before its start
+  // the glyph is at rest (the last frame), as the website shows it with no motion.
+  function paintGlyph(item, lt) {
+    var frames = item.frames, n = frames.length;
+    if (!n) return;
+    var local = lt - item.at, idx = n - 1;
+    if (local >= 0) {
+      var span = item.total + (item.loop ? item.rest : 0);
+      var t = item.loop && span > 0 ? local % span : local, acc = 0;
+      if (local < item.total || item.loop) {
+        idx = n - 1;
+        for (var i = 0; i < n; i++) { acc += frames[i].ms / 1000; if (t < acc) { idx = i; break; } }
+      }
+    } else if (item.el.hasAttribute('data-hidden-before')) {
+      idx = 0;
+    }
+    var f = frames[idx];
+    for (var c = 0; c < 16; c++) {
+      var ch = f.cells.charAt(c), k = ch >= '0' && ch <= '9' ? +ch : 0;
+      item.cells[c].className = 'nv-gc ' + (GLYPH_CLASS[k] || '');
+    }
+    if (item.label) {
+      var label = null;
+      for (var j = idx; j >= 0 && label === null; j--) label = frames[j].label;
+      if (label !== null) item.label.textContent = label;
+    }
+  }
+
+  // Sudo: the clip's frames in turn (looping, or holding the last), and when given
+  // a `from` and `to` he walks between them over the element's duration.
+  function paintSudo(item, lt, r) {
+    var frames = item.frames, n = frames.length;
+    if (!n) return;
+    var local = Math.max(0, lt - item.at), k = Math.floor(local / item.ms);
+    k = item.loop ? k % n : Math.min(n - 1, k);
+    for (var i = 0; i < n; i++) frames[i].style.display = i === k ? '' : 'none';
+    if (!isNaN(item.from) && !isNaN(item.to)) {
+      var host = item.el.parentElement, w = host ? host.clientWidth : 1920;
+      var x = item.from + (item.to - item.from) * clamp01(r);
+      item.el.style.left = (x * w / 100).toFixed(1) + 'px';
+      item.el.classList.toggle('is-left', item.to < item.from);
     }
   }
 
@@ -421,6 +523,7 @@
   // How the incoming scene (p in [0,1] through its transition) and the outgoing one look.
   function transitionStates(name, p, inS, outS, wash) {
     var q, k;
+    if (brand && name === 'blur') name = 'fade';
     switch (name) {
       case 'fade':
         inS.o = EASES['sine.inOut'](p);
@@ -727,6 +830,7 @@
     if (!document.getElementById('nv-stage')) return;
     model = buildModel();
     if (!model) return;
+    brand = document.body.getAttribute('data-motion') === 'brand';
     api.duration = model.duration; api.fps = model.fps; api.width = model.width; api.height = model.height;
     document.body.setAttribute('data-video-ready', 'true');
     if (/(^|[#&])render\b/.test(location.hash)) renderMode();

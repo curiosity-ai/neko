@@ -62,6 +62,13 @@ namespace Neko.Extensions
                 case "media": Media(renderer, obj); return true;
                 case "reveal": Reveal(renderer, obj); return true;
                 case "callout": Callout(renderer, obj); return true;
+                case "tile": Tile(renderer, obj); return true;
+                case "pixel-window": PixelWindow(renderer, obj); return true;
+                case "glyph": Glyph(renderer, obj); return true;
+                case "glyphs": Glyphs(renderer, obj); return true;
+                case "sudo": Sudo(renderer, obj); return true;
+                case "mark": Mark(renderer, obj); return true;
+                case "wordmark": Wordmark(renderer, obj); return true;
                 default: return false;
             }
         }
@@ -652,6 +659,200 @@ namespace Neko.Extensions
             var fit = Attr(obj, "fit", "cover");
             renderer.Write($"<div class=\"{Enc(ClassAttr(obj, "nv-media"))}\" data-fit=\"{Enc(fit)}\"{Motion(obj, "zoom")}>");
             renderer.Write($"<video src=\"{Enc(src)}\" muted playsinline preload=\"auto\" data-media-start=\"{Num(start)}\"></video>");
+            renderer.Write("</div>");
+        }
+
+        // -----------------------------------------------------------------
+        // The Curiosity brand's drawn parts
+        // -----------------------------------------------------------------
+
+        private static Dictionary<string, string> AttributeMap(CustomContainer obj)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var props = obj.TryGetAttributes()?.Properties;
+            if (props != null) foreach (var p in props) map[p.Key] = p.Value;
+            return map;
+        }
+
+        private static int _tileSeed;
+
+        // `::: tile {art="mountain" scheme="ink" label="Rail & mobility"}` — a panel drawn live: a dash tile
+        // (wave, rows, chart, chart-grid, mountain, band, dither), a story tile (step-grid, join-grid,
+        // lattice, dot-chart), the field or the square field. Its content, if any, sits under the drawing as
+        // its caption. The website's industry tiles and story tiles.
+        private static void Tile(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var map = AttributeMap(obj);
+            var art = Attr(obj, "art", "mountain");
+            var label = Attr(obj, "label");
+            var height = Attr(obj, "height");
+            var canvas = VideoArt.Canvas(art, map, "curiosity", "ink", null, ownGround: true, 0.62, 0.42, at: "with", seed: ++_tileSeed % 97);
+            renderer.Write($"<figure class=\"{Enc(ClassAttr(obj, "nv-tile"))}\" data-art=\"{Enc(art)}\"{Motion(obj, "wipe-up", " data-gap=\"0.16\"")}>");
+            renderer.Write($"<div class=\"nv-tile-art\"{(string.IsNullOrEmpty(height) ? string.Empty : $" style=\"height:{Enc(height)}\"")}>{canvas}</div>");
+            if (!string.IsNullOrEmpty(label) || obj.Count > 0)
+            {
+                renderer.Write("<figcaption class=\"nv-tile-caption\">");
+                if (!string.IsNullOrEmpty(label)) renderer.Write($"<span class=\"nv-tile-label\">{Enc(label)}</span>");
+                renderer.WriteChildren(obj);
+                renderer.Write("</figcaption>");
+            }
+            renderer.Write("</figure>");
+        }
+
+        // `::: pixel-window {art="mountain"}` — the pixel window (BRAND.md s7): the mark scaled up to a square, its
+        // block a window onto a drawing (the security section's dash mountain by default), the escaped square
+        // solid Signal one third its size, out on the diagonal.
+        private static void PixelWindow(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var map = AttributeMap(obj);
+            var art = Attr(obj, "art", "mountain");
+            if (!map.ContainsKey("scheme")) map["scheme"] = "ink";
+            var canvas = VideoArt.Canvas(art, map, "curiosity", "ink", null, ownGround: true, 0.7, 0.75, at: "with", seed: 63);
+            renderer.Write($"<div class=\"{Enc(ClassAttr(obj, "nv-window"))}\"{Motion(obj, "settle", " data-gap=\"0.3\"")}>");
+            renderer.Write($"<div class=\"nv-window-pane\">{canvas}</div>");
+            renderer.Write("<span class=\"nv-window-px\" data-v=\"escape\" data-at=\"+0.5\" data-dur=\"0.34\"></span>");
+            renderer.Write("</div>");
+        }
+
+        // On the website a built glyph repeats its build while it is on screen; in a film that reads as a blink,
+        // so a build plays once and holds unless the author asks for `loop`. A glyph's own loop still loops.
+        private static string GlyphMarkup(CuriosityBrand.GlyphSpec spec, string size, string extra, string loop = null)
+        {
+            var loops = loop != null ? !VideoOptions.IsFalsey(loop) : spec.Loop && !spec.IsBuild;
+            var frames = CuriosityBrand.Decode(spec.Animation);
+            var encoded = string.Join(" ", frames.Select(f =>
+                CuriosityBrand.Encode(f.Cells) + ":" + f.Ms.ToString(CultureInfo.InvariantCulture) + (f.Label == null ? string.Empty : ":" + f.Label.Replace(' ', '_'))));
+            var total = frames.Sum(f => f.Ms) / 1000.0;
+            var rest = frames.Last().Cells;
+            var sb = new StringBuilder();
+            sb.Append($"<span class=\"nv-glyph{(spec.ShowEmpty ? " is-grid" : string.Empty)}\" data-v=\"glyph\" data-frames=\"{Enc(encoded)}\" data-loop=\"{(loops ? "true" : "false")}\" data-dur=\"{Num(total)}\" data-gap=\"0.22\"");
+            if (!string.IsNullOrEmpty(size)) sb.Append($" style=\"--nv-glyph:{Enc(size)}\"");
+            sb.Append(extra).Append('>');
+            string[] classes = { "", "g-k", "g-s", "g-a", "g-sig", "g-o", "g-d", "g-t" };
+            foreach (var k in rest) sb.Append($"<i class=\"nv-gc {(k < classes.Length ? classes[k] : string.Empty)}\"></i>");
+            sb.Append("</span>");
+            return sb.ToString();
+        }
+
+        // `::: glyph {name="loop-search-permission-aware" size="160px" label="Permission aware"}` — one of the
+        // website's 4 by 4 pixel glyphs (CuriosityBrand.Glyphs: values, use cases, capabilities, categories,
+        // the three problem plays and the developer loops), playing its frames: a still glyph builds itself
+        // in on the diagonal with its Signal last, a loop plays and holds its rest frame, a play runs once
+        // with its captions. `name` also takes 16 cells in the notation (`k..*k...kkk.....`).
+        private static void Glyph(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var spec = CuriosityBrand.ResolveGlyph(Attr(obj, "name") ?? Attr(obj, "cells"));
+            if (spec == null) return;
+            var label = Attr(obj, "label");
+            var hasCaption = !string.IsNullOrEmpty(label) || obj.Count > 0 || spec.Animation.Contains(':') && CuriosityBrand.Decode(spec.Animation).Any(f => f.Label != null);
+            renderer.Write($"<figure class=\"{Enc(ClassAttr(obj, "nv-glyph-fig"))}\"{Motion(obj, "fade", " data-dur=\"0.3\" data-gap=\"0.05\"")}>");
+            renderer.Write(GlyphMarkup(spec, Attr(obj, "size"), string.Empty, Attr(obj, "loop")));
+            if (hasCaption)
+            {
+                renderer.Write("<figcaption>");
+                renderer.Write($"<span class=\"nv-glyph-label\">{Enc(label ?? string.Empty)}</span>");
+                renderer.WriteChildren(obj);
+                renderer.Write("</figcaption>");
+            }
+            renderer.Write("</figure>");
+        }
+
+        // `::: glyphs {names="value-connected|value-resolved|value-traceable" labels="Connected|Resolved|Traceable"}`
+        // — a row of glyphs as hairline cells, each building in on its own beat.
+        private static void Glyphs(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var names = (Attr(obj, "names") ?? string.Empty).Split('|').Select(n => n.Trim()).Where(n => n.Length > 0).ToList();
+            var labels = (Attr(obj, "labels") ?? string.Empty).Split('|').Select(n => n.Trim()).ToList();
+            var size = Attr(obj, "size");
+            renderer.Write($"<div class=\"{Enc(ClassAttr(obj, "nv-glyphs"))}\" style=\"--nv-cols:{Math.Max(1, names.Count)}\">");
+            for (int i = 0; i < names.Count; i++)
+            {
+                var spec = CuriosityBrand.ResolveGlyph(names[i]);
+                if (spec == null) continue;
+                renderer.Write("<figure class=\"nv-glyph-cell\" data-v=\"rise\" data-gap=\"0.05\">");
+                renderer.Write(GlyphMarkup(spec, size, string.Empty, Attr(obj, "loop")));
+                if (i < labels.Count && labels[i].Length > 0) renderer.Write($"<figcaption><span class=\"nv-glyph-label\">{Enc(labels[i])}</span></figcaption>");
+                renderer.Write("</figure>");
+            }
+            renderer.Write("</div>");
+        }
+
+        // `::: sudo {clip="workIdle" size="72px"}` — Sudo, the house pixel cat, from the website's sprite sheet:
+        // a clip (move, idle, sit, sitIdle, crouch, crouchIdle, sleep, sleepIdle, work, workIdle, stretch,
+        // startle, jumpUp, jumpDown, interact) playing at its own rate, his ears in Signal. With `from` and
+        // `to` (percent of the frame) he walks between them over `dur` seconds. A detail, never the subject:
+        // the brand keeps him 36 to 72px; the website lets him walk the foot of the page.
+        private static void Sudo(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var name = Attr(obj, "clip", Attr(obj, "from") != null ? "move" : "sitIdle");
+            if (!CuriosityBrand.SudoClips.TryGetValue(name, out var clip)) clip = CuriosityBrand.SudoClips["sitIdle"];
+            var onInk = Attr(obj, "tone") is "ink" or "dark";
+            var size = Attr(obj, "size", "72px");
+            var from = Attr(obj, "from");
+            var to = Attr(obj, "to");
+            var walk = from != null && to != null && VideoOptions.TryDouble(from.TrimEnd('%'), out var f) && VideoOptions.TryDouble(to.TrimEnd('%'), out var t);
+            var extra = new StringBuilder($" data-ms=\"{clip.Ms}\" data-loop=\"{(clip.Loops ? "true" : "false")}\" style=\"--nv-sudo:{Enc(size)}\"");
+            if (walk) extra.Append($" data-from=\"{Enc(from.TrimEnd('%'))}\" data-to=\"{Enc(to.TrimEnd('%'))}\"");
+            if (Attr(obj, "dur") == null) extra.Append($" data-dur=\"{Num(walk ? 3 : clip.Frames.Count * clip.Ms / 1000.0)}\"");
+            renderer.Write($"<span class=\"{Enc(ClassAttr(obj, "nv-sudo" + (walk ? " is-walking" : string.Empty)))}\"{Motion(obj, "sudo", extra.ToString())} aria-hidden=\"true\">");
+            for (int i = 0; i < clip.Frames.Count; i++)
+            {
+                renderer.Write(CuriosityBrand.SudoFrameSvg(clip.Frames[i], onInk, "nv-sudo-f"));
+            }
+            renderer.Write("</span>");
+        }
+
+        // `::: mark {cube="true" size="320px"}` — the Escape mark. It builds in square by square on the
+        // diagonal and the escaped square steps out last; with `cube` it plays the website's click sequence
+        // instead (js/logo-cube.js): the square tucks in, the block becomes a 3 by 3 by 3 cube, three layers
+        // turn, and it lands flat with the square stepping back out.
+        private static void Mark(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var size = Attr(obj, "size", "240px");
+            var cube = !VideoOptions.IsFalsey(Attr(obj, "cube", "false"));
+            var onInk = Attr(obj, "tone") is "ink" or "paper" or "light";
+            renderer.Write($"<div class=\"{Enc(ClassAttr(obj, "nv-brandmark"))}\" style=\"--nv-mark:{Enc(size)}\"{Motion(obj, "fade", " data-dur=\"0.2\" data-gap=\"0.05\"")}>");
+            if (cube)
+            {
+                var color = onInk ? VideoArt.Paper : VideoArt.Ink;
+                var inner = onInk ? VideoArt.Ink : VideoArt.Ink2;
+                var loop = Attr(obj, "loop");
+                var o = $"{{\"color\":\"{color}\",\"inner\":\"{inner}\",\"escaped\":\"{VideoArt.Signal}\"{(loop == null ? string.Empty : ",\"loop\":" + Num(VideoOptions.TryDouble(loop, out var l) ? l : 4))}}}";
+                renderer.Write($"<canvas class=\"nv-paint nv-cube\" data-v=\"paint\" data-paint=\"cube\" data-at=\"+0.2\" data-o=\"{Enc(o)}\"></canvas>");
+                renderer.Write("<span class=\"nv-spacer\" data-v=\"none\" data-at=\"+2.9\"></span>");
+            }
+            else
+            {
+                // The cells pop on the diagonal; the escaped square steps out of the block last.
+                var svg = CuriosityBrand.MarkSvg();
+                svg = System.Text.RegularExpressions.Regex.Replace(svg, "data-mark=\"(\\d)\"", m => m.Value + " data-v=\"pop\" data-dur=\"0.35\" data-gap=\"0.05\"");
+                svg = svg.Replace("data-mark=\"escape\"", "data-mark=\"escape\" data-v=\"escape\" data-at=\"+0.25\" data-dur=\"0.34\"");
+                renderer.Write(svg);
+            }
+            renderer.Write("</div>");
+        }
+
+        // `::: wordmark {text="curiosity" mark="true"}` — the wordmark with its pixel dots (the second one Signal
+        // when it stands alone), its letters rising in one after another; with `mark` the Escape mark beside it
+        // as the horizontal lockup.
+        private static void Wordmark(HtmlRenderer renderer, CustomContainer obj)
+        {
+            var text = Attr(obj, "text", "curiosity");
+            var withMark = !VideoOptions.IsFalsey(Attr(obj, "mark", "false"));
+            var tagline = Attr(obj, "tagline");
+            renderer.Write($"<div class=\"{Enc(ClassAttr(obj, "nv-lockup-brand"))}\">");
+            renderer.Write("<div class=\"nv-lockup-row\">");
+            if (withMark)
+            {
+                var svg = CuriosityBrand.MarkSvg();
+                svg = System.Text.RegularExpressions.Regex.Replace(svg, "data-mark=\"(\\d)\"", m => m.Value + " data-v=\"pop\" data-dur=\"0.3\" data-gap=\"0.04\"");
+                svg = svg.Replace("data-mark=\"escape\"", "data-mark=\"escape\" data-v=\"escape\" data-dur=\"0.34\" data-gap=\"0.1\"");
+                renderer.Write($"<span class=\"nv-lockup-mark\">{svg}</span>");
+            }
+            renderer.Write($"<span class=\"nv-wordmark-wrap\" data-v=\"wipe\" data-dur=\"0.8\">{CuriosityBrand.WordmarkHtml(text, signal: !withMark)}</span>");
+            renderer.Write("</div>");
+            if (!string.IsNullOrEmpty(tagline)) renderer.Write($"<p class=\"nv-tagline\" data-v=\"rise\">{Enc(tagline)}</p>");
+            renderer.WriteChildren(obj);
             renderer.Write("</div>");
         }
 

@@ -35,7 +35,9 @@ namespace Neko.Builder
             var prefix = (SiteBuilder.CurrentRoutePrefix ?? string.Empty).TrimEnd('/');
 
             var page = new StringBuilder();
-            page.AppendLine($"<body class=\"neko-video-body\" data-accent=\"{EscapeHtmlAttr(options.Accent)}\"{(options.IsPortrait ? " data-portrait=\"true\"" : string.Empty)}>");
+            // The curiosity theme moves the way the brand's website does (see video.js `brand`).
+            var motion = string.Equals(options.Theme, "curiosity", System.StringComparison.OrdinalIgnoreCase) ? " data-motion=\"brand\"" : string.Empty;
+            page.AppendLine($"<body class=\"neko-video-body\" data-accent=\"{EscapeHtmlAttr(options.Accent)}\"{motion}{(options.IsPortrait ? " data-portrait=\"true\"" : string.Empty)}>");
             RenderVideoBackButton(page, options, prefix);
             var chrome = InlineLocalMedia(page.ToString(), sourcePath);
             page.Clear().Append(chrome);
@@ -73,6 +75,8 @@ namespace Neko.Builder
             }
 
             var scanHtml = page.ToString();
+            // The painters (the brand's drawn motion) come before the runtime that calls them.
+            page.AppendLine(StandaloneAssets.Script(StandaloneAssets.Text("video-paint.js")));
             RenderStandaloneRuntime(page, "video.js");
             if (_isWatchMode) RenderLiveReloadScript(page);
             page.AppendLine("</body>");
