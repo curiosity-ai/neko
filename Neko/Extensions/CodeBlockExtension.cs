@@ -21,12 +21,42 @@ namespace Neko.Extensions
 
     public class CodeBlockRenderer : Markdig.Renderers.Html.CodeBlockRenderer
     {
+        private static bool IsDiagramFence(string info)
+        {
+            var lang = (info ?? string.Empty).Trim().ToLowerInvariant();
+            return lang.StartsWith("mermaid") || lang.StartsWith("math");
+        }
+
+        private static void RenderSceneCode(HtmlRenderer renderer, FencedCodeBlock block)
+        {
+            var language = (block.Info ?? string.Empty).Split(' ', '{')[0].Trim();
+            var lines = new System.Text.StringBuilder();
+            for (int i = 0; i < block.Lines.Count; i++)
+            {
+                if (i > 0) lines.Append('\n');
+                lines.Append(block.Lines.Lines[i].Slice.ToString());
+            }
+            renderer.Write("<div class=\"nv-editor nv-editor-plain\"").WriteAttributes(block).Write(">");
+            renderer.Write($"<pre class=\"nv-editor-code\"><code class=\"{(string.IsNullOrEmpty(language) ? "nohighlight" : "language-" + System.Net.WebUtility.HtmlEncode(language))}\">");
+            renderer.WriteEscape(lines.ToString());
+            renderer.Write("</code></pre></div>");
+        }
+
         protected override void Write(HtmlRenderer renderer, CodeBlock obj)
         {
             // Only enhance FencedCodeBlocks (```)
             if (obj is not FencedCodeBlock fencedBlock)
             {
                 base.Write(renderer, obj);
+                return;
+            }
+
+            // In a video scene a fenced block is a plain editor card the video stylesheet
+            // draws (and video.js highlights); the documentation chrome — copy button,
+            // tabs, line-number tables — has no place in a frame of film.
+            if (VideoScope.IsRenderingScene && !IsDiagramFence(fencedBlock.Info))
+            {
+                RenderSceneCode(renderer, fencedBlock);
                 return;
             }
 

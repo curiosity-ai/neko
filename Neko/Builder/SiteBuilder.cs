@@ -958,6 +958,8 @@ namespace Neko.Builder
                 ? generator.GeneratePresentation(item.Doc, item.FilePath)
                 : item.Doc.IsPagedDocument
                 ? generator.GenerateDocument(item.Doc, item.FilePath)
+                : item.Doc.IsVideo
+                ? generator.GenerateVideo(item.Doc, item.FilePath)
                 : generator.Generate(item.Doc, backlinks, navContext, sidebarLinks, blogPosts, null, relativeUrl);
 
             var htmlFileName = Path.ChangeExtension(item.RelativePath, ".html");
@@ -989,6 +991,9 @@ namespace Neko.Builder
                 // A paged document is its own standalone page, reached by a link or
                 // as a download — not part of the documentation's navigation.
                 || item.Doc.IsPagedDocument
+                // A video is a timed composition, reached from the page that embeds
+                // its render ([!video]) — not prose to search.
+                || item.Doc.IsVideo
                 || SidebarGenerator.IsHiddenVisibility(item.Doc.FrontMatter.Visibility)
                 || IsInSearchExcludedFolder(item.FilePath, searchExcludedFolders)
                 || IsInDotOrUnderscoreFolder(item.RelativePath);

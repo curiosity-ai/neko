@@ -99,3 +99,17 @@ CDN. Rebuild them with `reference/standalone/build-standalone.py`.
   `midnight` and `daylight` deck themes' typefaces.
 - **Twemoji** 14.0.2 — https://github.com/twitter/twemoji — graphics CC-BY 4.0.
   `twemoji.zip` holds the SVGs `emoji.css` references; a page inlines the ones it shows.
+
+## Curiosity brand material (video mode)
+
+The curiosity video theme's drawings, glyphs and mascot are Curiosity GmbH's own brand
+material, ported rather than vendored:
+
+- **Pixel glyph frames** (`Neko/Builder/CuriosityBrand.cs`) — copied from Tesserae's
+  `PixelGlyphKind.cs` (https://github.com/curiosity-ai/tesserae), which carries the
+  Curiosity website's `site/figures.js` frames.
+- **Sudo's sprite sheet** (`CuriosityBrand.SudoSheet`) — the compressed sheet from the
+  Curiosity website's `js/sudo-sheet.js`.
+- **Canvas painters** (`video-paint.js`) — re-written from the website's `field.js`,
+  `decor.js`, `intro.js` and `logo-cube.js` and Tesserae's `FlowField`, `DashMosaic` and
+  `PixelIntro` as pure functions of time.

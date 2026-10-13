@@ -7,6 +7,7 @@ using System.IO;
 using System;
 using Neko.Configuration;
 using System.Text;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace Neko
@@ -572,8 +573,57 @@ namespace Neko
                 return await cmd.RunAsync();
             });
 
+            // Render Command: films a video page (`video:` front matter) to MP4 with
+            // headless Chromium (Playwright) and ffmpeg.
+            var renderCommand = new Command("render", "Render a video page (or a folder of them) to MP4 with headless Chromium and ffmpeg");
+            var renderInputArgument = new Argument<string>("input") { Description = "The video page (.md with `video:` front matter) or a folder of them", DefaultValueFactory = _ => "." };
+            var renderOutputOption = new Option<string?>("--output", "-o") { Description = "Output file (or folder, for a folder input). Defaults to beside the source" };
+            var renderWorkersOption = new Option<int>("--workers", "-w") { Description = "Browser pages capturing frames in parallel", DefaultValueFactory = _ => Math.Clamp(Environment.ProcessorCount / 2, 1, 6) };
+            var renderQualityOption = new Option<string>("--quality", "-q") { Description = "draft, standard or high", DefaultValueFactory = _ => "standard" };
+            var renderFormatOption = new Option<string>("--format") { Description = "mp4 (H.264/AAC) or webm (VP9/Opus)", DefaultValueFactory = _ => "mp4" };
+            var renderFpsOption = new Option<int?>("--fps") { Description = "Frames per second, overriding the front matter" };
+            var renderSizeOption = new Option<string?>("--size") { Description = "Canvas size, overriding the front matter: 1920x1080, 720p, 4k, vertical, square" };
+            var renderFromOption = new Option<double?>("--from") { Description = "Start of the range to render, in seconds" };
+            var renderToOption = new Option<double?>("--to") { Description = "End of the range to render, in seconds" };
+            var renderStillOption = new Option<double?>("--still") { Description = "Write one PNG of this moment (seconds) instead of a video" };
+            var renderJpegOption = new Option<bool>("--jpeg") { Description = "Capture frames as JPEG: faster, slightly softer" };
+            var renderKeepFramesOption = new Option<bool>("--keep-frames") { Description = "Keep the captured frames (their folder is printed)" };
+            var renderNoAudioOption = new Option<bool>("--no-audio") { Description = "Leave the soundtrack out" };
+            var renderBrowserOption = new Option<string?>("--browser") { Description = "Path to a Chromium executable to use instead of Playwright's" };
+            var renderFfmpegOption = new Option<string?>("--ffmpeg") { Description = "Path to ffmpeg (or its folder). Otherwise NEKO_FFMPEG, PATH, or a one-time download" };
+            var renderThemeOption = ThemeOption();
+            renderCommand.Arguments.Add(renderInputArgument);
+            foreach (var option in new Option[] { renderOutputOption, renderWorkersOption, renderQualityOption, renderFormatOption, renderFpsOption, renderSizeOption,
+                         renderFromOption, renderToOption, renderStillOption, renderJpegOption, renderKeepFramesOption, renderNoAudioOption, renderBrowserOption, renderFfmpegOption, renderThemeOption })
+            {
+                renderCommand.Options.Add(option);
+            }
+            renderCommand.SetAction(async (parseResult, token) =>
+            {
+                if (!ApplyTheme(parseResult.GetValue(renderThemeOption))) return 1;
+                Neko.Builder.VideoOptions.SizeOverride = parseResult.GetValue(renderSizeOption);
+                Neko.Builder.VideoOptions.FpsOverride = parseResult.GetValue(renderFpsOption);
+                return await Neko.Builder.VideoRenderer.RunAsync(new Neko.Builder.VideoRenderSettings
+                {
+                    Input = parseResult.GetValue(renderInputArgument),
+                    Output = parseResult.GetValue(renderOutputOption),
+                    Workers = parseResult.GetValue(renderWorkersOption),
+                    Quality = parseResult.GetValue(renderQualityOption),
+                    Format = (parseResult.GetValue(renderFormatOption) ?? "mp4").ToLowerInvariant(),
+                    From = parseResult.GetValue(renderFromOption),
+                    To = parseResult.GetValue(renderToOption),
+                    Still = parseResult.GetValue(renderStillOption),
+                    Jpeg = parseResult.GetValue(renderJpegOption),
+                    KeepFrames = parseResult.GetValue(renderKeepFramesOption),
+                    NoAudio = parseResult.GetValue(renderNoAudioOption),
+                    Browser = parseResult.GetValue(renderBrowserOption),
+                    Ffmpeg = parseResult.GetValue(renderFfmpegOption),
+                });
+            });
+
             rootCommand.Subcommands.Add(buildCommand);
             rootCommand.Subcommands.Add(watchCommand);
+            rootCommand.Subcommands.Add(renderCommand);
             rootCommand.Subcommands.Add(syncApiDocsCommand);
             rootCommand.Subcommands.Add(checkLinksCommand);
             rootCommand.Subcommands.Add(tesseraeHeightsCommand);
@@ -620,7 +670,7 @@ namespace Neko
         // `--theme <name>`: the presentation theme every deck in this build uses.
         private static Option<string?> ThemeOption() => new Option<string?>("--theme")
         {
-            Description = $"Render every presentation deck in this theme, whatever its front matter says ({string.Join(", ", Neko.Builder.PresentationOptions.BuiltInThemes)}); a paged document takes it too when it has a theme of that name ({string.Join(", ", Neko.Builder.DocumentOptions.BuiltInThemes)})"
+            Description = $"Render every presentation deck in this theme, whatever its front matter says ({string.Join(", ", Neko.Builder.PresentationOptions.BuiltInThemes)}); a paged document ({string.Join(", ", Neko.Builder.DocumentOptions.BuiltInThemes)}) and a video ({string.Join(", ", Neko.Builder.VideoOptions.BuiltInThemes)}) take it too when they have a theme of that name"
         };
 
         // Applies `--theme`. An unknown name is an error rather than a silent
@@ -629,9 +679,13 @@ namespace Neko
         {
             Neko.Builder.PresentationOptions.ThemeOverride = null;
             if (string.IsNullOrWhiteSpace(theme)) return true;
-            if (!Neko.Builder.PresentationOptions.IsBuiltInTheme(theme))
+            // A theme any page kind knows is accepted; each kind takes it only when it has a theme of that name.
+            if (!Neko.Builder.PresentationOptions.IsBuiltInTheme(theme)
+                && !Neko.Builder.DocumentOptions.IsBuiltInTheme(theme)
+                && !Neko.Builder.VideoOptions.IsBuiltInTheme(theme))
             {
-                Console.Error.WriteLine($"Unknown theme '{theme}'. Built-in themes: {string.Join(", ", Neko.Builder.PresentationOptions.BuiltInThemes)}.");
+                var all = Neko.Builder.PresentationOptions.BuiltInThemes.Concat(Neko.Builder.DocumentOptions.BuiltInThemes).Concat(Neko.Builder.VideoOptions.BuiltInThemes).Distinct();
+                Console.Error.WriteLine($"Unknown theme '{theme}'. Built-in themes: {string.Join(", ", all)}.");
                 Environment.ExitCode = 1;
                 return false;
             }

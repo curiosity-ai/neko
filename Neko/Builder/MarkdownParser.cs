@@ -53,6 +53,21 @@ namespace Neko.Builder
         public bool IsPagedDocument => PagedDocument != null;
 
         /// <summary>
+        /// Options when the page's front matter marks it as a video composition
+        /// (<c>video: true</c>), otherwise null. A video page renders as a standalone
+        /// player of timed scenes, and <c>neko render</c> turns it into an MP4.
+        /// </summary>
+        public VideoOptions Video { get; set; }
+
+        /// <summary>The compiled scenes of a video page, already on the timeline. Null for ordinary pages.</summary>
+        public List<VideoScene> Scenes { get; set; }
+
+        /// <summary>Length of the video in seconds, every transition overlap accounted for.</summary>
+        public double VideoDuration { get; set; }
+
+        public bool IsVideo => Video != null;
+
+        /// <summary>
         /// True when the page's front matter sets <c>redirect</c>. Such a page is not
         /// rendered: its URL serves a redirect to the target instead, and it is kept out
         /// of the sidebar, the navbar, the search index and the sitemap.
@@ -116,6 +131,13 @@ namespace Neko.Builder
         // running, numbers, …) — see DocumentOptions.
         [YamlMember(Alias = "document")]
         public object Document { get; set; }
+
+        // Marks the file as a video composition: timed scenes separated by `---`,
+        // previewed in the browser and rendered to MP4 with `neko render`. Accepts a
+        // bare `true` or a mapping of options (theme, size, fps, transition, music,
+        // …) — see VideoOptions.
+        [YamlMember(Alias = "video")]
+        public object Video { get; set; }
 
         [YamlMember(Alias = "searchExclude")]
         public bool SearchExclude { get; set; }
@@ -451,7 +473,7 @@ namespace Neko.Builder
                 presentation = deckOptions;
 
                 // `--theme` on the command line re-themes every deck in the build.
-                if (!string.IsNullOrEmpty(PresentationOptions.ThemeOverride))
+                if (PresentationOptions.IsBuiltInTheme(PresentationOptions.ThemeOverride))
                 {
                     presentation.Theme = PresentationOptions.ThemeOverride;
                 }
@@ -511,7 +533,45 @@ namespace Neko.Builder
                 }
             }
 
-            var html = (renderHtml && slides == null && pages == null) ? document.ToHtml(_pipeline) : null;
+            // A video is split the same way — `---` starts a scene — and each scene is
+            // rendered inside the video scope, then put on the timeline (VideoTimeline).
+            VideoOptions video = null;
+            List<VideoScene> scenes = null;
+            double videoDuration = 0;
+            if (presentation == null && paged == null && VideoOptions.TryParse(frontMatter.Video, out var videoOptions))
+            {
+                video = videoOptions;
+
+                if (VideoOptions.IsBuiltInTheme(VideoOptions.ThemeOverride))
+                {
+                    video.Theme = VideoOptions.ThemeOverride;
+                }
+
+                var hasFile = !string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(rootDirectory) && File.Exists(filePath);
+                string ResolveVideoAsset(string url) => hasFile && !string.IsNullOrEmpty(url)
+                    ? ResolveAssetUrl(url, Path.GetDirectoryName(Path.GetFullPath(filePath)), Path.GetFullPath(rootDirectory))
+                    : url;
+
+                video.Logo = ResolveVideoAsset(video.Logo);
+                video.Music = ResolveVideoAsset(video.Music);
+
+                if (renderHtml)
+                {
+                    scenes = new List<VideoScene>();
+                    var parts = PresentationParser.Split(PresentationParser.StripFrontMatter(markdown));
+                    for (int i = 0; i < parts.Count; i++)
+                    {
+                        var scene = new VideoScene { Attributes = parts[i].Attributes, Markdown = parts[i].Markdown };
+                        scene.Voice = ResolveVideoAsset(scene.Get("voice") ?? scene.Get("audio"));
+                        var raw = RenderFragment(scene.Markdown, filePath, rootDirectory, FragmentKind.VideoScene);
+                        VideoComposer.Compose(scene, raw, video, i);
+                        scenes.Add(scene);
+                    }
+                    videoDuration = VideoTimeline.Sequence(scenes);
+                }
+            }
+
+            var html = (renderHtml && slides == null && pages == null && scenes == null) ? document.ToHtml(_pipeline) : null;
 
             return new ParsedDocument
             {
@@ -522,22 +582,43 @@ namespace Neko.Builder
                 Presentation = presentation,
                 Slides = slides,
                 PagedDocument = paged,
-                Pages = pages
+                Pages = pages,
+                Video = video,
+                Scenes = scenes,
+                VideoDuration = videoDuration
             };
         }
 
         // Renders a standalone chunk of a document (a deck slide) through the same
         // pipeline as a full page, applying the asset resolution and `.md` link
         // rewriting that Parse does for the document as a whole.
+        private enum FragmentKind { Slide, Page, VideoScene }
+
         private string RenderFragment(string markdown, string filePath, string rootDirectory, bool pagedDocument = false)
+            => RenderFragment(markdown, filePath, rootDirectory, pagedDocument ? FragmentKind.Page : FragmentKind.Slide);
+
+        private string RenderFragment(string markdown, string filePath, string rootDirectory, FragmentKind kind)
         {
             if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
 
-            // The presentation containers only claim their names inside a deck, and the
-            // document containers only inside a paged document.
-            using var scope = pagedDocument ? Neko.Extensions.DocumentScope.Enter() : Neko.Extensions.PresentationScope.Enter();
+            // The presentation containers only claim their names inside a deck, the
+            // document containers only inside a paged document, and the video
+            // components only inside a scene.
+            using var scope = kind switch
+            {
+                FragmentKind.Page => Neko.Extensions.DocumentScope.Enter(),
+                FragmentKind.VideoScene => Neko.Extensions.VideoScope.Enter(),
+                _ => Neko.Extensions.PresentationScope.Enter(),
+            };
 
             var document = Markdig.Markdown.Parse(markdown, _pipeline);
+
+            // In a scene, plain Markdown animates by default: give every block its motion
+            // before it renders (see VideoTimeline.Annotate).
+            if (kind == FragmentKind.VideoScene)
+            {
+                VideoTimeline.Annotate(document);
+            }
 
             if (!string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(rootDirectory) && File.Exists(filePath))
             {

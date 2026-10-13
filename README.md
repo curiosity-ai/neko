@@ -14,6 +14,7 @@ Whether you're writing simple project READMEs or complex multi-repository enterp
 - 📊 **Diagrams & Math**: Integrated, out-of-the-box support for Mermaid diagrams and KaTeX math formulas.
 - 📱 **Responsive Design**: A perfect mobile-friendly layout powered by Tailwind CSS that looks great on any screen size.
 - 🌓 **Dark Mode**: Seamless built-in support for fluid light and dark themes.
+- 🎬 **Decks, Documents & Video**: The same Markdown builds slide decks (with a PowerPoint download), paged documents (with a Word download), and videos — animated scenes rendered to MP4 by `neko render`.
 - ⚡ **Fast & Lightweight**: Generates purely static HTML files that are lightning fast and can be hosted anywhere.
 
 ## 📚 Resources
@@ -41,6 +42,12 @@ Watch for changes and serve locally:
 
 ```bash
 neko watch
+```
+
+Render a video page (`video: true` front matter) to MP4:
+
+```bash
+neko render videos/launch.md
 ```
 
 ## 📂 Multi-Repo Mode

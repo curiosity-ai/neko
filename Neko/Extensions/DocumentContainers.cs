@@ -56,7 +56,7 @@ namespace Neko.Extensions
 
         // The text of an inline tree as written: literals, code, and the vertical bars the pipe-table
         // parser lifts out of a paragraph. The flow diagram reads its boxes from bullets this way.
-        private static string PlainText(Markdig.Syntax.Inlines.Inline inline)
+        internal static string PlainText(Markdig.Syntax.Inlines.Inline inline)
         {
             var sb = new System.Text.StringBuilder();
             void Walk(Markdig.Syntax.Inlines.Inline node)
