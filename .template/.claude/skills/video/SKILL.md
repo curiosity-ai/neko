@@ -161,7 +161,7 @@ $ neko render video.md
 :::
 
 ::: phone
-![Screenshot](/assets/shot.png){enter="kenburns"}
+![Screenshot](/assets/shot.png)
 :::
 
 ::: cursor {from="105%,95%" to="52%,58%" label="Click" at="1.5"}
@@ -204,6 +204,12 @@ Text.
 ::: media {src="assets/clip.webm" start="0"}
 :::
 ````
+
+A screenshot in `browser`/`window`/`phone` arrives with its frame and never animates
+on its own (no `kenburns` inside a frame: it grows the picture inside fixed chrome);
+a frame holding one screenshot takes its proportions, so nothing is cropped. Put
+dark screenshots on `ground="ink"`: in curiosity the chrome follows the ground. Move
+the whole scene with `camera` instead.
 
 Also: `window {title}`, `cols`/`col`, `box`, `stack`, `reveal {enter at}`, `logos`
 (a row of images). Captions styles: `rail`, `pill`, `highlight`. `media` clips
@@ -254,7 +260,9 @@ moves the animation, and its lines never overlap each other.
 video:
   narration:
     voice: "A warm, clear female narrator in her thirties, calm and friendly."  # a description…
-    # voice: en-gb-rupert-vale   # …or a Voxwerk catalog id (`neko voices --search calm`)
+    # voice: en-gb-rupert-vale   # …or a Voxwerk catalog id (`neko voices --search calm`):
+    #                            # cloned from its reference sample, one speaker throughout
+    #                            # (a description is re-designed per sentence and drifts)
     language: english            # optional; seed: 7, gap: 0.5, pause: 0.25, volume: 1, wpm: 150
     voices:                      # optional named voices for lines
       guest: "An elderly man with a slow, raspy, gentle voice."

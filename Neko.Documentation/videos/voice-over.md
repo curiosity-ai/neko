@@ -103,8 +103,12 @@ video:
 A **description** is the most direct: Voxwerk's VoiceDesign model creates the
 voice from it — timbre, gender, age, accent, emotion, pace. A **catalog id**
 (`<language>-<country>-<name>`) uses a ready-made voice from the
-`Voxwerk.Voices.English` catalog: its design prompt and language. List and
-search the catalog with `neko voices`:
+`Voxwerk.Voices.English` catalog, and is **cloned from the voice's reference
+recording** with the Base checkpoint (`Qwen/Qwen3-TTS-12Hz-1.7B-Base`), so every
+sentence is the same speaker. A described voice is designed afresh for each
+sentence and drifts a little from take to take; a cataloged one does not. The
+reference samples ship with Neko; `clone: false` designs a catalog voice from its
+description instead. List and search the catalog with `neko voices`:
 
 ```bash
 neko voices --search "calm narration" --gender female --country gb
@@ -122,7 +126,9 @@ neko voices --style Narration --age old --json
 | `pause` | `0.25` | Seconds between the sentences of a line. |
 | `volume` | `1` | Gain of the voice-over, 0 to 2. |
 | `wpm` | `150` | Words per minute assumed for a sentence that has not been synthesized. |
-| `model` | `Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign` | The TTS checkpoint: a Hugging Face repo id or a local folder. |
+| `model` | `Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign` | The checkpoint that speaks described voices: a Hugging Face repo id or a local folder. |
+| `clone` | `true` | Clone a catalog voice from its reference sample (one speaker throughout). `false` designs it from its description per sentence. |
+| `cloneModel` | `Qwen/Qwen3-TTS-12Hz-1.7B-Base` | The Base checkpoint that clones catalog voices. |
 | `folder` | `assets/voiceover/<page>` | Where the takes are kept, relative to the page. |
 
 ## Writing the narration

@@ -200,6 +200,51 @@
         });
     }
 
+    // A figure's picture is sized to the slide's width, so on a canvas that clips (curiosity) a
+    // screenshot under a heading runs off the foot and takes its caption with it. Once its images
+    // have loaded, a slide that overflows has its tallest figure image capped by the overflow; the
+    // width follows from the ratio, so nothing is distorted, here or in the PowerPoint export.
+    function fitFigures(slide) {
+        if (!slide || slide.getAttribute('data-figures-fit')) return;
+        var images = Array.prototype.slice.call(slide.querySelectorAll('.deck-figure img'));
+        if (!images.length) { slide.setAttribute('data-figures-fit', 'none'); return; }
+        var waiting = images.filter(function (img) { return !img.complete; });
+        if (waiting.length) {
+            waiting[0].addEventListener('load', function () { fitFigures(slide); }, { once: true });
+            return;
+        }
+        var view = slide.ownerDocument.defaultView || window;
+        if (!/hidden|clip/.test(view.getComputedStyle(slide).overflow)) { slide.setAttribute('data-figures-fit', 'none'); return; }
+        if (slide.clientHeight === 0) return; // not laid out yet
+        slide.setAttribute('data-figures-fit', 'true');
+        // A figure scrolls its own overflow (it is a flex item that shrinks), so the overflow to
+        // take back is the figure's or, failing that, the slide's.
+        var over = slide.scrollHeight - slide.clientHeight;
+        var tallest = images.reduce(function (a, b) { return b.offsetHeight > a.offsetHeight ? b : a; });
+        var figure = tallest.closest('.deck-figure');
+        if (figure) over = Math.max(over, figure.scrollHeight - figure.clientHeight);
+        if (over <= 1) return;
+        var height = tallest.offsetHeight - over;
+        if (height > 0) {
+            tallest.style.maxHeight = height + 'px';
+            tallest.style.width = 'auto';
+        }
+    }
+
+    function refitFigures() {
+        if (!state) return;
+        state.slides.forEach(function (slide) {
+            slide.removeAttribute('data-figures-fit');
+            Array.prototype.forEach.call(slide.querySelectorAll('.deck-figure img'), function (img) {
+                img.style.maxHeight = '';
+                img.style.width = '';
+            });
+        });
+        fitFigures(state.slides[state.index]);
+    }
+
+    window.nekoDeckFitFigures = fitFigures;
+
     function show(index, pushHash) {
         if (!state) return;
         var count = state.slides.length;
@@ -222,6 +267,7 @@
         if (state.next) state.next.disabled = state.index === count - 1;
 
         window.scrollTo(0, 0);
+        fitFigures(state.slides[state.index]);
 
         if (pushHash !== false && !state.embedded) {
             var hash = '#' + (state.slides[state.index].id || ('slide-' + (state.index + 1)));
@@ -283,6 +329,7 @@
         window.addEventListener('resize', function () {
             applyEmbedScale();
             applyBrandInset();
+            refitFigures();
         });
 
         // While presenting, the reader is still: after a few seconds without the

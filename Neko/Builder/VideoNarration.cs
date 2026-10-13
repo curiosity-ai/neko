@@ -29,6 +29,9 @@ namespace Neko.Builder
         /// <summary>The Qwen3-TTS checkpoint that speaks the voice-over: voice design, so any description is a voice.</summary>
         public const string DefaultModel = "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign";
 
+        /// <summary>The checkpoint that speaks a catalog voice by cloning its reference sample.</summary>
+        public const string DefaultCloneModel = "Qwen/Qwen3-TTS-12Hz-1.7B-Base";
+
         /// <summary>The voice used when the front matter names none.</summary>
         public const string DefaultVoice = "A warm, clear voice of a professional narrator in her thirties, calm and friendly, speaking at an even, unhurried pace.";
 
@@ -61,6 +64,16 @@ namespace Neko.Builder
 
         /// <summary>The TTS checkpoint (Hugging Face repo id or local folder).</summary>
         public string Model { get; set; } = DefaultModel;
+
+        /// <summary>The checkpoint that clones catalog voices from their reference samples.</summary>
+        public string CloneModel { get; set; } = DefaultCloneModel;
+
+        /// <summary>
+        /// Speak a catalog voice by cloning its reference sample, so every sentence is the same
+        /// speaker. Off, the voice is designed from its description for each sentence, which
+        /// drifts from one take to the next.
+        /// </summary>
+        public bool Clone { get; set; } = true;
 
         /// <summary>Where the synthesized sentences are kept, relative to the video page. <c>assets/voiceover/&lt;page&gt;</c> by default.</summary>
         public string Folder { get; set; }
@@ -109,13 +122,18 @@ namespace Neko.Builder
                 case "volume": if (VideoOptions.TryDouble(value, out var volume)) Volume = Math.Clamp(volume, 0, 2); break;
                 case "wpm": case "rate": if (VideoOptions.TryDouble(value, out var wpm) && wpm >= 40 && wpm <= 400) Wpm = wpm; break;
                 case "model": if (value.Length > 0) Model = value; break;
+                case "clonemodel": case "clone-model": if (value.Length > 0) CloneModel = value; break;
+                case "clone": Clone = !(value.Equals("false", StringComparison.OrdinalIgnoreCase) || value.Equals("no", StringComparison.OrdinalIgnoreCase) || value.Equals("off", StringComparison.OrdinalIgnoreCase)); break;
                 case "folder": case "cache": if (value.Length > 0) Folder = value; break;
             }
         }
     }
 
-    /// <summary>A voice as the TTS model needs it: the description it is designed from, and its language.</summary>
-    public sealed record NarrationVoice(string Description, string Language, string CatalogId, string Name);
+    /// <summary>
+    /// A voice as the TTS model needs it: the description it is designed from, its language, and
+    /// whether it is cloned from the catalog voice's reference sample instead.
+    /// </summary>
+    public sealed record NarrationVoice(string Description, string Language, string CatalogId, string Name, bool Cloned = false);
 
     /// <summary>One sentence of the voice-over: the unit that is synthesized, cached, timed and shown as a subtitle.</summary>
     public sealed class NarrationSentence
@@ -351,7 +369,21 @@ namespace Neko.Builder
 
         private static readonly Lazy<bool> Catalog = new(() =>
         {
-            try { Voxwerk.Voices.English.EnglishVoices.Register(); return true; }
+            try
+            {
+                Voxwerk.Voices.English.EnglishVoices.Register();
+                // The reference samples, so a catalog voice is cloned rather than re-designed per sentence.
+                Voxwerk.Voices.English.African.EnglishAfricanVoices.Register();
+                Voxwerk.Voices.English.American.Characters.EnglishAmericanCharactersVoices.Register();
+                Voxwerk.Voices.English.American.Commercial.EnglishAmericanCommercialVoices.Register();
+                Voxwerk.Voices.English.American.Conversational.Female.EnglishAmericanConversationalFemaleVoices.Register();
+                Voxwerk.Voices.English.American.Conversational.Male.EnglishAmericanConversationalMaleVoices.Register();
+                Voxwerk.Voices.English.American.Narration.Female.EnglishAmericanNarrationFemaleVoices.Register();
+                Voxwerk.Voices.English.American.Narration.Male.EnglishAmericanNarrationMaleVoices.Register();
+                Voxwerk.Voices.English.American.Regional.EnglishAmericanRegionalVoices.Register();
+                Voxwerk.Voices.English.British.Narration.EnglishBritishNarrationVoices.Register();
+                return true;
+            }
             catch (Exception ex) { Console.WriteLine($"Warning: the Voxwerk voice catalog could not be loaded: {ex.Message}"); return false; }
         });
 
@@ -386,7 +418,8 @@ namespace Neko.Builder
                 if (info != null)
                 {
                     var prompt = !string.IsNullOrWhiteSpace(info.DesignPrompt) ? info.DesignPrompt : info.Description;
-                    return new NarrationVoice(prompt, LanguageName(info.Language), info.Id, name ?? info.Name);
+                    var clone = options.Clone && VoiceRegistry.HasSample(info.Id);
+                    return new NarrationVoice(prompt, LanguageName(info.Language), info.Id, name ?? info.Name, clone);
                 }
                 warnings?.Add($"Voice '{value}' is not in the Voxwerk catalog (list it with `neko voices`); the default narrator speaks instead.");
                 return new NarrationVoice(VideoNarrationOptions.DefaultVoice, null, null, name ?? value);
@@ -449,7 +482,9 @@ namespace Neko.Builder
                 var volume = VideoOptions.TryDouble(cue.Get("volume"), out var v) ? Math.Clamp(v, 0, 2) : options.Volume;
                 foreach (var text in SplitSentences(cue.Text))
                 {
-                    var key = TakeKey(options.Model, voice.Description, language, seed, text);
+                    var key = voice.Cloned
+                        ? TakeKey(options.CloneModel, "clone:" + voice.CatalogId, language, seed, text)
+                        : TakeKey(options.Model, voice.Description, language, seed, text);
                     var sentence = new NarrationSentence
                     {
                         Index = index++,

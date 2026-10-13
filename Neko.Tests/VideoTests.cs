@@ -156,6 +156,16 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void Annotate_AScreenshotInAFrame_ArrivesWithTheFrame()
+        {
+            var html = NewParser().Parse("---\ntitle: T\nvideo: true\n---\n\n::: browser {url=\"example.com\"}\n![Shot](shot.png)\n:::\n\n![Loose](loose.png)\n").Scenes![0].Html!;
+
+            Assert.That(html, Does.Contain("class=\"nv-device\""));
+            Assert.That(html, Does.Match(@"<div class=""nv-screen""><img [^>]*alt=""Shot"""), "the screenshot is the screen's only child");
+            Assert.That(Regex.Match(html, @"<div class=""nv-screen"">.*?</div>").Value, Does.Not.Contain("data-v="), "it has no entrance of its own: it arrives with the frame");
+        }
+
+        [Test]
         public void Timeline_PlacesElementsInDocumentOrder_OnOneCursor()
         {
             var html = NewParser().Parse("---\ntitle: T\nvideo: true\n---\n\nFirst.\n\nSecond.\n\nThird.\n").Scenes![0].Html!;

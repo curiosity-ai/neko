@@ -152,26 +152,17 @@ namespace Neko.Builder
                 return 0;
             }
 
-            Console.WriteLine($"[voiceover] Synthesizing {todo.Count} of {sentences.Count} sentences with {narration.Options.Model} (downloaded once to {Voxwerk.IO.ModelDownloader.DefaultCacheDir})…");
+            var designed = todo.Where(s => !s.Voice.Cloned).ToList();
+            var cloned = todo.Where(s => s.Voice.Cloned).ToList();
+            Console.WriteLine($"[voiceover] Synthesizing {todo.Count} of {sentences.Count} sentences (models are downloaded once to {Voxwerk.IO.ModelDownloader.DefaultCacheDir})…");
             var clock = Stopwatch.StartNew();
             var progress = new Progress<string>(message => Console.WriteLine("[voiceover]   " + message));
-            using var tts = await Qwen3Tts.LoadAsync(narration.Options.Model, settings.Threads,
-                settings.Int8 ? WeightPrecision.Int8 : WeightPrecision.BFloat16, progress, ct);
-            if (tts.ModelType != Qwen3TtsModelType.VoiceDesign)
-            {
-                throw new InvalidOperationException($"The voice-over speaks designed voices, which needs a VoiceDesign checkpoint ({VideoNarrationOptions.DefaultModel}); {narration.Options.Model} is a {tts.ModelType} model.");
-            }
-            Console.WriteLine($"[voiceover] Model ready in {clock.Elapsed.TotalSeconds:0.0} s.");
-
             Directory.CreateDirectory(narration.Folder);
             var done = 0;
             var spoken = 0.0;
-            foreach (var sentence in todo)
+
+            void Took(NarrationSentence sentence, Voxwerk.SynthesisResult result)
             {
-                ct.ThrowIfCancellationRequested();
-                var language = tts.Languages.Contains(sentence.Language, StringComparer.OrdinalIgnoreCase) ? sentence.Language : "auto";
-                var result = tts.SynthesizeVoiceDesign(sentence.Text, sentence.Voice.Description, language,
-                    new GenerationOptions { Seed = sentence.Seed }, ct);
                 var audio = TrimSilence(result.Audio, result.SampleRate);
                 WriteTake(sentence.File, audio, result.SampleRate);
                 done++;
@@ -179,6 +170,51 @@ namespace Neko.Builder
                 spoken += seconds;
                 Console.WriteLine($"[voiceover]   {done}/{todo.Count} {seconds,5:0.00}s  \"{Shorten(sentence.Text, 70)}\"  (RTF {result.RealTimeFactor:0.0})");
             }
+
+            // Described voices: the VoiceDesign checkpoint invents the voice from its description.
+            if (designed.Count > 0)
+            {
+                using var tts = await Qwen3Tts.LoadAsync(narration.Options.Model, settings.Threads,
+                    settings.Int8 ? WeightPrecision.Int8 : WeightPrecision.BFloat16, progress, ct);
+                if (tts.ModelType != Qwen3TtsModelType.VoiceDesign)
+                {
+                    throw new InvalidOperationException($"A described voice needs a VoiceDesign checkpoint ({VideoNarrationOptions.DefaultModel}); {narration.Options.Model} is a {tts.ModelType} model.");
+                }
+                Console.WriteLine($"[voiceover] {narration.Options.Model} ready in {clock.Elapsed.TotalSeconds:0.0} s.");
+                foreach (var sentence in designed)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var language = tts.Languages.Contains(sentence.Language, StringComparer.OrdinalIgnoreCase) ? sentence.Language : "auto";
+                    Took(sentence, tts.SynthesizeVoiceDesign(sentence.Text, sentence.Voice.Description, language,
+                        new GenerationOptions { Seed = sentence.Seed }, ct));
+                }
+            }
+
+            // Catalog voices with a reference sample: the Base checkpoint clones the sample, so every
+            // sentence is the same speaker. Designing them per sentence drifts from take to take.
+            if (cloned.Count > 0)
+            {
+                using var tts = await Qwen3Tts.LoadAsync(narration.Options.CloneModel, settings.Threads,
+                    settings.Int8 ? WeightPrecision.Int8 : WeightPrecision.BFloat16, progress, ct);
+                if (tts.ModelType != Qwen3TtsModelType.Base)
+                {
+                    throw new InvalidOperationException($"A catalog voice is cloned with a Base checkpoint ({VideoNarrationOptions.DefaultCloneModel}); {narration.Options.CloneModel} is a {tts.ModelType} model. Set `clone: false` to design it from its description instead.");
+                }
+                Console.WriteLine($"[voiceover] {narration.Options.CloneModel} ready in {clock.Elapsed.TotalSeconds:0.0} s.");
+                var prompts = new Dictionary<string, Voxwerk.Talker.VoiceClonePrompt>(StringComparer.OrdinalIgnoreCase);
+                foreach (var sentence in cloned)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (!prompts.TryGetValue(sentence.Voice.CatalogId, out var prompt))
+                    {
+                        prompt = tts.CreateVoiceClonePrompt(sentence.Voice.CatalogId, null);
+                        prompts[sentence.Voice.CatalogId] = prompt;
+                    }
+                    var language = tts.Languages.Contains(sentence.Language, StringComparer.OrdinalIgnoreCase) ? sentence.Language : "auto";
+                    Took(sentence, tts.Synthesize(sentence.Text, prompt, language, new GenerationOptions { Seed = sentence.Seed }, ct));
+                }
+            }
+
             Console.WriteLine($"[voiceover] {done} takes, {spoken:0.0} s of speech, in {clock.Elapsed.TotalSeconds:0.0} s → {narration.Folder}");
             return done;
         }

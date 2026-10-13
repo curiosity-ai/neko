@@ -630,6 +630,31 @@
     });
   }
 
+  // A frame whose screen is one screenshot takes the screenshot's proportions: the layout
+  // gives the frame its height, and its width follows from the picture, so `object-fit: cover`
+  // has nothing to crop. Measured once, when its scene is first laid out and the image has loaded.
+  function fitShots(sceneEl) {
+    var devices = sceneEl.querySelectorAll('.nv-device:not([data-chrome="phone"]):not([data-shot-fit])');
+    for (var i = 0; i < devices.length; i++) {
+      var device = devices[i];
+      var screen = device.querySelector(':scope > .nv-screen');
+      // The screenshot is the screen's only child, bare or in its paragraph.
+      var img = screen && screen.children.length === 1 ? screen.querySelector(':scope > img:only-child, :scope > p:only-child > img:only-child') : null;
+      if (!img) { device.setAttribute('data-shot-fit', 'none'); continue; }
+      if (!img.complete || !img.naturalWidth) continue;
+      var height = screen.clientHeight;
+      if (height <= 0) continue;
+      var chrome = device.offsetWidth - screen.clientWidth;
+      var parent = device.parentElement;
+      var cs = getComputedStyle(parent);
+      var room = parent.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      var width = Math.min(room, height * img.naturalWidth / img.naturalHeight + chrome);
+      device.style.width = Math.round(width) + 'px';
+      device.style.maxWidth = 'none';
+      device.setAttribute('data-shot-fit', 'true');
+    }
+  }
+
   function seek(t) {
     if (!model) return Promise.resolve();
     var duration = model.duration;
@@ -651,6 +676,7 @@
         continue;
       }
       scene.el.style.display = 'block';
+      fitShots(scene.el);
 
       var lt = t - scene.start;
       var inS = freshState();

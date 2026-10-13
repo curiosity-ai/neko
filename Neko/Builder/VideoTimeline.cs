@@ -112,6 +112,9 @@ namespace Neko.Builder
         // `scramble` decodes them, `quote` reads them word by word, `steps` and
         // `checklist` take their items one at a time. Components that read their own
         // content (charts, captions, code, terminal, …) are not walked at all.
+        // The frames a screen is drawn in: `browser`, `window`, `phone` and the generic `device`.
+        private static readonly HashSet<string> DeviceContainers = new(StringComparer.OrdinalIgnoreCase) { "browser", "window", "phone", "device" };
+
         private static readonly HashSet<string> OpaqueContainers = new(StringComparer.OrdinalIgnoreCase)
         {
             "chart", "captions", "code", "terminal", "swap", "counter", "media", "cursor", "lower-third", "logo", "logos", "stat",
@@ -143,6 +146,9 @@ namespace Neko.Builder
                         break;
                     case ParagraphBlock paragraph:
                         if (textMotion == "words") Default(paragraph, "words", stagger: "0.07");
+                        // A screenshot in a frame arrives with the frame: zooming it on its own grows
+                        // the picture inside chrome that is already standing still.
+                        else if (IsImageOnly(paragraph) && DeviceContainers.Contains(component ?? string.Empty)) Default(paragraph, "none");
                         else Default(paragraph, textMotion ?? (IsImageOnly(paragraph) ? "zoom" : "rise"));
                         break;
                     case QuoteBlock quote:

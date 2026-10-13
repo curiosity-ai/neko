@@ -197,7 +197,7 @@
 [data-video-theme="curiosity"] .nv-prompt { color: var(--c-signal); }
 [data-video-theme="curiosity"] .nv-out.is-ok { color: #8FB0FF !important; }
 
-[data-video-theme="curiosity"] .nv-device { box-shadow: none; border: 1px solid var(--t); background: var(--c-paper); }
+[data-video-theme="curiosity"] .nv-device { box-shadow: none; border: 1px solid var(--t); background: var(--card); }
 [data-video-theme="curiosity"] .nv-device-bar { border-bottom-color: var(--t); background: none; }
 [data-video-theme="curiosity"] .nv-url { border-radius: 999px; border: 1px solid var(--rule); background: none; }
 [data-video-theme="curiosity"] .nv-device[data-chrome="phone"] { border-color: var(--c-ink); border-radius: 64px; }
