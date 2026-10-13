@@ -8,9 +8,12 @@ video:
   transition: push
   intro: squares
   back: /videos/videos
+  narration:
+    voice: "A confident, professional American man in his early forties with a warm, resonant baritone and a clear General American accent, speaking at a steady, measured pace, like the narrator of a polished technology product film."
+    language: english
 ---
 
---- {layout="cover" art="field" eyebrow="Neko · Video mode"}
+--- {layout="cover" art="field" eyebrow="Neko · Video mode" duration="5"}
 
 # Write *Markdown.* Get *video.*
 
@@ -42,10 +45,10 @@ Every block moves on its own. Headlines rise word by word, lists stagger in.
 ```
 :::::
 
---- {layout="number" ground="deep" transition="zoom" eyebrow="Frames" art="squares"}
+--- {layout="number" ground="deep" transition="zoom" eyebrow="Frames" art="squares" duration="6.3"}
 
-::: counter {value="1,500" label="Frames in this film" count-dur="1.4"}
-Fifty seconds at thirty frames a second, each one a screenshot.
+::: counter {value="1,905" label="Frames in this film" count-dur="1.4"}
+Sixty-three seconds at thirty frames a second, each one a screenshot.
 :::
 
 --- {eyebrow="The pixel vocabulary" duration="5.6"}
@@ -55,7 +58,7 @@ Fifty seconds at thirty frames a second, each one a screenshot.
 ::: glyphs {names="value-connected|value-resolved|value-traceable|value-sovereign" labels="Connected|Resolved|Traceable|Sovereign"}
 :::
 
---- {ground="stone" eyebrow="Drawn live" layout="full"}
+--- {ground="stone" eyebrow="Drawn live" layout="full" duration="4.6"}
 
 ## Every tile is a *function of time*
 
@@ -79,20 +82,20 @@ Fifty seconds at thirty frames a second, each one a screenshot.
 - Terminal: 3.4
 :::
 
---- {layout="full" ground="stone" eyebrow="Rendering"}
+--- {layout="full" ground="stone" eyebrow="Rendering" duration="5.6"}
 
 ::: terminal {title="neko render"}
 ```bash
 $ neko render videos/samples/neko-video.md -o neko-video.mp4
-Building the page… 13 scenes, 50.1 s
-Capturing 1,503 frames with Chromium (4 workers)
+Building the page… 13 scenes, 63.5 s
+Capturing 1,905 frames with Chromium (4 workers)
 ✓ Frames captured
 Encoding with ffmpeg · libx264 · crf 18 · yuv420p
 ✓ Wrote neko-video.mp4
 ```
 :::
 
---- {layout="full" eyebrow="The preview" camera="push"}
+--- {layout="full" eyebrow="The preview" camera="push" duration="4.6"}
 
 ::: browser {url="localhost:5000/videos/samples/neko-video"}
 ![The Neko site](/assets/screenshots/neko-screenshot.png)
@@ -111,7 +114,7 @@ Encoding with ffmpeg · libx264 · crf 18 · yuv420p
 3. **Render** the MP4 with neko render.
 :::
 
---- {ground="ink" eyebrow="Security" art="mountain" scheme="ink"}
+--- {ground="ink" eyebrow="Security" art="mountain" scheme="ink" duration="6.3"}
 
 ## Built for *your infrastructure*
 
@@ -128,7 +131,7 @@ Neko renders on your machine, with your fonts, your browser and your ffmpeg. Not
 :::
 :::::
 
---- {layout="center" transition="zoom-out" duration="7"}
+--- {layout="center" transition="zoom-out" duration="8.2"}
 
 ::: mark {cube="true" size="300px"}
 :::
@@ -138,3 +141,46 @@ Neko renders on your machine, with your fonts, your browser and your ffmpeg. Not
 
 ::: sudo {clip="workIdle" size="96px" class="corner"}
 :::
+
+--- {narration}
+
+# The voice-over: one line per scene, each anchored to its scene.
+
+{at="scene-1+1.3"}
+Write Markdown. Get video.
+
+{at="scene-2"}
+Neko builds docs, decks, documents, and now, video.
+
+{at="scene-3"}
+A scene is just Markdown. Every block animates on its own.
+
+{at="scene-4"}
+Every frame is a screenshot, taken by headless Chromium.
+
+{at="scene-5"}
+Pixel glyphs build themselves, frame by frame.
+
+{at="scene-6"}
+Every tile is drawn live, as a function of time.
+
+{at="scene-7"}
+Charts grow straight from a Markdown list.
+
+{at="scene-8"}
+One command renders the film. FFmpeg does the encoding.
+
+{at="scene-9"}
+Preview it in the browser, and scrub to any frame.
+
+{at="scene-10"}
+Write it. Preview it. Render it.
+
+{at="scene-11"}
+It runs on your own infrastructure. Nothing leaves the build.
+
+{at="scene-12"}
+And it is already in production.
+
+{at="scene-13+0.4"}
+Neko, by Curiosity. Docs, decks, documents and video, from Markdown.
