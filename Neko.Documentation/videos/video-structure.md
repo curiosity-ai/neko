@@ -49,6 +49,7 @@ video:
 | `accent` | `cyan` | The neko theme's accent: `cyan`, `violet`, `amber`, `rose`, `leaf`. |
 | `eyebrow` | — | Eyebrow for scenes that don't set one. |
 | `music` | — | Background track. `musicVolume` (0–1, default `0.35`) sets its level. |
+| `narration` | — | The voice-over's voice and pacing: a voice (a description or a catalog id) or a mapping. See [Voice-over](voice-over.md). |
 | `logo` / `logoText` | — | A brand mark pinned to the corner of every frame. |
 | `grain` / `vignette` | `false` | Film grain or a vignette over the whole canvas. |
 | `intro` | — | curiosity: `squares` or `tiles` plays the website's first-load animation over the first scene. |
@@ -158,7 +159,9 @@ inner `:::`.
 ## Audio
 
 The `music` track plays under the whole video and fades out over its last two
-seconds; each scene's `voice` starts as that scene settles. The preview plays
+seconds; each scene's `voice` starts as that scene settles. A spoken
+**voice-over** is written as text instead, in `--- {narration}` parts, and
+synthesized by Neko — see [Voice-over](voice-over.md). The preview plays
 them with the playhead; `neko render` mixes the same files with ffmpeg at the
 same times. Files resolve like images: next to the page, or from the nearest
 `assets/` folder.

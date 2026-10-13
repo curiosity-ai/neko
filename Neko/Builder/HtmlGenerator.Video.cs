@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -54,9 +55,12 @@ namespace Neko.Builder
             if (options.Grain) body.AppendLine("<div class=\"nv-grain\" aria-hidden=\"true\"></div>");
             RenderVideoBrand(body, options);
             body.AppendLine("</div>");
+            // The voice-over's subtitle: part of the preview, outside the stage, so never filmed.
+            if (document.Narration != null) body.AppendLine("<div class=\"nv-subtitle\" id=\"nv-subtitle\" aria-live=\"polite\"></div>");
             body.AppendLine("</div>");
 
             RenderVideoAudio(body, document, options);
+            RenderVideoTiming(body, document);
             RenderVideoBar(body, document, title);
             body.AppendLine("<script type=\"application/json\" id=\"nv-timeline\">" + TimelineJson(document, options, title) + "</script>");
             body.AppendLine("<script>(function r(n){ if (window.nekoVideoInit) { window.nekoVideoInit(); } else if (n > 0) { setTimeout(function(){ r(n - 1); }, 50); } })(60);</script>");
@@ -146,6 +150,81 @@ namespace Neko.Builder
                 var volume = VideoOptions.TryDouble(scene.Get("voice-volume"), out var v) ? v : 1;
                 sb.AppendLine($"<audio class=\"nv-audio\" data-kind=\"voice\" data-start=\"{VideoTimeline.Num(scene.Start + offset)}\" data-volume=\"{VideoTimeline.Num(volume)}\" preload=\"auto\" src=\"{EscapeHtmlAttr(EncodeAssetUrl(scene.Voice))}\"></audio>");
             }
+            // The voice-over, sentence by sentence: every take `neko voiceover` has synthesized.
+            // A sentence still estimated has no audio yet; the preview shows it as a subtitle.
+            foreach (var sentence in document.Narration?.Sentences ?? Enumerable.Empty<NarrationSentence>())
+            {
+                if (sentence.Estimated || string.IsNullOrEmpty(sentence.Url)) continue;
+                sb.AppendLine($"<audio class=\"nv-audio\" data-kind=\"narration\" data-start=\"{VideoTimeline.Num(sentence.Start)}\" data-duration=\"{VideoTimeline.Num(sentence.Duration)}\" data-volume=\"{VideoTimeline.Num(Math.Min(1, sentence.Volume))}\" preload=\"auto\" src=\"{EscapeHtmlAttr(EncodeAssetUrl(sentence.Url))}\"></audio>");
+            }
+        }
+
+        /// <summary>
+        /// The timing panel of the preview (<kbd>T</kbd>, or <c>#timing</c> in the URL): the
+        /// scenes, every animation and every voice-over sentence as lanes on the video's
+        /// clock, so the narration can be lined up with what moves before a render. The
+        /// same sheet prints with <c>neko voiceover --preview</c>.
+        /// </summary>
+        private static void RenderVideoTiming(StringBuilder sb, ParsedDocument document)
+        {
+            var total = document.VideoDuration <= 0 ? 1 : document.VideoDuration;
+            string Pct(double t) => (Math.Clamp(t / total, 0, 1) * 100).ToString("0.###", CultureInfo.InvariantCulture);
+            string Width(double a, double b) => (Math.Max(0.15, (Math.Min(b, total) - a) / total * 100)).ToString("0.###", CultureInfo.InvariantCulture);
+
+            var rows = VideoAlignment.Build(document);
+            var narration = document.Narration;
+            sb.AppendLine("<div class=\"nv-timing\" id=\"nv-timing\" hidden>");
+            sb.Append("  <div class=\"nv-timing-head\"><span class=\"nv-timing-title\">Timing</span>");
+            if (narration != null)
+            {
+                var count = narration.Sentences.Count();
+                var note = narration.EstimatedCount > 0
+                    ? $"{count} sentences · {narration.EstimatedCount} estimated — run neko voiceover to synthesize them"
+                    : $"{count} sentences · all synthesized";
+                sb.Append($"<span class=\"nv-timing-note\">{EscapeHtmlText(note)}</span>");
+                if (narration.Warnings.Count > 0)
+                {
+                    sb.Append($"<details class=\"nv-timing-warns\" id=\"nv-timing-warns\"><summary><i class=\"fi fi-rr-triangle-warning\" aria-hidden=\"true\"></i>{narration.Warnings.Count} warning{(narration.Warnings.Count == 1 ? string.Empty : "s")}</summary><ul>");
+                    foreach (var warning in narration.Warnings) sb.Append($"<li>{EscapeHtmlText(warning)}</li>");
+                    sb.Append("</ul></details>");
+                }
+            }
+            else
+            {
+                sb.Append("<span class=\"nv-timing-note\">No voice-over: add a --- {narration} part to write one</span>");
+            }
+            sb.AppendLine("</div>");
+
+            sb.AppendLine("  <div class=\"nv-lanes\">");
+            sb.AppendLine("    <div class=\"nv-lane-label\">Scenes</div>");
+            sb.Append("    <div class=\"nv-lane\" data-lane=\"scene\">");
+            foreach (var row in rows.Where(r => r.Lane == VideoAlignment.Lane.Scene))
+            {
+                sb.Append($"<button type=\"button\" class=\"nv-seg\" data-t=\"{VideoTimeline.Num(row.Time)}\" data-end=\"{VideoTimeline.Num(row.End)}\" style=\"left:{Pct(row.Time)}%;width:{Width(row.Time, row.End)}%\" title=\"{EscapeHtmlAttr($"{VideoNarration.Clock(row.Time)} {row.Text} ({row.Detail})")}\">{row.Scene:00}</button>");
+            }
+            sb.AppendLine("</div>");
+            sb.AppendLine("    <div class=\"nv-lane-label\">Animation</div>");
+            sb.Append("    <div class=\"nv-lane\" data-lane=\"animation\">");
+            foreach (var row in rows.Where(r => r.Lane == VideoAlignment.Lane.Animation))
+            {
+                sb.Append($"<button type=\"button\" class=\"nv-ev\" data-t=\"{VideoTimeline.Num(row.Time)}\" data-end=\"{VideoTimeline.Num(row.End)}\" style=\"left:{Pct(row.Time)}%;width:{Width(row.Time, row.End)}%\" title=\"{EscapeHtmlAttr($"{VideoNarration.Clock(row.Time)} → {VideoNarration.Clock(row.End)} · {row.Detail} · {row.Text}")}\"></button>");
+            }
+            sb.AppendLine("</div>");
+            if (narration != null)
+            {
+                sb.AppendLine("    <div class=\"nv-lane-label\">Voice-over</div>");
+                sb.Append("    <div class=\"nv-lane\" data-lane=\"voice\">");
+                foreach (var row in rows.Where(r => r.Lane == VideoAlignment.Lane.Voice))
+                {
+                    var classes = "nv-sent" + (row.Estimated ? " is-estimated" : string.Empty) + (row.Shifted ? " is-shifted" : string.Empty);
+                    var tip = $"{VideoNarration.Clock(row.Time)} → {VideoNarration.Clock(row.End)} · {row.Detail}{(row.Estimated ? " · estimated" : string.Empty)}{(row.Shifted ? " · shifted to avoid an overlap" : string.Empty)}\n{row.Text}";
+                    sb.Append($"<button type=\"button\" class=\"{classes}\" data-t=\"{VideoTimeline.Num(row.Time)}\" data-end=\"{VideoTimeline.Num(row.End)}\" style=\"left:{Pct(row.Time)}%;width:{Width(row.Time, row.End)}%\" title=\"{EscapeHtmlAttr(tip)}\"><span>{EscapeHtmlText(row.Text)}</span></button>");
+                }
+                sb.AppendLine("</div>");
+            }
+            sb.AppendLine("    <div class=\"nv-playhead\" id=\"nv-playhead\" aria-hidden=\"true\"></div>");
+            sb.AppendLine("  </div>");
+            sb.AppendLine("</div>");
         }
 
         private static void RenderVideoBar(StringBuilder sb, ParsedDocument document, string title)
@@ -163,6 +242,7 @@ namespace Neko.Builder
             sb.AppendLine("    <input type=\"range\" id=\"nv-range\" min=\"0\" max=\"1000\" step=\"1\" value=\"0\" aria-label=\"Seek\">");
             sb.AppendLine("  </div>");
             sb.AppendLine($"  <span class=\"nv-total\">{FormatClock(total)}</span>");
+            sb.AppendLine("  <button class=\"nv-timing-toggle\" id=\"nv-timing-toggle\" type=\"button\" aria-pressed=\"false\" aria-controls=\"nv-timing\" title=\"Timing: scenes, animation and voice-over (T)\"><i class=\"fi fi-rr-time-past\" aria-hidden=\"true\"></i><span>Timing</span></button>");
             sb.AppendLine($"  <span class=\"nv-title\" title=\"Render this video to MP4 with: neko render\">{EscapeHtmlText(title)}</span>");
             sb.AppendLine("</div>");
         }
@@ -194,6 +274,15 @@ namespace Neko.Builder
                     duration = s.Duration,
                     transition = s.Transition,
                     transitionDuration = s.TransitionDuration,
+                }),
+                // The voice-over's sentences, for the preview's subtitle and timing panel.
+                narration = document.Narration?.Sentences.Select(n => new
+                {
+                    start = n.Start,
+                    end = Math.Round(n.End, 3),
+                    text = n.Text,
+                    estimated = n.Estimated,
+                    line = n.Cue.Index + 1,
                 }),
             });
             // Inside a <script> block, "</" must not appear verbatim.

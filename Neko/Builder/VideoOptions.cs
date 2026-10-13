@@ -83,6 +83,13 @@ namespace Neko.Builder
         /// </summary>
         public string Intro { get; set; }
 
+        /// <summary>
+        /// The voice-over's voice and pacing (<c>narration:</c>), or null when the front matter
+        /// sets none. The lines themselves are written in <c>--- {narration}</c> parts of the
+        /// file; see <see cref="VideoNarration"/>.
+        /// </summary>
+        public VideoNarrationOptions Narration { get; set; }
+
         /// <summary>Starts playing as soon as the preview is ready.</summary>
         public bool Autoplay { get; set; }
 
@@ -157,6 +164,12 @@ namespace Neko.Builder
                 var key = Convert.ToString(entry.Key, CultureInfo.InvariantCulture)?.Trim().ToLowerInvariant();
                 var value = Convert.ToString(entry.Value, CultureInfo.InvariantCulture)?.Trim();
                 if (string.IsNullOrEmpty(key)) continue;
+
+                if (key is "narration" or "voiceover" or "voice-over")
+                {
+                    if (entry.Value is not string off || !IsFalsey(off)) options.Narration = VideoNarrationOptions.Parse(entry.Value);
+                    continue;
+                }
 
                 switch (key)
                 {

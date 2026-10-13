@@ -111,6 +111,10 @@ The motions any block can take, scene transitions, camera moves, exits and timin
 The default neko look and the Curiosity brand theme with its grounds, layouts and generated art.
 :::
 
+::: card {variant="grid" title="Voice-over" link="/videos/voice-over" icon="microphone" palette="fuchsia"}
+Narration in the same file, on the video's clock: pick or describe a voice, anchor lines, preview the timing, synthesize with Voxwerk.
+:::
+
 ::: card {variant="grid" title="Rendering to MP4" link="/videos/rendering" icon="film" palette="emerald"}
 `neko render`: Playwright, ffmpeg, audio, quality, parallel capture and CI.
 :::
@@ -123,6 +127,9 @@ The default neko look and the Curiosity brand theme with its grounds, layouts an
 | <kbd>Space</kbd> / <kbd>K</kbd> | Play / pause |
 | <kbd>→</kbd> / <kbd>←</kbd> | Step one second (<kbd>Shift</kbd>: five) |
 | <kbd>Home</kbd> / <kbd>End</kbd> | Start / end |
+| <kbd>T</kbd> | The timing panel: scenes, animation and voice-over on one clock |
+| <kbd>C</kbd> | Voice-over subtitles on / off |
 | <kbd>Esc</kbd> | Back out of the video |
 
-A URL fragment `#t=12.5` opens the preview at that moment.
+A URL fragment `#t=12.5` opens the preview at that moment; `#timing` opens it
+with the timing panel.

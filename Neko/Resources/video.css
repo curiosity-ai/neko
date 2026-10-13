@@ -399,14 +399,59 @@ body[data-portrait="true"] .nv-stats, body[data-portrait="true"] .nv-grid { grid
 .nv-time, .nv-total { flex: none; min-width: 52px; }
 .nv-title { flex: none; max-width: 30vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #6B7280; }
 
+.nv-timing-toggle {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .14); background: transparent; color: #9CA3AF; font: inherit; cursor: pointer;
+}
+.nv-timing-toggle i { display: inline-flex; }
+.nv-timing-toggle:hover, .nv-timing-toggle[aria-pressed="true"] { color: #F4F4F2; border-color: var(--nv-acc); }
+
+/* the voice-over's subtitle: under the canvas, in the preview only */
+.nv-subtitle {
+  position: absolute; left: 50%; bottom: 4%; z-index: 5; max-width: 86%; transform: translateX(-50%);
+  padding: 6px 14px; border-radius: 8px; background: rgba(7, 8, 11, .78); color: #F4F4F2;
+  font: 500 16px/1.4 "Inter", system-ui, sans-serif; text-align: center; opacity: 0; transition: opacity .15s; pointer-events: none;
+}
+.nv-subtitle.is-on { opacity: 1; }
+.nv-subtitle.is-estimated { font-style: italic; color: #D1D5DB; }
+
+/* the timing panel: scenes, animation and voice-over as lanes on the video's clock */
+.nv-timing {
+  flex: none; width: 100%; box-sizing: border-box; padding: 10px 20px 12px; background: #0B0D10;
+  border-top: 1px solid rgba(255, 255, 255, .08); font: 500 12px/1.3 "Geist Mono", ui-monospace, monospace; color: #9CA3AF;
+}
+.nv-timing[hidden] { display: none; }
+.nv-timing-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; margin-bottom: 8px; }
+.nv-timing-title { color: #F4F4F2; }
+.nv-timing-warns { color: #FBBF24; }
+.nv-timing-warns summary { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; list-style: none; }
+.nv-timing-warns summary::-webkit-details-marker { display: none; }
+.nv-timing-warns ul { margin: 6px 0 0; padding-left: 18px; color: #FCD34D; }
+.nv-timing-warns[open] { flex-basis: 100%; }
+.nv-lanes { position: relative; display: grid; grid-template-columns: 92px 1fr; row-gap: 6px; }
+.nv-lane-label { align-self: center; color: #6B7280; }
+.nv-lane { position: relative; height: 22px; border-radius: 4px; background: rgba(255, 255, 255, .04); }
+.nv-lane[data-lane="voice"] { height: 30px; }
+.nv-lane button { position: absolute; top: 0; bottom: 0; padding: 0; margin: 0; border: 0; cursor: pointer; font: inherit; }
+.nv-seg { border-left: 1px solid rgba(255, 255, 255, .35) !important; background: rgba(255, 255, 255, .05); color: #9CA3AF; text-align: left; padding-left: 4px !important; overflow: hidden; }
+.nv-seg:nth-child(even) { background: rgba(255, 255, 255, .09); }
+.nv-ev { min-width: 2px; background: color-mix(in srgb, var(--nv-acc) 45%, transparent); border-left: 2px solid var(--nv-acc) !important; top: 4px !important; bottom: 4px !important; border-radius: 2px; }
+.nv-ev:hover { background: var(--nv-acc); }
+.nv-sent { border-radius: 4px; background: rgba(167, 139, 250, .32); border: 1px solid rgba(167, 139, 250, .7) !important; color: #EDE9FE; overflow: hidden; text-align: left; }
+.nv-sent span { display: block; padding: 0 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; line-height: 28px; }
+.nv-sent.is-estimated { background: repeating-linear-gradient(135deg, rgba(167, 139, 250, .22) 0 6px, rgba(167, 139, 250, .1) 6px 12px); border-style: dashed !important; }
+.nv-sent.is-shifted { border-color: #FBBF24 !important; }
+.nv-sent.is-active { background: rgba(167, 139, 250, .6); color: #fff; }
+.nv-playhead { position: absolute; top: -2px; bottom: -2px; left: calc(92px + (100% - 92px) * var(--f, 0)); width: 2px; margin-left: -1px; background: #F4F4F2; pointer-events: none; }
+
 /* the render: no chrome, the canvas at 1:1 in the corner of a viewport its own size */
 html.nv-render, html.nv-render body.neko-video-body { width: 100%; height: 100%; overflow: hidden; }
 html.nv-render body.neko-video-body { display: block; min-height: 0; }
-html.nv-render .nv-bar, html.nv-render .nv-back { display: none !important; }
+html.nv-render .nv-bar, html.nv-render .nv-back, html.nv-render .nv-timing, html.nv-render .nv-subtitle { display: none !important; }
 html.nv-render .nv-viewport { position: absolute; left: 0; top: 0; }
 html.nv-render .nv-caret-at::after, html.nv-render .nv-typing::before { animation: none; }
 
-@media print { .nv-bar, .nv-back { display: none; } }
+@media print { .nv-bar, .nv-back, .nv-timing, .nv-subtitle { display: none; } }
 
 /* Captions own the foot of the frame: a lower third in the same scene steps up above them. */
 .nv-cam:has(.nv-captions) .nv-lt { bottom: 230px; }

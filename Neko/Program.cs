@@ -591,10 +591,13 @@ namespace Neko
             var renderNoAudioOption = new Option<bool>("--no-audio") { Description = "Leave the soundtrack out" };
             var renderBrowserOption = new Option<string?>("--browser") { Description = "Path to a Chromium executable to use instead of Playwright's" };
             var renderFfmpegOption = new Option<string?>("--ffmpeg") { Description = "Path to ffmpeg (or its folder). Otherwise NEKO_FFMPEG, PATH, or a one-time download" };
+            var renderPreviewOption = new Option<bool>("--preview") { Description = "Print the timing sheet (scenes, animation and voice-over on one clock) and render nothing" };
+            var renderNoVoiceOverOption = new Option<bool>("--no-voiceover") { Description = "Do not synthesize the voice-over: sentences without a take stay silent" };
             var renderThemeOption = ThemeOption();
             renderCommand.Arguments.Add(renderInputArgument);
             foreach (var option in new Option[] { renderOutputOption, renderWorkersOption, renderQualityOption, renderFormatOption, renderFpsOption, renderSizeOption,
-                         renderFromOption, renderToOption, renderStillOption, renderJpegOption, renderKeepFramesOption, renderNoAudioOption, renderBrowserOption, renderFfmpegOption, renderThemeOption })
+                         renderFromOption, renderToOption, renderStillOption, renderJpegOption, renderKeepFramesOption, renderNoAudioOption, renderBrowserOption, renderFfmpegOption,
+                         renderPreviewOption, renderNoVoiceOverOption, renderThemeOption })
             {
                 renderCommand.Options.Add(option);
             }
@@ -618,12 +621,58 @@ namespace Neko
                     NoAudio = parseResult.GetValue(renderNoAudioOption),
                     Browser = parseResult.GetValue(renderBrowserOption),
                     Ffmpeg = parseResult.GetValue(renderFfmpegOption),
+                    Preview = parseResult.GetValue(renderPreviewOption),
+                    NoVoiceOver = parseResult.GetValue(renderNoVoiceOverOption),
                 });
             });
+
+            // Voice-over Command: speaks a video's `--- {narration}` lines with Voxwerk
+            // (Qwen3-TTS VoiceDesign) and prints the timing sheet; --preview only times them.
+            var voiceOverCommand = new Command("voiceover", "Synthesize a video's voice-over with Voxwerk and print its timing sheet (scenes, animation, sentences)");
+            var voInputArgument = new Argument<string>("input") { Description = "The video page (.md with `video:` front matter) or a folder of them", DefaultValueFactory = _ => "." };
+            var voPreviewOption = new Option<bool>("--preview", "-p") { Description = "Only compute and print the timings: sentences without a take are estimated, nothing is synthesized" };
+            var voJsonOption = new Option<string?>("--json") { Description = "Also write the timing sheet as JSON to this file (or folder)" };
+            var voForceOption = new Option<bool>("--force", "-f") { Description = "Synthesize every sentence again, even those that have a take" };
+            var voKeepOption = new Option<bool>("--keep-unused") { Description = "Keep takes no sentence uses any more" };
+            var voThreadsOption = new Option<int>("--threads") { Description = "Worker threads for synthesis (0 = all cores)", DefaultValueFactory = _ => 0 };
+            var voInt8Option = new Option<bool>("--int8") { Description = "Store the TTS talker weights as int8: faster, approximate" };
+            voiceOverCommand.Arguments.Add(voInputArgument);
+            foreach (var option in new Option[] { voPreviewOption, voJsonOption, voForceOption, voKeepOption, voThreadsOption, voInt8Option })
+            {
+                voiceOverCommand.Options.Add(option);
+            }
+            voiceOverCommand.SetAction(async (parseResult, token) => await Neko.Builder.VoiceOverCommand.RunAsync(new Neko.Builder.VoiceOverSettings
+            {
+                Input = parseResult.GetValue(voInputArgument),
+                Preview = parseResult.GetValue(voPreviewOption),
+                Json = parseResult.GetValue(voJsonOption),
+                Force = parseResult.GetValue(voForceOption),
+                KeepUnused = parseResult.GetValue(voKeepOption),
+                Threads = parseResult.GetValue(voThreadsOption),
+                Int8 = parseResult.GetValue(voInt8Option),
+            }, token));
+
+            // Voices Command: the Voxwerk voice catalog a narration can name by id.
+            var voicesCommand = new Command("voices", "List or search the voices a video's voice-over can use (the Voxwerk catalog)");
+            var voicesSearchOption = new Option<string?>("--search", "-s") { Description = "Words every listed voice must match (name, description, accent, tags)" };
+            var voicesGenderOption = new Option<string?>("--gender") { Description = "female or male" };
+            var voicesCountryOption = new Option<string?>("--country") { Description = "Country id: us, gb, ie, au, in, …" };
+            var voicesStyleOption = new Option<string?>("--style") { Description = "Narration, Conversational, Characters or Commercial" };
+            var voicesAgeOption = new Option<string?>("--age") { Description = "young, middle-aged or old" };
+            var voicesJsonOption = new Option<bool>("--json") { Description = "Print the matching voices as JSON" };
+            foreach (var option in new Option[] { voicesSearchOption, voicesGenderOption, voicesCountryOption, voicesStyleOption, voicesAgeOption, voicesJsonOption })
+            {
+                voicesCommand.Options.Add(option);
+            }
+            voicesCommand.SetAction(parseResult => Neko.Builder.VoiceOverCommand.ListVoices(
+                parseResult.GetValue(voicesSearchOption), parseResult.GetValue(voicesGenderOption), parseResult.GetValue(voicesCountryOption),
+                parseResult.GetValue(voicesStyleOption), parseResult.GetValue(voicesAgeOption), parseResult.GetValue(voicesJsonOption)));
 
             rootCommand.Subcommands.Add(buildCommand);
             rootCommand.Subcommands.Add(watchCommand);
             rootCommand.Subcommands.Add(renderCommand);
+            rootCommand.Subcommands.Add(voiceOverCommand);
+            rootCommand.Subcommands.Add(voicesCommand);
             rootCommand.Subcommands.Add(syncApiDocsCommand);
             rootCommand.Subcommands.Add(checkLinksCommand);
             rootCommand.Subcommands.Add(tesseraeHeightsCommand);

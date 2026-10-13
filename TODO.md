@@ -59,7 +59,11 @@ Please refer to the following list for future implementation. Suggested syntax f
 - [x] `video:` front matter, scenes split on `---`, timeline compiler (C#), `video.js` seek runtime.
 - [x] Scene components (lockup, swap, typewriter, scramble, counter, stats, chart, code, terminal, devices, cursor, lower-third, captions, quote, steps, checklist, grid/card, cta, logo, media).
 - [x] `neko render` (Playwright frames + ffmpeg via Xabe.FFmpeg, audio mix), `[!video]` embed, `neko` and `curiosity` themes.
+- [x] Voice-over track: `--- {narration}` parts on the video's clock (anchors, no overlaps), `narration:` voices (descriptions, Voxwerk catalog ids), `neko voiceover` synthesis with Voxwerk, timing sheet and preview panel.
 - [ ] Size a scene from its `voice` file's length (ffprobe) when `duration` is left out.
+- [ ] Voice-over: optionally size scenes to their lines (`duration="voice"`) — needs a fixed-point pass, since anchors depend on scene starts.
+- [ ] Voice-over: burn the sentences in as on-screen captions (the `captions` component, timed from the takes).
+- [ ] Voice-over: clone catalog voices with the Base model when their audio package is installed, for one consistent voice across sentences.
 - [ ] Captions from a word-level transcript file instead of hand-timed lines.
 - [ ] Shader (WebGL) transitions, composited per frame like HyperFrames' engine mode.
 - [ ] Stream frames to ffmpeg's stdin instead of writing them to a temp folder.

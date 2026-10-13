@@ -1,6 +1,6 @@
 ---
 name: video
-description: Author a video as a single Markdown file (`video:` front matter) — scenes separated by horizontal rules, every block animating in on its own, video components (lockup, swap, typewriter, scramble, counter, stats, chart, code, terminal, browser/window/phone, cursor, lower-third, captions, quote, steps, checklist, grid/card, cta, logo, media), scene transitions and camera moves — preview it in the browser and render it to MP4 with `neko render` (Playwright + ffmpeg). Also covers the `[!video]` component that embeds the rendered file in a page. Use when asked for a video, an animated explainer, a product or release teaser, a changelog video, a motion graphic, or an MP4 from docs content.
+description: Author a video as a single Markdown file (`video:` front matter) — scenes separated by horizontal rules, every block animating in on its own, video components (lockup, swap, typewriter, scramble, counter, stats, chart, code, terminal, browser/window/phone, cursor, lower-third, captions, quote, steps, checklist, grid/card, cta, logo, media), scene transitions and camera moves, and a synthesized voice-over (`--- {narration}` parts, `narration:` voice, `neko voiceover`) — preview it in the browser and render it to MP4 with `neko render` (Playwright + ffmpeg). Also covers the `[!video]` component that embeds the rendered file in a page. Use when asked for a video, an animated explainer, a product or release teaser, a changelog video, a motion graphic, a narrated walkthrough, or an MP4 from docs content.
 ---
 
 # Video mode
@@ -244,6 +244,73 @@ drawings: `field`, `squares`, the dash mosaics `wave|rows|chart|chart-grid|mount
 staggers the stats as paper, deep-blue and slate cards. Still glyphs build once and
 hold (`loop="true"` repeats them). Keep Sudo in a corner: a detail, never the subject.
 
+## Voice-over
+
+Narration is written as text in the same file and spoken by Voxwerk (Qwen3-TTS
+VoiceDesign, pure C#). It is a **separate track on the video's clock**: it never
+moves the animation, and its lines never overlap each other.
+
+```yaml
+video:
+  narration:
+    voice: "A warm, clear female narrator in her thirties, calm and friendly."  # a description…
+    # voice: en-gb-rupert-vale   # …or a Voxwerk catalog id (`neko voices --search calm`)
+    language: english            # optional; seed: 7, gap: 0.5, pause: 0.25, volume: 1, wpm: 150
+    voices:                      # optional named voices for lines
+      guest: "An elderly man with a slow, raspy, gentle voice."
+```
+
+```markdown
+--- {id="opening" layout="title"}
+
+# Say it *in Markdown*
+
+--- {id="results"}
+
+## Revenue *doubled*
+
+Up from 12 to 26 in one quarter. {#bars}
+
+--- {narration}
+
+# Headings are labels, not spoken. Each paragraph or list item is one line.
+
+{at="opening+0.6"}
+Every Neko video can carry a voice-over.
+
+Revenue doubled in the second quarter. {at="#bars" voice="guest"}
+
+And this line simply follows the one before.
+```
+
+- `--- {narration}` (or `{voiceover}`) marks a part as narration, not a scene;
+  put parts anywhere (after each scene, or one at the end). The rule may carry
+  defaults: `--- {narration voice="guest" at="scene-4"}`.
+- Line attributes (a `{…}` at the end of the line or on its own line before it):
+  `at`, `voice`, `language`, `seed`, `pause` (between its sentences), `gap`
+  (after the line before), `volume`.
+- `at`: `12.5` / `1:04.2` (video time), `+0.8` (after the line before ends),
+  `scene-3` or a scene `id` (when its transition in is over), `#id` (when that
+  element enters: `{#id}` on any block, list item or heading), plus an offset:
+  `scene-3+1.2`, `#bars-0.3`. No `at` → follows the line before after `gap`.
+- A line anchored while the previous is still speaking **waits** (and is reported
+  as *shifted*). If the voice-over outlasts the last scene, that scene holds.
+
+Workflow — always preview before synthesizing:
+
+```bash
+neko voiceover videos/launch.md --preview   # timing sheet: scenes, animation, sentences (~ = estimated)
+neko voiceover videos/launch.md             # synthesize missing sentences → assets/voiceover/launch/*.ogg
+neko render videos/launch.md                # mixes the takes (synthesizes anything missing first)
+```
+
+In the browser preview, **Timing** (or <kbd>T</kbd>, `#timing`) shows the lanes;
+the current sentence shows as a subtitle (<kbd>C</kbd>). Align by moving anchors,
+setting scene `duration`, or shortening lines until nothing is *shifted* or
+*runs into scene N*. Commit the `.ogg` takes with the page; they are keyed by
+voice + text, so editing one sentence re-speaks only that one. The first
+synthesis downloads a ~4.5 GB model; it runs about 5× slower than real time on CPU.
+
 ## Rendering
 
 ```bash
@@ -251,6 +318,7 @@ neko render videos/launch.md                    # → videos/launch.mp4
 neko render videos/launch.md -o out.mp4 -q high # draft | standard | high
 neko render videos/launch.md --still 3.5        # one PNG (poster, checking a frame)
 neko render videos/ -o out/ --from 4 --to 9 --workers 4 --format webm
+neko render videos/launch.md --preview          # the timing sheet only; --no-voiceover skips synthesis
 ```
 
 ffmpeg is found via `--ffmpeg`, `NEKO_FFMPEG`, the PATH, or downloaded once to
@@ -270,3 +338,5 @@ Embed the result in a normal page:
 - Holds are still: give a long scene a `camera` move or a later beat rather than idle motion.
 - Keep one direction of travel (`push` always moves left); use `zoom` for "deeper", `zoom-out` for the payoff.
 - Video pages never appear in the sidebar or search; link them or embed their render.
+- With a voice-over, write the script first, check `neko voiceover --preview`, and size
+  scenes (`duration`) to their lines; keep lines to one or two sentences per scene.
