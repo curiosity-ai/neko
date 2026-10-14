@@ -39,7 +39,10 @@ namespace Neko.Builder
         /// <summary>Seconds a transition overlaps the two scenes it joins.</summary>
         public double TransitionDuration { get; set; } = 0.6;
 
-        /// <summary>Seconds a scene holds still after its last element has arrived, when its duration is left to Neko.</summary>
+        /// <summary>
+        /// Seconds a scene holds still after its last element has arrived, before the transition out begins.
+        /// A scene whose <c>duration</c> is too short for that is lengthened, so an animation is never cut off as it lands.
+        /// </summary>
         public double Hold { get; set; } = 1.6;
 
         /// <summary>Multiplies every automatic gap between elements: below 1 is brisker, above 1 calmer.</summary>
@@ -306,6 +309,18 @@ namespace Neko.Builder
         public string Transition { get; set; } = "cut";
 
         public double TransitionDuration { get; set; }
+
+        /// <summary>The transition the scene asked for, before <see cref="VideoTimeline.Sequence"/> shortened it to fit two short scenes.</summary>
+        public double RequestedTransition { get; set; }
+
+        /// <summary>Scene-local second at which its last element has arrived (its entrance finished).</summary>
+        public double ContentEnd { get; set; }
+
+        /// <summary>Seconds the scene holds still after <see cref="ContentEnd"/>, before its transition out begins.</summary>
+        public double Hold { get; set; }
+
+        /// <summary>The author wrote a <c>duration</c>: Neko only lengthens it to keep content from being cut off.</summary>
+        public bool HasExplicitDuration { get; set; }
 
         /// <summary>The scene's own audio (a voice-over line), resolved to a URL for the preview.</summary>
         public string Voice { get; set; }

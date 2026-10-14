@@ -250,6 +250,32 @@ Second line.
             Assert.That(cues[4].Start, Is.EqualTo(cues[3].End + 2).Within(1e-3));
         }
 
+        private const string LongLine = "This line is long enough that a two-second scene could never hold it, so the scene has to grow until every word of it has been spoken aloud.";
+
+        [Test]
+        public void SceneWithoutDuration_FitsTheLinesAnchoredToIt()
+        {
+            var doc = NewParser().Parse("---\ntitle: T\nvideo:\n  narration: A calm narrator.\n---\n\n--- {id=\"one\"}\n\n## One\n\n--- {id=\"two\"}\n\n## Two\n\n--- {narration}\n\n{at=\"one+0.4\"}\n" + LongLine + "\n\n{at=\"two+0.4\"}\nShort.\n");
+
+            var scenes = doc.Scenes!;
+            var first = doc.Narration!.Cues[0];
+            var second = doc.Narration.Cues[1];
+            Assert.That(scenes[0].End - scenes[1].TransitionDuration, Is.GreaterThanOrEqualTo(first.End + 0.8 - 0.01), "the line ends, then the tail, then the transition out");
+            Assert.That(first.Shifted || second.Shifted, Is.False, "no line has to wait once the scenes fit");
+            Assert.That(second.Start, Is.EqualTo(scenes[1].Start + scenes[1].TransitionDuration + 0.4).Within(0.01), "the second line still starts at its anchor");
+            Assert.That(doc.Narration.Warnings, Is.Empty);
+        }
+
+        [Test]
+        public void SceneWithDuration_OrFitOff_IsNotFitted()
+        {
+            var timed = NewParser().Parse("---\ntitle: T\nvideo:\n  narration: A calm narrator.\n---\n\n--- {id=\"one\" duration=\"3\"}\n\n## One\n\n--- {id=\"two\"}\n\n## Two\n\n--- {narration}\n\n{at=\"one+0.4\"}\n" + LongLine + "\n");
+            Assert.That(timed.Scenes![0].Duration, Is.LessThan(timed.Narration!.Cues[0].End), "a written duration is the author's");
+
+            var off = NewParser().Parse("---\ntitle: T\nvideo:\n  narration:\n    voice: A calm narrator.\n    fit: false\n---\n\n--- {id=\"one\"}\n\n## One\n\n--- {id=\"two\"}\n\n## Two\n\n--- {narration}\n\n{at=\"one+0.4\"}\n" + LongLine + "\n");
+            Assert.That(off.Scenes![0].End, Is.LessThan(off.Narration!.Cues[0].End), "fit: false leaves the line running into the next scene");
+        }
+
         [Test]
         public void ResolveAnchor_ReadsEveryForm()
         {

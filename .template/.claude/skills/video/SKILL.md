@@ -25,7 +25,8 @@ video:
 ---
 ```
 
-Other keys: `transitionDuration` (0.6), `hold` (1.6 s still after the last element),
+Other keys: `transitionDuration` (0.6), `hold` (1.6 s still after the last element; a
+scene whose `duration` would cut its content short is lengthened to last arrival + `hold`),
 `pace` (`brisk`/`normal`/`calm` or a number), `accent` (neko: cyan, violet, amber,
 rose, leaf), `eyebrow`, `logo`/`logoText`, `grain`, `vignette`, `foot`, `autoplay`,
 `loop`, `back`/`backText`, and (curiosity) `intro: squares|tiles` — the website's
@@ -167,6 +168,9 @@ $ neko render video.md
 ::: cursor {from="105%,95%" to="52%,58%" label="Click" at="1.5"}
 :::
 
+::: cursor {on="screen" from="104%,96%" to="63.6%,12.9%" label="XML" at="1.2"}
+:::
+
 ::: lower-third {name="Ada Lovelace" role="Engineer" at="0.8" until="4.5"}
 :::
 
@@ -303,6 +307,11 @@ And this line simply follows the one before.
   `scene-3+1.2`, `#bars-0.3`. No `at` → follows the line before after `gap`.
 - A line anchored while the previous is still speaking **waits** (and is reported
   as *shifted*). If the voice-over outlasts the last scene, that scene holds.
+- **Scenes fit their narration**: a scene with no `duration` lasts until every line
+  anchored to it (or to an element in it) has been spoken, plus `tail` (0.8 s,
+  a `narration:` option), before the next transition. So in a narrated video,
+  anchor each line to its scene (`at="scene-id+0.4"`) and leave `duration` out;
+  `fit: false` turns this off.
 
 Workflow — always preview before synthesizing:
 
@@ -313,9 +322,9 @@ neko render videos/launch.md                # mixes the takes (synthesizes anyth
 ```
 
 In the browser preview, **Timing** (or <kbd>T</kbd>, `#timing`) shows the lanes;
-the current sentence shows as a subtitle (<kbd>C</kbd>). Align by moving anchors,
-setting scene `duration`, or shortening lines until nothing is *shifted* or
-*runs into scene N*. Commit the `.ogg` takes with the page; they are keyed by
+the current sentence shows as a subtitle (<kbd>C</kbd>). Align by anchoring every
+line to its scene and letting Neko fit the scenes, then moving anchors or shortening
+lines until nothing is *shifted* or *runs into scene N*. Commit the `.ogg` takes with the page; they are keyed by
 voice + text, so editing one sentence re-speaks only that one. The first
 synthesis downloads a ~4.5 GB model; it runs about 5× slower than real time on CPU.
 
@@ -346,5 +355,18 @@ Embed the result in a normal page:
 - Holds are still: give a long scene a `camera` move or a later beat rather than idle motion.
 - Keep one direction of travel (`push` always moves left); use `zoom` for "deeper", `zoom-out` for the payoff.
 - Video pages never appear in the sidebar or search; link them or embed their render.
-- With a voice-over, write the script first, check `neko voiceover --preview`, and size
-  scenes (`duration`) to their lines; keep lines to one or two sentences per scene.
+- With a voice-over, write the script first, anchor each line to its scene, leave
+  `duration` out so scenes fit their lines, and check `neko voiceover --preview`;
+  keep lines to one or two sentences per scene.
+- **Let the last state be read.** An animation that ends as the scene leaves is
+  never seen (a swap's last word, a chart's last bar). Neko holds every scene at
+  least a second after its last arrival; give a scene that needs reading more
+  (`hold="2.5"`), and use `{delay="1"}` on an element to pause *before* it.
+- **A swap needs room**: its words take `hold` × words seconds; a short line of
+  narration over it does not make the scene long enough by itself.
+- **Click on something.** On a screenshot, write the cursor with `on="screen"` and
+  aim it in the picture's own coordinates (pixel ÷ image size), at the control the
+  narration names; start it after the frame settles (`at` ≥ 1). Check the landing
+  point with `neko render --still`.
+- **Stats in the curiosity theme**: `::: stats {class="cards" count="4"}` steps any
+  number of cards down a 180 px stair; keep values short enough for the column.

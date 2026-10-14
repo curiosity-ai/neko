@@ -645,7 +645,8 @@ namespace Neko.Builder
                 }
                 else
                 {
-                    var overlap = Math.Min(scene.TransitionDuration, Math.Min(scenes[i - 1].Duration, scene.Duration) * 0.5);
+                    var requested = scene.RequestedTransition > 0 ? scene.RequestedTransition : scene.TransitionDuration;
+                    var overlap = Math.Min(requested, Math.Min(scenes[i - 1].Duration, scene.Duration) * 0.5);
                     scene.TransitionDuration = overlap;
                     scene.Start = Math.Max(0, time - overlap);
                 }
@@ -653,6 +654,38 @@ namespace Neko.Builder
             }
             return Math.Round(time, 3);
         }
+
+        /// <summary>The least a scene with a <c>duration</c> stays still after its last element arrives, unless the scene sets its own <c>hold</c>.</summary>
+        public const double MinimumDwell = 1.0;
+
+        /// <summary>
+        /// Keeps a scene from leaving the moment its content lands. A scene left to Neko already
+        /// lasts its last arrival plus <c>hold</c>. A scene with a <c>duration</c> that leaves less
+        /// than <see cref="MinimumDwell"/> after its last arrival — a swap cut on its last word, a
+        /// chart still drawing — is lengthened to that arrival plus <c>hold</c>, with a warning. A
+        /// scene that sets its own <c>hold</c> is held at least that long; <c>hold="0"</c> keeps the
+        /// written duration. Run before <see cref="Sequence"/>.
+        /// </summary>
+        public static List<string> HoldContent(IList<VideoScene> scenes)
+        {
+            var warnings = new List<string>();
+            for (int i = 0; i < scenes.Count; i++)
+            {
+                var scene = scenes[i];
+                if (!scene.HasExplicitDuration || scene.ContentEnd <= 0) continue;
+                var ownHold = scene.Get("hold") != null;
+                if (ownHold && scene.Hold <= 0) continue; // hold="0": the cut is deliberate
+                var dwell = ownHold ? scene.Hold : Math.Min(scene.Hold, MinimumDwell);
+                if (scene.Duration + 0.01 >= scene.ContentEnd + dwell) continue;
+                var held = Math.Round(scene.ContentEnd + scene.Hold, 2);
+                warnings.Add($"video scene {i + 1}{SceneName(scene)} lasts {scene.Duration:0.##}s but its last element arrives at {scene.ContentEnd:0.##}s; "
+                    + $"it is held to {held:0.##}s so that its last state stays on screen (set hold=\"0\" on the scene to keep {scene.Duration:0.##}s).");
+                scene.Duration = held;
+            }
+            return warnings;
+        }
+
+        private static string SceneName(VideoScene scene) => scene.Get("id") is { } id ? $" ({id})" : string.Empty;
 
         /// <summary>The transition into a scene: its own <c>transition</c>, or the video's default. The first scene has none.</summary>
         public static (string Name, double Duration) ResolveTransition(VideoScene scene, VideoOptions options, int index)

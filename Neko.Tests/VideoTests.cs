@@ -144,6 +144,33 @@ namespace Neko.Tests
         }
 
         [Test]
+        public void ExplicitDuration_TooShortForItsContent_IsHeld()
+        {
+            const string swap = "::: swap {prefix=\"Read it as\" words=\"WYSIWYG|XML|PDF\" hold=\"1.2\"}\n:::\n";
+            var doc = NewParser().Parse("---\ntitle: T\nvideo: true\n---\n\n--- {duration=\"3.4\"}\n\n" + swap + "\n--- {duration=\"3.4\" hold=\"0\"}\n\n" + swap);
+
+            var held = doc.Scenes![0];
+            Assert.That(held.ContentEnd, Is.GreaterThan(3.4), "three words of 1.2 s each outlast the written duration");
+            Assert.That(held.Duration, Is.EqualTo(held.ContentEnd + 1.6).Within(0.01), "the last word stays on screen for hold");
+            Assert.That(doc.Scenes[1].Duration, Is.EqualTo(3.4), "hold=0 keeps the written duration");
+        }
+
+        [Test]
+        public void ExplicitDuration_WithRoomToSettle_IsKept()
+        {
+            var doc = NewParser().Parse("---\ntitle: T\nvideo: true\n---\n\n--- {duration=\"3\"}\n\n## Two words\n");
+            Assert.That(doc.Scenes![0].Duration, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void Cursor_OnScreen_CarriesItsTarget()
+        {
+            var html = NewParser().Parse("---\ntitle: T\nvideo: true\n---\n\n::: browser\n![Shot](/a.png)\n:::\n\n::: cursor {on=\"screen\" to=\"63.6%,12.9%\"}\n:::\n").Scenes![0].Html!;
+            Assert.That(html, Does.Contain("data-on=\"screen\""));
+            Assert.That(html, Does.Contain("data-path=\"108%,86% 63.6%,12.9%\""));
+        }
+
+        [Test]
         public void Annotate_GivesPlainMarkdownDefaultMotions()
         {
             var html = NewParser().Parse("---\ntitle: T\nvideo: true\n---\n\n## Two words\n\nA paragraph.\n\n- one\n- two\n\n> A quote.\n").Scenes![0].Html!;

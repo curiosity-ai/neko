@@ -75,6 +75,16 @@ namespace Neko.Builder
         /// </summary>
         public bool Clone { get; set; } = true;
 
+        /// <summary>
+        /// Lengthen a scene whose duration is left to Neko until every line anchored to it has been
+        /// spoken, plus <see cref="Tail"/>. Off, scenes keep the length their content gives them and a
+        /// long line runs on into the next scene.
+        /// </summary>
+        public bool Fit { get; set; } = true;
+
+        /// <summary>Seconds a scene stays on screen after the last line anchored to it ends, before the transition out.</summary>
+        public double Tail { get; set; } = 0.8;
+
         /// <summary>Where the synthesized sentences are kept, relative to the video page. <c>assets/voiceover/&lt;page&gt;</c> by default.</summary>
         public string Folder { get; set; }
 
@@ -124,6 +134,8 @@ namespace Neko.Builder
                 case "model": if (value.Length > 0) Model = value; break;
                 case "clonemodel": case "clone-model": if (value.Length > 0) CloneModel = value; break;
                 case "clone": Clone = !(value.Equals("false", StringComparison.OrdinalIgnoreCase) || value.Equals("no", StringComparison.OrdinalIgnoreCase) || value.Equals("off", StringComparison.OrdinalIgnoreCase)); break;
+                case "fit": Fit = !VideoOptions.IsFalsey(value); break;
+                case "tail": if (VideoOptions.TryDouble(value, out var tail)) Tail = Math.Max(0, tail); break;
                 case "folder": case "cache": if (value.Length > 0) Folder = value; break;
             }
         }
@@ -208,6 +220,9 @@ namespace Neko.Builder
         /// commands that print the timing sheet turn it off: the sheet lists them.
         /// </summary>
         public static bool PrintWarnings { get; set; } = true;
+
+        // Where the last Schedule's warnings start in Warnings, so the next one replaces them.
+        private int _scheduleWarnings = -1;
 
         /// <summary>Closest two lines may get when a line is pushed back to avoid an overlap.</summary>
         public const double MinimumGap = 0.15;
@@ -517,6 +532,9 @@ namespace Neko.Builder
         public void Schedule(IList<VideoScene> scenes)
         {
             scenes ??= new List<VideoScene>();
+            // Scheduling again (after scenes were fitted) restates its warnings rather than adding to them.
+            if (_scheduleWarnings >= 0 && _scheduleWarnings <= Warnings.Count) Warnings.RemoveRange(_scheduleWarnings, Warnings.Count - _scheduleWarnings);
+            _scheduleWarnings = Warnings.Count;
             var anchors = Anchors(scenes);
             double? previousEnd = null;
             foreach (var cue in Cues)
@@ -526,6 +544,7 @@ namespace Neko.Builder
                 var follow = previousEnd.HasValue ? previousEnd.Value + gap : Options.Start;
                 double start = follow;
                 cue.Requested = null;
+                cue.Shifted = false;
 
                 if (cue.At != null)
                 {
@@ -557,6 +576,74 @@ namespace Neko.Builder
                 }
                 previousEnd = cue.End;
             }
+        }
+
+        /// <summary>
+        /// Lengthens every scene whose duration is left to Neko until the lines anchored to it — to the
+        /// scene itself (<c>intro+0.4</c>, <c>scene-3</c>) or to an element inside it (<c>#chart</c>) —
+        /// have been spoken, plus <see cref="VideoNarrationOptions.Tail"/>, before the next scene's
+        /// transition begins. Scenes are fitted in order and the lines re-scheduled after each change,
+        /// since a longer scene moves every anchor after it. A line with no anchor, or anchored to a
+        /// time, belongs to no scene and is left to run on. Returns whether any scene changed.
+        /// </summary>
+        public bool FitScenes(IList<VideoScene> scenes, Func<IList<VideoScene>, double> sequence)
+        {
+            if (!Options.Fit || scenes == null || scenes.Count == 0) return false;
+            var sceneOf = AnchorScenes(scenes);
+            var owned = Cues.Where(c => c.Sentences.Count > 0 && c.At != null)
+                            .Select(c => (Cue: c, Scene: AnchorScene(c.At, sceneOf)))
+                            .Where(o => o.Scene != null)
+                            .ToList();
+            if (owned.Count == 0) return false;
+
+            var changed = false;
+            for (int i = 0; i < scenes.Count; i++)
+            {
+                var scene = scenes[i];
+                if (scene.HasExplicitDuration) continue;
+                var lines = owned.Where(o => o.Scene == i).ToList();
+                if (lines.Count == 0) continue;
+                var outgoing = i + 1 < scenes.Count ? scenes[i + 1].RequestedTransition : 0;
+                var needed = Math.Round(lines.Max(o => o.Cue.End) - scene.Start + Options.Tail + outgoing, 2);
+                if (needed <= scene.Duration + 0.01) continue;
+                scene.Duration = needed;
+                changed = true;
+                sequence(scenes);
+                Schedule(scenes);
+            }
+            return changed;
+        }
+
+        /// <summary>Which scene each anchor name belongs to: scene ids, <c>scene-N</c> and element ids.</summary>
+        private static Dictionary<string, int> AnchorScenes(IList<VideoScene> scenes)
+        {
+            var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < scenes.Count; i++)
+            {
+                foreach (var e in VideoTimeline.Events(scenes[i].Html))
+                {
+                    if (!string.IsNullOrEmpty(e.Id) && !map.ContainsKey(e.Id)) map[e.Id] = i;
+                }
+            }
+            for (int i = 0; i < scenes.Count; i++)
+            {
+                map["scene-" + (i + 1)] = i;
+                var id = scenes[i].Get("id");
+                if (!string.IsNullOrEmpty(id)) map[id] = i;
+            }
+            return map;
+        }
+
+        // The scene an anchor names, read the way ResolveAnchor reads it; null for a time or `+0.8`.
+        private static int? AnchorScene(string raw, IReadOnlyDictionary<string, int> sceneOf)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+            var value = raw.Trim();
+            if (TryClock(value, out _) || value.StartsWith("+")) return null;
+            if (sceneOf.TryGetValue(value.TrimStart('#'), out var exact)) return exact;
+            var m = AnchorRegex.Match(value);
+            if (!m.Success || !m.Groups["ref"].Success) return null;
+            return sceneOf.TryGetValue(m.Groups["ref"].Value, out var scene) ? scene : null;
         }
 
         /// <summary>The anchor names a line can use: every scene (by id, settled) and every element with an id.</summary>

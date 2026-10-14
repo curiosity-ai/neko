@@ -246,6 +246,7 @@
       }).filter(function (p) { return !isNaN(p.x) && !isNaN(p.y); });
       item.click = el.getAttribute('data-click') !== 'false';
       item.ripple = el.querySelector('.nv-ripple');
+      item.on = el.getAttribute('data-on');
     }
     if (v === 'paint') {
       try { item.opts = JSON.parse(el.getAttribute('data-o') || '{}'); } catch (e) { item.opts = {}; }
@@ -493,6 +494,37 @@
     }
   }
 
+  // Layout position of an element (offsets ignore transforms, so a frame still settling or a
+  // scaled stage measures where it will rest).
+  function layoutOffset(node) {
+    var x = 0, y = 0;
+    for (var n = node; n; n = n.offsetParent) { x += n.offsetLeft; y += n.offsetTop; }
+    return { x: x, y: y };
+  }
+
+  // What a cursor's percentages are of, in its host's pixels: `screen` is the screenshot in the
+  // scene's frame — the picture itself, as `object-fit: cover` anchored top-centre draws it —
+  // and `#id` any element in the scene.
+  function cursorBox(el, host, on) {
+    var scene = el.closest('.nv-scene');
+    if (!scene || !host) return null;
+    var target = null;
+    if (on === 'screen') target = scene.querySelector('.nv-screen img') || scene.querySelector('.nv-screen');
+    else if (on.charAt(0) === '#') target = scene.querySelector(on);
+    if (!target) return null;
+    // The cursor is translated from its containing block's padding box.
+    var origin = el.offsetParent || host;
+    var t = layoutOffset(target), o = layoutOffset(origin);
+    var x = t.x - o.x - origin.clientLeft, y = t.y - o.y - origin.clientTop;
+    var w = target.clientWidth, h = target.clientHeight;
+    if (target.tagName === 'IMG' && target.naturalWidth && w && h) {
+      var scale = Math.max(w / target.naturalWidth, h / target.naturalHeight);
+      var cw = target.naturalWidth * scale, ch = target.naturalHeight * scale;
+      x += (w - cw) / 2; w = cw; h = ch;
+    }
+    return w > 0 && h > 0 ? { x: x, y: y, w: w, h: h } : null;
+  }
+
   // The oversized cursor: hidden until its time, then it travels the path (power3.inOut,
   // constant along the polyline's length), presses at the end and throws a ring.
   function paintCursor(item, lt, r) {
@@ -501,6 +533,9 @@
     el.style.opacity = '';
     var host = el.parentElement;
     var w = host ? host.clientWidth : 1920, h = host ? host.clientHeight : 1080;
+    var box = item.on ? cursorBox(el, host, item.on) : null;
+    var ox = 0, oy = 0;
+    if (box) { ox = box.x; oy = box.y; w = box.w; h = box.h; }
     var lengths = [0], total = 0;
     for (var i = 1; i < pts.length; i++) {
       total += Math.hypot((pts[i].x - pts[i - 1].x) * w, (pts[i].y - pts[i - 1].y) * h);
@@ -511,7 +546,7 @@
     var a = pts[Math.max(0, seg - 1)], b = pts[Math.min(pts.length - 1, seg)];
     var segLen = (lengths[seg] || 0) - (lengths[seg - 1] || 0);
     var f = segLen > 0 ? (d - (lengths[seg - 1] || 0)) / segLen : 1;
-    var x = (a.x + (b.x - a.x) * f) * w, y = (a.y + (b.y - a.y) * f) * h;
+    var x = ox + (a.x + (b.x - a.x) * f) * w, y = oy + (a.y + (b.y - a.y) * f) * h;
     var press = 1;
     var after = lt - item.at - item.dur;
     if (item.click && after > 0 && after < 0.3) press = 1 - 0.18 * Math.sin(Math.PI * after / 0.3);

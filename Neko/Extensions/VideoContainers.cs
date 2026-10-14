@@ -572,7 +572,7 @@ namespace Neko.Extensions
             renderer.Write("</div></div>");
         }
 
-        // `::: cursor {from="105%,80%" to="62%,48%" click="true" label="…"}` — the oversized
+        // `::: cursor {from="105%,80%" to="62%,48%" click="true" label="…" on="screen"}` — the oversized
         // pointer: enters from off-frame, travels to its target, taps (a press and a ring),
         // and the beat that follows lands on the click. `path` takes more than two points.
         private static void Cursor(HtmlRenderer renderer, CustomContainer obj)
@@ -584,7 +584,12 @@ namespace Neko.Extensions
             }
             var click = !VideoOptions.IsFalsey(Attr(obj, "click", "true"));
             var label = Attr(obj, "label");
-            renderer.Write($"<div class=\"{Enc(ClassAttr(obj, "nv-cursor"))}\"{Motion(obj, "cursor", $" data-path=\"{Enc(path)}\" data-click=\"{(click ? "true" : "false")}\"")}>");
+            // `on="screen"` (or `on="#id"`): the points are percentages of the screenshot in the scene's
+            // frame, or of that element, rather than of the scene — so a click lands where it is aimed
+            // however the frame is sized.
+            var on = Attr(obj, "on");
+            var onAttr = string.IsNullOrEmpty(on) ? string.Empty : $" data-on=\"{Enc(on.Trim())}\"";
+            renderer.Write($"<div class=\"{Enc(ClassAttr(obj, "nv-cursor"))}\"{Motion(obj, "cursor", $" data-path=\"{Enc(path)}\" data-click=\"{(click ? "true" : "false")}\"{onAttr}")}>");
             renderer.Write("<span class=\"nv-ripple\" aria-hidden=\"true\"></span>");
             renderer.Write("<svg class=\"nv-pointer\" viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path d=\"M6 3 L6 25 L11.5 19.8 L15.4 28.6 L19.3 26.9 L15.5 18.3 L23 18.3 Z\"/></svg>");
             if (!string.IsNullOrEmpty(label)) renderer.Write($"<span class=\"nv-cursor-label\">{Enc(label)}</span>");
