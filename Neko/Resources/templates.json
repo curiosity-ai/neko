@@ -106,6 +106,7 @@
   "neko-video-terminal": "::: terminal {title=\"zsh\"}\n```bash\n$ command\noutput\n✓ done\n```\n:::",
   "neko-video-browser": "::: browser {url=\"\"}\n![](/assets/screenshot.png)\n:::",
   "neko-video-cursor": "::: cursor {from=\"105%,95%\" to=\"50%,50%\" label=\"\"}\n:::",
+  "neko-video-cursor-screen": "::: cursor {on=\"screen\" from=\"104%,96%\" to=\"50%,50%\" label=\"\" at=\"1.2\"}\n:::",
   "neko-video-lower-third": "::: lower-third {name=\"\" role=\"\" at=\"1\" until=\"5\"}\n:::",
   "neko-video-captions": "::: captions {style=\"pill\"}\n0.5-2.5 The first line of the voice-over\n2.6-4.5 and the second.\n:::",
   "neko-video-quote": "::: quote {author=\"\" role=\"\"}\nThe quote.\n:::",

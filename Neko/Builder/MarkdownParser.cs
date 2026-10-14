@@ -583,6 +583,11 @@ namespace Neko.Builder
                         VideoComposer.Compose(scene, raw, video, i);
                         scenes.Add(scene);
                     }
+                    // No scene ends while its content is still arriving, or before it has held still.
+                    foreach (var warning in VideoTimeline.HoldContent(scenes))
+                    {
+                        Console.WriteLine($"Warning: {Path.GetFileName(filePath ?? "video")}: {warning}");
+                    }
                     videoDuration = VideoTimeline.Sequence(scenes);
 
                     if (narrationParts.Count > 0 || video.Narration != null)
@@ -593,7 +598,13 @@ namespace Neko.Builder
                         {
                             narration = null;
                         }
-                        else if (scenes.Count > 0 && narration.End + 0.6 > videoDuration)
+                        else if (narration.FitScenes(scenes, VideoTimeline.Sequence))
+                        {
+                            // A scene left to Neko lasts as long as the lines anchored to it.
+                            videoDuration = VideoTimeline.Sequence(scenes);
+                        }
+
+                        if (narration != null && scenes.Count > 0 && narration.End + 0.6 > videoDuration)
                         {
                             // The voice-over is never cut off: the last scene holds until it is done.
                             var last = scenes[^1];

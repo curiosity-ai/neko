@@ -60,8 +60,9 @@ Each line starts at an anchor: a time, a scene, or an element on screen.
 2. **Preview** the timings: `neko voiceover launch.md --preview` prints every
    scene, animation and sentence on one clock, and the player's **Timing**
    panel draws them as lanes. Sentences not yet spoken are *estimated*.
-3. **Align**: move anchors, change a scene's `duration`, split or shorten a
-   line, until no line is pushed and nothing runs into the wrong scene.
+3. **Align**: anchor every line to its scene and let Neko fit the scenes;
+   move an anchor, split or shorten a line, or give a scene more `hold`, until
+   no line is pushed and nothing runs into the wrong scene.
 4. **Synthesize**: `neko voiceover launch.md` speaks every sentence without a
    take and prints the sheet again, now with measured times.
 5. **Render**: `neko render launch.md` mixes the takes into the MP4 (it
@@ -103,8 +104,12 @@ video:
 A **description** is the most direct: Voxwerk's VoiceDesign model creates the
 voice from it — timbre, gender, age, accent, emotion, pace. A **catalog id**
 (`<language>-<country>-<name>`) uses a ready-made voice from the
-`Voxwerk.Voices.English` catalog: its design prompt and language. List and
-search the catalog with `neko voices`:
+`Voxwerk.Voices.English` catalog, and is **cloned from the voice's reference
+recording** with the Base checkpoint (`Qwen/Qwen3-TTS-12Hz-1.7B-Base`), so every
+sentence is the same speaker. A described voice is designed afresh for each
+sentence and drifts a little from take to take; a cataloged one does not. The
+reference samples ship with Neko; `clone: false` designs a catalog voice from its
+description instead. List and search the catalog with `neko voices`:
 
 ```bash
 neko voices --search "calm narration" --gender female --country gb
@@ -122,7 +127,11 @@ neko voices --style Narration --age old --json
 | `pause` | `0.25` | Seconds between the sentences of a line. |
 | `volume` | `1` | Gain of the voice-over, 0 to 2. |
 | `wpm` | `150` | Words per minute assumed for a sentence that has not been synthesized. |
-| `model` | `Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign` | The TTS checkpoint: a Hugging Face repo id or a local folder. |
+| `model` | `Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign` | The checkpoint that speaks described voices: a Hugging Face repo id or a local folder. |
+| `clone` | `true` | Clone a catalog voice from its reference sample (one speaker throughout). `false` designs it from its description per sentence. |
+| `cloneModel` | `Qwen/Qwen3-TTS-12Hz-1.7B-Base` | The Base checkpoint that clones catalog voices. |
+| `fit` | `true` | Lengthen a scene with no `duration` until the lines anchored to it have been spoken. |
+| `tail` | `0.8` | Seconds a fitted scene stays on screen after its last line, before the transition out. |
 | `folder` | `assets/voiceover/<page>` | Where the takes are kept, relative to the page. |
 
 ## Writing the narration
@@ -168,8 +177,22 @@ still speaking **waits** for it — it starts 0.15 s after — and Neko warns: t
 timing sheet marks it *shifted*, and the panel outlines it. Fix it by moving the
 anchor, lengthening the scene before, or shortening the line.
 
-The animation never moves for the voice. The one exception is the end: when the
-voice-over runs past the last scene, the **last scene holds** until it is done.
+### Scenes fit their narration
+
+A scene with no `duration` lasts as long as the voice-over needs it to: every
+line anchored to the scene (`at="analysis+0.4"`, `scene-3`) or to an element in
+it (`#chart`) is spoken before the scene leaves, plus `tail`. Scenes are fitted
+in order, so a longer scene moves every anchor after it and nothing has to be
+timed by hand. A line anchored to a time, or with no anchor, belongs to no scene
+and may run on into the next one.
+
+Leave `duration` out of a narrated video unless a scene must be an exact length.
+A scene with a `duration` is not fitted; it is only lengthened to show its
+content settled (see [Holding the last state](video-structure.md#holding-the-last-state)).
+`fit: false` turns fitting off for the whole video.
+
+Within a scene the animation keeps its own clock. When the voice-over runs past
+the last scene, the **last scene holds** until it is done.
 
 ## Previewing the timing
 

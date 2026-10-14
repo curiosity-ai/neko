@@ -293,9 +293,12 @@ body:not([data-video-ready="true"]) .nv-scene { display: block; position: relati
 .nv-device-bar { border-bottom-color: var(--rule); background: color-mix(in srgb, var(--t) 4%, transparent); }
 .nv-url { flex: 1; max-width: 760px; margin: 0 auto; height: 38px; border-radius: 999px; background: color-mix(in srgb, var(--t) 7%, transparent); display: flex; align-items: center; justify-content: center; font-family: var(--nv-font-mono); font-size: 20px; color: var(--t3); }
 .nv-screen { position: relative; flex: 1; min-height: 0; overflow: hidden; }
-.nv-screen > p:only-child, .nv-screen > p > img { margin: 0; height: 100%; }
+.nv-screen > p:only-child, .nv-screen > p > img, .nv-screen > img:only-child { margin: 0; height: 100%; }
+/* A frame's screenshot stands still: the frame is what enters, and a zoom or a Ken Burns push
+   on the picture would grow it inside chrome that has already settled. */
+.nv-screen > img, .nv-screen > p > img { transform: none !important; }
 .nv-screen img { width: 100%; height: 100%; object-fit: cover; object-position: top center; border-radius: 0; max-height: none; }
-.nv-screen > :not(p:only-child) { margin: 40px 48px; }
+.nv-screen > :not(p:only-child, img:only-child) { margin: 40px 48px; }
 .nv-device[data-chrome="phone"] { width: 470px; height: 940px; max-width: none; border-radius: 72px; border: 14px solid #1B1F27; background: #000; }
 .nv-notch { position: absolute; z-index: 2; top: 18px; left: 50%; width: 130px; height: 36px; margin-left: -65px; border-radius: 20px; background: #000; }
 

@@ -262,6 +262,12 @@
             var clone = slide.cloneNode(true);
             clone.classList.remove('is-on');
             clone.removeAttribute('aria-hidden');
+            // A figure fitted on screen is fitted again at the export's scale.
+            clone.removeAttribute('data-figures-fit');
+            Array.prototype.forEach.call(clone.querySelectorAll('.deck-figure img'), function (img) {
+                img.style.maxHeight = '';
+                img.style.width = '';
+            });
             slidesHtml += clone.outerHTML;
         });
 
@@ -2391,6 +2397,7 @@
                 slides.forEach(function (s) { s.classList.remove('is-on'); });
                 section.classList.add('is-on');
                 win.scrollTo(0, 0);
+                if (typeof window.nekoDeckFitFigures === 'function') window.nekoDeckFitFigures(section);
                 materializeSlide(win, section);
 
                 // A slide taller than the frame is scaled down to fit — the

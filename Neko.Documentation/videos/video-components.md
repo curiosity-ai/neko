@@ -203,13 +203,19 @@ screenshot, or Markdown.
 :::
 
 ::: phone
-![The site on a phone](/assets/screenshots/neko-styled.png){enter="kenburns"}
+![The site on a phone](/assets/screenshots/neko-styled.png)
 :::
 ```
 
 `browser` draws an address bar (`url`); `window` a title bar (`title`); `phone`
-a notch and rounded bezel. `{enter="kenburns"}` on a screenshot gives it a slow
-push across the scene.
+a notch and rounded bezel. The frame settles in and its screenshot arrives with
+it, still: a screenshot in a frame takes no entrance of its own, because zooming
+it would grow the picture inside chrome that is already standing. A `browser` or
+`window` whose screen is one screenshot takes the screenshot's proportions — the
+scene gives it its height and the width follows — so none of the picture is
+cropped. In the curiosity theme the frame takes the scene's ground, so a dark
+screenshot sits in dark chrome on an `ink` scene. For movement, give the scene a
+`camera` instead.
 
 ### `cursor`
 
@@ -221,9 +227,27 @@ a press and a ring — and the beat that follows can land on the click.
 :::
 ```
 
+On a screenshot, aim at the control the narration is talking about, in the
+screenshot's own coordinates: open the image, read the pixel position of the
+button or row, and divide by the image's width and height.
+
+```markdown
+::: browser {url="example.com/review"}
+![Review](/assets/review.png)
+:::
+
+::: cursor {on="screen" from="104%,96%" to="63.6%,12.9%" label="XML" at="1.2"}
+:::
+```
+
+Give the cursor a time after the frame has settled (`at` of a second or more),
+and a short label naming what the click does. A cursor that lands on empty
+space reads as a mistake.
+
 | Attribute | Meaning |
 | --- | --- |
-| `from` / `to` | Start and end, as `x%,y%` of the canvas. Start off-frame (`105%`) so it enters. |
+| `from` / `to` | Start and end, as `x%,y%` of the scene. Start off-frame (`105%`) so it enters. |
+| `on` | `screen`: the points are percentages of the **screenshot** in the scene's `browser`/`window` frame, not of the scene, so `to="47%,44%"` is the spot 47% across and 44% down the picture, however the frame is sized. `#id`: percentages of that element. |
 | `path` | More than two points: `"105%,90% 60%,40% 52%,58%"`. |
 | `click` | `false` for no press. |
 | `label` | A pill trailing the pointer. |

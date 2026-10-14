@@ -50,6 +50,17 @@
          the `narration:` front matter can name. -->
     <PackageReference Include="Voxwerk" Version="26.10.6691" />
     <PackageReference Include="Voxwerk.Voices.English" Version="26.10.6691" />
+    <!-- The reference samples of the catalog voices, so `narration: voice: <id>` is cloned from
+         its sample and stays one speaker across sentences rather than re-designed per take. -->
+    <PackageReference Include="Voxwerk.Voices.English.African" Version="26.10.6691" />
+    <PackageReference Include="Voxwerk.Voices.English.American.Characters" Version="26.10.6691" />
+    <PackageReference Include="Voxwerk.Voices.English.American.Commercial" Version="26.10.6691" />
+    <PackageReference Include="Voxwerk.Voices.English.American.Conversational.Female" Version="26.10.6691" />
+    <PackageReference Include="Voxwerk.Voices.English.American.Conversational.Male" Version="26.10.6691" />
+    <PackageReference Include="Voxwerk.Voices.English.American.Narration.Female" Version="26.10.6691" />
+    <PackageReference Include="Voxwerk.Voices.English.American.Narration.Male" Version="26.10.6691" />
+    <PackageReference Include="Voxwerk.Voices.English.American.Regional" Version="26.10.6691" />
+    <PackageReference Include="Voxwerk.Voices.English.British.Narration" Version="26.10.6691" />
     <PackageReference Include="Xabe.FFmpeg" Version="6.1.1" />
     <PackageReference Include="Xabe.FFmpeg.Downloader" Version="6.1.1" />
     <PackageReference Include="YamlDotNet" Version="18.1.0" />

@@ -19,6 +19,7 @@ namespace Neko.Builder
             var (transition, transitionDuration) = VideoTimeline.ResolveTransition(scene, options, index);
             scene.Transition = transition;
             scene.TransitionDuration = transitionDuration;
+            scene.RequestedTransition = transitionDuration;
 
             var layout = scene.Get("layout") ?? InferLayout(contentHtml);
             scene.Attributes["layout"] = layout;
@@ -98,13 +99,11 @@ namespace Neko.Builder
             scene.Html = compiled.Html;
 
             var hold = VideoOptions.TryDouble(scene.Get("hold"), out var h2) ? Math.Max(0, h2) : options.Hold;
-            var auto = Math.Max(2.5 + introLength, compiled.ContentEnd + hold);
-            scene.Duration = VideoOptions.TryDouble(scene.Get("duration"), out var d) && d > 0 ? d : Math.Round(auto, 2);
-
-            if (compiled.ContentEnd > scene.Duration + 0.01)
-            {
-                Console.WriteLine($"Warning: video scene {index + 1} lasts {scene.Duration:0.##}s but its content is still arriving until {compiled.ContentEnd:0.##}s; raise its duration or leave it out.");
-            }
+            scene.ContentEnd = compiled.ContentEnd;
+            scene.Hold = hold;
+            scene.HasExplicitDuration = VideoOptions.TryDouble(scene.Get("duration"), out var d) && d > 0;
+            // The hold before the transition out is added by VideoTimeline.HoldContent, once the next scene's transition is known.
+            scene.Duration = scene.HasExplicitDuration ? d : Math.Round(Math.Max(2.5 + introLength, compiled.ContentEnd + hold), 2);
         }
 
         // A scene that opens on an <h1> is a title: centred, roomier.

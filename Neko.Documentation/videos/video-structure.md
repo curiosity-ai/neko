@@ -44,7 +44,7 @@ video:
 | `fps` | `30` | Frames per second of the render. The preview plays at the display's rate. |
 | `transition` | `fade` (neko), `push` (curiosity) | The transition into every scene that does not set its own. |
 | `transitionDuration` | `0.6` | Seconds a transition overlaps the two scenes it joins. |
-| `hold` | `1.6` | Seconds a scene holds still after its last element arrives, when Neko sizes it. |
+| `hold` | `1.6` | Seconds a scene holds still after its last element arrives. A scene whose `duration` would cut its content short is lengthened (see [Holding the last state](#holding-the-last-state)). |
 | `pace` | `normal` | `brisk`, `normal`, `calm`, or a number: multiplies every automatic gap between elements. |
 | `accent` | `cyan` | The neko theme's accent: `cyan`, `violet`, `amber`, `rose`, `leaf`. |
 | `eyebrow` | — | Eyebrow for scenes that don't set one. |
@@ -77,7 +77,7 @@ fenced code are ignored, and a setext heading (`Title` over `---`) still works.
 
 | Key | Meaning |
 | --- | --- |
-| `duration` | Seconds on screen, transition in included. Leave it out and Neko sizes the scene: its last element's arrival plus `hold`. |
+| `duration` | Seconds on screen, transition in included. Leave it out and Neko sizes the scene: its last element's arrival plus `hold`, or, with a voice-over, the lines anchored to it plus the narration's `tail`. A `duration` too short for the content is lengthened, never cut. |
 | `transition` | How this scene comes in: `cut`, `fade`, `fade-through`, `push`, `push-up`, `zoom`, `zoom-out`, `wipe`, `iris`, `blur`. See [Motion](video-motion.md#scene-transitions). |
 | `transition-duration` | Seconds of overlap with the scene before. |
 | `layout` | `title`, `center`, `split`, `full`, `bottom`, `top`, `bleed`, and the curiosity layouts `cover`, `section`, `panel`, `statement`, `number`, `closing`. A scene that opens on `# Heading` is a `title`. |
@@ -109,6 +109,29 @@ element that moves a start on one running **cursor**:
 So plain Markdown already animates — headings rise word by word, paragraphs and
 quotes rise, list items and table rows stagger in, images settle — and the
 order you write things in is the order they arrive.
+
+### Holding the last state
+
+An animation that finishes just as the scene leaves is never seen: a word
+swap's last word, a chart's last bar, a typed line's last character. A scene
+Neko sizes holds still for `hold` seconds after its last element arrives. A
+scene whose `duration` you set is held too: when it would leave less than a
+second after its last arrival (or less than its own `hold`, when it sets one),
+Neko lengthens it to that arrival plus `hold` and prints a warning saying so.
+
+```markdown
+--- {hold="2.5"}
+
+::: swap {prefix="Read it as" words="WYSIWYG|XML|PDF" suffix="." tag="h2" hold="1.2"}
+:::
+```
+
+- Give a scene a longer `hold` when its last state needs reading: a dense
+  table, a chart, a screenshot with a cursor pointing at something.
+- Use `delay` on an element (`{delay="1.5"}`) to pause *before* it arrives, so
+  the one before it is read first.
+- `hold="0"` keeps an explicit `duration` exactly as written, for a deliberate
+  cut on the beat.
 
 When you want to take over, any block takes timing attributes in Markdig's
 attribute syntax — at the end of a heading, a paragraph or a list item, or on

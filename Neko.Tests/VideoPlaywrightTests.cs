@@ -42,18 +42,36 @@ video:
   transition: push
 ---
 
---- {duration=""2"" layout=""cover"" art=""field""}
+--- {duration=""2"" hold=""0"" layout=""cover"" art=""field""}
 
 # Write *Markdown*
 
---- {duration=""2.5"" layout=""number"" ground=""deep""}
+--- {duration=""2.5"" hold=""0"" layout=""number"" ground=""deep""}
 
 ::: counter {value=""1,250"" label=""Frames""}
 :::
 
---- {duration=""2"" transition=""zoom""}
+--- {duration=""2"" hold=""0"" transition=""zoom""}
 
 ## The *end*
+");
+            // A screenshot (an SVG, so its natural size is exact) with a cursor aimed inside it.
+            File.WriteAllText(Path.Combine(_inputDir, "videos", "shot.svg"), "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\"><rect width=\"1600\" height=\"900\" fill=\"#223\"/></svg>");
+            File.WriteAllText(Path.Combine(_inputDir, "videos", "cursor.md"), @"---
+title: Cursor
+video:
+  theme: curiosity
+  size: 1280x720
+---
+
+--- {duration=""5"" layout=""full"" ground=""ink""}
+
+::: browser {url=""example.com""}
+![Shot](shot.svg)
+:::
+
+::: cursor {on=""screen"" from=""104%,96%"" to=""25%,40%"" at=""1""}
+:::
 ");
             _outDir = Path.Combine(Path.GetTempPath(), "neko-video-pw-out-" + Guid.NewGuid().ToString("N"));
             new SiteBuilder(_inputDir, _outDir).BuildAsync().GetAwaiter().GetResult();
@@ -153,6 +171,30 @@ video:
                 await page.EvaluateAsync("() => window.nekoVideo.seek(3.7)");
                 Assert.That(await counter.TextContentAsync(), Is.EqualTo("1,250"));
                 Assert.That(early, Is.LessThan(1250));
+            }
+            finally
+            {
+                await browser.CloseAsync();
+                pw.Dispose();
+            }
+        }
+
+        [Test]
+        public async Task Cursor_OnScreen_LandsOnItsPointInTheScreenshot()
+        {
+            var (pw, browser) = await LaunchAsync();
+            try
+            {
+                var url = new Uri(Path.Combine(_outDir, "videos", "cursor.html")).AbsoluteUri;
+                var page = await OpenReadyAsync(browser, url);
+                await page.EvaluateAsync("() => window.nekoVideo.seek(4.5)");
+                var at = await page.EvaluateAsync<double[]>(@"() => {
+                    const img = document.querySelector('.nv-screen img').getBoundingClientRect();
+                    const tip = document.querySelector('.nv-cursor').getBoundingClientRect();
+                    return [(tip.left - img.left) / img.width, (tip.top - img.top) / img.height];
+                }");
+                Assert.That(at[0], Is.EqualTo(0.25).Within(0.01), "across the picture, not the scene");
+                Assert.That(at[1], Is.EqualTo(0.40).Within(0.01), "down the picture, not the scene");
             }
             finally
             {
