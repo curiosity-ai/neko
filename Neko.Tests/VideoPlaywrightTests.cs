@@ -42,16 +42,16 @@ video:
   transition: push
 ---
 
---- {duration=""2"" layout=""cover"" art=""field""}
+--- {duration=""2"" hold=""0"" layout=""cover"" art=""field""}
 
 # Write *Markdown*
 
---- {duration=""2.5"" layout=""number"" ground=""deep""}
+--- {duration=""2.5"" hold=""0"" layout=""number"" ground=""deep""}
 
 ::: counter {value=""1,250"" label=""Frames""}
 :::
 
---- {duration=""2"" transition=""zoom""}
+--- {duration=""2"" hold=""0"" transition=""zoom""}
 
 ## The *end*
 ");
