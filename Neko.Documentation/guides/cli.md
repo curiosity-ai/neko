@@ -404,11 +404,11 @@ Hand-written content between the two blocks is kept.
 ```
 
 - **`api:type`** writes the *Definition* (namespace, assembly, package, source
-  file), the type's summary, its declaration, *Inheritance* and *Implements*, and
+  file) as a collapsed toggle, the type's summary, its declaration, *Inheritance* and *Implements*, and
   the type's own `<example>` / `<remarks>` when it has them.
 - **`api:members`** writes the *Constructors*, *Properties*, *Methods*, *Events*
-  and *Fields* tables, one row per overload, with the members every class inherits
-  from `Object`. It reuses the `api:type` marker's attributes; any it sets itself
+  and *Fields* tables, one row per overload. The members every class inherits from
+  `Object` are left out unless `inherited="true"` is set. It reuses the `api:type` marker's attributes; any it sets itself
   override them.
 - **Member pages** are written next to the type page: `methods/<name>.md`,
   `properties/<name>.md`, `events/`, `fields/` and `constructors.md`. Use a folder's

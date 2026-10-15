@@ -90,7 +90,8 @@ namespace Demo
             ApiDocsSync.Run(_docs);
             var text = File.ReadAllText(_page);
 
-            Assert.That(text, Does.Contain("## Definition"));
+            Assert.That(text, Does.Contain("<details class=\"api-ref-def api-ref-def-toggle not-prose\"><summary>Definition</summary>"), "collapsed by default");
+            Assert.That(text, Does.Not.Contain("## Definition"));
             Assert.That(text, Does.Contain("<p><span>Namespace:</span> <a href=\"/api/\">Demo</a></p>"));
             Assert.That(text, Does.Contain("https://www.nuget.org/packages/Demo.Widgets/1.2.3"));
             Assert.That(text, Does.Contain("public sealed class Widget : IDisposable"), "modifiers and bases from every partial");

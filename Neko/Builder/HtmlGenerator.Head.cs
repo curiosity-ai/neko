@@ -677,6 +677,8 @@ namespace Neko.Builder
             sb.AppendLine("        .api-ref-def p, .api-ref-attrs p { margin: 0; }");
             sb.AppendLine("        .api-ref-def span, .api-ref-attrs span:first-child { color: #6b7280; margin-right: 0.4rem; }");
             sb.AppendLine("        .dark .api-ref-def span, .dark .api-ref-attrs span:first-child { color: #9ca3af; }");
+            sb.AppendLine("        .api-ref-def-toggle > summary { cursor: pointer; width: fit-content; color: #6b7280; font-size: 0.8125rem; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.25rem; }");
+            sb.AppendLine("        .dark .api-ref-def-toggle > summary { color: #9ca3af; }");
             sb.AppendLine("        .api-ref-attrs { display: grid; gap: 0.75rem; margin: 0 0 1.5rem; }");
             sb.AppendLine("        .api-ref-arrow { color: #9ca3af; margin: 0 0.25rem; }");
             sb.AppendLine("        .api-ref-def a, .api-ref-attrs a, .api-ref-type a, .api-ref-table a, .api-ref-applies a { color: var(--neko-grad-from, #0443D3); text-decoration: none; }");

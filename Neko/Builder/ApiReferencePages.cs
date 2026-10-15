@@ -826,7 +826,9 @@ namespace Neko.Builder
         {
             var a = page.Attrs;
             var sb = new StringBuilder();
-            sb.Append("## Definition\n\n:::api-ref-def { .not-prose }\n\n");
+            // Namespace, assembly and package repeat on every page of a library, so the block starts
+            // collapsed and stays out of "On this page".
+            sb.Append("<details class=\"api-ref-def api-ref-def-toggle not-prose\"><summary>Definition</summary>\n");
             if (page.Model!.Namespace.Length > 0)
             {
                 var ns = WebUtility.HtmlEncode(page.Model.Namespace);
@@ -842,7 +844,7 @@ namespace Neko.Builder
                 sb.Append($"<p><span>Package:</span> <a href=\"https://www.nuget.org/packages/{pkg}{(string.IsNullOrEmpty(ver) ? "" : "/" + ver)}\">{WebUtility.HtmlEncode(pkg)}</a>{(string.IsNullOrEmpty(ver) ? "" : " v" + WebUtility.HtmlEncode(ver))}</p>\n");
             }
             if (withSource && sourceFile is not null) sb.Append(SourceLine(page, sourceFile, line));
-            sb.Append("\n:::\n");
+            sb.Append("</details>\n");
             return sb.ToString();
         }
 
