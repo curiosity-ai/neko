@@ -99,10 +99,21 @@ namespace Demo
             Assert.That(text, Does.Contain("## Properties"));
             Assert.That(text, Does.Contain("## Methods"));
             Assert.That(text, Does.Contain("Render(String, Int32)"), "one row per overload");
-            Assert.That(text, Does.Contain("(Inherited from [Object]"));
+            Assert.That(text, Does.Not.Contain("(Inherited from [Object]"), "Object members are opt-in");
             Assert.That(text, Does.Contain("## Applies to"));
             Assert.That(text, Does.Contain("## Examples\n\nHand-written."), "prose between the markers is kept");
             Assert.That(text, Does.Not.Contain("Secret").And.Not.Contain("Hidden"));
+        }
+
+        [Test]
+        public void ListsObjectMembersOnlyWhenInheritedIsTrue()
+        {
+            File.WriteAllText(_page, "# Widget Class\n\n" + Markers.Replace("type=\"Widget\"", "type=\"Widget\" inherited=\"true\""));
+            ApiDocsSync.Run(_docs);
+            var text = File.ReadAllText(_page);
+
+            Assert.That(text, Does.Contain("[Get<wbr>Hash<wbr>Code()](https://learn.microsoft.com/dotnet/api/system.object.gethashcode)"));
+            Assert.That(text, Does.Contain("(Inherited from [Object]"));
         }
 
         [Test]

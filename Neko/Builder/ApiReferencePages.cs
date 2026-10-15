@@ -929,7 +929,7 @@ namespace Neko.Builder
                 }
 
                 var inherit = kind == Kind.Method && model.Kind is "class" or "record" && !model.IsStatic &&
-                              !(attrs.TryGetValue("inherited", out var inh) && inh.Equals("false", StringComparison.OrdinalIgnoreCase));
+                              attrs.TryGetValue("inherited", out var inh) && inh.Equals("true", StringComparison.OrdinalIgnoreCase);
                 if (inherit)
                     foreach (var (otitle, oname, slug, summary) in ObjectMembers)
                         if (!members.Any(m => m.Name == oname))
