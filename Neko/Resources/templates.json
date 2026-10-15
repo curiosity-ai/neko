@@ -24,6 +24,8 @@
   "neko-logocloud": "[!logocloud]\n- ![logo1](url1)\n- ![logo2](url2)\n[/logocloud]",
   "neko-command-example": "[!command-example install=\"npm install\" quickstart=\"npm start\"]",
   "neko-code-snippet": ":::code source=\"\" language=\"csharp\" :::",
+  "neko-csharp-docs": "```csharp-docs\n/// <summary>\n/// \n/// </summary>\npublic void Method()\n{\n}\n```",
+  "neko-csharp-docs-usages": "```csharp-docs usages=\"_usages/.json\"\n/// <summary>\n/// \n/// </summary>\npublic void Method()\n{\n}\n```",
   "neko-panel": "===\nPanel content\n===",
   "neko-panel-title": "==- Panel Title\nPanel content\n===",
   "neko-force-graph": "```force-graph\n{\n  \"nodes\": [{\"id\": \"id1\", \"name\": \"name1\", \"val\": 1}],\n  \"links\": [{\"source\": \"id1\", \"target\": \"id2\"}]\n}\n```",

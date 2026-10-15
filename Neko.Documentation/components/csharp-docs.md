@@ -142,6 +142,77 @@ namespace Demo
 }
 ```
 
+## Real call sites: `usages="…"`
+
+A block can show where each member is actually used, pulled from real applications
+rather than written by hand. Point the fence at a **usages sidecar**:
+
+````markdown
+```csharp-docs usages="_usages/client.json"
+namespace Acme.Sdk
+{
+    /// <summary>The client.</summary>
+    public class Client
+    {
+        /// <summary>Connects.</summary>
+        public static Client Connect(string endpoint);
+    }
+}
+```
+````
+
+The path is relative to the page (a leading `/` is the input root). Keep the file in
+a `_`-prefixed folder so the builder does not publish it as an asset. Every member
+listed in the sidecar gains a **Used in** section with one collapsible excerpt per
+call site and a permalink to the source, and the member summary table says how many
+call sites each member has. A member with no entry renders exactly as before, and a
+missing sidecar renders the plain block.
+
+The sidecar is JSON, keyed by `Type.Member` (the member's anchor without type
+parameters, so every overload shares one key; a constructor is `Type.Type`), or by
+the bare member name for a block with no enclosing type:
+
+```json
+{
+  "sources": {
+    "demo": { "url": "https://github.com/acme/demo", "commit": "04c1209" }
+  },
+  "members": {
+    "Client.Connect": [
+      {
+        "source": "demo",
+        "file": "src/Program.cs",
+        "line": 8,
+        "start": 7,
+        "end": 9,
+        "url": "https://github.com/acme/demo/blob/04c1209/src/Program.cs#L7-L9",
+        "code": "var client = Client\n    .Connect(\"https://example.com\")\n    .WithTimeout(30);"
+      }
+    ]
+  }
+}
+```
+
+`line` is the call, `start`/`end` the excerpt's range, `url` the link behind
+**View source**. You can write the file by hand, but the point is to generate it:
+[`neko sync-api-usages`](/guides/cli#neko-sync-api-usages) scans the application
+checkouts listed under `apiDocs.usages` in the root `neko.yml` and fills every
+sidecar a `csharp-docs` block names. The scan is syntactic: a call counts when its
+receiver is the documented type (`Client.Connect(…)`), reads as an instance of it
+(`client`, `ctx.Client`), was declared with that type in the same file, or is a
+fluent chain rooted in one of those. A `package` filter on a source restricts the
+scan to projects whose `.csproj` references that package, so a same-named member on
+an unrelated type is not mistaken for a usage.
+
+When the block is one that [`neko sync-api-docs`](/guides/cli#neko-sync-api-docs)
+regenerates, put the attribute on the marker instead - it is carried onto the fence
+every time the block is rewritten:
+
+```markdown
+<!-- api:source start repo="mosaik" file="src/Graph.cs" type="Graph" usages="_usages/graph.json" -->
+<!-- api:source end -->
+```
+
 ## Supported Tags
 
 Neko looks for the following **block** XML documentation tags:
