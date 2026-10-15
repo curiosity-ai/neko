@@ -87,6 +87,34 @@ public static Client Connect(string endpoint, X509Certificate2 clientCertificate
 ```
 ````
 
+## Real call sites: `usages="…"`
+
+Point the fence at a JSON sidecar and every member listed in it gains a
+**Used in** section (one collapsible excerpt per call site, each with a
+permalink) and a call-site count in the member table:
+
+````markdown
+```csharp-docs usages="_usages/client.json"
+…
+```
+````
+
+- The path is relative to the page; a leading `/` is the input root. Keep the
+  file in a `_`-prefixed folder so it is not published as an asset.
+- Keys are `Type.Member` without type parameters (overloads share a key; a
+  constructor is `Type.Type`), or the bare name outside a type. Each entry has
+  `source`, `file`, `line` (the call), `start`/`end` (the excerpt), `url` and
+  `code`.
+- Generate the file with `neko sync-api-usages`: it scans the checkouts under
+  `apiDocs.usages` in the root `neko.yml` (`name`, `path`, `url`, optional
+  `branch` and `package`) and fills every sidecar a block names. It is not
+  part of `build`; run it when the applications or the API change and commit
+  the sidecar.
+- On a block that `neko sync-api-docs` regenerates, put `usages="…"` on the
+  `<!-- api:source start … -->` marker; it is carried onto the fence.
+- A member without entries, or a missing sidecar, renders as if the attribute
+  were absent.
+
 ## Supported XML tags
 
 Block tags:

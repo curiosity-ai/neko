@@ -20,6 +20,9 @@ namespace Neko.Builder
     /// ```
     /// &lt;!-- api:source end --&gt;
     /// </code>
+    /// An optional <c>usages="…"</c> attribute names the sidecar JSON that
+    /// <see cref="ApiUsagesSync"/> fills with call sites from real applications; it
+    /// is carried onto the regenerated fence so the renderer finds it.
     /// The block between the markers is fully regenerated on every run. Only
     /// public/protected types and members (with their XML doc comments) are kept;
     /// method/accessor bodies, field initializers, attribute lists, and every
@@ -86,9 +89,15 @@ namespace Neko.Builder
                     attrs.TryGetValue("repo", out var repo);
                     attrs.TryGetValue("file", out var fileAttr);
                     attrs.TryGetValue("type", out var typeAttr);
+                    attrs.TryGetValue("usages", out var usagesAttr);
 
                     var startMarker = $"<!-- api:source start repo=\"{repo}\" file=\"{fileAttr}\"" +
-                                      (string.IsNullOrEmpty(typeAttr) ? "" : $" type=\"{typeAttr}\"") + " -->";
+                                      (string.IsNullOrEmpty(typeAttr) ? "" : $" type=\"{typeAttr}\"") +
+                                      (string.IsNullOrEmpty(usagesAttr) ? "" : $" usages=\"{usagesAttr}\"") + " -->";
+
+                    // `usages="…"` rides on the fence so the renderer (and `sync-api-usages`)
+                    // find the sidecar; the marker is its source of truth across regenerations.
+                    var fenceInfo = "csharp-docs" + (string.IsNullOrEmpty(usagesAttr) ? "" : $" usages=\"{usagesAttr}\"");
 
                     if (string.IsNullOrEmpty(repo) || string.IsNullOrEmpty(fileAttr))
                     {
@@ -129,7 +138,7 @@ namespace Neko.Builder
                     sb.Append(startMarker).Append('\n');
                     foreach (var block in blocks)
                     {
-                        sb.Append("\n```csharp-docs\n");
+                        sb.Append("\n```").Append(fenceInfo).Append('\n');
                         sb.Append(block);
                         if (!block.EndsWith("\n")) sb.Append('\n');
                         sb.Append("```\n\n");

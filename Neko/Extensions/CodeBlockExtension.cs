@@ -269,6 +269,16 @@ namespace Neko.Extensions
                     var tree = CSharpSyntaxTree.ParseText(codeString, parseOptions);
                     var root = tree.GetRoot();
 
+                    // `usages="…"` names a sidecar of real call sites (filled by
+                    // `neko sync-api-usages`), rendered under each member it lists.
+                    Neko.Builder.ApiUsages usages = null;
+                    var usagesMatch = Regex.Match(fencedBlock.Arguments ?? "", @"\busages\s*=\s*""(?<v>[^""]+)""");
+                    if (usagesMatch.Success)
+                    {
+                        var usagesPath = Neko.Builder.ApiUsages.ResolvePath(usagesMatch.Groups["v"].Value, LessonExtension.CurrentFilePath, LessonExtension.CurrentRootDirectory);
+                        usages = Neko.Builder.ApiUsages.Load(usagesPath);
+                    }
+
                     renderer.Write("<div class=\"csharp-docs my-8\">");
 
                     // Collect top-level members: types and standalone declarations,
@@ -302,8 +312,8 @@ namespace Neko.Extensions
                     {
                         foreach (var overloadSet in GroupOverloads(pending))
                         {
-                            if (overloadSet.Count == 1) RenderCSharpMember(renderer, overloadSet[0], classPrefix: null);
-                            else RenderCSharpOverloadGroup(renderer, overloadSet, classPrefix: null);
+                            if (overloadSet.Count == 1) RenderCSharpMember(renderer, overloadSet[0], classPrefix: null, usages);
+                            else RenderCSharpOverloadGroup(renderer, overloadSet, classPrefix: null, usages);
                         }
                         pending.Clear();
                     }
@@ -313,7 +323,7 @@ namespace Neko.Extensions
                         if (member is BaseTypeDeclarationSyntax typeDecl)
                         {
                             FlushPending();
-                            RenderCSharpType(renderer, typeDecl, ns);
+                            RenderCSharpType(renderer, typeDecl, ns, usages);
                         }
                         else if (HasXmlDoc(member))
                         {
@@ -1236,7 +1246,7 @@ namespace Neko.Extensions
 
         // Renders a Microsoft Learn / DocFX-style summary table (Name → anchor link, Description)
         // that sits above the detailed member entries for a group.
-        private static void RenderCSharpMemberTable(HtmlRenderer renderer, List<MemberDeclarationSyntax> members, string classPrefix)
+        private static void RenderCSharpMemberTable(HtmlRenderer renderer, List<MemberDeclarationSyntax> members, string classPrefix, Neko.Builder.ApiUsages usages = null)
         {
             renderer.Write("<div class=\"csharp-member-table overflow-x-auto mb-6 rounded-md border border-gray-200 dark:border-white/10\">");
             renderer.Write("<table class=\"w-full text-sm border-collapse m-0\">");
@@ -1268,8 +1278,12 @@ namespace Neko.Extensions
                            ?? "";
                 }
 
+                var usageCount = usages?.For(UsagesKey(overloadSet[0], classPrefix)).Count ?? 0;
+                var usageHint = usageCount == 0 ? "" :
+                    $" <span class=\"csharp-usage-count ml-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap\" title=\"Used in {usageCount} place{(usageCount == 1 ? "" : "s")} in real code\">{usageCount} usage{(usageCount == 1 ? "" : "s")}</span>";
+
                 renderer.Write("<tr class=\"border-b border-gray-100 dark:border-white/5 last:border-0 align-top\">");
-                renderer.Write($"<td class=\"px-3 py-2 whitespace-nowrap\"><a href=\"#{System.Net.WebUtility.HtmlEncode(anchor)}\" class=\"font-mono text-primary-600 dark:text-primary-400 no-underline hover:underline\">{System.Net.WebUtility.HtmlEncode(memberName)}</a></td>");
+                renderer.Write($"<td class=\"px-3 py-2 whitespace-nowrap\"><a href=\"#{System.Net.WebUtility.HtmlEncode(anchor)}\" class=\"font-mono text-primary-600 dark:text-primary-400 no-underline hover:underline\">{System.Net.WebUtility.HtmlEncode(memberName)}</a>{usageHint}</td>");
                 renderer.Write($"<td class=\"px-3 py-2 text-gray-700 dark:text-gray-300\">{summary}</td>");
                 renderer.Write("</tr>");
             }
@@ -1277,7 +1291,7 @@ namespace Neko.Extensions
             renderer.Write("</tbody></table></div>");
         }
 
-        private static void RenderCSharpType(HtmlRenderer renderer, BaseTypeDeclarationSyntax type, string namespaceName = "")
+        private static void RenderCSharpType(HtmlRenderer renderer, BaseTypeDeclarationSyntax type, string namespaceName = "", Neko.Builder.ApiUsages usages = null)
         {
             var xml = GetXmlDoc(type);
             var doc = ParseXmlDoc(xml);
@@ -1343,11 +1357,11 @@ namespace Neko.Extensions
 
                     renderer.Write("<div class=\"csharp-member-group mt-8\">");
                     renderer.Write($"<h4 class=\"text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100\">{groupLabel}</h4>");
-                    RenderCSharpMemberTable(renderer, inGroup, simpleName);
+                    RenderCSharpMemberTable(renderer, inGroup, simpleName, usages);
                     foreach (var overloadSet in GroupOverloads(inGroup))
                     {
-                        if (overloadSet.Count == 1) RenderCSharpMember(renderer, overloadSet[0], classPrefix: simpleName);
-                        else RenderCSharpOverloadGroup(renderer, overloadSet, classPrefix: simpleName);
+                        if (overloadSet.Count == 1) RenderCSharpMember(renderer, overloadSet[0], classPrefix: simpleName, usages);
+                        else RenderCSharpOverloadGroup(renderer, overloadSet, classPrefix: simpleName, usages);
                     }
                     renderer.Write("</div>");
                 }
@@ -1359,10 +1373,10 @@ namespace Neko.Extensions
                 {
                     renderer.Write("<div class=\"csharp-member-group mt-8\">");
                     renderer.Write("<h4 class=\"text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100\">Values</h4>");
-                    RenderCSharpMemberTable(renderer, values.Cast<MemberDeclarationSyntax>().ToList(), simpleName);
+                    RenderCSharpMemberTable(renderer, values.Cast<MemberDeclarationSyntax>().ToList(), simpleName, usages);
                     foreach (var v in values)
                     {
-                        RenderCSharpMember(renderer, v, classPrefix: simpleName);
+                        RenderCSharpMember(renderer, v, classPrefix: simpleName, usages);
                     }
                     renderer.Write("</div>");
                 }
@@ -1371,7 +1385,7 @@ namespace Neko.Extensions
             renderer.Write("</section>");
         }
 
-        private static void RenderCSharpMember(HtmlRenderer renderer, MemberDeclarationSyntax node, string classPrefix)
+        private static void RenderCSharpMember(HtmlRenderer renderer, MemberDeclarationSyntax node, string classPrefix, Neko.Builder.ApiUsages usages = null)
         {
             var xml = GetXmlDoc(node);
             if (xml == null) return;
@@ -1408,6 +1422,7 @@ namespace Neko.Extensions
             }
 
             RenderXmlDocDetails(renderer, doc, includeSummary: false, includeReturns: true, compact: false);
+            RenderUsages(renderer, usages?.For(UsagesKey(node, classPrefix)));
 
             renderer.Write("</div>");
         }
@@ -1417,7 +1432,7 @@ namespace Neko.Extensions
         // tag), an "Overloads" table summarising each signature, and then one complete,
         // self-contained subsection per overload (typed parameters, returns, exceptions,
         // remarks) — each disambiguated by its parameter-type signature.
-        private static void RenderCSharpOverloadGroup(HtmlRenderer renderer, List<MemberDeclarationSyntax> overloads, string classPrefix)
+        private static void RenderCSharpOverloadGroup(HtmlRenderer renderer, List<MemberDeclarationSyntax> overloads, string classPrefix, Neko.Builder.ApiUsages usages = null)
         {
             var first = overloads[0];
             var (_, badge) = GetMemberKind(first);
@@ -1467,6 +1482,9 @@ namespace Neko.Extensions
                 renderer.Write("</tr>");
             }
             renderer.Write("</tbody></table></div>");
+
+            // Call sites name the method, not the overload, so they sit with the group.
+            RenderUsages(renderer, usages?.For(UsagesKey(first, classPrefix)));
 
             // One complete subsection per overload.
             for (int i = 0; i < overloads.Count; i++)
@@ -1554,6 +1572,54 @@ namespace Neko.Extensions
             IndexerDeclarationSyntax i    => i.ParameterList.Parameters.Select(p => (p.Identifier.Text, p.Type?.ToString() ?? "")).ToList(),
             _                             => new List<(string, string)>(),
         };
+
+        // The key a usages sidecar files a member under: `Type.Member` without type
+        // parameters (so every overload shares it), or the bare name outside a type.
+        private static string UsagesKey(MemberDeclarationSyntax node, string classPrefix)
+        {
+            var name = GetOverloadBaseName(node);
+            return string.IsNullOrEmpty(classPrefix) ? name : $"{classPrefix}.{name}";
+        }
+
+        // "Used in": real call sites from the usages sidecar, one collapsible excerpt
+        // each with a permalink into the repository it came from.
+        private static void RenderUsages(HtmlRenderer renderer, List<Neko.Builder.ApiUsageEntry> entries)
+        {
+            if (entries == null || entries.Count == 0) return;
+
+            renderer.Write("<div class=\"csharp-usages mt-4\">");
+            renderer.Write("<h4 class=\"font-semibold text-base mt-4 mb-2 text-gray-900 dark:text-gray-100\">Used in</h4>");
+            renderer.Write("<ul class=\"list-none m-0 p-0 space-y-2\">");
+            foreach (var u in entries)
+            {
+                var location = string.IsNullOrEmpty(u.File) ? "" : (u.Line > 0 ? $"{u.File}:{u.Line}" : u.File);
+                renderer.Write("<li class=\"csharp-usage m-0 p-0\">");
+                renderer.Write("<details class=\"rounded-md border border-gray-200 dark:border-white/10 bg-white dark:bg-transparent\">");
+                renderer.Write("<summary class=\"cursor-pointer select-none px-3 py-2 text-sm flex items-center gap-2 flex-wrap\">");
+                renderer.Write("<i class=\"fi fi-rr-angle-small-right text-gray-400 dark:text-gray-500 text-xs\" aria-hidden=\"true\"></i>");
+                if (!string.IsNullOrEmpty(u.Source))
+                    renderer.Write($"<span class=\"font-semibold text-gray-700 dark:text-gray-300\">{System.Net.WebUtility.HtmlEncode(u.Source)}</span>");
+                if (!string.IsNullOrEmpty(location))
+                    renderer.Write($"<span class=\"font-mono text-xs text-gray-500 dark:text-gray-400\">{System.Net.WebUtility.HtmlEncode(location)}</span>");
+                renderer.Write("</summary>");
+                renderer.Write("<div class=\"px-3 pb-3\">");
+                if (!string.IsNullOrEmpty(u.Code))
+                {
+                    // `neko-code-block` so the site's highlight.js rules (per-mode text colour,
+                    // transparent <pre>) apply to the excerpt as they do to a code fence.
+                    renderer.Write("<div class=\"neko-code-block bg-gray-50 dark:bg-[#1a1a1a] rounded-md p-3 font-mono text-sm text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-white/10 overflow-x-auto my-2\">");
+                    renderer.Write($"<pre class=\"!m-0 !p-0 !bg-transparent !border-0\"><code class=\"language-csharp !bg-transparent !p-0\">{System.Net.WebUtility.HtmlEncode(u.Code)}</code></pre>");
+                    renderer.Write("</div>");
+                }
+                if (!string.IsNullOrEmpty(u.Url))
+                    renderer.Write($"<a href=\"{System.Net.WebUtility.HtmlEncode(u.Url)}\" target=\"_blank\" rel=\"noopener\" class=\"text-xs text-primary-600 dark:text-primary-400 hover:underline\">View source <i class=\"fi fi-rr-arrow-up-right-from-square\"></i></a>");
+                renderer.Write("</div>");
+                renderer.Write("</details>");
+                renderer.Write("</li>");
+            }
+            renderer.Write("</ul>");
+            renderer.Write("</div>");
+        }
 
         private static void RenderXmlDocDetails(HtmlRenderer renderer, CSharpXmlDoc doc, bool includeSummary, bool includeReturns, bool compact, bool includeParams = true)
         {

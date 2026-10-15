@@ -400,6 +400,59 @@ Options:
 
 ---
 
+## `neko sync-api-usages`
+
+Fills the **usages sidecars** that [`csharp-docs usages="…"`](/components/csharp-docs#real-call-sites-usages)
+blocks point at with real call sites, so every documented member can show where
+it is used in actual applications. The sources are checkouts listed under
+`apiDocs.usages` in the **root `neko.yml`** (paths relative to that file):
+
+```yml
+apiDocs:
+  usages:
+    - name: aviation-intelligence-demo
+      path: _reference-material/aviation-intelligence-demo
+      url: https://github.com/curiosity-ai/aviation-intelligence-demo
+      package: Curiosity.Library      # only projects referencing it are scanned
+    - name: space-library
+      path: _reference-material/space-library
+      url: https://github.com/curiosity-ai/space-library
+  maxUsagesPerMember: 4              # default
+```
+
+For every `csharp-docs` fence carrying `usages="…"`, Neko reads the members the
+block documents, scans each source's `.cs` files (build output and hidden folders
+excluded) for calls on the documented type - a static call, a receiver named after
+the type, a variable declared with it, a fluent chain rooted in one of those, or
+`new Type(…)` - and writes the sidecar: up to `maxUsagesPerMember` call sites per
+member, rotating across sources and files, each with the surrounding statement as
+an excerpt and a permalink built from `url` and the checkout's `HEAD` commit (the
+`branch` key is the fallback when `HEAD` can't be read).
+
+The command does **not** run as part of `build` or `watch`: it needs the checkouts,
+and the committed sidecars are what a plain build renders. Run it when the
+applications or the documented surface change, and commit the result. A source
+whose path is missing is skipped with a notice; when no source is available at
+all, the sidecars are left untouched.
+
+### Options
+
+```
+Description:
+  Refresh the "Used in" call sites of API-reference pages from real applications
+
+Usage:
+  neko sync-api-usages [options]
+
+Options:
+  -i, --input <input>   Input directory path [default: .]
+  -v, --verbose         List each scanned source and updated sidecar
+      --dry-run         Report changes without writing
+  -?, -h, --help        Show help and usage information
+```
+
+---
+
 ## `neko check-links`
 
 The `neko check-links` command builds your project into a throwaway folder and then verifies every link in the generated site. It is the quickest way to catch dead links, renamed pages, and stale anchors before you publish.

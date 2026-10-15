@@ -553,6 +553,26 @@ namespace Neko
                 Neko.Builder.ApiDocsSync.Run(Path.GetFullPath(input), verbose, dryRun);
             });
 
+            // Sync-Api-Usages Command — fill the usages sidecars that `csharp-docs
+            // usages="…"` blocks point at with call sites scanned from the application
+            // checkouts under apiDocs.usages. Standalone only: it needs those checkouts
+            // and the committed sidecars are what a plain build renders.
+            var syncApiUsagesCommand = new Command("sync-api-usages", "Refresh the \"Used in\" call sites of API-reference pages from real applications");
+            var usagesInputOption = new Option<string>("--input", "-i") { Description = "Input directory path", DefaultValueFactory = _ => "." };
+            var usagesVerboseOption = new Option<bool>("--verbose", "-v") { Description = "List each scanned source and updated sidecar", DefaultValueFactory = _ => false };
+            var usagesDryRunOption = new Option<bool>("--dry-run") { Description = "Report changes without writing", DefaultValueFactory = _ => false };
+            syncApiUsagesCommand.Options.Add(usagesInputOption);
+            syncApiUsagesCommand.Options.Add(usagesVerboseOption);
+            syncApiUsagesCommand.Options.Add(usagesDryRunOption);
+
+            syncApiUsagesCommand.SetAction(parseResult =>
+            {
+                var input = parseResult.GetValue(usagesInputOption)!;
+                var verbose = parseResult.GetValue(usagesVerboseOption);
+                var dryRun = parseResult.GetValue(usagesDryRunOption);
+                Neko.Builder.ApiUsagesSync.Run(Path.GetFullPath(input), verbose, dryRun);
+            });
+
             // Gen-Tesserae-Heights Command — measure each `tesserae` live sample's
             // rendered height with a headless browser and bake a `height=NNN` token
             // into its fence, so normal builds size the preview iframe up front
@@ -674,6 +694,7 @@ namespace Neko
             rootCommand.Subcommands.Add(voiceOverCommand);
             rootCommand.Subcommands.Add(voicesCommand);
             rootCommand.Subcommands.Add(syncApiDocsCommand);
+            rootCommand.Subcommands.Add(syncApiUsagesCommand);
             rootCommand.Subcommands.Add(checkLinksCommand);
             rootCommand.Subcommands.Add(tesseraeHeightsCommand);
             rootCommand.Subcommands.Add(snapCommand);

@@ -392,6 +392,43 @@ namespace Neko.Configuration
     {
         [YamlMember(Alias = "roots")]
         public Dictionary<string, string> Roots { get; set; }
+
+        // Checkouts of real applications that `neko sync-api-usages` scans for call
+        // sites of the members a `csharp-docs` block documents. Each entry is a
+        // local path (relative to the root neko.yml) plus the public repository URL
+        // the rendered "Used in" links point at. A missing path is skipped.
+        [YamlMember(Alias = "usages")]
+        public List<ApiUsageSourceConfig> Usages { get; set; }
+
+        // How many call sites are kept per documented member (default 4). The
+        // scanner rotates across sources and files so one busy file doesn't take
+        // every slot.
+        [YamlMember(Alias = "maxUsagesPerMember")]
+        public int? MaxUsagesPerMember { get; set; }
+    }
+
+    public class ApiUsageSourceConfig
+    {
+        // Short label shown before the file path, e.g. "aviation-intelligence-demo".
+        [YamlMember(Alias = "name")]
+        public string Name { get; set; }
+
+        // Local checkout, relative to the root neko.yml.
+        [YamlMember(Alias = "path")]
+        public string Path { get; set; }
+
+        // Public repository URL (GitHub-style `/blob/<rev>/<file>#L1-L2` links are built from it).
+        [YamlMember(Alias = "url")]
+        public string Url { get; set; }
+
+        // Revision used in links when the checkout's HEAD can't be read (default `main`).
+        [YamlMember(Alias = "branch")]
+        public string Branch { get; set; }
+
+        // When set, only projects whose .csproj references this package are scanned,
+        // so a same-named member on an unrelated type is not mistaken for a usage.
+        [YamlMember(Alias = "package")]
+        public string Package { get; set; }
     }
 
     public class NavConfig
