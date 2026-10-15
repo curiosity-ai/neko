@@ -78,6 +78,16 @@ namespace Neko.Builder
                 return r;
             }
 
+            // Pages left as committed because their source root is missing, per repo: reported once
+            // per repo at the end, since one missing checkout otherwise prints a line for every page.
+            var missing = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            void Missing(string repo, string page)
+            {
+                if (!missing.TryGetValue(repo, out var list)) missing[repo] = list = new List<string>();
+                list.Add(page);
+                result.Skipped++;
+            }
+
             foreach (var mdPath in markdownFiles)
             {
                 var originalText = File.ReadAllText(mdPath);
@@ -108,8 +118,7 @@ namespace Neko.Builder
                     var root = Resolve(repo);
                     if (root is null)
                     {
-                        Console.WriteLine($"  api-docs: no source for repo '{repo}' — leaving {Path.GetRelativePath(inputDir, mdPath)} as-is.");
-                        result.Skipped++;
+                        Missing(repo, Path.GetRelativePath(inputDir, mdPath));
                         return m.Value;
                     }
 
@@ -155,7 +164,17 @@ namespace Neko.Builder
             }
 
             // api:type / api:members pages: a type page plus one generated page per member group.
-            ApiReferencePages.Run(inputDir, markdownFiles, Resolve, result, verbose, dryRun);
+            ApiReferencePages.Run(inputDir, markdownFiles, Resolve, Missing, result, verbose, dryRun);
+
+            foreach (var (repo, pages) in missing)
+            {
+                var why = roots.TryGetValue(repo, out var path)
+                    ? $"apiDocs.roots.{repo} is {Path.GetRelativePath(inputDir, path).Replace('\\', '/')}, which does not exist"
+                    : $"the root neko.yml declares no apiDocs.roots.{repo}";
+                Console.WriteLine($"  api-docs: no source for repo '{repo}' ({why}): left {pages.Count} page(s) as committed.");
+                if (verbose)
+                    foreach (var page in pages.Distinct()) Console.WriteLine($"    {page}");
+            }
 
             if (result.FilesUpdated > 0 || result.Skipped > 0 || result.Errors > 0)
                 Console.WriteLine($"api-docs sync: {result.FilesUpdated} updated, {result.MarkerRefreshes} blocks, {result.PagesGenerated} member pages, {result.Skipped} skipped, {result.Errors} errors.");

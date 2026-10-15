@@ -170,6 +170,7 @@ namespace Neko.Builder
             string inputDir,
             IReadOnlyList<string> markdownFiles,
             Func<string, string?> resolveRoot,
+            Action<string, string> reportMissingRoot,
             ApiDocsSync.Result result,
             bool verbose,
             bool dryRun)
@@ -199,8 +200,7 @@ namespace Neko.Builder
                 var root = resolveRoot(repo);
                 if (root is null)
                 {
-                    Console.WriteLine($"  api-docs: no source for repo '{repo}' — leaving {rel} and its member pages as-is.");
-                    result.Skipped++;
+                    reportMissingRoot(repo, rel);
                     continue;
                 }
 

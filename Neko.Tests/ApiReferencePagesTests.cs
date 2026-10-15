@@ -185,6 +185,25 @@ namespace Demo
         }
 
         [Test]
+        public void ReportsAMissingRootOncePerRepoAndSaysWhy()
+        {
+            File.WriteAllText(_page, "# Widget Class\n\n" + Markers.Replace("repo=\"demo\"", "repo=\"unknown\""));
+            var other = Path.Combine(_docs, "api", "gadget", "index.md");
+            Directory.CreateDirectory(Path.GetDirectoryName(other)!);
+            File.WriteAllText(other, "# Gadget Class\n\n" + Markers.Replace("repo=\"demo\"", "repo=\"unknown\"").Replace("Widget", "Gadget"));
+
+            var original = Console.Out;
+            var captured = new StringWriter();
+            Console.SetOut(captured);
+            try { ApiDocsSync.Run(_docs); }
+            finally { Console.SetOut(original); }
+
+            var log = captured.ToString();
+            Assert.That(log, Does.Contain("no source for repo 'unknown' (the root neko.yml declares no apiDocs.roots.unknown): left 2 page(s) as committed."));
+            Assert.That(log.Split("no source for repo").Length - 1, Is.EqualTo(1), "one line for the repo, not one per page");
+        }
+
+        [Test]
         public void PutsMemberPagesInAFolderNamedAfterAPageThatIsNotAnIndex()
         {
             var page = Path.Combine(_docs, "api", "widget.md");
