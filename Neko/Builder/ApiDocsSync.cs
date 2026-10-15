@@ -36,6 +36,7 @@ namespace Neko.Builder
             public int MarkerRefreshes;
             public int Skipped;
             public int Errors;
+            public int PagesGenerated;
         }
 
         private static readonly Regex MarkerPattern = new(
@@ -62,11 +63,30 @@ namespace Neko.Builder
 
             var roots = GatherConfiguredRoots(inputDir);
 
-            // Only scan pages that actually carry a marker (cheap pre-filter).
             var markdownFiles = Directory.EnumerateFiles(inputDir, "*.md", SearchOption.AllDirectories)
-                .Where(p => !HasHiddenSegment(Path.GetRelativePath(inputDir, Path.GetDirectoryName(p)!)));
+                .Where(p => !HasHiddenSegment(Path.GetRelativePath(inputDir, Path.GetDirectoryName(p)!)))
+                .ToList();
 
             var resolved = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+            string? Resolve(string repo)
+            {
+                if (!resolved.TryGetValue(repo, out var r))
+                {
+                    r = ResolveRoot(repo, roots);
+                    resolved[repo] = r;
+                }
+                return r;
+            }
+
+            // Pages left as committed because their source root is missing, per repo: reported once
+            // per repo at the end, since one missing checkout otherwise prints a line for every page.
+            var missing = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            void Missing(string repo, string page)
+            {
+                if (!missing.TryGetValue(repo, out var list)) missing[repo] = list = new List<string>();
+                list.Add(page);
+                result.Skipped++;
+            }
 
             foreach (var mdPath in markdownFiles)
             {
@@ -79,9 +99,7 @@ namespace Neko.Builder
                     // (e.g. a docs page documenting the marker syntax itself).
                     if (InsideFence(originalText, m.Index)) return m.Value;
 
-                    var attrs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                    foreach (Match a in AttrPattern.Matches(m.Groups["attrs"].Value))
-                        attrs[a.Groups["k"].Value] = a.Groups["v"].Value;
+                    var attrs = ParseAttrs(m.Groups["attrs"].Value);
 
                     attrs.TryGetValue("repo", out var repo);
                     attrs.TryGetValue("file", out var fileAttr);
@@ -97,15 +115,10 @@ namespace Neko.Builder
                         return m.Value;
                     }
 
-                    if (!resolved.TryGetValue(repo, out var root))
-                    {
-                        root = ResolveRoot(repo, roots);
-                        resolved[repo] = root;
-                    }
+                    var root = Resolve(repo);
                     if (root is null)
                     {
-                        Console.WriteLine($"  api-docs: no source for repo '{repo}' — leaving {Path.GetRelativePath(inputDir, mdPath)} as-is.");
-                        result.Skipped++;
+                        Missing(repo, Path.GetRelativePath(inputDir, mdPath));
                         return m.Value;
                     }
 
@@ -150,8 +163,21 @@ namespace Neko.Builder
                 }
             }
 
+            // api:type / api:members pages: a type page plus one generated page per member group.
+            ApiReferencePages.Run(inputDir, markdownFiles, Resolve, Missing, result, verbose, dryRun);
+
+            foreach (var (repo, pages) in missing)
+            {
+                var why = roots.TryGetValue(repo, out var path)
+                    ? $"apiDocs.roots.{repo} is {Path.GetRelativePath(inputDir, path).Replace('\\', '/')}, which does not exist"
+                    : $"the root neko.yml declares no apiDocs.roots.{repo}";
+                Console.WriteLine($"  api-docs: no source for repo '{repo}' ({why}): left {pages.Count} page(s) as committed.");
+                if (verbose)
+                    foreach (var page in pages.Distinct()) Console.WriteLine($"    {page}");
+            }
+
             if (result.FilesUpdated > 0 || result.Skipped > 0 || result.Errors > 0)
-                Console.WriteLine($"api-docs sync: {result.FilesUpdated} updated, {result.MarkerRefreshes} blocks, {result.Skipped} skipped, {result.Errors} errors.");
+                Console.WriteLine($"api-docs sync: {result.FilesUpdated} updated, {result.MarkerRefreshes} blocks, {result.PagesGenerated} member pages, {result.Skipped} skipped, {result.Errors} errors.");
 
             return result;
         }
@@ -185,10 +211,18 @@ namespace Neko.Builder
 
         // True when the offset sits inside a fenced code block (an odd number of
         // ``` / ~~~ fences precede it), so marker examples in docs aren't rewritten.
-        private static bool InsideFence(string text, int index)
+        internal static bool InsideFence(string text, int index)
         {
             int fences = Regex.Matches(text.Substring(0, index), @"(?m)^[ \t]*(`{3,}|~{3,})").Count;
             return (fences % 2) == 1;
+        }
+
+        internal static Dictionary<string, string> ParseAttrs(string text)
+        {
+            var attrs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (Match a in AttrPattern.Matches(text))
+                attrs[a.Groups["k"].Value] = a.Groups["v"].Value;
+            return attrs;
         }
 
         private static bool HasHiddenSegment(string relativeDir)
