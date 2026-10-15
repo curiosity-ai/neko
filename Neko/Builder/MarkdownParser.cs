@@ -229,6 +229,7 @@ namespace Neko.Builder
                 .Use<StepExtension>()
                 .Use<ComponentExtension>()
                 .Use<YouTubeEmbedExtension>()
+                .Use<TableCodePipeExtension>()
                 .Use<CodeBlockExtension>()
                 .Use<CodeSnippetExtension>()
                 .Use<ImageAlignmentExtension>()

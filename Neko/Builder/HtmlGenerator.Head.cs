@@ -560,6 +560,9 @@ namespace Neko.Builder
             sb.AppendLine("        #sidebar::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 3px; }");
             sb.AppendLine("        #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); }");
             sb.AppendLine("        .dark #sidebar:hover::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }");
+            // A code block that scrolls sideways: a thin bar in the theme's grey, not the browser's white one in dark mode.
+            sb.AppendLine("        pre { scrollbar-width: thin; scrollbar-color: rgba(156, 163, 175, 0.5) transparent; }");
+            sb.AppendLine("        .dark pre { scrollbar-color: rgba(75, 85, 99, 0.8) transparent; }");
             sb.AppendLine("        /* A disclosure chevron rotates with its OWN <details>, at every nesting");
             sb.AppendLine("           level. Scoping to the direct child summary (rather than Tailwind's");
             sb.AppendLine("           group-open, which matches any ancestor .group[open]) keeps a nested");
