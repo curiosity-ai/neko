@@ -481,7 +481,7 @@ namespace Neko.Builder
             try { root = XElement.Parse("<doc>" + string.Join("\n", lines) + "</doc>", LoadOptions.PreserveWhitespace); }
             catch (System.Xml.XmlException) { return doc; }
 
-            doc.Summary = root.Element("summary");
+            doc.Summary = root.Element("summary") ?? LooseSummary(root);
             doc.Remarks = root.Element("remarks");
             doc.Returns = root.Element("returns");
             doc.Value = root.Element("value");
@@ -493,6 +493,16 @@ namespace Neko.Builder
             foreach (var e in root.Elements("exception"))
                 doc.Exceptions.Add((e.Attribute("cref")?.Value ?? "", e));
             return doc;
+        }
+
+        // A comment with no <summary> but plain text ahead of its first block tag (/// Represents a …
+        // <example>…) reads that text as the summary, the way it reads in the source.
+        private static readonly HashSet<string> InlineTags = new() { "see", "seealso", "c", "paramref", "typeparamref", "b", "i", "a" };
+
+        private static XElement? LooseSummary(XElement root)
+        {
+            var lead = root.Nodes().TakeWhile(n => n is XText || n is XElement e && InlineTags.Contains(e.Name.LocalName)).ToList();
+            return lead.Any(n => n is XText t ? t.Value.Trim().Length > 0 : true) ? new XElement("summary", lead) : null;
         }
 
         // Renders a doc element's content as Markdown. `from` is the page the text lands on,
@@ -601,7 +611,7 @@ namespace Neko.Builder
             if (segments.Length == 1 && ctx.MemberPages.TryGetValue($"{ctx.CurrentType}.{last}", out var own))
                 return $"[{Esc(display)}]({RelLink(ctx, from, own)})";
             if (ctx.TypePages.TryGetValue(last, out var tp)) return $"[{Esc(display)}]({RelLink(ctx, from, tp)})";
-            if (segments.Length == 1 && Bcl.TryGetValue(last, out var slug)) return $"[{Esc(display)}](https://learn.microsoft.com/dotnet/api/{slug})";
+            if ((segments.Length == 1 || segments[0] is "System" or "Microsoft") && Bcl.TryGetValue(last, out var slug)) return $"[{Esc(display)}](https://learn.microsoft.com/dotnet/api/{slug})";
             return "`" + display + "`";
         }
 
@@ -610,7 +620,9 @@ namespace Neko.Builder
         /// <summary>A type name as Learn titles show it: keyword aliases spelled as CLR names, no nullable marks.</summary>
         private static string ShortType(string type)
         {
-            var t = Regex.Replace(type, @"\b(" + string.Join("|", Keywords.Keys) + @")\b", m => Keywords[m.Value]);
+            // Tuple element names go: (LogLevel logLevel, string message) is titled (LogLevel, String).
+            var t = Regex.Replace(type, @"(?<=[\w>\]?])\s+[A-Za-z_]\w*(?=\s*[,)])", "");
+            t = Regex.Replace(t, @"\b(" + string.Join("|", Keywords.Keys) + @")\b", m => Keywords[m.Value]);
             return t.Replace("?", "").Replace(" ", "").Replace(",", ", ");
         }
 

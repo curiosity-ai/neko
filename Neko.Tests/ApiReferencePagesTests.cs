@@ -196,5 +196,43 @@ namespace Demo
             Assert.That(File.Exists(Path.Combine(_docs, "api", "widget", "methods", "render.md")));
             Assert.That(File.ReadAllText(page), Does.Contain("](/api/widget/methods/render#render-string)"));
         }
+
+        [Test]
+        public void LinksTypesDocumentedOnAnotherPageAndDropsTupleElementNames()
+        {
+            File.WriteAllText(Path.Combine(_src, "Gadget.cs"), @"using System;
+
+namespace Demo
+{
+    /// A gadget. Reads a <see cref=""System.IO.Stream""/>.
+    /// <example><code>var g = new Gadget();</code></example>
+    public class Gadget
+    {
+        /// <summary>Attaches a widget.</summary>
+        /// <param name=""widget"">The widget.</param>
+        public void Attach(Widget widget) { }
+
+        /// <summary>Logs messages.</summary>
+        /// <param name=""messages"">The messages.</param>
+        public void Log((int level, string message)[] messages) { }
+    }
+}");
+            var gadgetDir = Path.Combine(_docs, "api", "gadget");
+            Directory.CreateDirectory(gadgetDir);
+            File.WriteAllText(Path.Combine(gadgetDir, "index.md"), "# Gadget Class\n\n" +
+                Markers.Replace("file=\"Widget.cs;Widget.Part.cs\" type=\"Widget\"", "file=\"Gadget.cs\" type=\"Gadget\""));
+
+            ApiDocsSync.Run(_docs);
+
+            var attach = File.ReadAllText(Path.Combine(gadgetDir, "methods", "attach.md"));
+            Assert.That(attach, Does.Contain("<span class=\"api-ref-type\"><a href=\"/api/widget/\">Widget</a></span>"));
+
+            var log = File.ReadAllText(Path.Combine(gadgetDir, "methods", "log.md"));
+            Assert.That(log, Does.Contain("# Gadget.Log((Int32, String)[]) Method"));
+
+            var type = File.ReadAllText(Path.Combine(gadgetDir, "index.md"));
+            Assert.That(type, Does.Contain("A gadget. Reads a [Stream](https://learn.microsoft.com/dotnet/api/system.io.stream)."),
+                "text ahead of the first block tag is the summary when there is no <summary>; a namespace-qualified BCL cref is linked");
+        }
     }
 }
