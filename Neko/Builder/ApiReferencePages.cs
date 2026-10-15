@@ -40,7 +40,7 @@ namespace Neko.Builder
             @"<!--\s*api:members\s+start(?<attrs>.*?)-->(?<body>[\s\S]*?)<!--\s*api:members\s+end\s*-->",
             RegexOptions.Compiled);
 
-        private static readonly string[] AttrOrder = { "repo", "file", "type", "namespacelink", "assembly", "package", "version", "source", "inherited" };
+        private static readonly string[] AttrOrder = { "repo", "file", "type", "namespacelink", "assembly", "package", "version", "source", "inherited", "definition" };
 
         // The member kinds, in the order Learn lists them; Folder is the generated page folder.
         private enum Kind { Constructor, Property, Method, Event, Field }
@@ -782,8 +782,15 @@ namespace Neko.Builder
             return "/" + (rel == "." ? "" : rel + (link.EndsWith("/") ? "/" : ""));
         }
 
+        // definition="false" on the api:type marker leaves the Definition block (and each overload's
+        // Source line) off every page: in a reference of one namespace and one package it says the
+        // same thing on every page.
+        private static bool ShowDefinition(Page page) =>
+            !(page.Attrs.TryGetValue("definition", out var d) && d.Equals("false", StringComparison.OrdinalIgnoreCase));
+
         private static string Definition(Context ctx, Page page, string from, string? sourceFile, int line, bool withSource = true)
         {
+            if (!ShowDefinition(page)) return "";
             var a = page.Attrs;
             var sb = new StringBuilder();
             sb.Append("## Definition\n\n:::api-ref-def { .not-prose }\n\n");
@@ -979,7 +986,8 @@ namespace Neko.Builder
                 foreach (var m in group)
                 {
                     sb.Append($"## {Esc(m.Title)} {{#{m.Anchor}}}\n\n::::api-ref-member\n\n");
-                    sb.Append(":::api-ref-def { .not-prose }\n\n").Append(SourceLine(page, m.SourceFile, m.Line)).Append("\n:::\n\n");
+                    if (ShowDefinition(page))
+                        sb.Append(":::api-ref-def { .not-prose }\n\n").Append(SourceLine(page, m.SourceFile, m.Line)).Append("\n:::\n\n");
                     sb.Append(MemberBody(ctx, path, m, "###"));
                     sb.Append(AppliesTo(page.Attrs, "###"));
                     sb.Append("::::\n\n");

@@ -431,6 +431,7 @@ modifiers and base types are read from all of them. Other attributes:
 | `source` | Base URL of the source repository (`https://github.com/org/repo/blob/main/`). Each *Source* line links to the file and line. |
 | `namespaceLink` | Link for the namespace, relative to the type page (`../`) or root-relative. |
 | `inherited` | `false` leaves the inherited `Object` members out of the *Methods* table. |
+| `definition` | `false` leaves the *Definition* block (namespace, assembly, package, source) off the type page and every member page. |
 
 `<see cref>` resolves to a relative link when it names a type or member documented
 this way in the same site, and to learn.microsoft.com for common .NET types.

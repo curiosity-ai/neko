@@ -248,6 +248,21 @@ namespace Demo
         }
 
         [Test]
+        public void LeavesTheDefinitionOffWhenAskedTo()
+        {
+            File.WriteAllText(_page, "# Widget Class\n\n" + Markers.Replace("type=\"Widget\"", "type=\"Widget\" definition=\"false\""));
+
+            ApiDocsSync.Run(_docs);
+
+            var type = File.ReadAllText(_page);
+            var render = File.ReadAllText(Path.Combine(_typeDir, "methods", "render.md"));
+            Assert.That(type, Does.Not.Contain("## Definition"));
+            Assert.That(type, Does.Contain("public sealed class Widget : IDisposable"), "the declaration stays");
+            Assert.That(render, Does.Not.Contain("## Definition").And.Not.Contain("<span>Source:</span>"));
+            Assert.That(render, Does.Contain("## Overloads"));
+        }
+
+        [Test]
         public void PutsMemberPagesInAFolderNamedAfterAPageThatIsNotAnIndex()
         {
             var page = Path.Combine(_docs, "api", "widget.md");
