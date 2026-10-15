@@ -204,6 +204,50 @@ namespace Demo
         }
 
         [Test]
+        public void ReadsDocCommentsTheCompilerWouldWarnAbout()
+        {
+            File.WriteAllText(Path.Combine(_src, "Gizmo.cs"), @"namespace Demo
+{
+    /// A gizmo, described without a summary tag.
+    /// <example>
+    /// <code>
+    /// var a = new Gizmo();
+    /// </code>
+    /// </example>
+    /// <example>
+    /// <code>
+    /// var b = new Gizmo();
+    /// </code>
+    /// </example>
+    public class Gizmo
+    {
+        /// <summary>Moves the gizmo.</summary>
+        /// <param name=""steps"">How far.</param>
+        /// <example>
+        /// <code>
+        /// gizmo.Move(1);
+        /// </code>
+        public void Move(int steps) { }
+    }
+}");
+            var dir = Path.Combine(_docs, "api", "gizmo");
+            Directory.CreateDirectory(dir);
+            var page = Path.Combine(dir, "index.md");
+            File.WriteAllText(page, "# Gizmo Class\n\n" + Markers.Replace("Widget.cs;Widget.Part.cs", "Gizmo.cs").Replace("\"Widget\"", "\"Gizmo\""));
+
+            ApiDocsSync.Run(_docs);
+
+            var type = File.ReadAllText(page);
+            Assert.That(type, Does.Contain("A gizmo, described without a summary tag."), "untagged text is the summary");
+            Assert.That(type, Does.Contain("var a = new Gizmo();").And.Contain("var b = new Gizmo();"), "every <example> is kept");
+
+            var move = File.ReadAllText(Path.Combine(dir, "methods", "move.md"));
+            Assert.That(move, Does.Contain("Moves the gizmo."), "an unclosed <example> does not lose the rest of the comment");
+            Assert.That(move, Does.Contain("How far."));
+            Assert.That(move, Does.Contain("gizmo.Move(1);"));
+        }
+
+        [Test]
         public void PutsMemberPagesInAFolderNamedAfterAPageThatIsNotAnIndex()
         {
             var page = Path.Combine(_docs, "api", "widget.md");

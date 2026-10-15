@@ -477,15 +477,18 @@ namespace Neko.Builder
 
             var lines = trivia.ToFullString().Replace("\r\n", "\n").Split('\n')
                 .Select(l => Regex.Replace(l, @"^\s*///\s?", ""));
-            XElement root;
-            try { root = XElement.Parse("<doc>" + string.Join("\n", lines) + "</doc>", LoadOptions.PreserveWhitespace); }
-            catch (System.Xml.XmlException) { return doc; }
+            var root = ParseDocXml(string.Join("\n", lines));
+            if (root is null) return doc;
 
-            doc.Summary = root.Element("summary");
+            // Text written outside any tag (a comment with no <summary>) is what the author meant as
+            // the summary; the part before the first tag is.
+            doc.Summary = root.Element("summary") ?? LeadingText(root);
             doc.Remarks = root.Element("remarks");
             doc.Returns = root.Element("returns");
             doc.Value = root.Element("value");
-            doc.Example = root.Element("example");
+            // Several <example> blocks are one Examples section.
+            var examples = root.Elements("example").ToList();
+            doc.Example = examples.Count <= 1 ? examples.FirstOrDefault() : new XElement("example", examples.SelectMany(e => e.Nodes()));
             foreach (var p in root.Elements("param"))
                 if (p.Attribute("name") is { } n) doc.Params[n.Value] = p;
             foreach (var p in root.Elements("typeparam"))
@@ -493,6 +496,42 @@ namespace Neko.Builder
             foreach (var e in root.Elements("exception"))
                 doc.Exceptions.Add((e.Attribute("cref")?.Value ?? "", e));
             return doc;
+        }
+
+        // A doc comment the compiler would warn about is still worth reading: an element left
+        // unclosed (a missing </example>) is closed at the end of the comment, and a comment that
+        // still does not parse yields whatever top-level elements parse on their own.
+        private static XElement? ParseDocXml(string xml)
+        {
+            static XElement? TryParse(string text)
+            {
+                try { return XElement.Parse("<doc>" + text + "</doc>", LoadOptions.PreserveWhitespace); }
+                catch (System.Xml.XmlException) { return null; }
+            }
+
+            if (TryParse(xml) is { } parsed) return parsed;
+
+            var open = new Stack<string>();
+            foreach (Match m in Regex.Matches(xml, @"<(/?)([A-Za-z]+)\b[^>]*?(/?)>"))
+            {
+                if (m.Groups[3].Value == "/") continue;
+                var name = m.Groups[2].Value;
+                if (m.Groups[1].Value == "") open.Push(name);
+                else if (open.Contains(name)) { while (open.Count > 0 && open.Pop() != name) { } }
+            }
+            var closed = xml + string.Concat(open.Select(n => $"</{n}>"));
+            if (TryParse(closed) is { } repaired) return repaired;
+
+            var root = new XElement("doc");
+            foreach (Match m in Regex.Matches(xml, @"<(summary|remarks|returns|value|example|param|typeparam|exception)\b[^>]*>[\s\S]*?</\1>"))
+                if (TryParse(m.Value) is { } part) root.Add(part.Elements());
+            return root.HasElements ? root : null;
+        }
+
+        private static XElement? LeadingText(XElement root)
+        {
+            var nodes = root.Nodes().TakeWhile(n => n is XText).ToList();
+            return nodes.Count > 0 && nodes.Any(n => ((XText)n).Value.Trim().Length > 0) ? new XElement("summary", nodes) : null;
         }
 
         // Renders a doc element's content as Markdown. `from` is the page the text lands on,
