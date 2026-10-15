@@ -436,6 +436,10 @@ modifiers and base types are read from all of them. Other attributes:
 this way in the same site, and to learn.microsoft.com for common .NET types.
 Interfaces are told apart from a base class by the `I` prefix, since the source is
 read without compiling it.
+A base type the source declares non-public (an `internal` interface a public class
+implements) is left out of the declaration and *Implements*, as it is in compiled
+metadata. Its declaration is looked up in the type's project and the projects that
+project references; a base not found there stays listed.
 
 ### Options
 

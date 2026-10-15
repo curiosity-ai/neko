@@ -234,5 +234,35 @@ namespace Demo
             Assert.That(type, Does.Contain("A gadget. Reads a [Stream](https://learn.microsoft.com/dotnet/api/system.io.stream)."),
                 "text ahead of the first block tag is the summary when there is no <summary>; a namespace-qualified BCL cref is linked");
         }
+
+        [Test]
+        public void LeavesOutBaseTypesTheSourceDeclaresNonPublic()
+        {
+            // Lib.csproj references Shared.csproj; both declare interfaces the public class implements.
+            var lib = Path.Combine(_src, "lib");
+            var shared = Path.Combine(_src, "shared");
+            Directory.CreateDirectory(lib);
+            Directory.CreateDirectory(shared);
+            File.WriteAllText(Path.Combine(lib, "Lib.csproj"),
+                "<Project><ItemGroup><ProjectReference Include=\"..\\shared\\Shared.csproj\" /></ItemGroup></Project>");
+            File.WriteAllText(Path.Combine(shared, "Shared.csproj"), "<Project />");
+            File.WriteAllText(Path.Combine(lib, "Hidden.cs"), "namespace Demo { interface IHidden { } }");
+            File.WriteAllText(Path.Combine(shared, "Shared.cs"),
+                "namespace Demo { internal interface IShared { } public interface IVisible { } }");
+            File.WriteAllText(Path.Combine(lib, "Panel.cs"),
+                "namespace Demo { /// <summary>A panel.</summary>\n public sealed class Panel : IHidden, IShared, IVisible, System.IDisposable { public void Dispose() { } } }");
+
+            var panelDir = Path.Combine(_docs, "api", "panel");
+            Directory.CreateDirectory(panelDir);
+            File.WriteAllText(Path.Combine(panelDir, "index.md"), "# Panel Class\n\n" +
+                Markers.Replace("file=\"Widget.cs;Widget.Part.cs\" type=\"Widget\"", "file=\"lib/Panel.cs\" type=\"Panel\""));
+
+            ApiDocsSync.Run(_docs);
+
+            var text = File.ReadAllText(Path.Combine(panelDir, "index.md"));
+            Assert.That(text, Does.Contain("public sealed class Panel : IVisible, System.IDisposable"));
+            Assert.That(text, Does.Not.Contain("IHidden").And.Not.Contain("IShared"),
+                "internal in its own project and in a referenced one");
+        }
     }
 }

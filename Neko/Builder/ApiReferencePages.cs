@@ -162,6 +162,7 @@ namespace Neko.Builder
             public string CurrentType = "";                                                       // the type whose pages are being rendered
             public readonly Dictionary<string, string> TypePages = new(StringComparer.Ordinal);   // type name → type page path
             public readonly Dictionary<string, string> MemberPages = new(StringComparer.Ordinal); // "Type.Member" → member page path
+            public readonly Dictionary<string, Dictionary<string, bool>> ProjectTypes = new();    // project dir → type name → declared public
         }
 
         // ------------------------------------------------------------------ entry point
@@ -205,6 +206,7 @@ namespace Neko.Builder
                 }
 
                 var sources = new List<(string Rel, string Text)>();
+                var fullPaths = new List<string>();
                 var missing = false;
                 foreach (var f in files.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                 {
@@ -216,10 +218,11 @@ namespace Neko.Builder
                         break;
                     }
                     sources.Add((f.Replace('\\', '/'), File.ReadAllText(full)));
+                    fullPaths.Add(full);
                 }
                 if (missing) { result.Skipped++; continue; }
 
-                page.Model = BuildModel(typeName, sources);
+                page.Model = BuildModel(typeName, sources, NonPublicTypesNear(ctx, root, fullPaths));
                 if (page.Model is null)
                 {
                     Console.WriteLine($"  api-docs: type '{typeName}' not found in {files} — leaving {rel} as-is.");
@@ -255,7 +258,7 @@ namespace Neko.Builder
 
         // ------------------------------------------------------------------ model building
 
-        private static TypeModel? BuildModel(string typeName, List<(string Rel, string Text)> sources)
+        private static TypeModel? BuildModel(string typeName, List<(string Rel, string Text)> sources, ISet<string>? hiddenBases = null)
         {
             var parts = new List<(BaseTypeDeclarationSyntax Decl, string Rel)>();
             foreach (var (rel, text) in sources)
@@ -291,6 +294,7 @@ namespace Neko.Builder
                     foreach (var b in decl.BaseList.Types)
                     {
                         var name = Collapse(b.Type.ToString());
+                        if (hiddenBases?.Contains(Regex.Replace(name, @"<.*>$", "").Split('.')[^1]) == true) continue;
                         if (!model.Bases.Contains(name)) model.Bases.Add(name);
                     }
             }
@@ -345,6 +349,69 @@ namespace Neko.Builder
                 }
             }
             return model;
+        }
+
+        // A public type can implement an internal interface; compiled-metadata viewers and Learn leave such a
+        // base out, and so does the reference. The source is read without compiling it, so the base's
+        // declaration is looked up in the type's own project and the projects it references, the only places
+        // a base it can name can live. A name declared there and never public is returned; one not found is
+        // not, and stays listed.
+        private static HashSet<string> NonPublicTypesNear(Context ctx, string root, IEnumerable<string> files)
+        {
+            var rootFull = Path.GetFullPath(root);
+            var projects = new List<string>();
+            var queue = new Queue<string>(files.Select(f => ProjectDirOf(Path.GetDirectoryName(Path.GetFullPath(f))!, rootFull)));
+            while (queue.Count > 0)
+            {
+                var dir = queue.Dequeue();
+                if (projects.Contains(dir)) continue;
+                projects.Add(dir);
+                foreach (var csproj in Directory.EnumerateFiles(dir, "*.csproj"))
+                    foreach (Match m in Regex.Matches(File.ReadAllText(csproj), @"<ProjectReference\s+Include=""([^""]+)"""))
+                    {
+                        var refDir = Path.GetDirectoryName(Path.GetFullPath(Path.Combine(dir, m.Groups[1].Value.Replace('\\', '/'))))!;
+                        if (refDir.StartsWith(rootFull, StringComparison.Ordinal) && Directory.Exists(refDir)) queue.Enqueue(refDir);
+                    }
+            }
+
+            var declaredPublic = new Dictionary<string, bool>(StringComparer.Ordinal);
+            foreach (var dir in projects)
+                foreach (var (name, isPublic) in TypesDeclaredIn(ctx, dir))
+                    declaredPublic[name] = declaredPublic.TryGetValue(name, out var seen) ? seen || isPublic : isPublic;
+            return declaredPublic.Where(kv => !kv.Value).Select(kv => kv.Key).ToHashSet(StringComparer.Ordinal);
+        }
+
+        // The nearest folder holding a .csproj, walking up from `dir` but not past the source root.
+        private static string ProjectDirOf(string dir, string rootFull)
+        {
+            for (var d = dir; d is not null && d.StartsWith(rootFull, StringComparison.Ordinal); d = Path.GetDirectoryName(d))
+                if (Directory.EnumerateFiles(d, "*.csproj").Any()) return d;
+            return dir;
+        }
+
+        private static readonly Regex TypeDeclaration = new(
+            @"(?:^|[{};])\s*(?<mods>(?:(?:public|internal|private|protected|sealed|static|abstract|partial|readonly|unsafe|file|ref|new)\s+)*)(?:class|interface|struct|record|enum)\s+(?<name>[A-Za-z_]\w*)",
+            RegexOptions.Multiline | RegexOptions.Compiled);
+
+        // Every type declared under a project folder (obj/ and bin/ aside), with whether any of its
+        // declarations is public. Cached per folder for the run.
+        private static Dictionary<string, bool> TypesDeclaredIn(Context ctx, string projectDir)
+        {
+            if (ctx.ProjectTypes.TryGetValue(projectDir, out var cached)) return cached;
+
+            var types = new Dictionary<string, bool>(StringComparer.Ordinal);
+            var sep = Path.DirectorySeparatorChar;
+            foreach (var file in Directory.EnumerateFiles(projectDir, "*.cs", SearchOption.AllDirectories))
+            {
+                if (file.Contains($"{sep}obj{sep}") || file.Contains($"{sep}bin{sep}")) continue;
+                foreach (Match m in TypeDeclaration.Matches(File.ReadAllText(file)))
+                {
+                    var name = m.Groups["name"].Value;
+                    var isPublic = Regex.IsMatch(m.Groups["mods"].Value, @"\bpublic\b");
+                    types[name] = types.TryGetValue(name, out var seen) ? seen || isPublic : isPublic;
+                }
+            }
+            return ctx.ProjectTypes[projectDir] = types;
         }
 
         private static Member? ToMember(MemberDeclarationSyntax node, string typeName)
