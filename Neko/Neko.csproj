@@ -34,12 +34,12 @@
          direct reference would be a downgrade of its transitive dependency. -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.9.0" />
-    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.13" />
     <!-- `neko render` drives headless Chromium to capture a video page frame by frame. -->
     <PackageReference Include="Microsoft.Playwright" Version="1.63.0" />
     <PackageReference Include="NuGet.Versioning" Version="7.9.0" />
     <PackageReference Include="Mosaik.Core" Version="26.8.3972" />
-    <PackageReference Include="System.CommandLine" Version="2.0.12" />
+    <PackageReference Include="System.CommandLine" Version="2.0.13" />
     <!-- Compiles the live `tesserae` C# samples to JavaScript in-process. -->
     <PackageReference Include="Transpose.Compiler.Library" Version="26.10.6379" />
     <!-- `neko render` encodes the captured frames to MP4. The same wrapper and on-demand
@@ -48,19 +48,19 @@
     <!-- Video voice-over: Qwen3-TTS in pure C# (VoiceDesign model, downloaded on first
          use by `neko voiceover` / `neko render`) and the English voice catalog whose ids
          the `narration:` front matter can name. -->
-    <PackageReference Include="Voxwerk" Version="26.10.6691" />
-    <PackageReference Include="Voxwerk.Voices.English" Version="26.10.6691" />
+    <PackageReference Include="Voxwerk" Version="26.10.6704" />
+    <PackageReference Include="Voxwerk.Voices.English" Version="26.10.6704" />
     <!-- The reference samples of the catalog voices, so `narration: voice: <id>` is cloned from
          its sample and stays one speaker across sentences rather than re-designed per take. -->
-    <PackageReference Include="Voxwerk.Voices.English.African" Version="26.10.6691" />
-    <PackageReference Include="Voxwerk.Voices.English.American.Characters" Version="26.10.6691" />
-    <PackageReference Include="Voxwerk.Voices.English.American.Commercial" Version="26.10.6691" />
-    <PackageReference Include="Voxwerk.Voices.English.American.Conversational.Female" Version="26.10.6691" />
-    <PackageReference Include="Voxwerk.Voices.English.American.Conversational.Male" Version="26.10.6691" />
-    <PackageReference Include="Voxwerk.Voices.English.American.Narration.Female" Version="26.10.6691" />
-    <PackageReference Include="Voxwerk.Voices.English.American.Narration.Male" Version="26.10.6691" />
-    <PackageReference Include="Voxwerk.Voices.English.American.Regional" Version="26.10.6691" />
-    <PackageReference Include="Voxwerk.Voices.English.British.Narration" Version="26.10.6691" />
+    <PackageReference Include="Voxwerk.Voices.English.African" Version="26.10.6704" />
+    <PackageReference Include="Voxwerk.Voices.English.American.Characters" Version="26.10.6704" />
+    <PackageReference Include="Voxwerk.Voices.English.American.Commercial" Version="26.10.6704" />
+    <PackageReference Include="Voxwerk.Voices.English.American.Conversational.Female" Version="26.10.6704" />
+    <PackageReference Include="Voxwerk.Voices.English.American.Conversational.Male" Version="26.10.6704" />
+    <PackageReference Include="Voxwerk.Voices.English.American.Narration.Female" Version="26.10.6704" />
+    <PackageReference Include="Voxwerk.Voices.English.American.Narration.Male" Version="26.10.6704" />
+    <PackageReference Include="Voxwerk.Voices.English.American.Regional" Version="26.10.6704" />
+    <PackageReference Include="Voxwerk.Voices.English.British.Narration" Version="26.10.6704" />
     <PackageReference Include="Xabe.FFmpeg" Version="6.1.1" />
     <PackageReference Include="Xabe.FFmpeg.Downloader" Version="6.1.1" />
     <PackageReference Include="YamlDotNet" Version="18.1.0" />
