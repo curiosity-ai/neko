@@ -55,6 +55,13 @@
   them when a reader re-saves the file. Rebuild with `reference/docx/build-docx-bundle.py`.
 - **Used by**: `Neko/Resources/document-docx.js` — the "docx" control on paged documents (`document:` front matter). Loaded lazily, only when the reader asks for the download.
 
+### Pele
+- **Source**: https://github.com/obsidianmd/pele (https://pele.run)
+- **License**: MIT
+- **Version**: 1.6.0
+- **File**: `Neko/Resources/pele.min.js` (the npm package's `dist/pele.global.js`, unchanged; rebuild with `reference/pele/build-pele.py`)
+- **Used for**: drawing ```` ```mermaid ```` blocks. A site page loads it from `assets/pele.min.js` on demand, only when the page has a diagram; decks and documents inline it. It is never loaded from a CDN.
+
 ### Highlight.js
 - **Source**: https://github.com/highlightjs/highlight.js
 - **License**: BSD-3-Clause
@@ -90,8 +97,6 @@ CDN. Rebuild them with `reference/standalone/build-standalone.py`.
 - **KaTeX** 0.16.8 — https://github.com/KaTeX/KaTeX — MIT. `katex.min.js`,
   `auto-render.min.js`, `katex.min.css` (rewritten to reference only the woff2 faces)
   and the `KaTeX_*.woff2` fonts.
-- **Mermaid** 10.9.8 — https://github.com/mermaid-js/mermaid — MIT. `mermaid.min.js`.
-- **panzoom** 9.4.0 — https://github.com/anvaka/panzoom — MIT. `panzoom.min.js`.
 - **highlightjs-line-numbers.js** 2.8.0 — https://github.com/wcoder/highlightjs-line-numbers.js — MIT.
 - **leader-line-new** 1.1.9 — https://github.com/anseki/leader-line — MIT. `leader-line.min.js`.
 - **Archivo, Source Serif 4, IBM Plex Mono** — Google Fonts, SIL Open Font License 1.1.

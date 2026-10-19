@@ -223,7 +223,7 @@ What a match does
             try
             {
                 var pw = await Playwright.CreateAsync();
-                // The pages link CDN scripts (Mermaid, KaTeX, panzoom). Resolve nothing but localhost, so a
+                // The pages link CDN scripts (KaTeX, highlight.js). Resolve nothing but localhost, so a
                 // machine without internet access fails those requests at once instead of hanging the
                 // page's parse until the test reads an empty body.
                 var launch = new BrowserTypeLaunchOptions { Headless = true, Args = new[] { "--host-resolver-rules=MAP * ~NOTFOUND , EXCLUDE localhost" } };

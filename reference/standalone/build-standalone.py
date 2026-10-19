@@ -11,14 +11,15 @@ CopyAssetsAsync never copies this folder into a site's assets/.
   katex.min.css, katex.min.js, auto-render.min.js, KaTeX_*.woff2   KaTeX 0.16.8
       (the stylesheet is rewritten to reference only the woff2 faces, by bare
       file name, so each can be inlined as a data URI)
-  mermaid.min.js                       Mermaid 10.9.8 (what mermaid@10 resolves to)
-  panzoom.min.js                       panzoom 9.4.0
   highlightjs-line-numbers.min.js      highlightjs-line-numbers.js 2.8.0
   leader-line.min.js                   leader-line-new 1.1.9
   deck-google-fonts.css, *.woff2       the midnight / daylight deck typefaces
       (Archivo, Source Serif 4, IBM Plex Mono; latin + latin-ext subsets) that
       decks otherwise pull from Google Fonts
   twemoji.zip                          the Twemoji 14.0.2 SVGs emoji.css points at
+
+Diagrams are not in this folder: Pele (Neko/Resources/pele.min.js, built by
+reference/pele/build-pele.py) is shared by site pages and standalone pages alike.
 
     python3 reference/standalone/build-standalone.py
 """
@@ -35,8 +36,6 @@ NPM = [
         'dist/katex.min.js': 'katex.min.js',
         'dist/contrib/auto-render.min.js': 'auto-render.min.js',
     }),
-    ('mermaid', '10.9.8', {'dist/mermaid.min.js': 'mermaid.min.js'}),
-    ('panzoom', '9.4.0', {'dist/panzoom.min.js': 'panzoom.min.js'}),
     ('highlightjs-line-numbers.js', '2.8.0', {'dist/highlightjs-line-numbers.min.js': 'highlightjs-line-numbers.min.js'}),
     ('leader-line-new', '1.1.9', {'leader-line.min.js': 'leader-line.min.js'}),
 ]

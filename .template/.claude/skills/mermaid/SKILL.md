@@ -5,8 +5,11 @@ description: Render a Mermaid diagram (flowchart, sequence, class, ER, state, ga
 
 # Mermaid
 
-Renders Mermaid diagrams at build time. Supports the full Mermaid v10+
-catalogue.
+Draws Mermaid diagrams with [Pele](https://pele.run), which turns Mermaid syntax
+into SVG in the browser. Supports every diagram type of Mermaid 12.1. Pele is
+embedded in Neko — a page loads it from its own `assets/` folder, only when the
+page has a diagram, and a deck or document inlines it — so no CDN is involved and
+the diagrams work offline.
 
 ## Basic flowchart
 
@@ -54,23 +57,33 @@ sequenceDiagram
 
 ## Theming
 
-Diagrams adopt the site palette automatically — Neko renders them with
-Mermaid's `base` theme fed the resolved `theme` colours + accent ramp from
-`neko.yml`, in both a light and a dark variant. No directive needed.
+Diagrams adopt the site palette automatically — Neko maps Pele's colours onto the
+site's theme variables (`--neko-primary-N`, `--neko-accent-N` — the resolved `theme`
+colours + accent ramp from `neko.yml` — and `--neko-bg-elevated` etc.), with a light
+and a dark set. A diagram is drawn once and follows light/dark mode with no redraw. No
+directive needed.
 
-## Theme override
+## Colouring part of a diagram
 
-To opt a diagram out of the brand palette and use a stock Mermaid theme, set
-your own `theme` in the init directive. Neko then renders that diagram
-verbatim (no brand variables applied):
+`%%{init}%%` `theme` / `themeVariables` are ignored (the site theme decides the
+colours). To colour individual nodes or links, use Mermaid's own `style`,
+`classDef` and `linkStyle`; colours set this way are fixed and do not change with
+the colour mode:
 
 ````markdown
 ```mermaid
-%%{init: { 'theme': 'forest' }}%%
-graph LR
-    A --> B
+flowchart LR
+  A[Draft] --> B[Review]:::warn --> C[Done]
+  style C fill:#879a39,stroke:#66800b,color:#fffcf0
+  classDef warn fill:#d0a215,stroke:#ad8301
+  linkStyle 0 stroke:#878580,stroke-dasharray:4 4
 ```
 ````
+
+## Zoom
+
+A diagram that had to shrink to fit its box gets zoom and pan controls (buttons,
+`Ctrl`/`⌘` + wheel, drag, double-click). The page still scrolls normally.
 
 ## Tips
 

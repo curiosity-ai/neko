@@ -202,7 +202,7 @@ namespace Neko.Tests
                 var context = await browser.NewContextAsync(new() { AcceptDownloads = true, ViewportSize = new() { Width = 1100, Height = 1200 } });
                 var page = await context.NewPageAsync();
                 var errors = new List<string>();
-                // the CDN libraries (Mermaid, KaTeX, panzoom) are unreachable here by design
+                // the CDN libraries (KaTeX, highlight.js) are unreachable here by design
                 page.PageError += (_, e) => { if (!Regex.IsMatch(e, "mermaid|renderMathInElement|panzoom|hljs|katex", RegexOptions.IgnoreCase)) errors.Add(e); };
                 var response = await page.GotoAsync($"{baseUrl}/{path}", new() { WaitUntil = WaitUntilState.NetworkIdle });
                 Assert.That(response!.Status, Is.EqualTo(200), $"{path} is served");
@@ -226,7 +226,7 @@ namespace Neko.Tests
             try
             {
                 var pw = await Playwright.CreateAsync();
-                // The pages link CDN scripts (Mermaid, KaTeX, panzoom). Resolve nothing but localhost, so a
+                // The pages link CDN scripts (KaTeX, highlight.js). Resolve nothing but localhost, so a
                 // machine without internet access fails those requests at once instead of hanging the
                 // page's parse until the test reads an empty body.
                 var launch = new BrowserTypeLaunchOptions { Headless = true, Args = new[] { "--host-resolver-rules=MAP * ~NOTFOUND , EXCLUDE localhost" } };

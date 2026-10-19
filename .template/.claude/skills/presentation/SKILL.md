@@ -86,10 +86,10 @@ still shows it beside the unlock prompt.
 ### One self-contained file
 
 A built deck is a single HTML file with no external dependencies: CSS, fonts,
-icons, emoji, KaTeX/Mermaid (only when used), highlight.js, the runtime and the
+icons, emoji, KaTeX and diagrams (only when used), highlight.js, the runtime and the
 PowerPoint exporter are all embedded, and local images (logo, favicon, slide
-pictures) are inlined as data URIs. It can be mailed or opened offline. Mermaid
-adds ≈ 3.3 MB, so only use a diagram where it earns its place; remote images
+pictures) are inlined as data URIs. It can be mailed or opened offline. A diagram
+adds ≈ 0.7 MB (the Pele renderer, once per deck), so only use one where it earns its place; remote images
 (`https://…`) stay links, so keep images in the docs folder if the deck must
 work offline.
 

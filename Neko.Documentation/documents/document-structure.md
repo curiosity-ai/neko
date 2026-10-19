@@ -85,7 +85,7 @@ breaks it onto more pages and repeats the header and footer.
 ## One self-contained file
 
 A document is a **single HTML file with no external dependencies**: its
-stylesheets, fonts, icons, emoji, KaTeX and Mermaid (only when a page has math or
+stylesheets, fonts, icons, emoji, KaTeX and the diagram renderer (only when a page has math or
 a diagram), highlight.js, the document runtime and the Word exporter are all
 embedded in the page, and local images (the logo, figures, a customer logo drawn
 through a mask) are inlined as data URIs. Nothing is loaded from a CDN, a font

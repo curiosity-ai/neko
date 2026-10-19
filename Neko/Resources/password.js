@@ -225,7 +225,7 @@
             renderMathInElement(container);
         }
 
-        if (window.mermaid && typeof renderMermaid === 'function') {
+        if (typeof renderMermaid === 'function') {
             renderMermaid();
         }
     }

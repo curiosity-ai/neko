@@ -99,7 +99,7 @@ alongside the unlock prompt instead of being encrypted with the slides.
 
 A deck is a **single HTML file with no external dependencies**. Everything it
 needs is embedded in the page itself: its stylesheet and Tailwind utilities, the
-theme's fonts, the icons and emoji it shows, KaTeX and Mermaid when a slide has
+theme's fonts, the icons and emoji it shows, KaTeX and the diagram renderer (Pele) when a slide has
 math or a diagram, highlight.js, the deck runtime, and the PowerPoint exporter
 with PptxGenJS. Local images (the logo, the favicon, pictures on a slide) are
 inlined as data URIs too. Nothing is loaded from a CDN, a font host, or the
@@ -107,7 +107,7 @@ site's `assets/` folder, so the file can be saved, mailed, or opened offline and
 still present — and export — exactly as it does on the site.
 
 Only what the deck uses is included: icons and emoji are cut down to the ones on
-its slides, and KaTeX (≈ 0.7 MB) and Mermaid (≈ 3.3 MB) only come along when
+its slides, and KaTeX (≈ 0.7 MB) and the diagram renderer (≈ 0.7 MB) only come along when
 the deck has math or a diagram. A typical deck is about 3 MB before its images. Links to other pages
 (the back control, a link on a slide) and remote images (`https://…`) stay links.
 
