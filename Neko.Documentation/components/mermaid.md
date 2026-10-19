@@ -4,7 +4,9 @@ tags: [component]
 ---
 # Mermaid
 
-[Mermaid](https://mermaid-js.github.io/mermaid) is a diagramming and charting tool that can be defined inside Markdown code blocks.
+[Mermaid](https://mermaid-js.github.io/mermaid) is a diagramming and charting syntax that can be written inside Markdown code blocks. Neko draws it with [Pele](https://pele.run), a small renderer that turns Mermaid syntax into SVG and supports every diagram type of Mermaid 12.1.
+
+Pele is embedded in Neko: a page loads it from your own site's `assets/` folder, and only when the page has a diagram. Nothing is fetched from a CDN, and a [deck](/presentations/deck-structure.md) or [document](/documents/document-structure.md) carries it inline, so it works offline.
 
 ![](/static/mermaid-header.png)
 
@@ -34,53 +36,64 @@ graph LR
 
 ## Theming
 
-Diagrams are rendered with your site's palette by default. Neko feeds the
-resolved `theme` colours (primary ramp) and accent ramp into Mermaid's `base`
-theme as `themeVariables`, so node fills, borders, lines, and text follow the
-same colours as the rest of the site — the same `theme.name` / `theme.colors`
-/ `theme.accent` you set in [`neko.yml`](/configuration/core/project). Every
-diagram is rendered twice (a light and a dark variant) and the matching one is
-shown with the page theme, so the colours adapt automatically in dark mode.
+Diagrams are drawn with your site's palette by default. Pele colours everything
+from CSS variables, and Neko sets them from the resolved `theme` colours (primary
+ramp) and accent ramp, so node fills, borders, lines and text follow the same
+colours as the rest of the site — the same `theme.name` / `theme.colors` /
+`theme.accent` you set in [`neko.yml`](/configuration/core/project). A diagram is
+drawn once: switching between light and dark mode only changes the variables, so
+the colours adapt immediately, with no redraw.
+
+The ramps are exposed as CSS variables — `--neko-primary-50` … `--neko-primary-950`
+and `--neko-accent-50` … `--neko-accent-950` — next to the page's surfaces
+(`--neko-bg`, `--neko-bg-elevated`, `--neko-bg-muted`, `--neko-border`), and the
+diagram's colours are mapped onto them, so your own CSS can use the same palette.
 
 No configuration is needed — author the diagram as usual and it picks up the
-brand colours. To opt a single diagram out and use a stock Mermaid look,
-declare your own `theme` in an `%%{init}%%` directive (see below); when a
-diagram sets its own theme, Neko renders it verbatim and does not apply the
-brand palette.
+brand colours. Charts (pie, XY, Gantt) take their series colours from the primary
+and accent ramps, then a set of complementary hues.
+
+A diagram can still colour individual parts itself, with Mermaid's `style`,
+`classDef` and `linkStyle` statements. Colours set this way are fixed: they do
+not change with the colour mode.
+
+~~~
+```mermaid
+flowchart LR
+  A[Draft] --> B[Review]:::warn --> C[Done]
+  style C fill:#879a39,stroke:#66800b,color:#fffcf0
+  classDef warn fill:#d0a215,stroke:#ad8301
+  linkStyle 0 stroke:#878580,stroke-dasharray:4 4
+```
+~~~
+
+```mermaid
+flowchart LR
+  A[Draft] --> B[Review]:::warn --> C[Done]
+  style C fill:#879a39,stroke:#66800b,color:#fffcf0
+  classDef warn fill:#d0a215,stroke:#ad8301
+  linkStyle 0 stroke:#878580,stroke-dasharray:4 4
+```
+
+---
+
+## Zooming
+
+A diagram is drawn to fit the width of its box. One that has to shrink to fit gets
+zoom and pan controls: pinch or hold `Ctrl`/`⌘` and scroll to zoom at the pointer,
+drag to pan, double-click to zoom in or reset, and use the **+** / **−** buttons
+or the `+` `-` `0` and arrow keys. Scrolling the page without a modifier key never
+zooms the diagram.
 
 ---
 
 ## Directives
 
-Mermaid [directives](https://mermaid-js.github.io/mermaid/#/directives) can be configured using the recommended `%%{init: { }}%%` syntax as the first line just inside the `` ```mermaid `` block.
+Mermaid [directives](https://mermaid-js.github.io/mermaid/#/directives) and front matter (`%%{init: { }}%%` as the first line just inside the `` ```mermaid `` block) are read for the configuration they set, to the extent each diagram type supports it.
 
-From the Mermaid docs:
+Themes are the exception: `theme` and `themeVariables` are ignored, because the colours come from your site's theme (see [Theming](#theming)). To change the colours of a diagram, use `style`, `classDef` and `linkStyle` as shown above.
 
-> Directives gives a diagram author the capability to alter the appearance of a diagram before rendering by changing the applied configuration.
-
-All Mermaid directives are supported by Neko.
-
-The following sample demonstrates applying a `theme` to the diagram:
-
-~~~
-```mermaid
-%%{init: { 'theme': 'forest' }}%%
-graph LR
-    A[Hard edge] -->|Link text| B(Round edge)
-    B --> C{Decision}
-    C -->|One| D[Result one]
-    C -->|Two| E[Result two]
-```
-~~~
-
-```mermaid
-%%{init: { 'logLevel': 'debug', 'theme': 'forest' }}%%
-graph LR
-    A[Hard edge] -->|Link text| B(Round edge)
-    B --> C{Decision}
-    C -->|One| D[Result one]
-    C -->|Two| E[Result two]
-```
+JavaScript callbacks in `click` statements are ignored; `click` links to `http`, `https`, `mailto` and `tel` URLs and relative paths still work.
 
 ### Syntax highlighting block
 
@@ -429,4 +442,6 @@ sequenceDiagram
     Alice->John: Yes... John, how are you?
 ```
 
-[!ref :mermaid: Mermaid website](https://mermaid-js.github.io/mermaid/)
+[!ref :mermaid: Pele](https://pele.run)
+
+[!ref :mermaid: Mermaid syntax reference](https://mermaid-js.github.io/mermaid/)

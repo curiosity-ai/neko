@@ -1,5 +1,6 @@
 using Neko.Configuration;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Neko.Builder
@@ -106,6 +107,10 @@ namespace Neko.Builder
             sb.AppendLine("      html.dark .dark\\:border-gray-700 { border-color: var(--neko-border) !important; }");
             sb.AppendLine("      .neko-text-gradient { background-image: linear-gradient(90deg, var(--neko-grad-from, #5b94ff) 0%, var(--neko-grad-to, #a78bfa) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }");
             sb.AppendLine($"      :root {{ --neko-grad-from: {(primaryTheme.TryGetValue("400", out var pf) ? pf : "#5b94ff")}; --neko-grad-to: {(accentTheme.TryGetValue("400", out var af) ? af : "#a78bfa")}; }}");
+            // The resolved primary and accent ramps as variables (--neko-primary-50 … 950, --neko-accent-50 … 950), so a
+            // stylesheet can use the site's palette without script: the diagram theme (MermaidCss) is one.
+            sb.AppendLine("      :root { " + string.Join(" ", primaryTheme.Select(kv => $"--neko-primary-{kv.Key}: {kv.Value};")
+                .Concat(accentTheme.Select(kv => $"--neko-accent-{kv.Key}: {kv.Value};"))) + " }");
             if (_isBlogMode)
             {
                 // Blog-mode palette as CSS variables. Light always comes from
@@ -248,213 +253,134 @@ namespace Neko.Builder
             sb.AppendLine("    <script>document.addEventListener(\"DOMContentLoaded\", function() { renderMathInElement(document.body); });</script>");
         }
 
+        /// <summary>
+        /// Diagrams are drawn by Pele (https://pele.run), which turns Mermaid syntax into SVG. It is embedded in
+        /// Neko (<c>Resources/pele.min.js</c>) and never fetched from a CDN: a standalone page (deck, document)
+        /// inlines it, and a site page loads the <c>assets/pele.min.js</c> copy on demand, only when the page
+        /// has a diagram. The SVG takes its colours from CSS variables (<see cref="MermaidCss"/>), so the one
+        /// drawing follows the page's light and dark mode with no second render.
+        /// </summary>
         private void RenderHeadMermaid(StringBuilder sb, bool inline = false)
         {
+            string peleUrl = string.Empty;
             if (inline)
             {
-                sb.AppendLine("    " + StandaloneAssets.Script(StandaloneAssets.Text("standalone/mermaid.min.js")));
-                sb.AppendLine("    " + StandaloneAssets.Script(StandaloneAssets.Text("standalone/panzoom.min.js")));
+                sb.AppendLine("    " + StandaloneAssets.Script(StandaloneAssets.Text("pele.min.js")));
             }
             else
             {
-                sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>");
-                sb.AppendLine("    <script src=\"https://unpkg.com/panzoom@9.4.0/dist/panzoom.min.js\"></script>");
+                var prefix = (SiteBuilder.CurrentRoutePrefix ?? string.Empty).TrimEnd('/');
+                peleUrl = $"{prefix}/assets/pele.min.js";
             }
+
+            sb.AppendLine("    " + StandaloneAssets.Style(MermaidCss, "neko-mermaid-theme"));
             sb.AppendLine("    <script>");
-            sb.AppendLine("        mermaid.initialize({ startOnLoad: false });");
-            sb.AppendLine("        ");
-            sb.AppendLine("        // Brand the diagrams with the site's resolved palette (exposed as");
-            sb.AppendLine("        // window.nekoThemeColors / nekoAccentColors). Mermaid's 'base' theme is");
-            sb.AppendLine("        // the only one that fully honours themeVariables, so we feed it the");
-            sb.AppendLine("        // primary + accent ramps and render a light and a dark variant.");
-            sb.AppendLine("        const _nekoP = window.nekoThemeColors || {};");
-            sb.AppendLine("        const _nekoA = window.nekoAccentColors || {};");
-            sb.AppendLine("        const _P = (k, fb) => _nekoP[k] || fb;");
-            sb.AppendLine("        const _A = (k, fb) => _nekoA[k] || fb;");
-            sb.AppendLine("        const _nekoFont = (getComputedStyle(document.documentElement).fontFamily || 'Inter, sans-serif');");
-            sb.AppendLine("        const nekoMermaidLight = {");
-            sb.AppendLine("            theme: 'base',");
-            sb.AppendLine("            themeVariables: {");
-            sb.AppendLine("                fontFamily: _nekoFont,");
-            sb.AppendLine("                primaryColor: _P('100', '#dce8ff'),");
-            sb.AppendLine("                primaryBorderColor: _P('500', '#3b82f6'),");
-            sb.AppendLine("                primaryTextColor: _P('950', '#0a1535'),");
-            sb.AppendLine("                secondaryColor: _A('100', '#ede9fe'),");
-            sb.AppendLine("                secondaryBorderColor: _A('500', '#8b5cf6'),");
-            sb.AppendLine("                secondaryTextColor: _A('950', '#2e1065'),");
-            sb.AppendLine("                tertiaryColor: _P('50', '#eef4ff'),");
-            sb.AppendLine("                tertiaryBorderColor: _P('300', '#8bb6ff'),");
-            sb.AppendLine("                lineColor: _P('500', '#3b82f6'),");
-            sb.AppendLine("                textColor: '#1e293b',");
-            sb.AppendLine("            }");
-            sb.AppendLine("        };");
-            sb.AppendLine("        const nekoMermaidDark = {");
-            sb.AppendLine("            theme: 'base',");
-            sb.AppendLine("            themeVariables: {");
-            sb.AppendLine("                darkMode: true,");
-            sb.AppendLine("                fontFamily: _nekoFont,");
-            sb.AppendLine("                background: '#0b1226',");
-            sb.AppendLine("                primaryColor: _P('800', '#1e3a8a'),");
-            sb.AppendLine("                primaryBorderColor: _P('400', '#5b94ff'),");
-            sb.AppendLine("                primaryTextColor: '#e8efff',");
-            sb.AppendLine("                secondaryColor: _A('800', '#5b21b6'),");
-            sb.AppendLine("                secondaryBorderColor: _A('400', '#a78bfa'),");
-            sb.AppendLine("                secondaryTextColor: '#f3eeff',");
-            sb.AppendLine("                tertiaryColor: '#111a33',");
-            sb.AppendLine("                tertiaryBorderColor: _P('600', '#2563eb'),");
-            sb.AppendLine("                lineColor: _P('300', '#8bb6ff'),");
-            sb.AppendLine("                textColor: '#cdd7ee',");
-            sb.AppendLine("            }");
-            sb.AppendLine("        };");
-            sb.AppendLine("        ");
-            sb.AppendLine("        async function renderMermaid() {");
-            sb.AppendLine("            const elements = document.querySelectorAll('.mermaid');");
-            sb.AppendLine("            if (!elements.length) return;");
-            sb.AppendLine("            ");
-            sb.AppendLine("            for (const el of elements) {");
-            sb.AppendLine("                if (el.getAttribute('data-processed')) continue;");
-            sb.AppendLine("                el.setAttribute('data-processed', 'true');");
-            sb.AppendLine("                ");
-            sb.AppendLine("                const source = el.textContent;");
-            sb.AppendLine("                const idBase = 'mermaid-' + Math.random().toString(36).substr(2, 9);");
-            sb.AppendLine("                const idLight = idBase + '-light';");
-            sb.AppendLine("                const idDark = idBase + '-dark';");
-            sb.AppendLine("                ");
-            sb.AppendLine("                // A diagram can declare its own theme via %%{init: {'theme': ...}}%%.");
-            sb.AppendLine("                // When it does, render it verbatim so the author's choice fully wins —");
-            sb.AppendLine("                // prepending our themeVariables would otherwise leak onto their theme.");
-            sb.AppendLine("                const hasOwnTheme = /%%\\{[^}]*\\btheme\\b/i.test(source);");
-            sb.AppendLine("                // Render Light / Dark with the brand init directive (unless overridden).");
-            sb.AppendLine("                const sourceLight = hasOwnTheme ? source : `%%{init: ${JSON.stringify(nekoMermaidLight)}}%%\\n${source}`;");
-            sb.AppendLine("                const sourceDark = hasOwnTheme ? source : `%%{init: ${JSON.stringify(nekoMermaidDark)}}%%\\n${source}`;");
-            sb.AppendLine("                ");
-            sb.AppendLine("                try {");
-            sb.AppendLine("                    const rLight = await mermaid.render(idLight, sourceLight);");
-            sb.AppendLine("                    const rDark = await mermaid.render(idDark, sourceDark);");
-            sb.AppendLine("                    ");
-            sb.AppendLine("                    el.innerHTML = `");
-            sb.AppendLine("                        <div class=\"dark:hidden w-full h-full flex items-center justify-center min-h-[inherit]\">${rLight.svg}</div>");
-            sb.AppendLine("                        <div class=\"hidden dark:block w-full h-full flex items-center justify-center min-h-[inherit]\">${rDark.svg}</div>");
-            sb.AppendLine("                        <div class=\"absolute bottom-4 right-4 flex bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm z-10 overflow-hidden\">");
-            sb.AppendLine("                            <button class=\"zoom-in-btn px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors\" title=\"Zoom In\"><i class=\"fi fi-rr-plus\"></i></button>");
-            sb.AppendLine("                            <button class=\"zoom-out-btn px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors border-l border-r border-gray-200 dark:border-gray-700\" title=\"Zoom Out\"><i class=\"fi fi-rr-minus\"></i></button>");
-            sb.AppendLine("                            <button class=\"zoom-reset-btn px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors\" title=\"Reset Zoom\"><i class=\"fi fi-rr-expand\"></i></button>");
-            sb.AppendLine("                        </div>");
-            sb.AppendLine("                    `;");
-            sb.AppendLine("                    ");
-            sb.AppendLine("                    const lightSvg = el.querySelector('.dark\\\\:hidden > svg');");
-            sb.AppendLine("                    const darkSvg = el.querySelector('.hidden.dark\\\\:block > svg');");
-            sb.AppendLine("                    lightSvg.classList.add(\"w-full\");");
-            sb.AppendLine("                    lightSvg.classList.add(\"h-full\");");
-            sb.AppendLine("                    lightSvg.classList.add(\"min-h-[inherit]\");");
-            sb.AppendLine("                    darkSvg.classList.add(\"w-full\");");
-            sb.AppendLine("                    darkSvg.classList.add(\"h-full\");");
-            sb.AppendLine("                    darkSvg.classList.add(\"min-h-[inherit]\");");
-            sb.AppendLine("                    ");
-            sb.AppendLine("                    if (rLight.bindFunctions && lightSvg) rLight.bindFunctions(lightSvg);");
-            sb.AppendLine("                    if (rDark.bindFunctions && darkSvg) rDark.bindFunctions(darkSvg);");
-            sb.AppendLine("                    ");
-            sb.AppendLine("                    const instances = [];");
-            sb.AppendLine("                    // beforeWheel returns true so the wheel never zooms the diagram —");
-            sb.AppendLine("                    // this lets page scroll pass through instead of being captured.");
-            sb.AppendLine("                    const pzOptions = { bounds: true, boundsPadding: 0.1, beforeWheel: () => true };");
-            sb.AppendLine("                    if (lightSvg) instances.push({svg: lightSvg, gpz: panzoom(lightSvg, pzOptions)});");
-            sb.AppendLine("                    if (darkSvg) instances.push({svg: darkSvg, gpz: panzoom(darkSvg, pzOptions)});");
-            sb.AppendLine("                    ");
-            sb.AppendLine("                    const zoomInBtn = el.querySelector('.zoom-in-btn');");
-            sb.AppendLine("                    const zoomOutBtn = el.querySelector('.zoom-out-btn');");
-            sb.AppendLine("                    const zoomResetBtn = el.querySelector('.zoom-reset-btn');");
-            sb.AppendLine("                    ");
-            sb.AppendLine("                    if (zoomInBtn) {");
-            sb.AppendLine("                        zoomInBtn.addEventListener('click', (e) => {");
-            sb.AppendLine("                            e.preventDefault();");
-            sb.AppendLine("                            instances.forEach(instance => {");
-            sb.AppendLine("                                const rect = el.getBoundingClientRect();");
-            sb.AppendLine("                                instance.gpz.smoothZoom(rect.left + rect.width / 2, rect.top + rect.height / 2, 1.2);");
-            sb.AppendLine("                            });");
-            sb.AppendLine("                        });");
-            sb.AppendLine("                    }");
-            sb.AppendLine("                    if (zoomOutBtn) {");
-            sb.AppendLine("                        zoomOutBtn.addEventListener('click', (e) => {");
-            sb.AppendLine("                            e.preventDefault();");
-            sb.AppendLine("                            instances.forEach(instance => {");
-            sb.AppendLine("                                const rect = el.getBoundingClientRect();");
-            sb.AppendLine("                                instance.gpz.smoothZoom(rect.left + rect.width / 2, rect.top + rect.height / 2, 0.8);");
-            sb.AppendLine("                            });");
-            sb.AppendLine("                        });");
-            sb.AppendLine("                    }");
-            sb.AppendLine("                    if (zoomResetBtn) {");
-            sb.AppendLine("                        zoomResetBtn.addEventListener('click', (e) => {");
-            sb.AppendLine("                            e.preventDefault();");
-            sb.AppendLine("                            instances.forEach(instance => {");
-            sb.AppendLine("                                zoomToFit(instance.svg, instance.gpz);");
-            sb.AppendLine("                            });");
-            sb.AppendLine("                        });");
-            sb.AppendLine("                        window.setTimeout(_ => zoomResetBtn.click(), 250);");
-            sb.AppendLine("                    }");
-            sb.AppendLine("                } catch (e) {");
-            sb.AppendLine("                    console.error('Mermaid rendering failed:', e);");
-            sb.AppendLine("                    el.innerHTML = `<div class=\"text-red-500\">Error rendering diagram</div>`;");
-            sb.AppendLine("                }");
-            sb.AppendLine("            }");
-            sb.AppendLine("        }");
-            sb.AppendLine("        ");
-            sb.AppendLine("        document.addEventListener('DOMContentLoaded', renderMermaid);");
-            sb.AppendLine(@"async function zoomToFit(svg, gpz) {
-                const parent = svg.parentElement.parentElement;
-                const rectParent = parent.getBoundingClientRect();
-                const rectScene = svg.getBoundingClientRect();
-
-                const xys = gpz.getTransform();
-                const originWidth  = (rectScene.width + 20) / xys.scale;
-                const originHeight = (rectScene.height + 20) / xys.scale;
-                const zoomX = (rectParent.width - 40) / originWidth;
-                const zoomY = (rectParent.height - 40) / originHeight;
-
-                let targetScale = zoomX < zoomY ? zoomX : zoomY;
-
-                //when target scale is the same as currently, we reset back to 100%, so it acts as toggle.
-                if (Math.abs(targetScale - xys.scale) < 0.005) {
-                    //reset to 100%
-                    targetScale = 1;
-                }
-
-                const targetWidth = originWidth * xys.scale;
-                const targetHeight = originHeight * xys.scale;
-                const newX = targetWidth > rectParent.width ? -(targetWidth / 2) + rectParent.width / 2 : (rectParent.width / 2) - (targetWidth / 2);
-                const newY = targetHeight > rectParent.height ? -(targetHeight / 2) + rectParent.height / 2 : (rectParent.height / 2) - (targetHeight / 2);
-
-                //we need to cancel current running animations
-                gpz.pause();
-                gpz.resume();
-
-                const xDiff = Math.abs(newX - xys.x);
-                const yDiff = Math.abs(newX - xys.x);
-                if (xDiff > 5 || yDiff > 5) {
-                    //overything over 5px change will be animated
-                    gpz.moveBy(
-                        newX - xys.x,
-                        newY - xys.y,
-                        true
-                    );
-                    await new Promise(r => setTimeout(r, 250));
-                } else {
-                    gpz.moveBy(
-                        newX - xys.x,
-                        newY - xys.y,
-                        false
-                    );
-                }
-
-                //correct way to zoom with center of graph as origin when scaled
-                gpz.smoothZoomAbs(
-                    xys.x + originWidth * xys.scale / 2,
-                    xys.y + originHeight * xys.scale / 2,
-                    targetScale,
-                );
-            }");
+            sb.AppendLine(MermaidScript.Replace("__PELE_URL__", System.Text.Json.JsonSerializer.Serialize(peleUrl)));
             sb.AppendLine("    </script>");
         }
+
+        /// <summary>
+        /// Pele colours everything from <c>--pele-*</c> variables; this maps them onto the site's own theme
+        /// variables, the way Tesserae's <c>tss.mermaid.css</c> maps them onto its tokens. The primary and accent
+        /// ramps (<c>--neko-primary-N</c>, <c>--neko-accent-N</c>) are the site's resolved <c>theme</c> colours,
+        /// and the surfaces are the page's (<c>--neko-bg-elevated</c> and friends, which switch with
+        /// <c>html.dark</c>). Dark mode is a second set of the same variables, not a second drawing, so a diagram
+        /// follows a switch at once. The fallbacks are for a page that does not define the Neko variables.
+        /// </summary>
+        private const string MermaidCss = """
+        .mermaid {
+            --pele-bg: var(--neko-bg-elevated, #f9fafb);
+            --pele-fg: #1e293b;
+            --pele-muted: #64748b;
+            --pele-line: var(--neko-primary-500, #3b82f6);
+            --pele-surface: var(--neko-primary-100, #dce8ff);
+            --pele-surface-alt: var(--neko-primary-50, #eef4ff);
+            --pele-border: var(--neko-primary-500, #3b82f6);
+            --pele-accent: var(--neko-accent-500, #8b5cf6);
+            --pele-critical: #dc2626;
+            --pele-error: #dc2626;
+            --pele-radius: 6px;
+            --pele-series-1: var(--neko-primary-500, #3b82f6);
+            --pele-series-2: var(--neko-accent-500, #8b5cf6);
+            --pele-series-3: #059669;
+            --pele-series-4: #d97706;
+            --pele-series-5: #dc2626;
+            --pele-series-6: #0891b2;
+            --pele-series-7: #db2777;
+            --pele-series-8: #65a30d;
+            background-color: var(--pele-bg);
+        }
+        .dark .mermaid {
+            --pele-bg: var(--neko-bg-elevated, #1f2937);
+            --pele-fg: #cdd7ee;
+            --pele-muted: #94a3b8;
+            --pele-line: var(--neko-primary-300, #8bb6ff);
+            --pele-surface: var(--neko-primary-800, #1e3a8a);
+            --pele-surface-alt: var(--neko-bg-muted, #111a33);
+            --pele-border: var(--neko-primary-400, #5b94ff);
+            --pele-accent: var(--neko-accent-400, #a78bfa);
+            --pele-critical: #f87171;
+            --pele-error: #f87171;
+            --pele-series-1: var(--neko-primary-400, #5b94ff);
+            --pele-series-2: var(--neko-accent-400, #a78bfa);
+            --pele-series-3: #34d399;
+            --pele-series-4: #fbbf24;
+            --pele-series-5: #f87171;
+            --pele-series-6: #22d3ee;
+            --pele-series-7: #f472b6;
+            --pele-series-8: #a3e635;
+        }
+""";
+
+        private const string MermaidScript = """
+        // On a standalone page Pele is already inlined above; on a site page it is fetched the
+        // first time a page has a diagram (and not at all on a page without one).
+        (function () {
+            const peleUrl = __PELE_URL__;
+            let loading = null;
+            window.nekoLoadPele = function () {
+                if (window.pele) return Promise.resolve();
+                if (!loading) {
+                    loading = new Promise(function (resolve, reject) {
+                        const script = document.createElement('script');
+                        script.src = peleUrl;
+                        script.onload = resolve;
+                        script.onerror = function () { loading = null; script.remove(); reject(new Error('Could not load ' + peleUrl)); };
+                        document.head.appendChild(script);
+                    });
+                }
+                return loading;
+            };
+        })();
+
+        async function renderMermaid() {
+            const elements = Array.from(document.querySelectorAll('.mermaid')).filter(el => !el.getAttribute('data-processed'));
+            if (!elements.length) return;
+
+            // Claimed before the library is awaited, so a second call (a theme switch, a page
+            // swap) does not draw the same diagram twice.
+            elements.forEach(el => el.setAttribute('data-processed', 'true'));
+
+            try {
+                await window.nekoLoadPele();
+            } catch (e) {
+                console.error('Mermaid rendering failed:', e);
+                elements.forEach(el => { el.innerHTML = '<div class="text-red-500">Error rendering diagram</div>'; });
+                return;
+            }
+
+            for (const el of elements) {
+                const source = el.textContent;
+                el.textContent = '';
+                // mount() sizes the diagram to the box (and redraws when it resizes), shows a
+                // syntax error in the box rather than throwing, and adds zoom and pan controls
+                // when the diagram had to shrink to fit.
+                pele.mount(el, source, { onError: e => console.error('Mermaid rendering failed:', e) });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', renderMermaid);
+""";
 
         private void RenderHeadAuxiliaryScripts(StringBuilder sb)
         {

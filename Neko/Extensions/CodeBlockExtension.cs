@@ -185,7 +185,7 @@ namespace Neko.Extensions
             // Handle Mermaid
             if ((fencedBlock.Info ?? "").ToLower() == "mermaid")
             {
-                renderer.Write("<div class=\"mermaid relative flex justify-center bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden my-6 min-h-[400px]\">");
+                renderer.Write("<div class=\"mermaid relative p-4 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden my-6\">");
                 var leafBlock = obj as Markdig.Syntax.LeafBlock;
                 if (leafBlock != null)
                 {
