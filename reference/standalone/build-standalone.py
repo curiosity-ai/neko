@@ -4,9 +4,10 @@ Builds Neko/Resources/standalone/ - the third-party files presentation decks and
 paged documents inline into their HTML, so a generated deck or document is one
 self-contained file with no CDN, font host or /assets/ request.
 
-Ordinary documentation pages keep loading these from their CDNs; only the
-standalone pages (HtmlGenerator.Standalone.cs) use the vendored copies, and
-CopyAssetsAsync never copies this folder into a site's assets/.
+Standalone pages (HtmlGenerator.Standalone.cs) inline these. Site pages use some of them
+too - KaTeX with its fonts, highlightjs-line-numbers and leader-line - which
+CopyAssetsAsync copies into a site's assets/ (SiteBuilder.IsSiteLibrary); the rest of this
+folder never leaves the Neko assembly. Nothing is loaded from a CDN either way.
 
   katex.min.css, katex.min.js, auto-render.min.js, KaTeX_*.woff2   KaTeX 0.16.8
       (the stylesheet is rewritten to reference only the woff2 faces, by bare

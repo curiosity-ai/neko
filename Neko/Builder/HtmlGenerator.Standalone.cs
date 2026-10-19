@@ -133,19 +133,20 @@ namespace Neko.Builder
         }
 
         /// <summary>
-        /// Swaps a script a component writes into the content from a CDN (leader-line,
-        /// for code annotations) for the vendored copy.
+        /// Swaps a script a component writes into the content from the site's assets
+        /// (leader-line, for the workflow component) for the vendored copy, inlined once.
         /// </summary>
         private static string InlineContentCdnScripts(string html)
         {
-            const string leaderLine = "<script src=\"https://cdn.jsdelivr.net/npm/leader-line-new@1.1.9/leader-line.min.js\"></script>";
-            var first = html.IndexOf(leaderLine, System.StringComparison.Ordinal);
-            if (first < 0) return html;
-            var rest = html.Substring(first + leaderLine.Length).Replace(leaderLine, string.Empty);
-            return html.Substring(0, first)
+            var tags = LeaderLineScript.Matches(html);
+            if (tags.Count == 0) return html;
+            var first = tags[0];
+            return html.Substring(0, first.Index)
                 + StandaloneAssets.Script(StandaloneAssets.Text("standalone/leader-line.min.js"))
-                + rest;
+                + LeaderLineScript.Replace(html.Substring(first.Index + first.Length), string.Empty);
         }
+
+        private static readonly Regex LeaderLineScript = new(@"<script src=""[^""]*/assets/leader-line\.min\.js""></script>", RegexOptions.Compiled);
 
         /// <summary>The head's meta block, with a local favicon inlined.</summary>
         private void RenderStandaloneHeadMeta(StringBuilder sb, string title, string description, string sourcePath)

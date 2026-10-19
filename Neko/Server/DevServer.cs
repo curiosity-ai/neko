@@ -112,6 +112,18 @@ namespace Neko.Server
                 }
             });
 
+            // The editor of the "edit this page" modal, from the copy embedded in Neko (never a CDN).
+            app.MapGet(MonacoAssets.UrlPrefix + "{**path}", async (HttpContext context, string path) =>
+            {
+                if (!MonacoAssets.TryGet(path, out var bytes, out var contentType))
+                {
+                    context.Response.StatusCode = 404;
+                    return;
+                }
+                context.Response.ContentType = contentType;
+                await context.Response.Body.WriteAsync(bytes);
+            });
+
             app.MapGet("/api/neko/content", async (string path) => {
                 if (string.IsNullOrEmpty(path)) return Results.BadRequest("Path is required");
 

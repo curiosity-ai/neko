@@ -522,7 +522,9 @@ namespace Neko.Extensions
                     else
                     {
                         // Add script once
-                        renderer.Write("<script src=\"https://cdn.jsdelivr.net/npm/leader-line-new@1.1.9/leader-line.min.js\"></script>");
+                        // The copy embedded in Neko, linked from the site's own assets (never a CDN).
+                        var assets = (Neko.Builder.SiteBuilder.CurrentRoutePrefix ?? string.Empty).TrimEnd('/') + "/assets/";
+                        renderer.Write($"<script src=\"{assets}leader-line.min.js\"></script>");
                     }
 
                     renderer.Write("<script>");

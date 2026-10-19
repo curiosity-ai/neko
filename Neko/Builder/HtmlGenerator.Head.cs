@@ -234,24 +234,85 @@ namespace Neko.Builder
 
         }
 
+        /// <summary>
+        /// KaTeX is embedded in Neko (<c>Resources/standalone/</c>) and never fetched from a CDN. A standalone page
+        /// (deck, document) inlines it, with the fonts as data URIs. A site page loads the <c>assets/</c> copy on
+        /// demand, only when the page has math, so a page without any no longer fetches it. Either way
+        /// <c>nekoRenderMath(root)</c> typesets the math under <c>root</c>.
+        /// </summary>
         private void RenderHeadKatex(StringBuilder sb, bool inline = false)
         {
             if (inline)
             {
-                // The vendored copies (Resources/standalone/), with the fonts as data URIs.
                 // Inline scripts can't be deferred, so render once the DOM is parsed.
                 sb.AppendLine("    " + StandaloneAssets.Style(StandaloneAssets.InlinedCss("standalone/katex.min.css")));
                 sb.AppendLine("    " + StandaloneAssets.Script(StandaloneAssets.Text("standalone/katex.min.js")));
                 sb.AppendLine("    " + StandaloneAssets.Script(StandaloneAssets.Text("standalone/auto-render.min.js")));
+                sb.AppendLine("    <script>window.nekoRenderMath = function (root) { renderMathInElement(root || document.body); }; document.addEventListener(\"DOMContentLoaded\", function () { nekoRenderMath(document.body); });</script>");
+                return;
             }
-            else
-            {
-                sb.AppendLine("    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css\">");
-                sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js\"></script>");
-                sb.AppendLine("    <script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js\"></script>");
-            }
-            sb.AppendLine("    <script>document.addEventListener(\"DOMContentLoaded\", function() { renderMathInElement(document.body); });</script>");
+
+            var prefix = (SiteBuilder.CurrentRoutePrefix ?? string.Empty).TrimEnd('/');
+            sb.AppendLine("    <script>");
+            sb.AppendLine(KatexScript.Replace("__ASSETS__", System.Text.Json.JsonSerializer.Serialize($"{prefix}/assets/")));
+            sb.AppendLine("    </script>");
         }
+
+        private const string KatexScript = """
+        (function () {
+            const assets = __ASSETS__;
+            let loading = null;
+
+            // Math is written as a .math element, or as TeX in the text ($$ … $$, \( … \), \[ … \], \begin{…}),
+            // which is what auto-render looks for. Scripts and styles are not text to typeset.
+            const tex = /\$\$|\\\(|\\\[|\\begin\{/;
+            function hasMath(root) {
+                if (root.querySelector && root.querySelector('.math')) return true;
+                const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+                    acceptNode: n => /^(SCRIPT|STYLE|TEXTAREA)$/.test(n.parentNode.nodeName) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+                });
+                for (let n = walker.nextNode(); n; n = walker.nextNode()) if (tex.test(n.nodeValue)) return true;
+                return false;
+            }
+
+            function script(src) {
+                return new Promise(function (resolve, reject) {
+                    const el = document.createElement('script');
+                    el.src = src;
+                    el.onload = resolve;
+                    el.onerror = function () { el.remove(); reject(new Error('Could not load ' + src)); };
+                    document.head.appendChild(el);
+                });
+            }
+
+            function load() {
+                if (window.renderMathInElement) return Promise.resolve();
+                if (!loading) {
+                    const css = document.createElement('link');
+                    css.rel = 'stylesheet';
+                    css.href = assets + 'katex.min.css';
+                    document.head.appendChild(css);
+                    // auto-render needs katex, so they load in that order.
+                    loading = script(assets + 'katex.min.js').then(() => script(assets + 'auto-render.min.js')).catch(function (e) { loading = null; throw e; });
+                }
+                return loading;
+            }
+
+            window.nekoRenderMath = async function (root) {
+                root = root || document.body;
+                if (!hasMath(root)) return;
+                try {
+                    await load();
+                } catch (e) {
+                    console.error('Math rendering failed:', e);
+                    return;
+                }
+                renderMathInElement(root);
+            };
+
+            document.addEventListener('DOMContentLoaded', function () { nekoRenderMath(document.body); });
+        })();
+""";
 
         /// <summary>
         /// Diagrams are drawn by Pele (https://pele.run), which turns Mermaid syntax into SVG. It is embedded in
@@ -423,7 +484,7 @@ namespace Neko.Builder
             {
                 sb.AppendLine($"    <link id=\"highlight-theme\" rel=\"stylesheet\" href=\"{prefix}/assets/highlight/{darkTheme}.min.css\">");
                 sb.AppendLine($"    <script src=\"{prefix}/assets/highlight/highlight.min.js\"></script>");
-                sb.AppendLine("    <script src=\"https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js\"></script>");
+                sb.AppendLine($"    <script src=\"{prefix}/assets/highlightjs-line-numbers.min.js\"></script>");
             }
             sb.AppendLine("    <style>");
             sb.AppendLine("        /* Inline code (Tailwind Typography overrides) */");

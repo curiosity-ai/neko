@@ -808,6 +808,7 @@ namespace Neko.Builder
                 // for the utility classes actually used and emits only those, plus
                 // the shipped preflight + typography layers.
                 await GenerateTailwindAsync(OutputDirectory, generator);
+                await GenerateEmojiAsync(OutputDirectory, generator);
 
                 // Generate CNAME if applicable
                 var customCnamePath = Path.Combine(_inputDirectory, "CNAME");
@@ -1118,6 +1119,7 @@ namespace Neko.Builder
                 // refresh them from the (now-updated) cached state and emitted HTML.
                 await RewriteSearchIndexAsync();
                 await GenerateTailwindAsync(OutputDirectory, _lastGenerator);
+                await GenerateEmojiAsync(OutputDirectory, _lastGenerator);
 
                 Console.WriteLine($"Incrementally rebuilt {old.RelativePath}.");
                 return true;
@@ -1653,13 +1655,18 @@ namespace Neko.Builder
                     // generator, not standalone assets — never copy them out.
                     if (resourceName.StartsWith("Neko.Resources.tailwind.")) continue;
                     // The vendored libraries decks and documents inline into their own
-                    // HTML (HtmlGenerator.Standalone) — no page links them.
-                    if (resourceName.StartsWith("Neko.Resources.standalone.")) continue;
+                    // HTML (HtmlGenerator.Standalone). Site pages link only the ones in
+                    // SiteLibraries, from assets/ — never from a CDN — and the rest stay out.
+                    var relativeName = resourceName.Replace("Neko.Resources.", "");
+                    if (resourceName.StartsWith("Neko.Resources.standalone."))
+                    {
+                        relativeName = relativeName.Substring("standalone.".Length);
+                        if (!IsSiteLibrary(relativeName)) continue;
+                    }
 
                     // Resource name format: Neko.Resources.filename.ext
                     // We need to map it to assets/filename.ext
 
-                    var relativeName = resourceName.Replace("Neko.Resources.", "");
                     string outputPath;
 
                     // Resources in a sub-folder keep it: 'highlight' (code themes)
@@ -1749,6 +1756,61 @@ namespace Neko.Builder
                         Console.WriteLine($"Warning: Error copying {candidate}: {ex.Message}");
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// The vendored libraries (<c>Resources/standalone/</c>) that site pages load too, copied to
+        /// <c>assets/</c>: KaTeX with its fonts, the line-numbers plugin of highlight.js, and leader-line.
+        /// </summary>
+        private static bool IsSiteLibrary(string name)
+            => name is "katex.min.css" or "katex.min.js" or "auto-render.min.js" or "highlightjs-line-numbers.min.js" or "leader-line.min.js"
+            || (name.StartsWith("KaTeX_", StringComparison.Ordinal) && name.EndsWith(".woff2", StringComparison.Ordinal));
+
+        private static readonly System.Text.RegularExpressions.Regex EmojiClass = new(@"(?<![\w-])em-[a-z0-9_-]+", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        // Writes assets/emoji.css and assets/emoji/*.svg: the emoji the emitted site shows, from the
+        // Twemoji set embedded in Neko, instead of the CDN the full stylesheet points at. Like the Tailwind
+        // stylesheet it is a whole-site artifact, rebuilt from the emitted HTML.
+        private async Task GenerateEmojiAsync(string outputDir, HtmlGenerator generator = null)
+        {
+            try
+            {
+                var used = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var file in Directory.EnumerateFiles(outputDir, "*.html", SearchOption.AllDirectories))
+                {
+                    foreach (System.Text.RegularExpressions.Match m in EmojiClass.Matches(await File.ReadAllTextAsync(file)))
+                    {
+                        used.Add(m.Value);
+                    }
+                }
+
+                // A password-protected page emits only an encrypted blob; its classes were harvested before encrypting.
+                if (generator?.ProtectedPageClassTokens != null)
+                {
+                    foreach (var token in generator.ProtectedPageClassTokens)
+                    {
+                        if (token.StartsWith("em-", StringComparison.Ordinal)) used.Add(token);
+                    }
+                }
+
+                var files = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+                var css = StandaloneAssets.EmojiCssWithFiles(used, files);
+
+                var assetsDir = Path.Combine(outputDir, "assets");
+                var emojiDir = Path.Combine(assetsDir, "emoji");
+                Directory.CreateDirectory(assetsDir);
+                if (Directory.Exists(emojiDir)) Directory.Delete(emojiDir, true);
+                Directory.CreateDirectory(emojiDir);
+                foreach (var (name, bytes) in files)
+                {
+                    await File.WriteAllBytesAsync(Path.Combine(assetsDir, name.Replace('/', Path.DirectorySeparatorChar)), bytes);
+                }
+                await File.WriteAllTextAsync(Path.Combine(assetsDir, "emoji.css"), css);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: failed to write the emoji assets: {ex.Message}");
             }
         }
 

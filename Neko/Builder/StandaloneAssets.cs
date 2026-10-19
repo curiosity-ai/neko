@@ -202,7 +202,7 @@ namespace Neko.Builder
         /// </summary>
         public static string EmojiCss(ISet<string> used)
         {
-            var css = TreeShake(Text("emoji.css"), used, "em-");
+            var css = TreeShake(EmojiStylesheet(), used, "em-");
             return TwemojiUrl.Replace(css, m =>
             {
                 return Twemoji.Value.TryGetValue(m.Groups[2].Value + ".svg", out var svg)
@@ -210,6 +210,30 @@ namespace Neko.Builder
                     : "none";
             });
         }
+
+        /// <summary>
+        /// emoji.css cut down to the emoji a site shows, each pointing at its Twemoji SVG as
+        /// <c>emoji/&lt;code&gt;.svg</c> (relative to the stylesheet) instead of the jsDelivr CDN.
+        /// The SVGs it points at are added to <paramref name="files"/>, keyed by that relative path.
+        /// </summary>
+        public static string EmojiCssWithFiles(ISet<string> used, IDictionary<string, byte[]> files)
+        {
+            var css = TreeShake(EmojiStylesheet(), used, "em-");
+            return TwemojiUrl.Replace(css, m =>
+            {
+                var code = m.Groups[2].Value;
+                if (!Twemoji.Value.TryGetValue(code + ".svg", out var svg)) return "none";
+                files["emoji/" + code + ".svg"] = svg;
+                return $"url(\"emoji/{code}.svg\")";
+            });
+        }
+
+        /// <summary>
+        /// emoji.css with the size and centring every emoji needs on <c>.em</c> alone. The stylesheet shares that
+        /// rule with <c>.em-svg</c> (<c>.em,.em-svg{…}</c>), a class the markup never uses, which would make
+        /// <see cref="TreeShake"/> drop the rule for want of it and leave every emoji with no size.
+        /// </summary>
+        private static string EmojiStylesheet() => Text("emoji.css").Replace(".em,.em-svg{", ".em{");
 
         private static Dictionary<string, byte[]> LoadTwemoji()
         {

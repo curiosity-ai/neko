@@ -18,7 +18,8 @@ namespace Neko.Tests
             var html = generator.Generate(doc);
 
             Assert.That(html, Does.Contain("neko-live"));
-            Assert.That(html, Does.Contain("monaco-editor"));
+            Assert.That(html, Does.Contain("/neko-monaco/vs/loader.js"), "the editor comes from the dev server's embedded copy");
+            Assert.That(html, Does.Not.Contain("cdnjs.cloudflare.com"), "and not from a CDN");
             Assert.That(html, Does.Contain("nekoOpenEditor()"));
             Assert.That(html, Does.Contain("neko-editor-modal"));
         }
@@ -37,7 +38,7 @@ namespace Neko.Tests
             // ...but no in-browser editing chrome at all.
             Assert.That(html, Does.Not.Contain("nekoOpenEditor()"));
             Assert.That(html, Does.Not.Contain("nekoOpenEditorPath"));
-            Assert.That(html, Does.Not.Contain("monaco-editor"));
+            Assert.That(html, Does.Not.Contain("neko-monaco"));
             Assert.That(html, Does.Not.Contain("neko-editor-modal"));
             Assert.That(html, Does.Not.Contain("data-neko-reorder"));
         }
@@ -52,7 +53,7 @@ namespace Neko.Tests
             var html = generator.Generate(doc);
 
             Assert.That(html, Does.Not.Contain("neko-live"));
-            Assert.That(html, Does.Not.Contain("monaco-editor"));
+            Assert.That(html, Does.Not.Contain("neko-monaco"));
             Assert.That(html, Does.Not.Contain("nekoOpenEditor()"));
         }
     }
