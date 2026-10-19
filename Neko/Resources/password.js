@@ -221,8 +221,8 @@
             });
         }
 
-        if (window.renderMathInElement) {
-            renderMathInElement(container);
+        if (typeof nekoRenderMath === 'function') {
+            nekoRenderMath(container);
         }
 
         if (typeof renderMermaid === 'function') {

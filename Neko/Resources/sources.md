@@ -31,12 +31,12 @@
 ### Flaticon UIcons
 - **Source**: https://github.com/freepik-company/flaticon-uicons
 - **License**: Flaticon License
-- **File**: `Neko/Resources/uicons-regular-rounded.css` (Referenced via CDN)
+- **File**: `Neko/Resources/uicons-regular-rounded.css` and the woff2 fonts beside it (embedded; copied to `assets/`)
 
 ### MiniSearch
 - **Source**: https://github.com/lucaong/minisearch
 - **License**: MIT
-- **File**: `Neko/Resources/minisearch.min.js` (Downloaded from CDN)
+- **File**: `Neko/Resources/minisearch.min.js` (vendored; copied to `assets/`)
 
 ### PptxGenJS
 - **Source**: https://github.com/gitbrent/PptxGenJS
@@ -62,11 +62,18 @@
 - **File**: `Neko/Resources/pele.min.js` (the npm package's `dist/pele.global.js`, unchanged; rebuild with `reference/pele/build-pele.py`)
 - **Used for**: drawing ```` ```mermaid ```` blocks. A site page loads it from `assets/pele.min.js` on demand, only when the page has a diagram; decks and documents inline it. It is never loaded from a CDN.
 
+### Monaco Editor
+- **Source**: https://github.com/microsoft/monaco-editor
+- **License**: MIT
+- **Version**: 0.44.0
+- **File**: `Neko/Resources/monaco.zip` — the editor, its worker, the codicon font and the Markdown and YAML grammars from the npm package's `min/vs/`, rebuilt with `reference/monaco/build-monaco.py`.
+- **Used for**: the "edit this page" modal of `neko watch`. Not part of any site: the dev server serves it from the zip, in memory, at `/neko-monaco/` (`Neko/Server/MonacoAssets.cs`).
+
 ### Highlight.js
 - **Source**: https://github.com/highlightjs/highlight.js
 - **License**: BSD-3-Clause
-- **File**: `Neko/Resources/highlight/highlight.min.js` (Downloaded from CDN)
-- **Themes**: `github.min.css` (default light), `tokyo-night-dark.min.css` (default dark), `tokyo-night-light.min.css` (Downloaded from CDN)
+- **File**: `Neko/Resources/highlight/highlight.min.js` (vendored; copied to `assets/highlight/`)
+- **Themes**: `github.min.css` (default light), `tokyo-night-dark.min.css` (default dark), `tokyo-night-light.min.css` (vendored)
 
 ### Schibsted Grotesk
 - **Source**: https://github.com/schibsted/schibsted-grotesk (via Google Fonts)
@@ -88,11 +95,14 @@
   Latin and written as TrueType by `reference/deck-fonts/build-deck-fonts.py`. Used by the neko document theme and
   embedded in its Word exports.
 
-### Standalone deck and document libraries
+### Vendored libraries (`standalone/`)
 Presentation decks and paged documents embed every dependency in their own HTML
 (`Neko/Builder/HtmlGenerator.Standalone.cs`). The files below are vendored for that in
-`Neko/Resources/standalone/`, never copied to a site's `assets/` and never loaded from a
-CDN. Rebuild them with `reference/standalone/build-standalone.py`.
+`Neko/Resources/standalone/` and never loaded from a CDN. Site pages use some of them too:
+KaTeX with its fonts, highlightjs-line-numbers and leader-line are copied to the site's
+`assets/` (`SiteBuilder.IsSiteLibrary`) and loaded from there, and the Twemoji set below
+supplies the emoji a site shows as files in `assets/emoji/`. The rest stays inside the
+assembly. Rebuild them with `reference/standalone/build-standalone.py`.
 
 - **KaTeX** 0.16.8 — https://github.com/KaTeX/KaTeX — MIT. `katex.min.js`,
   `auto-render.min.js`, `katex.min.css` (rewritten to reference only the woff2 faces)
