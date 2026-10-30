@@ -28,20 +28,20 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="LlmTornado" Version="3.8.74" />
-    <PackageReference Include="Markdig" Version="1.4.0" />
+    <PackageReference Include="LlmTornado" Version="3.8.80" />
+    <PackageReference Include="Markdig" Version="1.5.1" />
     <!-- Kept at the version Transpose.Compiler.Library binds against; a lower
          direct reference would be a downgrade of its transitive dependency. -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.9.0" />
-    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.14" />
     <!-- `neko render` drives headless Chromium to capture a video page frame by frame. -->
-    <PackageReference Include="Microsoft.Playwright" Version="1.63.0" />
+    <PackageReference Include="Microsoft.Playwright" Version="1.64.1" />
     <PackageReference Include="NuGet.Versioning" Version="7.9.0" />
     <PackageReference Include="Mosaik.Core" Version="26.8.3972" />
-    <PackageReference Include="System.CommandLine" Version="2.0.13" />
+    <PackageReference Include="System.CommandLine" Version="2.0.14" />
     <!-- Compiles the live `tesserae` C# samples to JavaScript in-process. -->
-    <PackageReference Include="Transpose.Compiler.Library" Version="26.10.6985" />
+    <PackageReference Include="Transpose.Compiler.Library" Version="26.10.7419" />
     <!-- `neko render` encodes the captured frames to MP4. The same wrapper and on-demand
          downloader Mosaik uses; the binary is resolved at run time (PATH, the
          Curiosity.FFmpeg.Runtimes layout, or a one-time download), not bundled. -->
