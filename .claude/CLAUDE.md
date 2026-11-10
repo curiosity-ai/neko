@@ -1,14 +1,19 @@
 # CLAUDE.md — Neko engine development
 
-> **Standing rule: the Airbus case study is anonymous.** The slide, page or
-> section that tells the Airbus case study (its figures: nodes, edges, data
-> volume, users) never carries the Airbus name, the Airbus logo or wording
-> that identifies the customer. Call it "a global aerospace manufacturer" and
-> keep the case study's basic numbers. Everywhere else: always show the Airbus
-> logo in a logo pack (the customer logo row), and the general published
-> numbers (30TB+, 20,000+, 15%+, 70+) may sit on the same slide as the logo.
+> **Standing rule: the Airbus case study is anonymous, except for an Airbus
+> audience.** The slide, page or section that tells the Airbus case study (its
+> figures: nodes, edges, data volume, users) never carries the Airbus name,
+> the Airbus logo or wording that identifies the customer. Call it "a global
+> aerospace manufacturer" and keep the case study's basic numbers. Everywhere
+> else: always show the Airbus logo in a logo pack (the customer logo row),
+> and the general published numbers (30TB+, 20,000+, 15%+, 70+) may sit on the
+> same slide as the logo.
+> **Exception: when presenting to an Airbus audience** (the GraphOps Graph Day
+> deck, any deck or document for Airbus people), always use the Airbus logo,
+> and name Airbus, together with the case study numbers.
+> **When the audience is not clear, ask before writing the case study slide.**
 > Check every deck, page, post and note for the case study slide before
-> handing it over. (Leon's instruction, 10 November 2026, corrected.)
+> handing it over. (Leon's instruction, 10 November 2026, corrected twice.)
 
 This file applies to the **Neko repository itself** — the .NET source, the
 documentation site, and the build/test workflow. If you are editing
