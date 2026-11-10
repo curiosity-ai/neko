@@ -1,5 +1,14 @@
 # CLAUDE.md — Neko engine development
 
+> **Standing rule: never put the Airbus name next to a number.** Not on a
+> slide, in a sentence, a caption, a chart label, a quote card or a speaker
+> note: no Airbus figure (nodes, edges, terabytes, users, percentages, euros,
+> dates) and no published company figure (30TB+, 20,000+, 15%+, 70+) in the
+> same place as the name Airbus. The Airbus logo and the verbatim Airbus quote
+> may stand alone. When a case needs numbers, call the customer "an aerospace
+> company" and leave the name out. Check every deck, page, post and note for
+> this before handing it over. (Leon's instruction, 10 November 2026.)
+
 This file applies to the **Neko repository itself** — the .NET source, the
 documentation site, and the build/test workflow. If you are editing
 documentation in a Neko-generated site (a project that uses Neko), see
