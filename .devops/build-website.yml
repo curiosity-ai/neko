@@ -19,10 +19,10 @@ steps:
 - task: NuGetToolInstaller@1
 
 - task: UseDotNet@2
-  displayName: 'Use .NET 10.0 sdk'
+  displayName: 'Use .NET 11.0 SDK'
   inputs:
     packageType: sdk
-    version: 10.x
+    version: 11.x
     installationPath: $(Agent.ToolsDirectory)/dotnet
 
 - task: CmdLine@2
@@ -38,7 +38,7 @@ steps:
   displayName: 'build documentation'
   inputs:
     script: |
-      dotnet run --project $(Build.SourcesDirectory)\Neko\Neko.csproj -- build -i $(Build.SourcesDirectory)\Neko.Documentation -o $(Build.SourcesDirectory)\.build
+      dotnet run --framework net11.0 --project $(Build.SourcesDirectory)\Neko\Neko.csproj -- build -i $(Build.SourcesDirectory)\Neko.Documentation -o $(Build.SourcesDirectory)\.build
 
 - task: PowerShell@2
   displayName: 'push website changes if any'
