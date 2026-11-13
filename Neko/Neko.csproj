@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
@@ -41,7 +41,7 @@
     <PackageReference Include="Mosaik.Core" Version="26.8.3972" />
     <PackageReference Include="System.CommandLine" Version="2.0.14" />
     <!-- Compiles the live `tesserae` C# samples to JavaScript in-process. -->
-    <PackageReference Include="Transpose.Compiler.Library" Version="26.10.7419" />
+    <PackageReference Include="Transpose.Compiler.Library" Version="26.11.7971" />
     <!-- `neko render` encodes the captured frames to MP4. The same wrapper and on-demand
          downloader Mosaik uses; the binary is resolved at run time (PATH, the
          Curiosity.FFmpeg.Runtimes layout, or a one-time download), not bundled. -->
