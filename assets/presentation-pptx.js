@@ -1,0 +1,2442 @@
+/* Neko presentation mode — PowerPoint export.
+
+   Turns the deck on the page into a .pptx with PptxGenJS (vendored as
+   assets/pptxgen.bundle.js, loaded by presentation.js only when a reader asks
+   for the download). Every slide becomes native, editable PowerPoint shapes —
+   text boxes, rectangles, images — rather than a screenshot.
+
+   How: the slides are cloned into an off-screen iframe exactly 1280×720 CSS
+   pixels, the size of a 16:9 PowerPoint slide at 96 dpi. Inside that frame the
+   deck's own stylesheet lays every slide out as it would on a 16:9 screen —
+   viewport units and media queries included — and the exporter walks the
+   result, measuring each run of text, box, rule and image and placing its
+   PowerPoint counterpart at the same spot. One CSS pixel is 1/96" and one CSS
+   font pixel is 0.75pt, so the mapping is exact rather than approximate.
+
+   What does not survive: icon-font glyphs and other CSS-generated content,
+   gradients and shadows. Text keeps the deck's typefaces by name, so it
+   renders as designed where those fonts are installed and falls back to
+   PowerPoint's substitutes elsewhere. */
+(function () {
+    'use strict';
+
+    var SLIDE_W = 1280;   // CSS px — 13.333in at 96dpi, PowerPoint's LAYOUT_WIDE
+    var SLIDE_H = 720;    // CSS px — 7.5in
+    var PX_PER_IN = 96;
+    var PT_PER_PX = 0.75;
+
+    var SKIP_TAGS = { SCRIPT: 1, STYLE: 1, TEMPLATE: 1, NOSCRIPT: 1, LINK: 1, META: 1, IFRAME: 1, VIDEO: 1, AUDIO: 1, OBJECT: 1, EMBED: 1, BUTTON: 1, INPUT: 1, SELECT: 1, TEXTAREA: 1 };
+    var GENERIC_FONTS = {
+        'serif': 'Georgia',
+        'sans-serif': 'Arial',
+        'system-ui': 'Arial',
+        'ui-sans-serif': 'Arial',
+        'ui-serif': 'Georgia',
+        'monospace': 'Courier New',
+        'ui-monospace': 'Courier New',
+        'cursive': 'Comic Sans MS',
+        'fantasy': 'Impact'
+    };
+
+    // ---------------------------------------------------------------- colours
+
+    // Computed colours arrive as rgb()/rgba(), or — for color-mix() and other
+    // modern syntax — as `color(srgb r g b / a)` with 0..1 channels.
+    function parseColor(value) {
+        if (!value || value === 'transparent') return null;
+        var m = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/i.exec(value);
+        var r, g, b, a = 1;
+        if (m) {
+            r = +m[1]; g = +m[2]; b = +m[3];
+            if (m[4] !== undefined) a = parseAlpha(m[4]);
+        } else {
+            m = /^color\(srgb\s+([\d.e-]+)\s+([\d.e-]+)\s+([\d.e-]+)(?:\s*\/\s*([\d.]+%?))?\s*\)$/i.exec(value);
+            if (!m) return null;
+            r = +m[1] * 255; g = +m[2] * 255; b = +m[3] * 255;
+            if (m[4] !== undefined) a = parseAlpha(m[4]);
+        }
+        if (a <= 0.01) return null;
+        return { hex: toHex(r) + toHex(g) + toHex(b), alpha: a };
+    }
+
+    function parseAlpha(raw) {
+        return raw.charAt(raw.length - 1) === '%' ? parseFloat(raw) / 100 : parseFloat(raw);
+    }
+
+    function toHex(n) {
+        var v = Math.max(0, Math.min(255, Math.round(n))).toString(16);
+        return v.length === 1 ? '0' + v : v;
+    }
+
+    function transparency(color) {
+        return color && color.alpha < 1 ? Math.round((1 - color.alpha) * 100) : 0;
+    }
+
+    // ---------------------------------------------------------------- helpers
+
+    // The first family in the stack the browser could actually draw with — the
+    // one the reader saw. A web font that never loaded (`fonts: none`, offline,
+    // blocked) and a system font this machine lacks are both skipped, so the
+    // export names the fallback that really set the text rather than a face
+    // whose metrics nobody measured.
+    // The fonts the theme ships (assets/deckfonts/deck-fonts.json): family ->
+    // weight -> { typeface, slot, file }. A family found here is named the
+    // way PowerPoint knows the static instance at that weight, and the file is
+    // embedded in the deck (see embedFonts).
+    var fontCatalog = {};
+    var usedFonts = {};   // typeface -> slot -> file
+
+    function catalogFace(name, weight) {
+        var weights = fontCatalog[name];
+        if (!weights) return null;
+        var best = null, bestDistance = Infinity;
+        Object.keys(weights).forEach(function (w) {
+            var d = Math.abs(parseInt(w, 10) - weight);
+            // Ties go to the heavier weight, as CSS matching does above 500.
+            if (d < bestDistance || (d === bestDistance && parseInt(w, 10) > weight)) { best = weights[w]; bestDistance = d; }
+        });
+        return best;
+    }
+
+    // { name, bold }: the typeface a run is set in and whether PowerPoint's
+    // bold flag carries its weight.
+    function runFont(family, weight, doc) {
+        var stack = (family || '').split(',');
+        for (var i = 0; i < stack.length; i++) {
+            var name = stack[i].trim().replace(/^["']|["']$/g, '');
+            if (!name) continue;
+            var face = catalogFace(name, weight);
+            if (face) {
+                (usedFonts[face.typeface] = usedFonts[face.typeface] || {})[face.slot] = face.file;
+                return { name: face.typeface, bold: face.slot === 'bold', embedded: true };
+            }
+            if (GENERIC_FONTS[name.toLowerCase()] || fontAvailable(name, doc)) break;
+        }
+        return { name: fontFace(family, doc), bold: weight >= 600, embedded: false };
+    }
+
+    function fontFace(family, doc) {
+        var stack = (family || '').split(',');
+        for (var i = 0; i < stack.length; i++) {
+            var name = stack[i].trim().replace(/^["']|["']$/g, '');
+            if (!name) continue;
+            var generic = GENERIC_FONTS[name.toLowerCase()];
+            if (generic) return generic;
+            if (fontAvailable(name, doc)) return name;
+        }
+        return 'Arial';
+    }
+
+    var fontCache = {};
+
+    // The classic probe: a font is present when naming it changes the width of
+    // a test string against each generic fallback it could otherwise land on.
+    function fontAvailable(name, doc) {
+        if (name in fontCache) return fontCache[name];
+        var available = true;
+        try {
+            var ctx = (doc || document).createElement('canvas').getContext('2d');
+            var probe = 'mmmmmmmmmmlli1WQ@#';
+            var quoted = '"' + name.replace(/"/g, '') + '"';
+            available = ['monospace', 'serif', 'sans-serif'].some(function (base) {
+                ctx.font = '72px ' + base;
+                var plain = ctx.measureText(probe).width;
+                ctx.font = '72px ' + quoted + ', ' + base;
+                return ctx.measureText(probe).width !== plain;
+            });
+        } catch (e) {
+            available = true;
+        }
+        fontCache[name] = available;
+        return available;
+    }
+
+    function isVisuallyHidden(el, cs) {
+        if (cs.display === 'none' || cs.visibility === 'hidden' || cs.visibility === 'collapse') return true;
+        if (parseFloat(cs.opacity) === 0) return true;
+        // The `.sr-only` / KaTeX MathML pattern: a 1px clipped box.
+        if (cs.position === 'absolute' && (cs.overflow === 'hidden' || cs.clip !== 'auto')) {
+            var r = el.getBoundingClientRect();
+            if (r.width <= 2 && r.height <= 2) return true;
+        }
+        return false;
+    }
+
+    function isInlineLevel(cs) {
+        var d = cs.display;
+        return d === 'inline' || d === 'inline-block' || d === 'inline-flex' || d === 'contents';
+    }
+
+    function transformText(text, mode) {
+        if (mode === 'uppercase') return text.toUpperCase();
+        if (mode === 'lowercase') return text.toLowerCase();
+        if (mode === 'capitalize') return text.replace(/(^|\s)(\S)/g, function (m, s, c) { return s + c.toUpperCase(); });
+        return text;
+    }
+
+    function unionRects(rects) {
+        var box = null;
+        for (var i = 0; i < rects.length; i++) {
+            var r = rects[i];
+            if (r.width <= 0 || r.height <= 0) continue;
+            if (!box) box = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+            else {
+                box.left = Math.min(box.left, r.left);
+                box.top = Math.min(box.top, r.top);
+                box.right = Math.max(box.right, r.right);
+                box.bottom = Math.max(box.bottom, r.bottom);
+            }
+        }
+        return box;
+    }
+
+    function blobToDataUrl(blob) {
+        return new Promise(function (resolve, reject) {
+            var reader = new FileReader();
+            reader.onload = function () { resolve(reader.result); };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    function loadImage(src) {
+        return new Promise(function (resolve, reject) {
+            var img = new Image();
+            img.onload = function () { resolve(img); };
+            img.onerror = function () { reject(new Error('image failed to load')); };
+            img.src = src;
+        });
+    }
+
+    function utf8Base64(text) {
+        var bytes = new TextEncoder().encode(text);
+        var binary = '';
+        for (var i = 0; i < bytes.length; i += 0x8000) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        }
+        return btoa(binary);
+    }
+
+    function slugify(value) {
+        var slug = String(value || '')
+            .normalize('NFKD').replace(/[̀-ͯ]/g, '')
+            .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        return slug || 'presentation';
+    }
+
+    // ---------------------------------------------------------------- stage
+
+    // Build the off-screen 16:9 frame: the page's stylesheets, the deck's theme
+    // attributes and a copy of the slides (plus the brand mark, which is pinned
+    // to every slide on screen and so goes on every exported slide too).
+    function buildStage() {
+        var frame = document.createElement('iframe');
+        frame.setAttribute('aria-hidden', 'true');
+        frame.setAttribute('tabindex', '-1');
+        frame.style.cssText = 'position:fixed;left:-30000px;top:0;width:' + SLIDE_W + 'px;height:' + SLIDE_H +
+            'px;border:0;visibility:hidden;pointer-events:none;';
+        document.body.appendChild(frame);
+
+        var head = '<base href="' + escapeAttr(location.href) + '">';
+        // Every stylesheet in the document, not only the head's: a host that
+        // wraps the page in its own skeleton (a sandboxed preview) moves the
+        // page's <head> into its <body>.
+        Array.prototype.forEach.call(document.querySelectorAll('link[rel~="stylesheet"], style'), function (node) {
+            head += node.outerHTML;
+        });
+        // Freeze the entrance animation and keep a scrollbar from eating width.
+        // Only the slide being exported is shown; its own display (flex, or
+        // the grid a theme's layout uses) comes from the deck's stylesheet.
+        head += '<style>html,body{overflow:hidden!important;margin:0}' +
+            '.deck-slide{animation:none!important;transition:none!important}' +
+            '.neko-deck-body .deck-slide:not(.is-on){display:none!important}' +
+            '[' + PSEUDO_HOST + '-before]::before,[' + PSEUDO_HOST + '-after]::after{content:none!important}</style>';
+
+        var html = document.documentElement;
+        var body = document.body;
+        var deck = document.getElementById('deck');
+        var brand = document.querySelector('.deck-brand');
+
+        var slidesHtml = '';
+        Array.prototype.forEach.call(deck.querySelectorAll('.deck-slide'), function (slide) {
+            var clone = slide.cloneNode(true);
+            clone.classList.remove('is-on');
+            clone.removeAttribute('aria-hidden');
+            // A figure fitted on screen is fitted again at the export's scale.
+            clone.removeAttribute('data-figures-fit');
+            Array.prototype.forEach.call(clone.querySelectorAll('.deck-figure img'), function (img) {
+                img.style.maxHeight = '';
+                img.style.width = '';
+            });
+            slidesHtml += clone.outerHTML;
+        });
+
+        var markup = '<!DOCTYPE html><html class="' + escapeAttr(html.className) + '" data-deck-theme="' +
+            escapeAttr(html.getAttribute('data-deck-theme') || '') + '"><head><meta charset="utf-8">' + head +
+            '</head><body class="' + escapeAttr(body.className) + '" data-deck-ready="true" data-deck-accent="' +
+            escapeAttr(body.getAttribute('data-deck-accent') || '') + '"' +
+            (body.hasAttribute('data-deck-brand') ? ' data-deck-brand="true"' : '') + '>' +
+            '<main class="deck" id="deck">' + slidesHtml + '</main>' +
+            (brand ? brand.outerHTML : '') + '</body></html>';
+
+        return new Promise(function (resolve) {
+            var settled = false;
+            function done() {
+                if (settled) return;
+                settled = true;
+                var doc = frame.contentDocument;
+                // Every slide in the stage starts hidden, so no font has been
+                // requested when the frame loads and fonts.ready resolves at
+                // once: the first measurement would be of the fallback face,
+                // wider, and a headline would wrap onto a line it does not use
+                // on screen. Load, in the stage, each face the page itself has
+                // loaded before anything is measured.
+                var wanted = {};
+                if (document.fonts && document.fonts.forEach) {
+                    document.fonts.forEach(function (f) {
+                        if (f.status === 'loaded') wanted[f.family.replace(/["']/g, '') + '|' + f.weight + '|' + f.style] = true;
+                    });
+                }
+                var loads = [];
+                if (doc.fonts && doc.fonts.forEach) {
+                    doc.fonts.forEach(function (f) {
+                        if (wanted[f.family.replace(/["']/g, '') + '|' + f.weight + '|' + f.style]) loads.push(f.load().catch(function () { }));
+                    });
+                }
+                var fonts = Promise.all(loads).then(function () {
+                    return doc.fonts && doc.fonts.ready ? doc.fonts.ready : null;
+                });
+                var images = Array.prototype.map.call(doc.images, function (img) {
+                    if (img.complete) return Promise.resolve();
+                    return new Promise(function (r) { img.addEventListener('load', r, { once: true }); img.addEventListener('error', r, { once: true }); });
+                });
+                Promise.all([fonts].concat(images)).then(function () { resolve(frame); }, function () { resolve(frame); });
+            }
+            frame.addEventListener('load', done, { once: true });
+            // A stylesheet that never answers must not hang the export.
+            setTimeout(done, 10000);
+            var doc = frame.contentDocument;
+            doc.open();
+            doc.write(markup);
+            doc.close();
+        });
+    }
+
+    // ---------------------------------------------------------------- pseudo-elements
+
+    // ::before and ::after carry real content in a deck: step and agenda
+    // numbers (CSS counters), the quote marks, a timeline's rule, the square a
+    // mark steps out of. The walker only sees elements, so before a slide is
+    // walked each generated box becomes a real <span> with the pseudo-element's
+    // computed style, and the pseudo-element itself is switched off.
+    var PSEUDO_HOST = 'data-neko-pseudo';
+
+    function formatCounter(value, style) {
+        style = (style || 'decimal').trim();
+        if (style === 'decimal-leading-zero') return (value < 10 && value >= 0 ? '0' : '') + value;
+        if (style === 'lower-alpha' || style === 'lower-latin') return String.fromCharCode(96 + ((value - 1) % 26) + 1);
+        if (style === 'upper-alpha' || style === 'upper-latin') return String.fromCharCode(64 + ((value - 1) % 26) + 1);
+        if (style === 'lower-roman' || style === 'upper-roman') {
+            var map = [[1000, 'm'], [900, 'cm'], [500, 'd'], [400, 'cd'], [100, 'c'], [90, 'xc'], [50, 'l'], [40, 'xl'], [10, 'x'], [9, 'ix'], [5, 'v'], [4, 'iv'], [1, 'i']];
+            var out = '', n = value;
+            map.forEach(function (m) { while (n >= m[0]) { out += m[1]; n -= m[0]; } });
+            return style === 'upper-roman' ? out.toUpperCase() : out;
+        }
+        if (style === 'none') return '';
+        return String(value);
+    }
+
+    // `counter-reset: step 0 other 2` → [['step', 0], ['other', 2]].
+    function counterPairs(value, fallback) {
+        var pairs = [];
+        if (!value || value === 'none') return pairs;
+        var parts = value.trim().split(/\s+/);
+        for (var i = 0; i < parts.length; i++) {
+            var n = parseInt(parts[i + 1], 10);
+            if (!isNaN(n)) { pairs.push([parts[i], n]); i++; } else pairs.push([parts[i], fallback]);
+        }
+        return pairs;
+    }
+
+    // The text a `content` value generates. Strings arrive quoted and
+    // CSS-escaped; counters are read from `counters`, kept by the caller.
+    function generatedText(content, el, counters) {
+        if (!content || content === 'none' || content === 'normal') return null;
+        var out = '', re = /"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|counters?\(([^)]*)\)|attr\(([^)]*)\)|(open-quote|close-quote|no-open-quote|no-close-quote)/g, m;
+        while ((m = re.exec(content))) {
+            if (m[1] !== undefined || m[2] !== undefined) {
+                out += (m[1] !== undefined ? m[1] : m[2]).replace(/\\([0-9a-fA-F]{1,6}) ?/g, function (s, hex) {
+                    return String.fromCodePoint(parseInt(hex, 16));
+                }).replace(/\\(.)/g, '$1');
+            } else if (m[3] !== undefined) {
+                var args = m[3].split(',').map(function (s) { return s.trim(); });
+                var name = args[0];
+                var style = /^counters\(/.test(m[0]) ? args[2] : args[1];
+                out += formatCounter(counters[name] || 0, style && style.replace(/^["']|["']$/g, ''));
+            } else if (m[4] !== undefined) {
+                out += el.getAttribute(m[4].trim()) || '';
+            } else if (m[5] === 'open-quote') {
+                out += '“';
+            } else if (m[5] === 'close-quote') {
+                out += '”';
+            }
+        }
+        return out;
+    }
+
+    function materializePseudo(win, host, which, counters) {
+        var pcs = win.getComputedStyle(host, which);
+        var text = generatedText(pcs.content, host, counters);
+        if (text === null) return;
+        if (pcs.display === 'none') return;
+
+        var span = host.ownerDocument.createElement('span');
+        span.setAttribute(PSEUDO_HOST, which);
+        for (var i = 0; i < pcs.length; i++) {
+            var prop = pcs[i];
+            if (prop === 'content' || prop.indexOf('counter-') === 0) continue;
+            span.style.setProperty(prop, pcs.getPropertyValue(prop));
+        }
+        // Custom properties are not always enumerated in a computed style;
+        // the export markers must reach the span (see exportHint).
+        ['--pptx', '--pptx-line'].forEach(function (name) {
+            var value = pcs.getPropertyValue(name).trim();
+            if (value) span.style.setProperty(name, value);
+        });
+        span.textContent = text;
+        if (which === '::before') host.insertBefore(span, host.firstChild);
+        else host.appendChild(span);
+        host.setAttribute(PSEUDO_HOST + (which === '::before' ? '-before' : '-after'), '');
+    }
+
+    // Walks a slide in document order, keeping CSS counters the way the
+    // browser does for these decks (reset, then increment, then ::before,
+    // children, ::after), and materializes every generated box.
+    function materializeSlide(win, slide) {
+        if (slide.hasAttribute(PSEUDO_HOST + '-done')) return;
+        slide.setAttribute(PSEUDO_HOST + '-done', '');
+        var counters = {};
+        var hosts = [];
+        (function visit(el) {
+            var cs = win.getComputedStyle(el);
+            if (cs.display === 'none') return;
+            counterPairs(cs.counterReset, 0).forEach(function (p) { counters[p[0]] = p[1]; });
+            counterPairs(cs.counterSet, 0).forEach(function (p) { counters[p[0]] = p[1]; });
+            counterPairs(cs.counterIncrement, 1).forEach(function (p) { counters[p[0]] = (counters[p[0]] || 0) + p[1]; });
+            // Snapshot the counters for this element's ::before now; ::after
+            // sees the values after its children.
+            hosts.push([el, '::before', Object.assign({}, counters)]);
+            for (var c = el.firstElementChild; c; c = c.nextElementSibling) {
+                if (!SKIP_TAGS[c.tagName] && c.namespaceURI === 'http://www.w3.org/1999/xhtml') visit(c);
+            }
+            hosts.push([el, '::after', Object.assign({}, counters)]);
+        })(slide);
+        // Read every pseudo-element before changing the DOM, so an inserted
+        // span never shifts a selector (:first-child, +) that styles another.
+        var plan = hosts.map(function (h) {
+            var pcs = win.getComputedStyle(h[0], h[1]);
+            return { host: h[0], which: h[1], counters: h[2], content: pcs.content };
+        }).filter(function (p) { return p.content && p.content !== 'none' && p.content !== 'normal'; });
+        plan.forEach(function (p) { materializePseudo(win, p.host, p.which, p.counters); });
+    }
+
+    function escapeAttr(value) {
+        return String(value || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+
+    // ---------------------------------------------------------------- exporter
+
+    function SlideWriter(pptx, slide, win, map, slideIds) {
+        this.pptx = pptx;
+        this.slide = slide;
+        this.win = win;
+        this.map = map;           // { s, ox, oy }: CSS px in the frame → CSS px on the slide
+        this.slideIds = slideIds; // element id → slide number, for in-deck links
+        this.pending = [];        // async work (images) that must finish before writing
+    }
+
+    SlideWriter.prototype.x = function (px) { return (this.map.ox + px * this.map.s) / PX_PER_IN; };
+    SlideWriter.prototype.y = function (px) { return (this.map.oy + px * this.map.s) / PX_PER_IN; };
+    SlideWriter.prototype.len = function (px) { return (px * this.map.s) / PX_PER_IN; };
+    SlideWriter.prototype.pt = function (px) { return Math.round(px * this.map.s * PT_PER_PX * 2) / 2; };
+
+    SlideWriter.prototype.walk = function (el) {
+        if (SKIP_TAGS[el.tagName]) return;
+        var cs = this.win.getComputedStyle(el);
+        if (isVisuallyHidden(el, cs)) return;
+        // `--pptx: none` keeps a screen-only decoration out of the file.
+        if (exportHint(el, cs, '--pptx') === 'none') return;
+        if (this.line(el, cs)) return;
+
+        this.decorate(el, cs);
+
+        var tag = el.tagName.toLowerCase();
+        if (tag === 'svg') { this.addSvg(el); return; }
+        if (tag === 'img') { this.addImg(el); return; }
+        if (tag === 'canvas') { this.addCanvas(el); return; }
+
+        var group = [];
+        var mixed = null;
+        var child = el.firstChild;
+        while (child) {
+            if (child.nodeType === 3) {
+                group.push(child);
+            } else if (child.nodeType === 1 && !SKIP_TAGS[child.tagName]) {
+                var ccs = this.win.getComputedStyle(child);
+                var chip = isInlineLevel(ccs) && !isMedia(child) && isChip(child, ccs);
+                // A chip among words is one of the words: its text stays in
+                // the line, and its surface is drawn where the browser put it.
+                if (chip && (mixed === null ? (mixed = hasInlineText(el, this.win)) : mixed)) {
+                    inlineChips.add(child);
+                    group.push(child);
+                } else if (isInlineLevel(ccs) && !isMedia(child) && !chip) {
+                    group.push(child);
+                } else {
+                    this.flush(group, el, cs);
+                    group = [];
+                    this.walk(child);
+                }
+            }
+            child = child.nextSibling;
+        }
+        this.flush(group, el, cs);
+    };
+
+    // A stylesheet can ask for a native PowerPoint element where a box would
+    // not carry over. The value is read where it is set, not where it is
+    // inherited, except `--pptx: none`, which takes the content with it.
+    function exportHint(el, cs, name) {
+        var value = cs.getPropertyValue(name).trim();
+        if (!value || name === '--pptx') return value;
+        var parent = el.parentElement;
+        var inherited = parent ? el.ownerDocument.defaultView.getComputedStyle(parent).getPropertyValue(name).trim() : '';
+        return value === inherited ? '' : value;
+    }
+
+    // `--pptx-line: arrow` (or `line`): the element is a connector drawn as a
+    // thin bar, so it becomes a PowerPoint line from its left edge to its
+    // right edge through its middle, as thick as the bar, in its background
+    // colour, with an open arrowhead at the end for `arrow`. A theme draws an
+    // arrowhead with a rotated, bordered box, which the export cannot carry;
+    // that box takes `--pptx: none` and PowerPoint draws the head.
+    SlideWriter.prototype.line = function (el, cs) {
+        var kind = exportHint(el, cs, '--pptx-line');
+        if (kind !== 'arrow' && kind !== 'line') return false;
+        var r = el.getBoundingClientRect();
+        var color = parseColor(cs.backgroundColor) || parseColor(cs.borderTopColor) || parseColor(cs.color);
+        if (!color || r.width < 0.5) return true;
+        var y = r.top + r.height / 2;
+        var line = { color: color.hex, width: Math.max(0.25, this.pt(Math.max(r.height, 1))), transparency: transparency(color) };
+        if (kind === 'arrow') line.endArrowType = 'arrow';
+        this.slide.addShape(this.pptx.ShapeType.line, { x: this.x(r.left), y: this.y(y), w: this.len(r.width), h: 0, line: line });
+        return true;
+    };
+
+    // An inline-block with a surface of its own (a tag, a pill, a key cap)
+    // is a shape with its text inside it, not words in the surrounding line.
+    function isChip(el, cs) {
+        if (cs.display !== 'inline-block' && cs.display !== 'inline-flex') return false;
+        var bg = parseColor(cs.backgroundColor);
+        var border = (parseFloat(cs.borderTopWidth) || 0) > 0 && cs.borderTopStyle !== 'none';
+        return !!bg || border;
+    }
+
+    // Chips that sit in a line of text and are exported as part of it.
+    var inlineChips = new WeakSet();
+
+    // Whether an element's own inline content holds words outside any chip.
+    function hasInlineText(el, win) {
+        for (var c = el.firstChild; c; c = c.nextSibling) {
+            if (c.nodeType === 3) { if (c.textContent.trim()) return true; continue; }
+            if (c.nodeType !== 1 || SKIP_TAGS[c.tagName] || isMedia(c)) continue;
+            var cs = win.getComputedStyle(c);
+            if (isInlineLevel(cs) && !isChip(c, cs) && c.textContent.trim()) return true;
+        }
+        return false;
+    }
+
+    function isMedia(el) {
+        var tag = el.tagName.toLowerCase();
+        return tag === 'svg' || tag === 'img' || tag === 'canvas';
+    }
+
+    // Backgrounds and borders become rectangles drawn beneath the content they
+    // frame. A uniform border is the shape's outline; anything else (a single
+    // accent rule, a row divider) is drawn as thin filled bars per side.
+    SlideWriter.prototype.decorate = function (el, cs) {
+        var bg = parseColor(cs.backgroundColor);
+        var sides = ['Top', 'Right', 'Bottom', 'Left'].map(function (side) {
+            var width = parseFloat(cs['border' + side + 'Width']) || 0;
+            var style = cs['border' + side + 'Style'];
+            var color = parseColor(cs['border' + side + 'Color']);
+            return (width > 0 && style !== 'none' && style !== 'hidden' && color) ? { width: width, color: color, style: style } : null;
+        });
+        var hasBorder = sides.some(Boolean);
+
+        // A shape cut out by a CSS mask (the Escape mark is one) is its mask
+        // image filled with the background colour, not a filled rectangle.
+        var mask = cs.webkitMaskImage || cs.maskImage;
+        if (mask && mask !== 'none') {
+            if (bg) this.maskedShape(el, cs, mask, bg);
+            bg = null;
+            if (!hasBorder) return;
+        }
+
+        // Solid colour layers (`linear-gradient(c, c)` with a size and a
+        // position) are how a stylesheet draws small marks without markup.
+        this.gradientLayers(el, cs);
+
+        if (!bg && !hasBorder) return;
+
+        var rects = isInlineLevel(cs) && cs.display === 'inline' ? el.getClientRects() : [el.getBoundingClientRect()];
+        var radius = parseFloat(cs.borderTopLeftRadius) || 0;
+        var uniform = hasBorder && sides.every(function (s) {
+            return s && s.width === sides[0].width && s.color.hex === sides[0].color.hex && s.style === sides[0].style;
+        });
+
+        for (var i = 0; i < rects.length; i++) {
+            var r = rects[i];
+            if (r.width < 0.5 || r.height < 0.5) continue;
+
+            if (bg || uniform) {
+                var opts = {
+                    x: this.x(r.left), y: this.y(r.top), w: this.len(r.width), h: this.len(r.height),
+                    fill: bg ? { color: bg.hex, transparency: transparency(bg) } : { type: 'none' },
+                    line: uniform
+                        ? { color: sides[0].color.hex, width: Math.max(0.25, this.pt(sides[0].width)), transparency: transparency(sides[0].color), dashType: sides[0].style === 'dashed' ? 'dash' : (sides[0].style === 'dotted' ? 'sysDot' : 'solid') }
+                        : { type: 'none' }
+                };
+                var shape = this.pptx.ShapeType.rect;
+                if (radius > 0.5) {
+                    shape = this.pptx.ShapeType.roundRect;
+                    opts.rectRadius = this.len(Math.min(radius, r.width / 2, r.height / 2));
+                }
+                this.slide.addShape(shape, opts);
+            }
+
+            if (!uniform) {
+                if (sides[0]) this.bar(r.left, r.top, r.width, sides[0].width, sides[0].color);
+                if (sides[2]) this.bar(r.left, r.bottom - sides[2].width, r.width, sides[2].width, sides[2].color);
+                if (sides[3]) this.bar(r.left, r.top, sides[3].width, r.height, sides[3].color);
+                if (sides[1]) this.bar(r.right - sides[1].width, r.top, sides[1].width, r.height, sides[1].color);
+            }
+        }
+    };
+
+    SlideWriter.prototype.maskedShape = function (el, cs, mask, bg) {
+        var root = svgFromUrl(mask);
+        if (!root) return;
+        var r = el.getBoundingClientRect();
+        if (r.width < 0.5 || r.height < 0.5) return;
+        // Everything the mask paints opaque takes the background colour.
+        this.svgGraphic(root, r.left, r.top, r.width, r.height, 'contain', '50% 50%', bg);
+    };
+
+    // The SVG document inside a CSS `url(data:image/svg+xml…)`, or null.
+    function svgFromUrl(css) {
+        var m = /url\("(data:image\/svg\+xml[^"]*)"\)|url\('(data:image\/svg\+xml[^']*)'\)|url\((data:image\/svg\+xml[^)]*)\)/.exec(css || '');
+        if (!m) return null;
+        var data = m[1] || m[2] || m[3], text;
+        try {
+            var comma = data.indexOf(',');
+            text = /;base64,/.test(data.substring(0, comma + 1)) ? atob(data.substring(comma + 1)) : decodeURIComponent(data.substring(comma + 1));
+        } catch (e) { return null; }
+        var root = new DOMParser().parseFromString(text, 'image/svg+xml').documentElement;
+        return root && root.nodeName.toLowerCase() === 'svg' ? root : null;
+    }
+
+    // Draws an SVG (from a mask or a background) into a box the way CSS
+    // sizes it (`contain`, or a length pair) and positions it. An SVG made of
+    // plain rectangles (the Escape mark) becomes native rectangles, crisp at
+    // any size and editable; anything else goes in as a picture. `color`
+    // recolours every painted shape (a mask takes the element's background).
+    SlideWriter.prototype.svgGraphic = function (root, bx, by, bw, bh, size, position, color) {
+        var vb = (root.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
+        if (vb.length !== 4 || !(vb[2] > 0) || !(vb[3] > 0)) {
+            var ow = parseFloat(root.getAttribute('width')) || bw, oh = parseFloat(root.getAttribute('height')) || bh;
+            vb = [0, 0, ow, oh];
+        }
+        var aspect = vb[2] / vb[3];
+        var w, h;
+        var parts = (size || 'contain').split(/\s+/);
+        if (parts[0] === 'contain' || parts[0] === 'cover') {
+            w = bw; h = bh;
+            if ((w / h > aspect) === (parts[0] === 'contain')) w = h * aspect; else h = w / aspect;
+        } else {
+            w = parts[0] === 'auto' ? null : cssLength(parts[0], bw);
+            h = !parts[1] || parts[1] === 'auto' ? null : cssLength(parts[1], bh);
+            if (w === null && h === null) { w = vb[2]; h = vb[3]; }
+            else if (w === null) w = h * aspect;
+            else if (h === null) h = w / aspect;
+        }
+        var pos = (position || '50% 50%').split(/\s+/);
+        var left = bx + (/%$/.test(pos[0]) ? parseFloat(pos[0]) / 100 * (bw - w) : cssLength(pos[0], bw));
+        var top = by + (/%$/.test(pos[1] || '50%') ? parseFloat(pos[1] || '50') / 100 * (bh - h) : cssLength(pos[1], bh));
+        var sx = w / vb[2], sy = h / vb[3];
+
+        var shapes = Array.prototype.filter.call(root.querySelectorAll('*'), function (n) {
+            return ['rect', 'circle', 'ellipse', 'path', 'polygon', 'polyline', 'line', 'text', 'image', 'use'].indexOf(n.localName) >= 0;
+        });
+        var rectsOnly = shapes.length > 0 && shapes.every(function (n) { return n.localName === 'rect' && !n.getAttribute('transform') && !n.getAttribute('rx'); }) &&
+            !root.querySelector('[transform]');
+        if (rectsOnly) {
+            for (var i = 0; i < shapes.length; i++) {
+                var n = shapes[i];
+                var fill = color || parseColor(n.getAttribute('fill') || (n.closest('[fill]') && n.closest('[fill]').getAttribute('fill')) || '#000');
+                if (!fill && /^#/.test(n.getAttribute('fill') || '')) fill = { hex: n.getAttribute('fill').substring(1).toUpperCase(), alpha: 1 };
+                if (!fill) continue;
+                this.bar(left + (parseFloat(n.getAttribute('x')) - vb[0]) * sx, top + (parseFloat(n.getAttribute('y')) - vb[1]) * sy,
+                    parseFloat(n.getAttribute('width')) * sx, parseFloat(n.getAttribute('height')) * sy, fill);
+            }
+            return;
+        }
+        if (color) {
+            root.setAttribute('fill', '#' + color.hex);
+            Array.prototype.forEach.call(root.querySelectorAll('[fill]'), function (n) {
+                if (n.getAttribute('fill') !== 'none') n.setAttribute('fill', '#' + color.hex);
+            });
+        }
+        root.setAttribute('width', String(Math.round(w * 4)));
+        root.setAttribute('height', String(Math.round(h * 4)));
+        var dataUrl = 'data:image/svg+xml;base64,' + utf8Base64(new XMLSerializer().serializeToString(root));
+        var slide = this.slide, self = this;
+        this.pending.push(rasterise(dataUrl, w, h).then(function () {
+            slide.addImage({ data: dataUrl, x: self.x(left), y: self.y(top), w: self.len(w), h: self.len(h) });
+        }).catch(function (e) { console.warn('[neko] PowerPoint export skipped an SVG graphic:', e); }));
+    };
+
+    // Splits a comma-separated CSS list without splitting inside parentheses.
+    function cssList(value) {
+        var out = [], depth = 0, start = 0;
+        for (var i = 0; i < value.length; i++) {
+            var ch = value.charAt(i);
+            if (ch === '(') depth++;
+            else if (ch === ')') depth--;
+            else if (ch === ',' && depth === 0) { out.push(value.substring(start, i).trim()); start = i + 1; }
+        }
+        out.push(value.substring(start).trim());
+        return out;
+    }
+
+    function cssLength(token, basis) {
+        if (/%$/.test(token)) return parseFloat(token) / 100 * basis;
+        return parseFloat(token) || 0;
+    }
+
+    SlideWriter.prototype.gradientLayers = function (el, cs) {
+        var image = cs.backgroundImage;
+        if (!image || (image.indexOf('gradient(') < 0 && image.indexOf('data:image/svg+xml') < 0)) return;
+        var layers = cssList(image);
+        var sizes = cssList(cs.backgroundSize || 'auto');
+        var positions = cssList(cs.backgroundPosition || '0% 0%');
+        var r = el.getBoundingClientRect();
+        // Painted bottom layer first, so the first layer ends up on top.
+        for (var i = layers.length - 1; i >= 0; i--) {
+            if (/^url\(/.test(layers[i])) {
+                var svgRoot = svgFromUrl(layers[i]);
+                if (svgRoot) this.svgGraphic(svgRoot, r.left, r.top, r.width, r.height, sizes[i % sizes.length], positions[i % positions.length], null);
+                continue;
+            }
+            var gm = /^linear-gradient\((.*)\)$/.exec(layers[i]);
+            if (!gm) continue;
+            var stops = cssList(gm[1]).filter(function (t) { return !/^(to |[-\d.]+deg)/.test(t); });
+            var colors = stops.map(function (t) { return parseColor(t.replace(/\s+[-\d.]+(%|px)?(\s+[-\d.]+(%|px)?)?$/, '')); });
+            if (!colors.length || !colors[0] || !colors.every(function (c) { return c && c.hex === colors[0].hex && c.alpha === colors[0].alpha; })) continue;
+            var size = (sizes[i % sizes.length] || 'auto').split(/\s+/);
+            var w = size[0] === 'auto' || size[0] === 'cover' || size[0] === 'contain' ? r.width : cssLength(size[0], r.width);
+            var h = !size[1] || size[1] === 'auto' ? (size[0] === 'auto' ? r.height : w) : cssLength(size[1], r.height);
+            var pos = (positions[i % positions.length] || '0% 0%').split(/\s+/);
+            var px = /%$/.test(pos[0]) ? parseFloat(pos[0]) / 100 * (r.width - w) : cssLength(pos[0], r.width);
+            var py = /%$/.test(pos[1] || '0%') ? parseFloat(pos[1] || '0') / 100 * (r.height - h) : cssLength(pos[1], r.height);
+            if (w < 0.5 || h < 0.5) continue;
+            this.bar(r.left + px, r.top + py, w, h, colors[0]);
+        }
+    };
+
+    SlideWriter.prototype.bar = function (left, top, width, height, color) {
+        this.slide.addShape(this.pptx.ShapeType.rect, {
+            x: this.x(left), y: this.y(top), w: this.len(width), h: this.len(height),
+            fill: { color: color.hex, transparency: transparency(color) },
+            line: { type: 'none' }
+        });
+    };
+
+    // A run of inline content between two blocks becomes one text box sized to
+    // the lines it occupies on screen.
+    SlideWriter.prototype.flush = function (group, container, containerCs) {
+        if (!group.length) return;
+
+        // Inline elements can carry their own decoration (a tag chip, the
+        // eyebrow's rule) and can contain media; handle both before the text.
+        for (var g = 0; g < group.length; g++) {
+            if (group[g].nodeType === 1) this.inlineExtras(group[g]);
+        }
+
+        // Balanced and pretty wrapping choose their breaks by a rule PowerPoint
+        // does not have, so for those the browser's own line breaks are
+        // written into the text as line breaks.
+        // A chip in the line is drawn where the browser put it, so its words
+        // must land on the same line and baseline: the browser's breaks are
+        // written in, and each line keeps the browser's distance from the
+        // one above (a line holding a chip is taller than the others).
+        var chips = group.some(function (n) { return inlineChips.has(n); });
+        var baselines = chips ? [] : null;
+        this.lineStarts = chips || /balance|pretty/.test((containerCs.textWrap || '') + ' ' + (containerCs.textWrapStyle || ''))
+            ? browserLineStarts(group, this.win, baselines) : null;
+        var runs = [];
+        this.collectRuns(group, runs, containerCs.whiteSpace);
+        this.lineStarts = null;
+        tidyRuns(runs);
+        if (!runs.some(function (r) { return r.text.trim().length > 0; })) return;
+
+        var range = container.ownerDocument.createRange();
+        range.setStartBefore(group[0]);
+        range.setEndAfter(group[group.length - 1]);
+        var box = unionRects(range.getClientRects());
+        if (!box) return;
+
+        var ws = containerCs.whiteSpace;
+        var wraps = !(ws === 'pre' || ws === 'nowrap');
+        var align = containerCs.textAlign;
+        if (align === 'start' || align === '-webkit-auto' || align === 'auto') align = containerCs.direction === 'rtl' ? 'right' : 'left';
+        if (align === 'end') align = containerCs.direction === 'rtl' ? 'left' : 'right';
+        if (align === '-webkit-center') align = 'center';
+        if (align === 'justify') align = 'left';
+
+        // Horizontally the box spans the container's content box, not just the
+        // lines as the browser broke them: that is the measure the text was
+        // set to, and it leaves PowerPoint the same room to wrap in.
+        // In a flex or grid container the text is one item among siblings (the
+        // eyebrow's rule, say), so there it keeps its own measured extent.
+        var left = box.left;
+        var right = box.right;
+        // Balanced and pretty wrapping choose their breaks by a rule
+        // PowerPoint does not have; giving the box the width of the lines as
+        // set makes it break in the same places.
+        var balanced = /balance|pretty/.test((containerCs.textWrap || '') + ' ' + (containerCs.textWrapStyle || ''));
+        if (!/flex|grid/.test(containerCs.display) && !balanced) {
+            var outer = container.getBoundingClientRect();
+            left = Math.min(left, outer.left + (parseFloat(containerCs.borderLeftWidth) || 0) + (parseFloat(containerCs.paddingLeft) || 0));
+            right = Math.max(right, outer.right - (parseFloat(containerCs.borderRightWidth) || 0) - (parseFloat(containerCs.paddingRight) || 0));
+        }
+        var width = right - left;
+        var bullet = this.bulletFor(container, group);
+        if (bullet) {
+            left -= bullet.indentPx;
+            width += bullet.indentPx;
+        }
+
+        // PowerPoint's line breaking differs slightly from the browser's, and a
+        // substituted font runs wider: give each box a little room so a line
+        // that just fits on screen doesn't wrap in the export. Centred and
+        // right-aligned text grows symmetrically / leftwards to stay in place.
+        // Text set in a font the export embeds measures nearly the same in
+        // PowerPoint as on screen, so it gets room for rounding and tracking
+        // drift (0.3em) and no more: a word as short as "a " is wider than
+        // that, so none climbs onto the line above.
+        var embedded = runs.every(function (r) { return !r.text.trim() || r.embedded; });
+        var slack = embedded ? 0.3 * (parseFloat(containerCs.fontSize) || 16) : Math.min(16, Math.max(4, width * 0.02));
+        if (align === 'center') left -= slack / 2;
+        else if (align === 'right') left -= slack;
+        width += slack;
+
+        var lineHeight = parseFloat(containerCs.lineHeight);
+        var fontSize = parseFloat(containerCs.fontSize) || 16;
+        if (isNaN(lineHeight)) lineHeight = fontSize * 1.2;
+
+        // Text that sat on one line on screen stays on one line: a substitute
+        // font a hair wider must not push its last word onto a line of its own.
+        if (box.bottom - box.top < lineHeight * 1.5 && !runs.some(function (r) { return r.options.breakLine; })) wraps = false;
+        // The breaks around chips are the browser's; PowerPoint adds none.
+        if (chips) wraps = false;
+
+        var items = runs.map(function (run) { return { text: run.text, options: run.options }; });
+        // A paragraph takes its spacing from its first run.
+        if (baselines && baselines.length === 1 + runs.filter(function (r) { return r.options.breakLine; }).length) {
+            var line = 0, self = this;
+            items.forEach(function (item, i) {
+                if (i === 0 || !items[i - 1].options.breakLine) return;
+                line++;
+                item.options = Object.assign({}, item.options, { lineSpacing: self.pt(baselines[line] - baselines[line - 1]) });
+            });
+        }
+        if (bullet) items[0].options = Object.assign({}, items[0].options, { bullet: bullet.options });
+
+        // Place the box by its first baseline. With exact line spacing a
+        // PowerPoint renderer puts the whole of a line's extra height above
+        // its first line: the baseline lands at (spacing - BASELINE_DESCENT x size)
+        // below the box's top, measured in LibreOffice and matching
+        // PowerPoint's 80/20 split at solid leading. CSS instead centres the
+        // glyphs in the line box. So the box starts where that rule puts the
+        // browser's own first baseline.
+        var top = box.top;
+        var baseline = firstBaseline(group, this.win);
+        if (baseline !== null) top = baseline - (lineHeight - BASELINE_DESCENT * fontSize);
+        var bottom = Math.max(box.bottom, top + lineHeight);
+
+        this.slide.addText(items, {
+            x: this.x(left), y: this.y(top),
+            w: this.len(width), h: this.len(bottom - top),
+            margin: 0,
+            valign: 'top',
+            align: align,
+            wrap: wraps,
+            fit: 'none',
+            lineSpacing: this.pt(lineHeight),
+            paraSpaceBefore: 0,
+            paraSpaceAfter: 0
+        });
+    };
+
+    // Where the browser started each new line inside a run of inline content:
+    // a Map of text node -> offsets of the words that begin a line.
+    // With `baselines`, also the browser's baseline of each line, in order.
+    function browserLineStarts(group, win, baselines) {
+        var starts = new Map(), lastTop = null, doc = null;
+        (function visit(list) {
+            for (var i = 0; i < list.length; i++) {
+                var n = list[i];
+                if (n.nodeType === 1) {
+                    if (!SKIP_TAGS[n.tagName] && !isMedia(n)) visit(n.childNodes);
+                    continue;
+                }
+                if (n.nodeType !== 3) continue;
+                doc = doc || n.ownerDocument;
+                var text = n.textContent, re = /\S+/g, m;
+                while ((m = re.exec(text))) {
+                    var range = doc.createRange();
+                    range.setStart(n, m.index);
+                    range.setEnd(n, m.index + 1);
+                    var rect = range.getClientRects()[0];
+                    if (!rect) continue;
+                    var newLine = lastTop !== null && rect.top > lastTop + rect.height * 0.5;
+                    if (newLine) {
+                        if (!starts.has(n)) starts.set(n, []);
+                        starts.get(n).push(m.index);
+                    }
+                    if (baselines && (newLine || lastTop === null)) {
+                        var ascent = glyphAscent(n, text.charAt(m.index), win);
+                        baselines.push(ascent === null ? NaN : rect.top + ascent);
+                    }
+                    lastTop = rect.top;
+                }
+            }
+        })(group);
+        return starts;
+    }
+
+    // The browser's first baseline in a run of inline content: the top of the
+    // first line's glyph box plus the ascent the browser used for that font.
+    // With exact line spacing, a PowerPoint renderer sets the first baseline
+    // (spacing - BASELINE_DESCENT x font size) below the top of the text box.
+    // Measured in LibreOffice across Schibsted Grotesk and Geist Mono at 30 to
+    // 160px: 0.20 to 0.225, independent of the spacing.
+    var BASELINE_DESCENT = 0.215;
+
+    var metricsCanvas = null;
+    function firstBaseline(group, win) {
+        var node = null;
+        (function find(list) {
+            for (var i = 0; i < list.length && !node; i++) {
+                var n = list[i];
+                if (n.nodeType === 3 && n.textContent.trim()) node = n;
+                else if (n.nodeType === 1 && !SKIP_TAGS[n.tagName] && !isMedia(n)) find(n.childNodes);
+            }
+        })(group);
+        if (!node) return null;
+        var range = node.ownerDocument.createRange();
+        var text = node.textContent;
+        var start = text.search(/\S/);
+        range.setStart(node, start);
+        range.setEnd(node, start + 1);
+        var rect = range.getClientRects()[0];
+        if (!rect) return null;
+        var ascent = glyphAscent(node, text.charAt(start), win);
+        return ascent === null ? null : rect.top + ascent;
+    }
+
+    // The ascent the browser used for a character of a text node's font.
+    function glyphAscent(node, ch, win) {
+        var m = measure(node.parentElement, ch, win);
+        return m && typeof m.fontBoundingBoxAscent === 'number' ? m.fontBoundingBoxAscent : null;
+    }
+
+    function measure(el, text, win) {
+        var cs = win.getComputedStyle(el);
+        metricsCanvas = metricsCanvas || el.ownerDocument.createElement('canvas');
+        var ctx = metricsCanvas.getContext('2d');
+        ctx.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+        return ctx.measureText(text);
+    }
+
+    // The first line of a list item carries its marker. On screen the marker
+    // hangs in the list's left padding, so the text box reaches back over it.
+    SlideWriter.prototype.bulletFor = function (container, group) {
+        if (container.tagName !== 'LI') return null;
+        var first = container.firstChild;
+        while (first && first.nodeType === 3 && !first.textContent.trim()) first = first.nextSibling;
+        if (first && group.indexOf(first) < 0) return null;
+
+        var cs = this.win.getComputedStyle(container);
+        var type = cs.listStyleType;
+        if (!type || type === 'none') return null;
+
+        var list = container.parentElement;
+        var indentPx = list ? parseFloat(this.win.getComputedStyle(list).paddingLeft) || 0 : 0;
+        indentPx = Math.max(indentPx, 14);
+        var options = { indent: this.pt(indentPx) };
+
+        if (/decimal|roman|alpha|latin|greek/.test(type)) {
+            var index = 1;
+            if (list && list.tagName === 'OL') {
+                index = list.start || 1;
+                var sib = container.previousElementSibling;
+                while (sib) { if (sib.tagName === 'LI') index++; sib = sib.previousElementSibling; }
+            }
+            options.type = 'number';
+            options.numberStartAt = index;
+            options.style = type === 'lower-alpha' || type === 'lower-latin' ? 'alphaLcPeriod'
+                : type === 'upper-alpha' || type === 'upper-latin' ? 'alphaUcPeriod'
+                : type === 'lower-roman' ? 'romanLcPeriod'
+                : type === 'upper-roman' ? 'romanUcPeriod'
+                : 'arabicPeriod';
+        } else if (type === 'circle') {
+            options.characterCode = '25E6';
+        } else if (type === 'square') {
+            options.characterCode = '25AA';
+        }
+        return { indentPx: indentPx, options: options };
+    };
+
+    SlideWriter.prototype.inlineExtras = function (el) {
+        if (SKIP_TAGS[el.tagName]) return;
+        var cs = this.win.getComputedStyle(el);
+        if (isVisuallyHidden(el, cs)) return;
+        this.decorate(el, cs);
+        if (isMedia(el)) {
+            this.walk(el);
+            return;
+        }
+        for (var c = el.firstElementChild; c; c = c.nextElementSibling) this.inlineExtras(c);
+    };
+
+    SlideWriter.prototype.collectRuns = function (nodes, runs, whiteSpace) {
+        for (var i = 0; i < nodes.length; i++) {
+            var node = nodes[i];
+            if (node.nodeType === 3) {
+                this.textRun(node, runs);
+            } else if (node.nodeType === 1) {
+                if (node.tagName === 'BR') {
+                    if (runs.length) runs[runs.length - 1].options.breakLine = true;
+                    continue;
+                }
+                if (SKIP_TAGS[node.tagName] || isMedia(node)) continue;
+                var cs = this.win.getComputedStyle(node);
+                if (isVisuallyHidden(node, cs)) continue;
+                if (inlineChips.has(node)) { this.chipRuns(node, cs, runs); continue; }
+                this.collectRuns(Array.prototype.slice.call(node.childNodes), runs, cs.whiteSpace);
+            }
+        }
+    };
+
+    // A chip's words with its padding, border and margin on each side as a
+    // no-break space stretched by character spacing to that width, so the
+    // words sit inside the surface drawn behind them.
+    SlideWriter.prototype.chipRuns = function (chip, cs, runs) {
+        var inner = [];
+        this.collectRuns(Array.prototype.slice.call(chip.childNodes), inner, cs.whiteSpace);
+        if (!inner.some(function (r) { return r.text.trim(); })) return;
+        var space = measure(chip, '\u00A0', this.win).width || 0;
+        var self = this;
+        function pad(px, like) {
+            var options = Object.assign({}, like.options);
+            delete options.breakLine;
+            delete options.hyperlink;
+            options.charSpacing = Math.round((px - space) * self.map.s * PT_PER_PX * 10) / 10;
+            return { text: '\u00A0', options: options, preserve: true, embedded: like.embedded };
+        }
+        var before = (parseFloat(cs.marginLeft) || 0) + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0);
+        var after = (parseFloat(cs.marginRight) || 0) + (parseFloat(cs.borderRightWidth) || 0) + (parseFloat(cs.paddingRight) || 0);
+        // A chip that starts a line opens with that line's break.
+        var lead = 0;
+        while (lead < inner.length - 1 && !inner[lead].text && inner[lead].options.breakLine) lead++;
+        Array.prototype.push.apply(runs, inner.slice(0, lead));
+        if (before > 0.5) runs.push(pad(before, inner[lead]));
+        Array.prototype.push.apply(runs, inner.slice(lead));
+        if (after > 0.5) runs.push(pad(after, inner[inner.length - 1]));
+    };
+
+    SlideWriter.prototype.textRun = function (node, runs) {
+        var parent = node.parentElement;
+        if (!parent) return;
+        var cs = this.win.getComputedStyle(parent);
+        var ws = cs.whiteSpace;
+        var preserve = ws === 'pre' || ws === 'pre-wrap' || ws === 'break-spaces' || ws === 'pre-line';
+        var text = node.textContent;
+        if (!preserve) text = text.replace(/[\s​]+/g, ' ');
+        else if (ws === 'pre-line') text = text.replace(/[ \t]+/g, ' ');
+        text = transformText(text, cs.textTransform);
+        if (!text) return;
+        // A generated marker (a check mark, a counter) keeps the gap its
+        // margin opened as a space, since a run has no margins of its own.
+        if (parent.hasAttribute(PSEUDO_HOST)) {
+            var em = parseFloat(cs.fontSize) || 16;
+            if ((parseFloat(cs.marginRight) || 0) >= 0.15 * em) text = text + ' ';
+            if ((parseFloat(cs.marginLeft) || 0) >= 0.15 * em) text = ' ' + text;
+        }
+
+        var color = parseColor(cs.color);
+        var weight = parseInt(cs.fontWeight, 10) || 400;
+        var decoration = cs.textDecorationLine || cs.textDecoration || '';
+        var font = runFont(cs.fontFamily, weight, parent.ownerDocument);
+        var options = {
+            fontFace: font.name,
+            fontSize: Math.max(1, this.pt(parseFloat(cs.fontSize) || 16)),
+            bold: font.bold,
+            italic: cs.fontStyle === 'italic' || cs.fontStyle === 'oblique',
+            color: color ? color.hex : undefined
+        };
+        if (color && color.alpha < 1) options.transparency = transparency(color);
+        if (decoration.indexOf('underline') >= 0) options.underline = { style: 'sng' };
+        if (decoration.indexOf('line-through') >= 0) options.strike = 'sngStrike';
+        var spacing = parseFloat(cs.letterSpacing);
+        if (spacing) options.charSpacing = Math.round(spacing * this.map.s * PT_PER_PX * 10) / 10;
+
+        var link = parent.closest('a[href]');
+        if (link) {
+            var hyperlink = this.hyperlink(link);
+            if (hyperlink) options.hyperlink = hyperlink;
+        }
+
+        if (preserve && text.indexOf('\n') >= 0) {
+            var lines = text.split('\n');
+            for (var l = 0; l < lines.length; l++) {
+                var opts = Object.assign({}, options);
+                if (l < lines.length - 1) opts.breakLine = true;
+                runs.push({ text: lines[l], options: opts, preserve: true, embedded: font.embedded });
+            }
+        } else if (this.lineStarts && this.lineStarts.has(node)) {
+            // Split where the browser started a new line; each piece but the
+            // last ends its line.
+            var raw = node.textContent, cuts = this.lineStarts.get(node), from = 0;
+            var pieces = [];
+            cuts.forEach(function (at) { pieces.push(raw.substring(from, at)); from = at; });
+            pieces.push(raw.substring(from));
+            for (var q = 0; q < pieces.length; q++) {
+                var piece = transformText(pieces[q].replace(/[\s\u200B]+/g, ' '), cs.textTransform);
+                var pieceOptions = Object.assign({}, options);
+                if (q < pieces.length - 1) {
+                    piece = piece.replace(/ +$/, '');
+                    pieceOptions.breakLine = true;
+                }
+                runs.push({ text: piece, options: pieceOptions, preserve: preserve, embedded: font.embedded });
+            }
+        } else {
+            runs.push({ text: text, options: options, preserve: preserve, embedded: font.embedded });
+        }
+    };
+
+    SlideWriter.prototype.hyperlink = function (a) {
+        var raw = a.getAttribute('href') || '';
+        if (raw.charAt(0) === '#') {
+            var target = this.slideIds[raw.substring(1)];
+            if (target) return { slide: target };
+            var n = parseInt(raw.substring(1).replace(/^slide-/, ''), 10);
+            return isNaN(n) ? null : { slide: n };
+        }
+        if (/^(javascript|data):/i.test(raw)) return null;
+        try { return { url: new URL(raw, location.href).href }; } catch (e) { return null; }
+    };
+
+    // Collapse whitespace across run boundaries the way the browser does, and
+    // trim the ends of each line.
+    function tidyRuns(runs) {
+        var atLineStart = true;
+        for (var i = 0; i < runs.length; i++) {
+            var run = runs[i];
+            if (!run.preserve) {
+                if (atLineStart) run.text = run.text.replace(/^ +/, '');
+                if (run.options.breakLine || i === runs.length - 1) run.text = run.text.replace(/ +$/, '');
+            }
+            if (run.text.length) atLineStart = !!run.options.breakLine || (!run.preserve && / $/.test(run.text));
+            else if (run.options.breakLine) atLineStart = true;
+        }
+        for (var j = runs.length - 1; j >= 0; j--) {
+            if (!runs[j].text.length && !runs[j].options.breakLine) runs.splice(j, 1);
+        }
+        // A trailing hard break would open an empty last paragraph.
+        if (runs.length) delete runs[runs.length - 1].options.breakLine;
+    }
+
+    // ---------------------------------------------------------------- media
+
+    SlideWriter.prototype.placement = function (el) {
+        var r = el.getBoundingClientRect();
+        if (r.width < 1 || r.height < 1) return null;
+        return { x: this.x(r.left), y: this.y(r.top), w: this.len(r.width), h: this.len(r.height), width: r.width, height: r.height };
+    };
+
+    // One fetch per image per export, however many slides show it (the brand
+    // logo is on every one of them).
+    var imageCache = {};
+
+    SlideWriter.prototype.addImg = function (img) {
+        var place = this.placement(img);
+        if (!place) return;
+        var src = img.currentSrc || img.src;
+        if (!src) return;
+        var slide = this.slide;
+        var key = src + '|' + Math.round(place.width) + 'x' + Math.round(place.height);
+        if (!imageCache[key]) imageCache[key] = imageData(src, img, place);
+        var job = imageCache[key].then(function (data) {
+            slide.addImage({ data: data, x: place.x, y: place.y, w: place.w, h: place.h, altText: img.alt || '' });
+        }).catch(function (e) {
+            console.warn('[neko] PowerPoint export skipped an image:', src, e);
+        });
+        this.pending.push(job);
+    };
+
+    // SVG goes in as SVG — PowerPoint keeps it vector and PptxGenJS adds the
+    // PNG fallback older versions need. A raster image is re-encoded at twice
+    // its on-slide size: a 1024px logo shown at 22px would otherwise ride along
+    // at full size on every slide, and WebP/AVIF sources open everywhere.
+    function imageData(src, img, place) {
+        var load = /^data:/i.test(src) ? Promise.resolve(src) : fetch(src).then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.blob();
+        }).then(blobToDataUrl);
+        return load.then(function (data) {
+            if (/^data:image\/svg\+xml/i.test(data)) return data;
+            var natural = Math.max(img.naturalWidth || 0, img.naturalHeight || 0);
+            var target = Math.max(place.width, place.height) * 2;
+            if (natural && natural <= target && /^data:image\/(png|jpe?g|gif)/i.test(data)) return data;
+            var type = /^data:image\/jpe?g/i.test(data) ? 'image/jpeg' : 'image/png';
+            return rasterise(data, place.width, place.height, type);
+        });
+    }
+
+    SlideWriter.prototype.addCanvas = function (canvas) {
+        var place = this.placement(canvas);
+        if (!place) return;
+        try {
+            this.slide.addImage({ data: canvas.toDataURL('image/png'), x: place.x, y: place.y, w: place.w, h: place.h });
+        } catch (e) {
+            console.warn('[neko] PowerPoint export skipped a canvas:', e);
+        }
+    };
+
+    function rasterise(src, width, height, type) {
+        return loadImage(src).then(function (img) {
+            var scale = 2;
+            var canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(width * scale));
+            canvas.height = Math.max(1, Math.round(height * scale));
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+            return type === 'image/jpeg' ? canvas.toDataURL(type, 0.9) : canvas.toDataURL('image/png');
+        });
+    }
+
+    var SVG_STYLE_PROPS = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-opacity', 'stroke-dasharray',
+        'stroke-linecap', 'stroke-linejoin', 'opacity', 'color', 'font-family', 'font-size', 'font-weight',
+        'font-style', 'text-anchor', 'dominant-baseline', 'letter-spacing', 'visibility'];
+
+    var SVG_INHERITED = { 'fill': 1, 'fill-opacity': 1, 'stroke': 1, 'stroke-width': 1, 'stroke-opacity': 1, 'stroke-dasharray': 1,
+        'stroke-linecap': 1, 'stroke-linejoin': 1, 'color': 1, 'font-family': 1, 'font-size': 1, 'font-weight': 1,
+        'font-style': 1, 'text-anchor': 1, 'dominant-baseline': 1, 'letter-spacing': 1, 'visibility': 1 };
+    var SVG_INITIAL = { 'opacity': '1' };
+
+    // The computed presentation properties of one SVG element, colours split
+    // into a hex value and an opacity folded into fill-/stroke-opacity.
+    function svgPresentation(cs) {
+        var out = {};
+        for (var p = 0; p < SVG_STYLE_PROPS.length; p++) {
+            var prop = SVG_STYLE_PROPS[p];
+            var value = cs.getPropertyValue(prop);
+            if (!value) continue;
+            if (prop === 'fill' || prop === 'stroke' || prop === 'color') {
+                var c = /^(rgb|color|hsl|#)/.test(value) ? parseColor(value) : null;
+                if (c) {
+                    value = '#' + c.hex;
+                    if (prop !== 'color' && c.alpha < 1) {
+                        var opacityProp = prop + '-opacity';
+                        var own = parseFloat(cs.getPropertyValue(opacityProp));
+                        out[opacityProp] = String(Math.round((isNaN(own) ? 1 : own) * c.alpha * 1000) / 1000);
+                    }
+                } else if (prop !== 'color' && /^(rgba|color)\(/.test(value)) {
+                    value = 'none';   // fully transparent
+                }
+            }
+            if ((prop === 'fill-opacity' || prop === 'stroke-opacity') && out[prop] !== undefined) continue;
+            out[prop] = value;
+        }
+        return out;
+    }
+
+    // An inline SVG is exported as a standalone SVG image. Its look usually
+    // comes partly from the page (CSS variables, currentColor, the deck's
+    // stylesheet), none of which exists once it is a separate file — so the
+    // computed presentation properties are baked into every element first.
+    // An SVG of flat colours becomes native PowerPoint elements instead of a
+    // picture: shapes (rects, circles, ellipses, lines, polylines, polygons,
+    // paths with straight segments, Béziers and arcs) as freeforms, and text as
+    // editable text boxes in the deck's fonts. A picture is drawn from its PNG
+    // fallback by some PowerPoint versions and viewers, looks soft on a big
+    // screen, and its labels cannot be edited.
+    // Everything keeps the SVG's paint order. Shapes in one paint (fill colour,
+    // or stroke colour and drawn width) share one freeform as long as nothing
+    // drawn between them overlaps, so generated slide art of thousands of
+    // ticks stays a few shapes. Each element is placed through its own screen
+    // matrix, so viewBox, preserveAspectRatio and transforms on it or an
+    // ancestor land where the browser draws them. A dash pattern becomes the
+    // nearest PowerPoint dash style, an arrowhead marker the line's own end,
+    // a <use> the shapes it references, a rectangular clip path a cut of the
+    // geometry, rotated text a rotated text box. A path with holes keeps them
+    // where its sub-paths wind in opposite directions (PowerPoint fills a
+    // path's sub-paths alternately). What PowerPoint cannot match (gradients,
+    // patterns, masks, filters, clip paths of other shapes, text on a path,
+    // embedded images) keeps the picture, for the whole SVG.
+    var SVG_SHAPE_POINT_BUDGET = 80000;
+    var SVG_SHAPE_CONTAINERS = { g: 1, a: 1, title: 1, desc: 1, style: 1, metadata: 1, defs: 1 };
+    var SVG_SHAPE_SKIP = 'defs, symbol, marker, clipPath, mask, pattern, linearGradient, radialGradient, title, desc, metadata, style';
+    var KAPPA = 0.5522847498;
+
+    // A path's sub-paths as segments in user units: { start, segs, closed },
+    // each seg { c1, c2, p } (cubic), { q, p } (quadratic) or { p } (line).
+    function svgPathRings(d) {
+        var tokens = (d || '').match(/[MmLlHhVvCcSsQqTtAaZz]|[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?/g);
+        if (!tokens) return [];
+        if ((d || '').replace(/[MmLlHhVvCcSsQqTtAaZz\d.eE+\-,\s]/g, '').length) return null;
+        var rings = [], ring = null, x = 0, y = 0, cmd = null, i = 0, prev = null;
+        var lastC = null, lastQ = null;
+        function num() { var v = parseFloat(tokens[i++]); if (isNaN(v)) throw 0; return v; }
+        function flag() {
+            // Arc flags may be written without separators ("a1 1 0 011 1").
+            var t = tokens[i];
+            if (t === undefined) throw 0;
+            if (t.length > 1 && (t.charAt(0) === '0' || t.charAt(0) === '1') && !/[.eE]/.test(t.substring(0, 2))) {
+                tokens[i] = t.substring(1);
+                return t.charAt(0) === '1';
+            }
+            i++;
+            return parseFloat(t) !== 0;
+        }
+        function open() { if (!ring) { ring = { start: [x, y], segs: [], closed: false }; rings.push(ring); } }
+        try {
+            while (i < tokens.length) {
+                if (/[A-Za-z]/.test(tokens[i])) cmd = tokens[i++];
+                else if (!cmd) return null;
+                var rel = cmd === cmd.toLowerCase(), C = cmd.toUpperCase();
+                var ox = rel ? x : 0, oy = rel ? y : 0;
+                var nextC = null, nextQ = null;
+                switch (C) {
+                    case 'M':
+                        x = ox + num(); y = oy + num();
+                        ring = { start: [x, y], segs: [], closed: false }; rings.push(ring);
+                        cmd = rel ? 'l' : 'L';
+                        break;
+                    case 'L': x = ox + num(); y = oy + num(); open(); ring.segs.push({ p: [x, y] }); break;
+                    case 'H': x = ox + num(); open(); ring.segs.push({ p: [x, y] }); break;
+                    case 'V': y = oy + num(); open(); ring.segs.push({ p: [x, y] }); break;
+                    case 'C': case 'S':
+                        var c1 = C === 'C' ? [ox + num(), oy + num()] : (lastC ? [2 * x - lastC[0], 2 * y - lastC[1]] : [x, y]);
+                        var c2 = [ox + num(), oy + num()];
+                        x = ox + num(); y = oy + num();
+                        open(); ring.segs.push({ c1: c1, c2: c2, p: [x, y] });
+                        nextC = c2;
+                        break;
+                    case 'Q': case 'T':
+                        var q = C === 'Q' ? [ox + num(), oy + num()] : (lastQ ? [2 * x - lastQ[0], 2 * y - lastQ[1]] : [x, y]);
+                        x = ox + num(); y = oy + num();
+                        open(); ring.segs.push({ q: q, p: [x, y] });
+                        nextQ = q;
+                        break;
+                    case 'A':
+                        var rx = Math.abs(num()), ry = Math.abs(num()), rot = num(), large = flag(), sweep = flag();
+                        var x0 = x, y0 = y;
+                        x = ox + num(); y = oy + num();
+                        open();
+                        arcToCubics(x0, y0, rx, ry, rot, large, sweep, x, y).forEach(function (seg) { ring.segs.push(seg); });
+                        break;
+                    case 'Z':
+                        if (ring) { ring.closed = true; x = ring.start[0]; y = ring.start[1]; }
+                        ring = null;
+                        break;
+                    default: return null;
+                }
+                lastC = nextC; lastQ = nextQ;
+            }
+        } catch (e) { return null; }
+        return rings.filter(function (r) { return r.segs.length > 0; });
+    }
+
+    // An SVG elliptical arc as cubic Béziers (SVG 1.1 implementation notes,
+    // F.6.5 and F.6.6), at most a quarter turn each.
+    function arcToCubics(x1, y1, rx, ry, angle, large, sweep, x2, y2) {
+        if (rx === 0 || ry === 0 || (x1 === x2 && y1 === y2)) return [{ p: [x2, y2] }];
+        var phi = angle * Math.PI / 180, cos = Math.cos(phi), sin = Math.sin(phi);
+        var dx = (x1 - x2) / 2, dy = (y1 - y2) / 2;
+        var xp = cos * dx + sin * dy, yp = -sin * dx + cos * dy;
+        var lambda = (xp * xp) / (rx * rx) + (yp * yp) / (ry * ry);
+        if (lambda > 1) { rx *= Math.sqrt(lambda); ry *= Math.sqrt(lambda); }
+        var num = rx * rx * ry * ry - rx * rx * yp * yp - ry * ry * xp * xp;
+        var den = rx * rx * yp * yp + ry * ry * xp * xp;
+        var coef = (large !== sweep ? 1 : -1) * Math.sqrt(Math.max(0, num / den));
+        var cxp = coef * rx * yp / ry, cyp = -coef * ry * xp / rx;
+        var cx = cos * cxp - sin * cyp + (x1 + x2) / 2, cy = sin * cxp + cos * cyp + (y1 + y2) / 2;
+        function ang(ux, uy, vx, vy) {
+            var a = Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
+            return a;
+        }
+        var t1 = ang(1, 0, (xp - cxp) / rx, (yp - cyp) / ry);
+        var dt = ang((xp - cxp) / rx, (yp - cyp) / ry, (-xp - cxp) / rx, (-yp - cyp) / ry);
+        if (!sweep && dt > 0) dt -= 2 * Math.PI;
+        if (sweep && dt < 0) dt += 2 * Math.PI;
+        var n = Math.max(1, Math.ceil(Math.abs(dt) / (Math.PI / 2) - 1e-9));
+        var step = dt / n, k = 4 / 3 * Math.tan(step / 4), segs = [];
+        function pt(t, r) {
+            var ex = rx * Math.cos(t), ey = ry * Math.sin(t);
+            return [cx + cos * ex - sin * ey, cy + sin * ex + cos * ey];
+        }
+        function tangent(t) {
+            var ex = -rx * Math.sin(t), ey = ry * Math.cos(t);
+            return [cos * ex - sin * ey, sin * ex + cos * ey];
+        }
+        for (var s = 0; s < n; s++) {
+            var a = t1 + s * step, b = a + step;
+            var p0 = pt(a), p3 = pt(b), d0 = tangent(a), d3 = tangent(b);
+            segs.push({ c1: [p0[0] + k * d0[0], p0[1] + k * d0[1]], c2: [p3[0] - k * d3[0], p3[1] - k * d3[1]], p: s === n - 1 ? [x2, y2] : p3 });
+        }
+        return segs;
+    }
+
+    // An ellipse (or a rounded corner's quarter of one) as closed cubics.
+    function ellipseRing(cx, cy, rx, ry) {
+        var kx = rx * KAPPA, ky = ry * KAPPA;
+        return { start: [cx + rx, cy], closed: true, segs: [
+            { c1: [cx + rx, cy + ky], c2: [cx + kx, cy + ry], p: [cx, cy + ry] },
+            { c1: [cx - kx, cy + ry], c2: [cx - rx, cy + ky], p: [cx - rx, cy] },
+            { c1: [cx - rx, cy - ky], c2: [cx - kx, cy - ry], p: [cx, cy - ry] },
+            { c1: [cx + kx, cy - ry], c2: [cx + rx, cy - ky], p: [cx + rx, cy] }
+        ] };
+    }
+
+    function roundedRectRing(x, y, w, h, rx, ry) {
+        var kx = rx * KAPPA, ky = ry * KAPPA, r = x + w, b = y + h;
+        return { start: [x + rx, y], closed: true, segs: [
+            { p: [r - rx, y] }, { c1: [r - rx + kx, y], c2: [r, y + ry - ky], p: [r, y + ry] },
+            { p: [r, b - ry] }, { c1: [r, b - ry + ky], c2: [r - rx + kx, b], p: [r - rx, b] },
+            { p: [x + rx, b] }, { c1: [x + rx - kx, b], c2: [x, b - ry + ky], p: [x, b - ry] },
+            { p: [x, y + ry] }, { c1: [x, y + ry - ky], c2: [x + rx - kx, y], p: [x + rx, y] }
+        ] };
+    }
+
+    // Liang-Barsky: the part of a segment inside a box, or null.
+    function clipSegment(a, b, box) {
+        var t0 = 0, t1 = 1, dx = b[0] - a[0], dy = b[1] - a[1];
+        var p = [-dx, dx, -dy, dy], q = [a[0] - box.left, box.right - a[0], a[1] - box.top, box.bottom - a[1]];
+        for (var i = 0; i < 4; i++) {
+            if (p[i] === 0) { if (q[i] < 0) return null; continue; }
+            var t = q[i] / p[i];
+            if (p[i] < 0) { if (t > t1) return null; if (t > t0) t0 = t; }
+            else { if (t < t0) return null; if (t < t1) t1 = t; }
+        }
+        return [[a[0] + t0 * dx, a[1] + t0 * dy], [a[0] + t1 * dx, a[1] + t1 * dy]];
+    }
+
+    function boxOf(points) {
+        var b = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
+        for (var i = 0; i < points.length; i++) {
+            var p = points[i];
+            if (p[0] < b.left) b.left = p[0]; if (p[0] > b.right) b.right = p[0];
+            if (p[1] < b.top) b.top = p[1]; if (p[1] > b.bottom) b.bottom = p[1];
+        }
+        return b;
+    }
+    function boxesMeet(a, b) { return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom; }
+    function growBox(a, b) {
+        a.left = Math.min(a.left, b.left); a.top = Math.min(a.top, b.top);
+        a.right = Math.max(a.right, b.right); a.bottom = Math.max(a.bottom, b.bottom);
+    }
+
+    // Twice the signed area of a ring's outline (control points included,
+    // which is enough to tell its winding direction).
+    function ringArea(ring) {
+        var pts = ringPoints(ring), a = 0;
+        for (var i = 0; i < pts.length; i++) {
+            var p = pts[i], q = pts[(i + 1) % pts.length];
+            a += p[0] * q[1] - q[0] * p[1];
+        }
+        return a;
+    }
+
+    // PowerPoint's preset dash styles, as dash and gap in line widths.
+    var DASH_PRESETS = [['sysDot', 1, 1], ['sysDash', 3, 1], ['dash', 4, 3], ['lgDash', 8, 3]];
+    // The preset nearest an SVG dash pattern of one dash and one gap; null
+    // for a pattern with more (dash-dot rhythms stay pictures).
+    function dashPreset(dasharray, width) {
+        if (!dasharray || dasharray === 'none') return 'solid';
+        var v = dasharray.split(/[\s,]+/).map(parseFloat).filter(function (x) { return !isNaN(x); });
+        if (v.length % 2) v = v.concat(v);
+        if (v.length < 2 || !(width > 0)) return null;
+        for (var i = 2; i < v.length; i++) if (Math.abs(v[i] - v[i % 2]) > 1e-6) return null;
+        var dash = v[0] / width, gap = v[1] / width, best = null, bestDistance = Infinity;
+        DASH_PRESETS.forEach(function (p) {
+            var d = Math.abs(Math.log((dash + 0.01) / p[1])) + Math.abs(Math.log((gap + 0.01) / p[2]));
+            if (d < bestDistance) { best = p[0]; bestDistance = d; }
+        });
+        return best;
+    }
+
+    // Every point a ring's segments touch, control points included.
+    function ringPoints(ring) {
+        var pts = [ring.start];
+        ring.segs.forEach(function (s) {
+            if (s.c1) pts.push(s.c1, s.c2);
+            if (s.q) pts.push(s.q);
+            pts.push(s.p);
+        });
+        return pts;
+    }
+
+    // Splits a <text> into lines: a new one at the element and at each
+    // <tspan> that sets its own x or y. Returns null for text PowerPoint
+    // cannot set the same way (on a path, rotated glyphs, forced lengths).
+    function svgTextLines(text) {
+        if (text.querySelector('textPath') || text.hasAttribute('rotate') || text.hasAttribute('textLength') ||
+            text.querySelector('[rotate], [textLength]')) return null;
+        var lines = [], current = null;
+        (function visit(el, positioned) {
+            for (var n = el.firstChild; n; n = n.nextSibling) {
+                if (n.nodeType === 3) {
+                    if (!current || positioned) { current = []; lines.push(current); positioned = false; }
+                    current.push(n);
+                } else if (n.nodeType === 1 && n.localName === 'tspan') {
+                    visit(n, n.hasAttribute('x') || n.hasAttribute('y'));
+                } else if (n.nodeType === 1 && n.localName !== 'title' && n.localName !== 'desc') {
+                    throw 0;
+                }
+            }
+        })(text, true);
+        return lines;
+    }
+
+    // Straight segments standing in for a ring's curves, for clipping: a
+    // cubic or quadratic becomes 16 chords, close enough at slide scale.
+    function flattenRing(ring) {
+        var pts = [ring.start], from = ring.start;
+        ring.segs.forEach(function (sg) {
+            if (sg.c1 || sg.q) {
+                for (var k = 1; k <= 16; k++) {
+                    var t = k / 16, u = 1 - t, x, y;
+                    if (sg.c1) {
+                        x = u * u * u * from[0] + 3 * u * u * t * sg.c1[0] + 3 * u * t * t * sg.c2[0] + t * t * t * sg.p[0];
+                        y = u * u * u * from[1] + 3 * u * u * t * sg.c1[1] + 3 * u * t * t * sg.c2[1] + t * t * t * sg.p[1];
+                    } else {
+                        x = u * u * from[0] + 2 * u * t * sg.q[0] + t * t * sg.p[0];
+                        y = u * u * from[1] + 2 * u * t * sg.q[1] + t * t * sg.p[1];
+                    }
+                    pts.push([x, y]);
+                }
+            } else {
+                pts.push(sg.p);
+            }
+            from = sg.p;
+        });
+        return pts;
+    }
+
+    // Sutherland-Hodgman: a polygon cut to a box. The box is convex, so the
+    // area is exact; a concave polygon may gain zero-width seams, which fill
+    // nothing.
+    function clipPolygon(pts, box) {
+        var edges = [
+            function (p) { return p[0] >= box.left; }, function (a, b) { var t = (box.left - a[0]) / (b[0] - a[0]); return [box.left, a[1] + t * (b[1] - a[1])]; },
+            function (p) { return p[0] <= box.right; }, function (a, b) { var t = (box.right - a[0]) / (b[0] - a[0]); return [box.right, a[1] + t * (b[1] - a[1])]; },
+            function (p) { return p[1] >= box.top; }, function (a, b) { var t = (box.top - a[1]) / (b[1] - a[1]); return [a[0] + t * (b[0] - a[0]), box.top]; },
+            function (p) { return p[1] <= box.bottom; }, function (a, b) { var t = (box.bottom - a[1]) / (b[1] - a[1]); return [a[0] + t * (b[0] - a[0]), box.bottom]; }
+        ];
+        var out = pts;
+        for (var e = 0; e < edges.length && out.length; e += 2) {
+            var inside = edges[e], cut = edges[e + 1], input = out;
+            out = [];
+            for (var i = 0; i < input.length; i++) {
+                var cur = input[i], prev = input[(i + input.length - 1) % input.length];
+                if (inside(cur)) {
+                    if (!inside(prev)) out.push(cut(prev, cur));
+                    out.push(cur);
+                } else if (inside(prev)) {
+                    out.push(cut(prev, cur));
+                }
+            }
+        }
+        return out;
+    }
+
+    function intersectBoxes(a, b) {
+        return { left: Math.max(a.left, b.left), top: Math.max(a.top, b.top), right: Math.min(a.right, b.right), bottom: Math.min(a.bottom, b.bottom) };
+    }
+
+    function svgRef(doc, value) {
+        var m = /url\(\s*["']?#([^"')\s]+)["']?\s*\)/.exec(value || '');
+        return m ? doc.getElementById(m[1]) : null;
+    }
+
+    // The screen box a rectangular clip path leaves of an element, or false
+    // when its clip path (or an ancestor's) is any other shape.
+    function svgClipBox(el, svg, win) {
+        var box = { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity };
+        for (var up = el; up && up !== svg.parentNode && up.nodeType === 1; up = up.parentNode) {
+            var value = win.getComputedStyle(up).clipPath;
+            if (!value || value === 'none') continue;
+            var cp = svgRef(up.ownerDocument, value);
+            if (!cp || cp.localName !== 'clipPath' || (cp.getAttribute('transform') || '').trim()) return false;
+            var kids = Array.prototype.filter.call(cp.children, function (c) { return c.localName !== 'title' && c.localName !== 'desc'; });
+            if (kids.length !== 1 || kids[0].localName !== 'rect' || (kids[0].getAttribute('transform') || '').trim()) return false;
+            var r = kids[0], x = r.x.baseVal.value, y = r.y.baseVal.value, w = r.width.baseVal.value, h = r.height.baseVal.value;
+            if (cp.getAttribute('clipPathUnits') === 'objectBoundingBox') {
+                var bb = up.getBBox();
+                x = bb.x + x * bb.width; y = bb.y + y * bb.height; w *= bb.width; h *= bb.height;
+            }
+            var m = up.getScreenCTM();
+            if (!m || Math.abs(m.b) > 1e-9 || Math.abs(m.c) > 1e-9) return false;
+            var x1 = m.a * x + m.e, x2 = m.a * (x + w) + m.e, y1 = m.d * y + m.f, y2 = m.d * (y + h) + m.f;
+            box = intersectBoxes(box, { left: Math.min(x1, x2), right: Math.max(x1, x2), top: Math.min(y1, y2), bottom: Math.max(y1, y2) });
+        }
+        return box;
+    }
+
+    // An SVG marker as a PowerPoint line end: { type, size }, the type
+    // 'triangle' (a filled head), 'arrow' (an open chevron), 'stealth' (a
+    // notched head) or 'oval' (a dot), in the line's colour, and the size the
+    // nearest of PowerPoint's three (about 2, 3 and 5 line widths across).
+    // null without a marker; false for one PowerPoint cannot draw (a fixed
+    // angle, another shape, another colour).
+    function svgLineEnd(doc, win, value, atStart, lineHex, lineWidth) {
+        if (!value || value === 'none') return null;
+        var mk = svgRef(doc, value);
+        if (!mk || mk.localName !== 'marker') return false;
+        var orient = (mk.getAttribute('orient') || '0').trim();
+        if (atStart ? orient !== 'auto-start-reverse' : (orient !== 'auto' && orient !== 'auto-start-reverse')) return false;
+        var kids = Array.prototype.filter.call(mk.querySelectorAll('*'), function (c) { return ['path', 'polygon', 'polyline', 'line', 'circle', 'ellipse'].indexOf(c.localName) >= 0; });
+        if (kids.length !== 1) return false;
+        var k = kids[0], kcs = win.getComputedStyle(k);
+        var filled = kcs.fill !== 'none', stroked = kcs.stroke !== 'none';
+        var paint = parseColor(filled ? kcs.fill : kcs.stroke);
+        if (paint && paint.hex !== lineHex) return false;
+
+        // How wide the head is drawn across the line, in line widths.
+        function sized(type, extent) {
+            var vb = mk.viewBox && mk.viewBox.baseVal && mk.viewBox.baseVal.width ? mk.viewBox.baseVal : null;
+            var mw = mk.markerWidth.baseVal.value, mh = mk.markerHeight.baseVal.value;
+            var scale = vb ? Math.min(mw / vb.width, mh / vb.height) : 1;
+            var across = extent * scale;
+            if (mk.getAttribute('markerUnits') === 'userSpaceOnUse') across /= (lineWidth || 1);
+            return { type: type, size: across < 2.5 ? 'sm' : across < 4 ? 'med' : 'lg' };
+        }
+        if (k.localName === 'circle') return sized('oval', 2 * k.r.baseVal.value);
+        if (k.localName === 'ellipse') return sized('oval', 2 * k.ry.baseVal.value);
+        var pts;
+        if (k.localName === 'path') {
+            var rings = svgPathRings(k.getAttribute('d'));
+            if (!rings || rings.length !== 1 || rings[0].segs.some(function (sg) { return sg.c1 || sg.q; })) return false;
+            pts = [rings[0].start].concat(rings[0].segs.map(function (sg) { return sg.p; }));
+        } else if (k.localName === 'line') {
+            return false;
+        } else {
+            pts = [];
+            for (var i = 0; i < k.points.numberOfItems; i++) pts.push([k.points.getItem(i).x, k.points.getItem(i).y]);
+        }
+        if (pts.length > 2 && Math.abs(pts[0][0] - pts[pts.length - 1][0]) < 1e-6 && Math.abs(pts[0][1] - pts[pts.length - 1][1]) < 1e-6) pts.pop();
+        // The head points along +x in marker space: its tip is the one point
+        // furthest right.
+        var tip = 0;
+        for (var t = 1; t < pts.length; t++) if (pts[t][0] > pts[tip][0]) tip = t;
+        for (var o = 0; o < pts.length; o++) if (o !== tip && pts[o][0] > pts[tip][0] - 1e-6) return false;
+        var ys = pts.map(function (p) { return p[1]; });
+        var extent = Math.max.apply(null, ys) - Math.min.apply(null, ys);
+        if (pts.length === 3) return filled ? sized('triangle', extent) : (stroked ? sized('arrow', extent) : false);
+        if (pts.length === 4 && filled) return sized('stealth', extent);
+        return false;
+    }
+
+    // The inherited presentation properties a <use> instance takes from the
+    // <use> element where its own element and ancestors up to the referenced
+    // one say nothing.
+    var USE_INHERITED = ['fill', 'stroke', 'strokeWidth', 'fillOpacity', 'strokeOpacity', 'strokeDasharray', 'fillRule', 'visibility'];
+    function cssName(prop) { return prop.replace(/[A-Z]/g, function (c) { return '-' + c.toLowerCase(); }); }
+    function instanceStyle(el, root, useCs, win) {
+        var cs = win.getComputedStyle(el), st = {};
+        ['display', 'visibility', 'fill', 'stroke', 'strokeWidth', 'fillOpacity', 'strokeOpacity', 'strokeDasharray', 'fillRule',
+            'clipPath', 'mask', 'filter', 'markerStart', 'markerMid', 'markerEnd', 'rx', 'ry', 'opacity'].forEach(function (p) { st[p] = cs[p]; });
+        USE_INHERITED.forEach(function (p) {
+            var name = cssName(p), said = false;
+            for (var up = el; up && !said; up = up === root ? null : up.parentNode) {
+                if (up.hasAttribute && (up.hasAttribute(name) || (up.style && up.style.getPropertyValue(name)))) said = true;
+            }
+            if (!said) st[p] = useCs[p];
+        });
+        return st;
+    }
+
+    function localMatrix(node, root) {
+        var m = node.ownerSVGElement.createSVGMatrix(), chain = [];
+        for (var up = node; up; up = up === root ? null : up.parentNode) chain.unshift(up);
+        chain.forEach(function (n) {
+            if (n.transform && n.transform.baseVal && n.transform.baseVal.numberOfItems) {
+                var c = n.transform.baseVal.consolidate();
+                if (c) m = m.multiply(c.matrix);
+            }
+        });
+        return m;
+    }
+
+    SlideWriter.prototype.svgShapes = function (svg) {
+        var win = this.win, self = this, doc = svg.ownerDocument;
+        var box = svg.getBoundingClientRect();
+        if (box.width < 1 || box.height < 1) return false;
+        // The SVG's viewport clips what it draws, unless it lets it overflow.
+        var viewport = win.getComputedStyle(svg).overflow === 'visible'
+            ? { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity }
+            : { left: box.left, top: box.top, right: box.right, bottom: box.bottom };
+        var ops = [], lastByKey = {}, points = 0, serial = 0;
+
+        function opacityChain(el, stop) {
+            var opacity = 1;
+            for (var up = el; up && up !== stop && up.nodeType === 1; up = up.parentNode) opacity *= parseFloat(win.getComputedStyle(up).opacity);
+            return opacity;
+        }
+
+        function paintOf(st, opacity) {
+            var fill = st.fill === 'none' ? null : parseColor(st.fill);
+            var stroke = st.stroke === 'none' ? null : parseColor(st.stroke);
+            var width = parseFloat(st.strokeWidth) || 0;
+            if (fill) fill = { hex: fill.hex, alpha: fill.alpha * parseFloat(st.fillOpacity) * opacity };
+            if (stroke) stroke = { hex: stroke.hex, alpha: stroke.alpha * parseFloat(st.strokeOpacity) * opacity };
+            if (fill && fill.alpha <= 0) fill = null;
+            if (stroke && (stroke.alpha <= 0 || width <= 0)) stroke = null;
+            return { fill: fill, stroke: stroke, width: width };
+        }
+
+        // One shape element, in screen space through m, clipped to clip.
+        function drawShape(el, tag, st, m, opacity, clip) {
+            if (st.display === 'none' || st.visibility === 'hidden') return true;
+            if (/url\(/.test(st.fill + st.stroke + (st.mask || '') + (st.filter || '') + (st.markerMid || ''))) return false;
+            var paint = paintOf(st, opacity);
+            if (!paint.fill && !paint.stroke) return true;
+            var dash = paint.stroke ? dashPreset(st.strokeDasharray, paint.width) : 'solid';
+            if (!dash) return false;
+            var map = function (pt) { return [m.a * pt[0] + m.c * pt[1] + m.e, m.b * pt[0] + m.d * pt[1] + m.f]; };
+            var scale = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
+            var axisAligned = Math.abs(m.b) < 1e-9 && Math.abs(m.c) < 1e-9;
+
+            var rings = null, pieces = [];
+            if (tag === 'rect') {
+                var x = el.x.baseVal.value, y = el.y.baseVal.value, w = el.width.baseVal.value, h = el.height.baseVal.value;
+                if (w <= 0 || h <= 0) return true;
+                var rx = parseFloat(st.rx), ry = parseFloat(st.ry);
+                if (isNaN(rx)) rx = isNaN(ry) ? 0 : ry;
+                if (isNaN(ry)) ry = rx;
+                rx = Math.min(Math.max(rx, 0), w / 2); ry = Math.min(Math.max(ry, 0), h / 2);
+                var a = map([x, y]), b = map([x + w, y + h]);
+                var inside = Math.min(a[0], b[0]) >= clip.left && Math.max(a[0], b[0]) <= clip.right && Math.min(a[1], b[1]) >= clip.top && Math.max(a[1], b[1]) <= clip.bottom;
+                if (rx > 0 && ry > 0) rings = [roundedRectRing(x, y, w, h, rx, ry)];
+                else if (axisAligned && (inside || !paint.stroke)) {
+                    // An axis-aligned fill is clipped as a rectangle. An
+                    // outline cut by the viewport is not (that would draw an
+                    // edge where it is cut): it goes segment by segment.
+                    var l = Math.max(Math.min(a[0], b[0]), clip.left), t = Math.max(Math.min(a[1], b[1]), clip.top);
+                    var r = Math.min(Math.max(a[0], b[0]), clip.right), btm = Math.min(Math.max(a[1], b[1]), clip.bottom);
+                    if (r <= l || btm <= t) return true;
+                    pieces.push({ start: [l, t], segs: [{ p: [r, t] }, { p: [r, btm] }, { p: [l, btm] }], closed: true });
+                } else {
+                    rings = [{ start: [x, y], segs: [{ p: [x + w, y] }, { p: [x + w, y + h] }, { p: [x, y + h] }], closed: true }];
+                }
+            } else if (tag === 'circle' || tag === 'ellipse') {
+                var ecx = el.cx.baseVal.value, ecy = el.cy.baseVal.value;
+                var erx = tag === 'circle' ? el.r.baseVal.value : parseFloat(st.rx);
+                var ery = tag === 'circle' ? erx : parseFloat(st.ry);
+                if (isNaN(erx)) erx = ery; if (isNaN(ery)) ery = erx;
+                if (!(erx > 0) || !(ery > 0)) return true;
+                rings = [ellipseRing(ecx, ecy, erx, ery)];
+            } else if (tag === 'line') {
+                rings = [{ start: [el.x1.baseVal.value, el.y1.baseVal.value], segs: [{ p: [el.x2.baseVal.value, el.y2.baseVal.value] }], closed: false }];
+            } else if (tag === 'polyline' || tag === 'polygon') {
+                var pl = el.points, pts = [];
+                for (var k = 0; k < pl.numberOfItems; k++) pts.push([pl.getItem(k).x, pl.getItem(k).y]);
+                if (pts.length < 2) return true;
+                rings = [{ start: pts[0], segs: pts.slice(1).map(function (p) { return { p: p }; }), closed: tag === 'polygon' }];
+            } else {
+                rings = svgPathRings(el.getAttribute('d'));
+                if (!rings) return false;
+                // PowerPoint fills overlapping sub-paths alternately. That is
+                // the SVG result under evenodd, and under nonzero when they
+                // wind in opposite directions (the hole in an 'o'); two that
+                // overlap winding the same way keep the picture.
+                if (paint.fill && rings.length > 1 && st.fillRule !== 'evenodd') {
+                    var rb = rings.map(function (rg) { return boxOf(ringPoints(rg)); });
+                    var ra = rings.map(ringArea);
+                    for (var i1 = 0; i1 < rb.length; i1++) for (var i2 = i1 + 1; i2 < rb.length; i2++) {
+                        if (boxesMeet(rb[i1], rb[i2]) && (ra[i1] > 0) === (ra[i2] > 0)) return false;
+                    }
+                }
+            }
+
+            // Markers become the line's own ends, so a marked line is a shape
+            // of its own: one open path, drawn whole.
+            var head = null, tail = null;
+            if (paint.stroke && ((st.markerStart && st.markerStart !== 'none') || (st.markerEnd && st.markerEnd !== 'none'))) {
+                if (['line', 'polyline', 'path'].indexOf(tag) < 0 || !rings || rings.length !== 1 || rings[0].closed) return false;
+                head = svgLineEnd(doc, win, st.markerStart, true, paint.stroke.hex, paint.width);
+                tail = svgLineEnd(doc, win, st.markerEnd, false, paint.stroke.hex, paint.width);
+                if (head === false || tail === false) return false;
+            } else if (/url\(/.test((st.markerStart || '') + (st.markerEnd || ''))) {
+                return false;
+            }
+
+            var cut = false;
+            (rings || []).forEach(function (ring) {
+                if (cut) return;
+                var mapped = {
+                    start: map(ring.start), closed: ring.closed,
+                    segs: ring.segs.map(function (sg) {
+                        var o = { p: map(sg.p) };
+                        if (sg.c1) { o.c1 = map(sg.c1); o.c2 = map(sg.c2); }
+                        if (sg.q) o.q = map(sg.q);
+                        return o;
+                    })
+                };
+                var rbox = boxOf(ringPoints(mapped));
+                if (rbox.left >= clip.left && rbox.right <= clip.right && rbox.top >= clip.top && rbox.bottom <= clip.bottom) { pieces.push(mapped); return; }
+                if (rbox.right <= clip.left || rbox.left >= clip.right || rbox.bottom <= clip.top || rbox.top >= clip.bottom) return;
+                // Cut by the viewport or a clip path. A marked line, or a
+                // shape both filled and outlined, would draw wrong cut (an
+                // end on the cut, an outline along it): those keep the picture.
+                if (head || tail || (paint.fill && paint.stroke)) { cut = true; return; }
+                var flat = flattenRing(mapped);
+                if (paint.fill) {
+                    var poly = clipPolygon(flat, clip);
+                    if (poly.length >= 3) pieces.push({ start: poly[0], segs: poly.slice(1).map(function (p) { return { p: p }; }), closed: true });
+                    return;
+                }
+                if (mapped.closed) flat.push(flat[0]);
+                for (var si = 0; si + 1 < flat.length; si++) {
+                    var seg = clipSegment(flat[si], flat[si + 1], clip);
+                    if (seg) pieces.push({ start: seg[0], segs: [{ p: seg[1] }], closed: false });
+                }
+            });
+            if (cut) return false;
+            if (!pieces.length) return true;
+
+            var drawnWidth = paint.stroke ? Math.round(paint.width * scale * 100) / 100 : 0;
+            var key = (paint.fill ? paint.fill.hex + '/' + paint.fill.alpha.toFixed(3) : '-') + '|' +
+                (paint.stroke ? paint.stroke.hex + '/' + paint.stroke.alpha.toFixed(3) + '/' + drawnWidth + '/' + dash : '-') +
+                (head || tail ? '|ends' + (serial++) : '');
+            var ebox = boxOf([].concat.apply([], pieces.map(ringPoints)));
+            // Join the last shape in this paint unless something drawn after
+            // it overlaps this element (that would change the order), or, for
+            // a fill, a part of it does (the alternate fill would cut a hole
+            // where the two overlap).
+            var target = lastByKey[key], into = null;
+            if (target !== undefined) {
+                into = ops[target];
+                for (var oi = target + 1; oi < ops.length && into; oi++) if (boxesMeet(ops[oi].box, ebox)) into = null;
+                if (into && paint.fill) {
+                    for (var bi = 0; bi < into.fillBoxes.length; bi++) if (boxesMeet(into.fillBoxes[bi], ebox)) { into = null; break; }
+                }
+            }
+            if (!into) {
+                into = { kind: 'shape', fill: paint.fill, stroke: paint.stroke, width: drawnWidth, dash: dash, head: head, tail: tail, pieces: [], fillBoxes: [], box: { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity } };
+                ops.push(into);
+                lastByKey[key] = ops.length - 1;
+            }
+            if (paint.fill) into.fillBoxes.push(ebox);
+            for (var pi = 0; pi < pieces.length; pi++) {
+                into.pieces.push(pieces[pi]);
+                points += pieces[pi].segs.length * 2 + 2;
+            }
+            growBox(into.box, ebox);
+            return points <= SVG_SHAPE_POINT_BUDGET;
+        }
+
+        var SHAPES = ['rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'path'];
+        var nodes = svg.querySelectorAll('*');
+        try {
+            for (var n = 0; n < nodes.length; n++) {
+                var el = nodes[n], tag = el.localName;
+                if (el.namespaceURI !== 'http://www.w3.org/2000/svg') return false;
+                if (el.closest(SVG_SHAPE_SKIP)) continue;
+                if (SVG_SHAPE_CONTAINERS[tag]) continue;
+                if (el.parentNode && el.parentNode.closest && el.parentNode.closest('text')) continue;
+                var cs = win.getComputedStyle(el);
+                if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+                var clipBox = svgClipBox(el, svg, win);
+                if (clipBox === false) return false;
+                var clip = intersectBoxes(viewport, clipBox);
+                var m = el.getScreenCTM();
+                if (!m) return false;
+
+                if (tag === 'text') {
+                    if (/url\(/.test(cs.mask + cs.filter)) return false;
+                    var lines = svgTextLines(el);
+                    if (lines === null) return false;
+                    for (var li = 0; li < lines.length; li++) {
+                        var op = self.svgTextOp(el, lines[li], m, lines.length);
+                        if (op === false) return false;
+                        if (op) ops.push(op);
+                    }
+                    continue;
+                }
+
+                if (tag === 'use') {
+                    // A <use> draws a copy of what it references, moved by its
+                    // x and y, in the styles it passes down.
+                    var ref = doc.getElementById((el.href && el.href.baseVal || el.getAttribute('href') || '').replace(/^#/, ''));
+                    if (!ref || ref.namespaceURI !== 'http://www.w3.org/2000/svg') return false;
+                    if (ref.localName === 'symbol' && ref.hasAttribute('viewBox')) return false;
+                    if (/url\(/.test(cs.mask + cs.filter)) return false;
+                    var base = m.translate(el.x.baseVal.value, el.y.baseVal.value);
+                    var useOpacity = opacityChain(el, svg.parentNode);
+                    var members = [ref].concat(Array.prototype.slice.call(ref.querySelectorAll('*')));
+                    for (var u = 0; u < members.length; u++) {
+                        var node = members[u], ntag = node.localName;
+                        if (ntag === 'g' || ntag === 'symbol' || ntag === 'title' || ntag === 'desc') continue;
+                        if (SHAPES.indexOf(ntag) < 0) return false;
+                        var mm = base.multiply(localMatrix(node, ref));
+                        var st = instanceStyle(node, ref, cs, win);
+                        if (st.clipPath && st.clipPath !== 'none') return false;
+                        if (!drawShape(node, ntag, st, mm, useOpacity * opacityChain(node, ref.parentNode), clip)) return false;
+                    }
+                    continue;
+                }
+
+                if (SHAPES.indexOf(tag) < 0) return false;
+                if (!drawShape(el, tag, cs, m, opacityChain(el, svg.parentNode), clip)) return false;
+            }
+        } catch (e) {
+            if (e === 'clip' || e === 0) return false;
+            throw e;
+        }
+
+        ops.forEach(function (op) {
+            if (op.kind === 'text') self.slide.addText(op.items, op.options);
+            else self.svgFreeform(op);
+        });
+        return true;
+    };
+
+    SlideWriter.prototype.svgFreeform = function (op) {
+        var b = op.box, self = this, pts = [];
+        function at(p) { return { x: self.len(p[0] - b.left), y: self.len(p[1] - b.top) }; }
+        op.pieces.forEach(function (pc) {
+            var first = at(pc.start);
+            first.moveTo = true;
+            pts.push(first);
+            pc.segs.forEach(function (sg) {
+                var o = at(sg.p);
+                if (sg.c1) { var c1 = at(sg.c1), c2 = at(sg.c2); o.curve = { type: 'cubic', x1: c1.x, y1: c1.y, x2: c2.x, y2: c2.y }; }
+                else if (sg.q) { var q = at(sg.q); o.curve = { type: 'quadratic', x1: q.x, y1: q.y }; }
+                pts.push(o);
+            });
+            if (pc.closed) pts.push({ close: true });
+        });
+        this.slide.addShape(this.pptx.ShapeType.custGeom, {
+            x: this.x(b.left), y: this.y(b.top),
+            w: this.len(Math.max(b.right - b.left, 0.5)), h: this.len(Math.max(b.bottom - b.top, 0.5)),
+            points: pts,
+            fill: op.fill ? { color: op.fill.hex, transparency: transparency(op.fill) } : { type: 'none' },
+            line: op.stroke
+                ? { color: op.stroke.hex, width: Math.max(0.25, this.pt(op.width)), transparency: transparency(op.stroke), dashType: op.dash || 'solid',
+                    beginArrowType: op.head ? op.head.type : undefined, beginArrowSize: op.head ? op.head.size : undefined,
+                    endArrowType: op.tail ? op.tail.type : undefined, endArrowSize: op.tail ? op.tail.size : undefined }
+                : { type: 'none' }
+        });
+    };
+
+    // One line of SVG text as a text box: set in the run's own font, placed
+    // by its baseline the way flush() places HTML text. Upright text is
+    // measured where the browser drew it; rotated text (a rotation and a
+    // uniform scale, no skew or mirror) is measured in its own coordinates
+    // and becomes a rotated text box. null when there is nothing to draw;
+    // false when it cannot be matched (a stroked outline, a skew, a fill
+    // PowerPoint cannot use).
+    SlideWriter.prototype.svgTextOp = function (text, nodes, m, lineCount) {
+        var win = this.win, doc = text.ownerDocument, self = this;
+        var upright = Math.abs(m.b) < 1e-6 && Math.abs(m.c) < 1e-6 && m.a > 0 && m.d > 0;
+        var rect = null, lineEl = null;
+        if (upright) {
+            var range = doc.createRange();
+            range.setStartBefore(nodes[0]);
+            range.setEndAfter(nodes[nodes.length - 1]);
+            rect = unionRects(range.getClientRects());
+            if (!rect || rect.right - rect.left < 0.5) return null;
+        } else {
+            if (Math.abs(Math.abs(m.a) - Math.abs(m.d)) > 1e-3 * Math.abs(m.a || m.b) + 1e-9 || Math.abs(m.b + m.c) > 1e-3 * Math.abs(m.a || m.b) + 1e-9 || m.a * m.d - m.b * m.c <= 0) return false;
+            // Each line has to be one element to measure: the <text>, or the
+            // <tspan> that positions it.
+            lineEl = lineCount === 1 ? text : nodes[0].parentNode && nodes[0].parentNode.closest && nodes[0].parentNode.closest('tspan[x], tspan[y]');
+            if (!lineEl || nodes.some(function (nd) { return !lineEl.contains(nd); })) return false;
+        }
+
+        var scale = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
+        var runs = [], first = null, anyEmbedded = true;
+        for (var i = 0; i < nodes.length; i++) {
+            var node = nodes[i], parent = node.parentNode;
+            var cs = win.getComputedStyle(parent);
+            if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+            if (cs.stroke !== 'none' && parseColor(cs.stroke)) return false;
+            if (/url\(/.test(cs.fill)) return false;
+            var raw = node.textContent.replace(/[\s​]+/g, ' ');
+            if (!raw) continue;
+            var fill = cs.fill === 'none' ? null : parseColor(cs.fill);
+            var opacity = 1;
+            for (var up = parent; up && up.nodeType === 1; up = up.parentNode) { opacity *= parseFloat(win.getComputedStyle(up).opacity); if (up.localName === 'svg') break; }
+            var weight = parseInt(cs.fontWeight, 10) || 400;
+            var font = runFont(cs.fontFamily, weight, doc);
+            var sizePx = (parseFloat(cs.fontSize) || 16) * scale;
+            var options = {
+                fontFace: font.name,
+                fontSize: Math.max(1, this.pt(sizePx)),
+                bold: font.bold,
+                italic: cs.fontStyle === 'italic' || cs.fontStyle === 'oblique'
+            };
+            if (fill) {
+                options.color = fill.hex;
+                var alpha = fill.alpha * parseFloat(cs.fillOpacity) * opacity;
+                if (alpha < 1) options.transparency = Math.round((1 - alpha) * 100);
+            } else {
+                options.transparency = 100;
+            }
+            var decoration = cs.textDecorationLine || cs.textDecoration || '';
+            if (decoration.indexOf('underline') >= 0) options.underline = { style: 'sng' };
+            if (decoration.indexOf('line-through') >= 0) options.strike = 'sngStrike';
+            var spacing = parseFloat(cs.letterSpacing);
+            if (spacing) options.charSpacing = Math.round(spacing * scale * this.map.s * PT_PER_PX * 10) / 10;
+            if (!font.embedded) anyEmbedded = false;
+            runs.push({ text: transformText(raw, cs.textTransform), options: options });
+            if (!first) first = { cs: cs, sizePx: sizePx, node: node };
+        }
+        if (!first) return null;
+        runs[0].text = runs[0].text.replace(/^ +/, '');
+        runs[runs.length - 1].text = runs[runs.length - 1].text.replace(/ +$/, '');
+        if (!runs.some(function (r) { return r.text.length; })) return null;
+
+        // The baseline: the top of the glyph box plus the ascent the browser
+        // used for that font, as for HTML text. Upright text is measured in
+        // screen pixels; rotated text in its own units, then turned.
+        var unit = upright ? 1 : scale;
+        var size = first.sizePx / unit;
+        var glyphTop, left, width;
+        if (upright) {
+            glyphTop = rect.top; left = rect.left; width = rect.right - rect.left;
+        } else {
+            var bb = lineEl.getBBox();
+            if (!(bb.width > 0)) return null;
+            glyphTop = bb.y; left = bb.x; width = bb.width;
+        }
+        metricsCanvas = metricsCanvas || doc.createElement('canvas');
+        var ctx = metricsCanvas.getContext('2d');
+        ctx.font = first.cs.fontStyle + ' ' + first.cs.fontWeight + ' ' + size + 'px ' + first.cs.fontFamily;
+        var mt = ctx.measureText('H');
+        var lineHeight = size * 1.2;
+        var baseline = glyphTop + (mt && typeof mt.fontBoundingBoxAscent === 'number' ? mt.fontBoundingBoxAscent : size * 0.8);
+        var top = baseline - (lineHeight - BASELINE_DESCENT * size);
+
+        var anchor = first.cs.textAnchor || 'start';
+        var align = anchor === 'middle' ? 'center' : anchor === 'end' ? 'right' : 'left';
+        var slack = anyEmbedded ? 0.3 * size : Math.min(16 / unit, Math.max(4 / unit, width * 0.05));
+        if (align === 'center') left -= slack / 2;
+        else if (align === 'right') left -= slack;
+        width += slack;
+
+        var items = runs.map(function (r) { return { text: r.text, options: r.options }; });
+        var common = { margin: 0, valign: 'top', align: align, wrap: false, fit: 'none', lineSpacing: this.pt(lineHeight * unit), paraSpaceBefore: 0, paraSpaceAfter: 0 };
+        if (upright) {
+            return {
+                kind: 'text', box: { left: left, top: top, right: left + width, bottom: top + lineHeight }, items: items,
+                options: Object.assign({ x: this.x(left), y: this.y(top), w: this.len(width), h: this.len(lineHeight) }, common)
+            };
+        }
+        // PowerPoint turns a text box about its centre: place the unturned
+        // box so its centre lands where the text's centre does on screen.
+        var cx = left + width / 2, cy = top + lineHeight / 2;
+        var sx = m.a * cx + m.c * cy + m.e, sy = m.b * cx + m.d * cy + m.f;
+        var w = width * unit, h = lineHeight * unit;
+        var angle = Math.atan2(m.b, m.a) * 180 / Math.PI;
+        angle = Math.round(((angle % 360) + 360) % 360 * 100) / 100;
+        var corners = [[left, top], [left + width, top], [left + width, top + lineHeight], [left, top + lineHeight]]
+            .map(function (p) { return [m.a * p[0] + m.c * p[1] + m.e, m.b * p[0] + m.d * p[1] + m.f]; });
+        return {
+            kind: 'text', box: boxOf(corners), items: items,
+            options: Object.assign({ x: this.x(sx - w / 2), y: this.y(sy - h / 2), w: this.len(w), h: this.len(h), rotate: angle }, common)
+        };
+    };
+
+    SlideWriter.prototype.addSvg = function (svg) {
+        var place = this.placement(svg);
+        if (!place) return;
+        if (this.svgShapes(svg)) return;
+
+        var clone = svg.cloneNode(true);
+        var source = [svg].concat(Array.prototype.slice.call(svg.querySelectorAll('*')));
+        var target = [clone].concat(Array.prototype.slice.call(clone.querySelectorAll('*')));
+        // Each element gets the presentation properties it does not inherit
+        // unchanged from its parent, so a drawing of thousands of shapes does
+        // not repeat twenty properties on every one of them. Colours are
+        // written as hex plus an explicit opacity: SVG readers outside the
+        // browser (PowerPoint's, LibreOffice's) do not all read the alpha of
+        // rgba() or color(), and would paint a translucent stroke opaque.
+        var baked = [];
+        for (var i = 0; i < source.length && i < target.length; i++) {
+            var cs = this.win.getComputedStyle(source[i]);
+            var parentIndex = source.indexOf(source[i].parentNode);
+            var parentValues = parentIndex >= 0 ? baked[parentIndex] : null;
+            var values = svgPresentation(cs);
+            baked.push(values);
+            var style = '';
+            for (var key in values) {
+                if (!values.hasOwnProperty(key)) continue;
+                var inherited = SVG_INHERITED[key];
+                if (parentValues && inherited && parentValues[key] === values[key]) continue;
+                if (parentValues && !inherited && SVG_INITIAL[key] === values[key]) continue;
+                style += key + ':' + values[key] + ';';
+            }
+            if (cs.display === 'none') style += 'display:none;';
+            target[i].setAttribute('style', style + (target[i].getAttribute('style') || ''));
+        }
+
+        replaceForeignObjects(svg, clone, this.win);
+        cropToVisible(svg, clone, place);
+
+        // Render the fallback PNG at twice the on-slide size so it stays crisp.
+        if (!clone.getAttribute('viewBox')) {
+            clone.setAttribute('viewBox', '0 0 ' + place.width + ' ' + place.height);
+        }
+        clone.setAttribute('width', String(Math.round(place.width * 2)));
+        clone.setAttribute('height', String(Math.round(place.height * 2)));
+        clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+        var markup = new XMLSerializer().serializeToString(clone);
+        var data = 'data:image/svg+xml;base64,' + utf8Base64(markup);
+        var slide = this.slide;
+
+        // PptxGenJS rasterises the SVG for its PNG fallback and fails the whole
+        // file if that throws (a tainted canvas, say). Try it here first; an SVG
+        // the browser cannot paint to a canvas goes in as nothing rather than
+        // taking the whole deck down with it.
+        var job = rasterise(data, place.width, place.height).then(function () {
+            slide.addImage({ data: data, x: place.x, y: place.y, w: place.w, h: place.h, altText: svg.getAttribute('aria-label') || '' });
+        }).catch(function (e) {
+            console.warn('[neko] PowerPoint export skipped an SVG:', e);
+        });
+        this.pending.push(job);
+    };
+
+    // PowerPoint and LibreOffice stretch an SVG picture to its frame and do
+    // not all honour preserveAspectRatio (`slice` above all), so the picture
+    // is given exactly the part of its viewBox the browser showed, with no
+    // aspect handling left to interpret.
+    function cropToVisible(svg, clone, place) {
+        var vb = svg.viewBox && svg.viewBox.baseVal;
+        if (!vb || !vb.width || !vb.height) return;
+        var par = (svg.getAttribute('preserveAspectRatio') || 'xMidYMid meet').trim().split(/\s+/);
+        var align = par[0], slice = par[1] === 'slice';
+        var boxAspect = place.width / place.height, vbAspect = vb.width / vb.height;
+        if (align === 'none' || Math.abs(boxAspect - vbAspect) < 0.001) return;
+        var x = vb.x, y = vb.y, w = vb.width, h = vb.height;
+        function frac(axis) {
+            var a = align.substring(axis === 'x' ? 0 : 4, axis === 'x' ? 4 : 8).toLowerCase();
+            return /min$/.test(a) ? 0 : /max$/.test(a) ? 1 : 0.5;
+        }
+        // slice: the viewBox is cropped to the frame; meet: it is padded out.
+        if ((boxAspect > vbAspect) === slice) {
+            var nh = w / boxAspect;
+            y += (h - nh) * frac('y');
+            h = nh;
+        } else {
+            var nw = h * boxAspect;
+            x += (w - nw) * frac('x');
+            w = nw;
+        }
+        clone.setAttribute('viewBox', [x, y, w, h].join(' '));
+        clone.setAttribute('preserveAspectRatio', 'none');
+    }
+
+    // <foreignObject> (Mermaid's HTML labels, for one) taints any canvas it is
+    // drawn to, which would sink the PNG fallback. Swap each one for plain SVG
+    // text centred in the same box.
+    function replaceForeignObjects(source, clone, win) {
+        var originals = source.querySelectorAll('foreignObject');
+        var copies = clone.querySelectorAll('foreignObject');
+        for (var i = 0; i < copies.length; i++) {
+            var fo = copies[i];
+            var orig = originals[i];
+            var text = (fo.textContent || '').replace(/\s+/g, ' ').trim();
+            var x = parseFloat(fo.getAttribute('x')) || 0;
+            var y = parseFloat(fo.getAttribute('y')) || 0;
+            var w = parseFloat(fo.getAttribute('width')) || 0;
+            var h = parseFloat(fo.getAttribute('height')) || 0;
+            if (!text) { fo.parentNode.removeChild(fo); continue; }
+
+            var inner = orig && (orig.querySelector('span, div, p') || orig);
+            var cs = inner ? win.getComputedStyle(inner) : null;
+            var node = clone.ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'text');
+            node.setAttribute('x', String(x + w / 2));
+            node.setAttribute('y', String(y + h / 2));
+            node.setAttribute('text-anchor', 'middle');
+            node.setAttribute('dominant-baseline', 'central');
+            if (cs) {
+                node.setAttribute('style', 'fill:' + cs.color + ';font-family:' + cs.fontFamily + ';font-size:' + cs.fontSize +
+                    ';font-weight:' + cs.fontWeight + ';font-style:' + cs.fontStyle);
+            }
+            node.textContent = text;
+            fo.parentNode.replaceChild(node, fo);
+        }
+    }
+
+    // ---------------------------------------------------------------- fonts
+
+    // Embedding the typefaces a deck uses, so the .pptx looks the same on a
+    // machine that has never installed them. PowerPoint loads an embedded font
+    // from ppt/fonts/*.fntdata only as Embedded OpenType (a TrueType file there
+    // is silently ignored), so each TrueType file is wrapped in an EOT header.
+    // Ported from Curiosity Workspace's PowerPoint artifacts (pptx-fonts.js).
+
+    function loadFontCatalog(base) {
+        if (window.nekoDeckFonts && window.nekoDeckFonts.catalog) {
+            fontCatalog = window.nekoDeckFonts.catalog;
+            return Promise.resolve();
+        }
+        if (!base) return Promise.resolve();
+        return fetch(base + 'deck-fonts.json').then(function (res) {
+            return res.ok ? res.json() : {};
+        }).then(function (catalog) { fontCatalog = catalog || {}; }, function () { fontCatalog = {}; });
+    }
+
+    // A Neko deck or document carries its fonts inline: each @font-face in
+    // <style id="neko-deck-fonts"> is a data URI, tagged with the file it came from.
+    function inlineFontUrl(file) {
+        var style = document.getElementById('neko-deck-fonts');
+        if (!style) return null;
+        var re = /\/\*neko-font:([^*]+)\*\/@font-face\{[^}]*?url\("?(data:[^")]+)"?\)/g, m;
+        while ((m = re.exec(style.textContent))) {
+            if (m[1] === file) return m[2];
+        }
+        return null;
+    }
+
+    function fontBytes(base, file) {
+        var inline = window.nekoDeckFonts && window.nekoDeckFonts.files && window.nekoDeckFonts.files[file];
+        if (inline) {
+            var s = atob(inline), out = new Uint8Array(s.length);
+            for (var i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+            return Promise.resolve(out);
+        }
+        return fetch(inlineFontUrl(file) || base + file).then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.arrayBuffer();
+        }).then(function (buffer) { return new Uint8Array(buffer); });
+    }
+
+    // What an Embedded OpenType header needs from the TrueType file: OS/2, head and name.
+    function readFontHeader(bytes) {
+        var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), tables = {};
+        for (var i = 0, n = dv.getUint16(4); i < n; i++) {
+            var o = 12 + i * 16;
+            tables[String.fromCharCode(bytes[o], bytes[o + 1], bytes[o + 2], bytes[o + 3])] = dv.getUint32(o + 8);
+        }
+        var os2 = tables['OS/2'], head = tables.head, name = tables.name, names = {};
+        var strings = name + dv.getUint16(name + 4);
+        for (var j = 0, m = dv.getUint16(name + 2); j < m; j++) {
+            var r = name + 6 + j * 12, id = dv.getUint16(r + 6), len = dv.getUint16(r + 8), off = dv.getUint16(r + 10);
+            if (dv.getUint16(r) !== 3 || dv.getUint16(r + 2) !== 1 || names[id] !== undefined) continue;   // Windows, UTF-16BE
+            var str = '';
+            for (var k = 0; k < len; k += 2) str += String.fromCharCode(dv.getUint16(strings + off + k));
+            names[id] = str;
+        }
+        return {
+            panose: bytes.slice(os2 + 32, os2 + 42),
+            weight: dv.getUint16(os2 + 4),
+            fsType: dv.getUint16(os2 + 8),
+            unicodeRange: [0, 1, 2, 3].map(function (x) { return dv.getUint32(os2 + 42 + x * 4); }),
+            italic: (dv.getUint16(os2 + 62) & 1) === 1,
+            codePageRange: dv.getUint16(os2) >= 1 ? [dv.getUint32(os2 + 78), dv.getUint32(os2 + 82)] : [0, 0],
+            checkSumAdjustment: dv.getUint32(head + 8),
+            strings: [names[1] || '', names[2] || '', names[5] || '', names[4] || '']
+        };
+    }
+
+    // Embedded OpenType 0x00020001: no compression, no XOR, an empty root string.
+    function toEOT(ttf) {
+        var f = readFontHeader(ttf);
+        var strs = f.strings.map(function (s) {
+            var b = new Uint8Array(s.length * 2);
+            for (var i = 0; i < s.length; i++) { b[i * 2] = s.charCodeAt(i) & 255; b[i * 2 + 1] = s.charCodeAt(i) >> 8; }
+            return b;
+        });
+        var size = 80 + strs.reduce(function (t, s) { return t + 4 + s.length; }, 0) + 4;
+        var out = new Uint8Array(size + ttf.length), dv = new DataView(out.buffer), p = 0;
+        function u32(v) { dv.setUint32(p, v >>> 0, true); p += 4; }
+        function u16(v) { dv.setUint16(p, v, true); p += 2; }
+        function u8(v) { dv.setUint8(p, v); p += 1; }
+        u32(out.length); u32(ttf.length); u32(0x00020001); u32(0);
+        f.panose.forEach(u8); u8(1); u8(f.italic ? 1 : 0); u32(f.weight); u16(f.fsType); u16(0x504C);
+        f.unicodeRange.forEach(u32); f.codePageRange.forEach(u32); u32(f.checkSumAdjustment);
+        u32(0); u32(0); u32(0); u32(0);
+        strs.forEach(function (s) { u16(0); u16(s.length); out.set(s, p); p += s.length; });
+        u16(0); u16(0);
+        out.set(ttf, p);
+        return out;
+    }
+
+    function escapeXml(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+
+    // The deck as PptxGenJS wrote it, with every catalog font its runs name
+    // added as an embedded font. Resolves to a Blob.
+    function embedFonts(buffer, base) {
+        var typefaces = Object.keys(usedFonts);
+        if (!typefaces.length || typeof window.JSZip !== 'function') return Promise.resolve(new Blob([buffer]));
+        return window.JSZip.loadAsync(buffer).then(function (zip) {
+            var jobs = [];
+            typefaces.forEach(function (typeface) {
+                Object.keys(usedFonts[typeface]).forEach(function (slot) {
+                    var file = usedFonts[typeface][slot];
+                    jobs.push(fontBytes(base, file).then(function (bytes) {
+                        return { typeface: typeface, slot: slot, eot: toEOT(bytes) };
+                    }, function (e) {
+                        console.warn('[neko] PowerPoint export could not embed', file, e);
+                        return null;
+                    }));
+                });
+            });
+            return Promise.all(jobs.concat([
+                zip.file('ppt/presentation.xml').async('string'),
+                zip.file('ppt/_rels/presentation.xml.rels').async('string'),
+                zip.file('[Content_Types].xml').async('string')
+            ])).then(function (results) {
+                var types = results.pop(), rels = results.pop(), presentation = results.pop();
+                var fonts = results.filter(Boolean);
+                if (!fonts.length) return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+                var byTypeface = {}, added = '', n = 0;
+                fonts.forEach(function (f) {
+                    n++;
+                    zip.file('ppt/fonts/neko-font' + n + '.fntdata', f.eot);
+                    added += '<Relationship Id="rIdNekoFont' + n + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/font" Target="fonts/neko-font' + n + '.fntdata"/>';
+                    (byTypeface[f.typeface] = byTypeface[f.typeface] || {})[f.slot] = 'rIdNekoFont' + n;
+                });
+                var list = '';
+                Object.keys(byTypeface).forEach(function (typeface) {
+                    list += '<p:embeddedFont><p:font typeface="' + escapeXml(typeface) + '" charset="0"/>';
+                    ['regular', 'bold', 'italic', 'boldItalic'].forEach(function (slot) {
+                        if (byTypeface[typeface][slot]) list += '<p:' + slot + ' r:id="' + byTypeface[typeface][slot] + '"/>';
+                    });
+                    list += '</p:embeddedFont>';
+                });
+                // CT_Presentation order: … sldSz, notesSz, smartTags, embeddedFontLst, …
+                presentation = presentation.replace(/(<p:notesSz[^>]*\/>)/, '$1<p:embeddedFontLst>' + list + '</p:embeddedFontLst>');
+                if (presentation.indexOf('embedTrueTypeFonts=') < 0) presentation = presentation.replace('<p:presentation ', '<p:presentation embedTrueTypeFonts="1" ');
+                if (types.indexOf('Extension="fntdata"') < 0) types = types.replace('<Default ', '<Default Extension="fntdata" ContentType="application/x-fontdata"/><Default ');
+                zip.file('ppt/presentation.xml', presentation);
+                zip.file('ppt/_rels/presentation.xml.rels', rels.replace('</Relationships>', added + '</Relationships>'));
+                zip.file('[Content_Types].xml', types);
+                return zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+            });
+        });
+    }
+
+    // Hands the file to the page's own saver when it has one (an embedding
+    // host that cannot start a download itself), else downloads it.
+    function saveBlob(blob, fileName) {
+        if (typeof window.nekoDeckSave === 'function') return Promise.resolve(window.nekoDeckSave(fileName, blob));
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1000);
+        return Promise.resolve(fileName);
+    }
+
+    // ---------------------------------------------------------------- driver
+
+    function exportDeck(options) {
+        options = options || {};
+        if (typeof window.PptxGenJS !== 'function') {
+            return Promise.reject(new Error('PptxGenJS is not loaded'));
+        }
+
+        imageCache = {};
+        fontCache = {};
+        usedFonts = {};
+        var fontsBase = options.fontsBase || '';
+
+        return loadFontCatalog(fontsBase).then(buildStage).then(function (frame) {
+            var win = frame.contentWindow;
+            var doc = frame.contentDocument;
+            var body = doc.body;
+            var slides = Array.prototype.slice.call(doc.querySelectorAll('.deck-slide'));
+            var brand = doc.querySelector('.deck-brand');
+
+            var pptx = new window.PptxGenJS();
+            pptx.layout = 'LAYOUT_WIDE';
+            if (options.title) pptx.title = options.title;
+            pptx.company = options.company || '';
+            pptx.subject = options.description || '';
+
+            var slideIds = {};
+            slides.forEach(function (s, i) { if (s.id) slideIds[s.id] = i + 1; });
+
+            var background = parseColor(win.getComputedStyle(body).backgroundColor) ||
+                parseColor(win.getComputedStyle(doc.documentElement).backgroundColor) || { hex: 'FFFFFF', alpha: 1 };
+
+            var pending = [];
+            slides.forEach(function (section, index) {
+                slides.forEach(function (s) { s.classList.remove('is-on'); });
+                section.classList.add('is-on');
+                win.scrollTo(0, 0);
+                if (typeof window.nekoDeckFitFigures === 'function') window.nekoDeckFitFigures(section);
+                materializeSlide(win, section);
+
+                // A slide taller than the frame is scaled down to fit — the
+                // on-screen deck would have scrolled it instead.
+                // A theme that clips its canvas (curiosity) never scrolls, so
+                // what overflows it is not part of the slide.
+                var clips = /hidden|clip/.test(win.getComputedStyle(section).overflow);
+                var height = clips ? SLIDE_H : Math.max(section.getBoundingClientRect().bottom, section.scrollHeight, SLIDE_H);
+                var s = Math.min(1, SLIDE_H / height);
+                var map = { s: s, ox: (SLIDE_W - SLIDE_W * s) / 2, oy: 0 };
+
+                var slide = pptx.addSlide();
+                slide.background = { color: background.hex };
+
+                var writer = new SlideWriter(pptx, slide, win, map, slideIds);
+                writer.walk(section);
+
+                if (brand) {
+                    // The brand mark is pinned to the viewport, not the slide, so
+                    // it keeps its corner regardless of any fit-to-slide scaling.
+                    writer.map = { s: 1, ox: 0, oy: 0 };
+                    writer.walk(brand);
+                }
+
+                pending = pending.concat(writer.pending);
+            });
+
+            return Promise.all(pending).then(function () {
+                var fileName = (options.fileName || slugify(options.title)).replace(/\.pptx$/i, '') + '.pptx';
+                return pptx.write({ outputType: 'arraybuffer', compression: true }).then(function (buffer) {
+                    return embedFonts(buffer, fontsBase);
+                }).then(function (blob) {
+                    return saveBlob(blob, fileName);
+                });
+            }).finally(function () {
+                if (frame.parentNode) frame.parentNode.removeChild(frame);
+            });
+        });
+    }
+
+    window.nekoDeckExportPptx = exportDeck;
+})();
